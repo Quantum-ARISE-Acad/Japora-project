@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { digitsOnly } from "@/lib/utils";
 import { parseDealNote } from "@/lib/bot";
+import { publicOrigin } from "@/lib/public-origin";
 
 const STATUS_LABELS: Record<string, { label: string; progress: number }> = {
   NEW: { label: "🕒 Nouvelle — En attente de confirmation par le vendeur", progress: 25 },
@@ -96,7 +97,7 @@ export async function POST(req: NextRequest) {
     }
 
     const origin =
-      req.nextUrl.origin || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5174";
+      publicOrigin(req);
 
     return NextResponse.json({
       ok: true,
