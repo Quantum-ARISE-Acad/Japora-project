@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#16a34a" />
+    <title>Soko — You are offline</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: #f1f5f9;
+        color: #0f172a;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        -webkit-font-smoothing: antialiased;
+      }
+      .card {
+        max-width: 420px;
+        width: 100%;
+        background: #ffffff;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        padding: 32px 24px;
+        text-align: center;
+      }
+      .logo {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        background: #16a34a;
+        color: #ffffff;
+        font-weight: 800;
+        font-size: 36px;
+        display: grid;
+        place-items: center;
+        margin: 0 auto 16px;
+        letter-spacing: -2px;
+      }
+      h1 { font-size: 22px; margin: 0 0 8px; color: #0f172a; }
+      p { color: #475569; line-height: 1.5; margin: 0 0 20px; font-size: 15px; }
+      .btn {
+        display: inline-block;
+        background: #16a34a;
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 600;
+        padding: 12px 20px;
+        border-radius: 12px;
+        font-size: 15px;
+      }
+      .btn:hover { background: #15803d; }
+      .hint { margin-top: 16px; font-size: 13px; color: #94a3b8; }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <div class="logo" aria-hidden="true">S</div>
+      <h1>You are offline</h1>
+      <p>No internet right now. Open WhatsApp instead — your customers and chats are still there.</p>
+      <a class="btn" href="https://wa.me/" rel="noopener">Open WhatsApp</a>
+      <p class="hint">Soko will reload as soon as you are back online.</p>
+    </main>
+  </body>
+</html>

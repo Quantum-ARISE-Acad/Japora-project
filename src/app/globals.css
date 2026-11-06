@@ -1,0 +1,200 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Aurora design system — tokens + glass utilities + M3 type scale. */
+@import "../styles/aurora.css";
+
+/* =====================================================================
+ * Dark-mode compatibility layer.
+ *
+ * Token-driven surfaces flip automatically (the arctic ramp inverts), but a
+ * number of dense legacy surfaces use LITERAL Tailwind colors — solid `bg-white`
+ * cards, pale `*-50` status tints. Those don't flip, so flipped (light) text
+ * lands on a light surface. These descendant overrides (`.dark .bg-white` →
+ * specificity 0,2,0) beat Tailwind's base utilities (0,1,0) and re-tint the most
+ * common offenders in one place. New code should use ramp/semantic tokens
+ * instead of literal colors (see the design system).
+ * ===================================================================== */
+.dark .bg-white { background-color: rgb(var(--c-200)) !important; }
+.dark .bg-white\/55,
+.dark .bg-white\/60,
+.dark .bg-white\/62,
+.dark .bg-white\/65,
+.dark .bg-white\/70,
+.dark .bg-white\/80,
+.dark .bg-white\/85,
+.dark .bg-white\/90,
+.dark .bg-white\/95 { background-color: rgb(var(--c-200) / 0.7) !important; }
+
+/* Pale status tints → translucent warm-dark equivalents (kanban, badges). */
+.dark .bg-emerald-50 { background-color: rgb(16 70 52 / 0.35) !important; }
+.dark .bg-amber-50   { background-color: rgb(120 90 20 / 0.26) !important; }
+.dark .bg-sky-50,
+.dark .bg-blue-50    { background-color: rgb(30 64 110 / 0.30) !important; }
+.dark .bg-indigo-50  { background-color: rgb(54 50 110 / 0.30) !important; }
+.dark .bg-red-50,
+.dark .bg-red-50\/80 { background-color: rgb(110 30 26 / 0.28) !important; }
+.dark .bg-arctic-100\/55,
+.dark .bg-arctic-200\/65 { background-color: rgb(var(--c-200) / 0.6) !important; }
+
+/* Brighter (-100) status tints — pills, badges. Map to the same warm-dark wash. */
+.dark .bg-emerald-100 { background-color: rgb(16 70 52 / 0.45) !important; }
+.dark .bg-amber-100   { background-color: rgb(120 90 20 / 0.34) !important; }
+.dark .bg-blue-100,
+.dark .bg-sky-100     { background-color: rgb(30 64 110 / 0.40) !important; }
+.dark .bg-indigo-100  { background-color: rgb(54 50 110 / 0.40) !important; }
+.dark .bg-red-100     { background-color: rgb(110 30 26 / 0.38) !important; }
+
+/* Status-tint text needs to lighten so it stays legible on the dark tints. */
+.dark .text-emerald-700,
+.dark .text-emerald-800 { color: #6ee7b7 !important; }
+.dark .text-amber-700,
+.dark .text-amber-800,
+.dark .text-amber-900   { color: #fcd34d !important; }
+.dark .text-red-600,
+.dark .text-red-700     { color: #fca5a5 !important; }
+.dark .text-sky-600,
+.dark .text-sky-700,
+.dark .text-blue-700    { color: #7dd3fc !important; }
+
+/* The Aurora gradient mesh background lives on <html> (see aurora.css).
+   Body inherits, but we lift content above the mesh with a subtle veil so
+   text contrast stays AAA on the lightest spots of the gradient. */
+html, body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer components {
+  /* ---------- Legacy bridge classes ----------
+   * The codebase uses .btn / .btn-primary / .btn-ghost / .btn-danger / .input
+   * / .label / .card across ~30 files. Rather than mass-rewrite, we redefine
+   * them on top of the Aurora language so every existing component reskins
+   * with zero churn. New code should prefer the M3 primitives in
+   * src/components/aurora/.
+   */
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-shape-xl
+           px-6 text-[14px] font-semibold tracking-[0.01em]
+           transition-all duration-short ease-spring
+           disabled:cursor-not-allowed disabled:opacity-40;
+    min-height: 44px; /* Fitts ≥ WCAG 2.5.5 AAA */
+  }
+  .btn:not(:disabled):hover { transform: translateY(-1px); }
+  .btn:not(:disabled):active { transform: translateY(0) scale(0.985); }
+
+  /* Primary = warm ink. Inverts cleanly in dark (arctic ramp flips). */
+  .btn-primary {
+    @apply btn bg-arctic-800 text-arctic-50 shadow-elev-1
+           hover:bg-arctic-900 hover:shadow-elev-2;
+  }
+  /* Ghost + input + card use theme-aware surface vars (not literal white) so
+     they flip with the .dark ramp. */
+  .btn-ghost {
+    @apply btn border border-arctic-400/50 text-arctic-800
+           backdrop-blur-glass-thin hover:border-brand/60;
+    background: var(--aurora-surface);
+  }
+  .btn-ghost:not(:disabled):hover { background: var(--aurora-surface-strong); }
+  .btn-danger {
+    @apply btn border border-red-300/60 text-red-700 backdrop-blur-glass-thin;
+    background: var(--aurora-error-bg);
+  }
+  .btn-danger:not(:disabled):hover { background: rgba(179, 38, 30, 0.16); }
+
+  /* M3 text field — outlined variant, glass-tinted, theme-aware. */
+  .input {
+    @apply w-full rounded-shape-md border border-arctic-400/45
+           px-3.5 py-2.5 text-[14px] text-arctic-900
+           backdrop-blur-glass-thin outline-none
+           transition duration-short ease-standard
+           placeholder:text-arctic-500
+           focus:border-brand/70
+           focus:ring-[3px] focus:ring-brand/30;
+    min-height: 44px;
+    background: var(--aurora-surface);
+  }
+  .input:focus { background: var(--aurora-surface-strong); }
+  .label {
+    @apply mb-1 block text-[12px] font-semibold tracking-[0.04em] uppercase
+           text-arctic-600;
+  }
+
+  /* Lumière glass card — theme-aware surface + warm hairline border. */
+  .card {
+    @apply rounded-shape-lg backdrop-blur-glass shadow-elev-1
+           transition-all duration-short ease-spring;
+    background: var(--aurora-surface);
+    border: 1px solid var(--glass-border);
+  }
+  .card:hover { box-shadow: var(--aurora-elev-2); }
+}
+
+/* =====================================================================
+ * Shop Themes Customizer (Japora public shop skins)
+ * ===================================================================== */
+[data-shop-theme="sunset"] {
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 50%, #fed7aa 100%) !important;
+}
+[data-shop-theme="sunset"] .btn-primary {
+  background-color: #ea580c !important;
+  color: #ffffff !important;
+}
+[data-shop-theme="sunset"] .btn-primary:hover {
+  background-color: #c2410c !important;
+}
+
+[data-shop-theme="emerald"] {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #bbf7d0 100%) !important;
+}
+[data-shop-theme="emerald"] .btn-primary {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+}
+[data-shop-theme="emerald"] .btn-primary:hover {
+  background-color: #047857 !important;
+}
+
+[data-shop-theme="midnight"] {
+  background: linear-gradient(135deg, #090d16 0%, #0f172a 50%, #1e1b4b 100%) !important;
+  color: #f8fafc !important;
+}
+[data-shop-theme="midnight"] header {
+  background-color: rgba(15, 23, 42, 0.92) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+[data-shop-theme="midnight"] .text-arctic-900,
+[data-shop-theme="midnight"] h1,
+[data-shop-theme="midnight"] h2,
+[data-shop-theme="midnight"] h3 {
+  color: #f8fafc !important;
+}
+[data-shop-theme="midnight"] .text-arctic-700,
+[data-shop-theme="midnight"] .text-arctic-600 {
+  color: #94a3b8 !important;
+}
+[data-shop-theme="midnight"] .card,
+[data-shop-theme="midnight"] .glass {
+  background-color: rgba(30, 41, 59, 0.75) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+[data-shop-theme="midnight"] .btn-primary {
+  background-color: #f59e0b !important;
+  color: #0f172a !important;
+}
+[data-shop-theme="midnight"] .btn-primary:hover {
+  background-color: #d97706 !important;
+}
+
+[data-shop-theme="indigo"] {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 50%, #ddd6fe 100%) !important;
+}
+[data-shop-theme="indigo"] .btn-primary {
+  background-color: #6366f1 !important;
+  color: #ffffff !important;
+}
+[data-shop-theme="indigo"] .btn-primary:hover {
+  background-color: #4f46e5 !important;
+}
+

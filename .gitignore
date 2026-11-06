@@ -1,0 +1,46 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/.next-synthetic/
+/out/
+/.vercel/
+
+# production
+/build
+
+# database
+prisma/dev.db
+prisma/dev.db-journal
+prisma/prisma/
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+
+# uploads (user content)
+/public/uploads/*
+!/public/uploads/.gitkeep
+
+# env & secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+
+# misc & backups
+.DS_Store
+*.bak
+npm-debug.log*
+.pnpm-debug.log*
+next-env.d.ts
+
+# typescript build cache
+*.tsbuildinfo
+
+# local preview tooling
+.claude/launch.json

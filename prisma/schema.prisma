@@ -1,0 +1,626 @@
+// WCatalog — WhatsApp Catalog & Order Manager
+// Postgres + Prisma. Status fields are plain strings (no native enums) so a
+// future provider swap stays mechanical and to keep migrations frictionless.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Vendor {
+  id              String    @id @default(cuid())
+  clerkId         String?   @unique
+  email           String    @unique
+  passwordHash    String
+  shopName        String
+  shopSlug        String    @unique
+
+  whatsappNumber  String    @default("")
+  // Mobile-money payee number for USSD/dial-code payments — the merchant number
+  // a buyer sends to on T-Money/Flooz/etc. Often the same SIM as WhatsApp, so
+  // the pay surface falls back to whatsappNumber when this is empty.
+  momoNumber      String    @default("")
+  // Meta WhatsApp Cloud API phone_number_id for this vendor's line. The inbound
+  // webhook maps an incoming phone_number_id → vendor via this (multi-tenant
+  // routing); unique so two vendors can't claim the same line.
+  whatsappPhoneNumberId String? @unique
+  currency        String    @default("USD")
+  tagline         String    @default("")
+  emailVerifiedAt DateTime?
+  onboardedAt     DateTime?
+  // WhatsApp OTP onboarding. phone is the login identity for vendors who sign
+  // up with a code instead of email/password. Unique; nullable for legacy
+  // email accounts.
+  phone           String?   @unique
+  phoneVerifiedAt DateTime?
+  // Away message + business hours (the bot replies with awayMessage outside
+  // hours). businessHours JSON: { enabled, days:[0-6], open:"HH:MM", close:"HH:MM" }.
+  // tzOffsetMinutes lets non-GMT markets compute "open now" (Togo = 0).
+  awayMessage     String    @default("")
+  businessHours   Json?
+  tzOffsetMinutes Int       @default(0)
+  // Cooperative / market-association membership (horizontal onboarding).
+  cooperativeId   String?
+  // Soko "verified shop" trust signal — granted when a vendor clears the
+  // criteria (phone verified + a threshold of paid orders) or is manually
+  // approved. Surfaced as a badge on the public catalog + marketplace.
+  verifiedAt      DateTime?
+
+  // Billing — Stripe subscriptions. Vendors get a 30-day trial at signup
+  // (trialEndsAt set, subscriptionStatus = "trialing"). Webhook keeps these
+  // in sync with Stripe.
+  // Spine tenant id for this vendor (`mch_...`), minted by WASpine when the
+  // merchant is registered there. Nullable and unique, like the other
+  // foreign-system ids above it: a vendor nobody has linked to the spine yet has
+  // no tenant, and the bus outbox refuses to guess one — two vendors sharing one
+  // tenant would be the cross-tenant leak the envelope exists to prevent.
+  spineTenantId        String?   @unique
+
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  subscriptionStatus   String    @default("trialing") // trialing | active | past_due | canceled | unpaid | incomplete
+  trialEndsAt          DateTime?
+  currentPeriodEnd     DateTime?
+
+  // Soko pivot — regional / category targeting, public profile, commission
+  // model. region+category power discovery; commissionPct drives our cut on
+  // confirmed paid orders (capped in app code). referralCode is the vendor's
+  // own invite slug.
+  region              String   @default("")
+  category            String   @default("")
+  language            String   @default("en")
+  referralCode        String?  @unique
+  referredByVendorId  String?
+  commissionPct       Float    @default(0.03)
+  isPublic            Boolean  @default(true)
+  bio                 String   @default("")
+  avatarUrl           String   @default("")
+  wholesaleEnabled    Boolean  @default(false)
+  uiPrefs             Json?
+
+  deliveryEnabled     Boolean  @default(false)
+  deliveryFeeCents    Int      @default(0)
+  deliveryZones       String   @default("")
+
+  // Soft-delete tombstone for GDPR account deletion. Keep the row so we can
+  // honour exports / disputes, but treat it as removed everywhere else.
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+
+  products              Product[]
+  orders                Order[]
+  messages              WhatsAppMessage[]
+  emails                EmailMessage[]
+  passwordResetTokens   PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  customers             Customer[]       @relation("VendorCustomers")
+  receivables           Receivable[]     @relation("VendorReceivables")
+  broadcasts            Broadcast[]      @relation("VendorBroadcasts")
+  affiliates            Affiliate[]      @relation("VendorAffiliates")
+  paymentIntents        PaymentIntent[]  @relation("VendorPaymentIntents")
+  botEvents             BotEvent[]       @relation("VendorBotEvents")
+  followers             Follower[]       @relation("VendorFollowers")
+  campaigns             Campaign[]       @relation("VendorCampaigns")
+  collections           Collection[]     @relation("VendorCollections")
+  reviews               Review[]         @relation("VendorReviews")
+  paymentLinks          PaymentLink[]    @relation("VendorPaymentLinks")
+  funnelEvents          FunnelEvent[]    @relation("VendorFunnelEvents")
+  cooperative           Cooperative?     @relation("CooperativeMembers", fields: [cooperativeId], references: [id], onDelete: SetNull)
+
+  @@index([deletedAt])
+  @@index([cooperativeId])
+}
+
+/**
+ * CTWA / paid-acquisition campaign. A vendor mints a campaign for a product;
+ * the trackable /go/<refCode> link counts clicks and tags the resulting
+ * WhatsApp conversation, so orders attribute back here (last-touch).
+ */
+model Campaign {
+  id                String          @id @default(cuid())
+  vendorId          String
+  vendor            Vendor          @relation("VendorCampaigns", fields: [vendorId], references: [id], onDelete: Cascade)
+  name              String
+  productId         String?
+  headline          String          @default("")
+  body              String          @default("")
+  cta               String          @default("Shop now")
+  refCode           String          @unique
+  clicks            Int             @default(0)
+  orders            Int             @default(0)
+  revenueCents      Int             @default(0)
+  spendCents        Int             @default(0)
+  status            String          @default("active")
+  approvedAt        DateTime?
+  approvedForPhone  String?
+  approvedBody      String?
+  approvalHash      String?
+  createdAt         DateTime        @default(now())
+  deletedAt         DateTime?
+  touches           CampaignTouch[]
+
+  @@index([vendorId])
+}
+
+/** A customer's WhatsApp message carrying a campaign ref — the attribution touch. */
+model CampaignTouch {
+  id         String   @id @default(cuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  phone      String
+  createdAt  DateTime @default(now())
+
+  @@index([phone])
+  @@index([campaignId])
+}
+
+/**
+ * A market association / cooperative — registers many vendors at once via a
+ * shared join code. The horizontal-growth play for WhatsApp-group markets.
+ */
+model Cooperative {
+  id            String   @id @default(cuid())
+  name          String
+  region        String   @default("")
+  joinCode      String   @unique
+  adminVendorId String?
+  createdAt     DateTime @default(now())
+  members       Vendor[] @relation("CooperativeMembers")
+}
+
+/**
+ * Opt-in followers of a shop — get "new drop" broadcasts. Distinct from
+ * Customer (who has bought): a follower has only asked to hear about new stock.
+ */
+model Follower {
+  id             String    @id @default(cuid())
+  vendorId       String
+  vendor         Vendor    @relation("VendorFollowers", fields: [vendorId], references: [id], onDelete: Cascade)
+  phone          String
+  name           String    @default("")
+  optInAt        DateTime  @default(now())
+  unsubscribedAt DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@unique([vendorId, phone])
+  @@index([vendorId])
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  vendorId    String
+  vendor      Vendor      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  name        String
+  description String      @default("")
+  priceCents  Int
+  imageUrl    String      @default("")
+  sizes       String      @default("") // comma-separated, e.g. "S,M,L"
+  stock       Int         @default(0)
+  isActive    Boolean     @default(true)
+  // Soko: bulk pricing + pre-order with deposits.
+  wholesalePriceCents Int?
+  wholesaleMinQty     Int     @default(1)
+  preOrderAllowed     Boolean @default(false)
+  depositPercent      Int     @default(0)
+  condition           String  @default("new") // new | used | refurbished
+  collectionId        String?
+  collection          Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  reviews             Review[]
+  createdAt           DateTime    @default(now())
+  orderItems          OrderItem[]
+
+  @@index([vendorId])
+  @@index([collectionId])
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  vendorId      String
+  vendor        Vendor      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  customerName  String
+  customerPhone String      @default("")
+  status        String      @default("NEW") // NEW | CONFIRMED | PAID | DELIVERED | CANCELLED
+  totalCents    Int         @default(0)
+  note          String      @default("")
+  source        String      @default("catalog") // catalog | whatsapp | manual
+  // Soko: optional CRM customer link + affiliate attribution + wholesale /
+  // pre-order semantics. paidCents tracks partial payments (deposits or
+  // installments); balanceDueAt is when the rest must clear.
+  customerId    String?
+  customer      Customer?   @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: SetNull)
+  affiliateId   String?
+  campaignId    String?     // CTWA / paid-acquisition attribution (last-touch)
+  isWholesale   Boolean     @default(false)
+  isPreOrder    Boolean     @default(false)
+  depositCents  Int         @default(0)
+  depositPaidAt DateTime?
+  balanceDueAt  DateTime?
+  paidCents     Int         @default(0)
+  sessionId     String?
+  // Soft-delete: DELETE handler sets this; queries filter `deletedAt: null`.
+  deletedAt     DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  items         OrderItem[]
+  paymentIntents PaymentIntent[]
+  receivables   Receivable[]
+
+  @@index([vendorId])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([customerId])
+  @@index([sessionId])
+}
+
+model FunnelEvent {
+  id            String    @id @default(cuid())
+  vendorId      String
+  vendor        Vendor    @relation("VendorFunnelEvents", fields: [vendorId], references: [id], onDelete: Cascade)
+  customerId    String?
+  customer      Customer? @relation("CustomerFunnelEvents", fields: [customerId], references: [id], onDelete: SetNull)
+  customerPhone String?
+  shopSlug      String
+  stage         String    // visit | product_view | cart | ussd_intent | confirmed_order
+  sessionId     String
+  productId     String?
+  orderId       String?
+  carrier       String?   // tmoney | flooz
+  valueCents    Int       @default(0)
+  createdAt     DateTime  @default(now())
+
+  @@index([vendorId, stage, createdAt])
+  @@index([vendorId, customerId])
+  @@index([vendorId, customerPhone])
+  @@index([sessionId])
+  @@index([orderId])
+}
+
+model OrderItem {
+  id             String   @id @default(cuid())
+  orderId        String
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId      String?
+  product        Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productName    String
+  size           String   @default("")
+  quantity       Int      @default(1)
+  unitPriceCents Int
+
+  @@index([orderId])
+}
+
+model EmailMessage {
+  id         String   @id @default(cuid())
+  vendorId   String?
+  vendor     Vendor?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  to         String
+  subject    String
+  body       String
+  status     String   @default("stubbed") // stubbed | sent | failed
+  providerId String?
+  error      String?
+  template   String? // welcome | verify_email | password_reset | new_order | ...
+  createdAt  DateTime @default(now())
+
+  @@index([vendorId])
+  @@index([template])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  vendorId  String
+  vendor    Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  // We store SHA-256 of the random secret, never the secret itself.
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([vendorId])
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  vendorId  String
+  vendor    Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([vendorId])
+}
+
+// Soko CRM — repeat-customer ledger. Aggregated stats (totalSpentCents,
+// orderCount, lastOrderAt) are denormalised so the dashboard avoids
+// per-render JOINs. Phone is unique per vendor.
+model Customer {
+  id              String       @id @default(cuid())
+  vendorId        String
+  vendor          Vendor       @relation("VendorCustomers", fields: [vendorId], references: [id], onDelete: Cascade)
+  name            String
+  phone           String
+  email           String?
+  totalSpentCents Int          @default(0)
+  orderCount      Int          @default(0)
+  lastOrderAt     DateTime?
+  notes                   String       @default("")
+  marketingConsent         Boolean?
+  marketingConsentBasis   String?
+  marketingConsentAt       DateTime?
+  marketingConsentRevokedAt DateTime?
+  createdAt               DateTime     @default(now())
+  deletedAt               DateTime?
+
+  orders          Order[]      @relation("CustomerOrders")
+  receivables     Receivable[]
+  funnelEvents    FunnelEvent[] @relation("CustomerFunnelEvents")
+
+  @@unique([vendorId, phone])
+  @@index([vendorId])
+}
+
+// Soko receivables — vendor-tracked IOUs for "pay later" orders. Order link
+// is SetNull so writing an order off keeps the receivable history intact.
+model Receivable {
+  id          String    @id @default(cuid())
+  vendorId    String
+  vendor      Vendor    @relation("VendorReceivables", fields: [vendorId], references: [id], onDelete: Cascade)
+  customerId  String?
+  customer    Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  orderId     String?
+  order       Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  amountCents Int
+  status      String    @default("OPEN") // OPEN | PARTIAL | PAID | WRITTEN_OFF
+  dueDate     DateTime?
+  paidAt      DateTime?
+  note        String    @default("")
+  createdAt   DateTime  @default(now())
+
+  @@index([vendorId, status])
+}
+
+// Soko broadcasts — bulk WhatsApp blasts from the dashboard. Status moves
+// draft -> scheduled -> sending -> sent (or failed). Targets resolved at
+// send time so segment changes between draft and send are honoured.
+model Broadcast {
+  id            String    @id @default(cuid())
+  vendorId      String
+  vendor        Vendor    @relation("VendorBroadcasts", fields: [vendorId], references: [id], onDelete: Cascade)
+  body          String
+  segment       String    @default("all")
+  targetCount   Int       @default(0)
+  sentCount     Int       @default(0)
+  status        String    @default("draft") // draft | scheduled | sending | sent | failed
+  scheduledFor  DateTime?
+  sentAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([vendorId])
+}
+
+// Soko affiliate program — vendors mint codes for resellers; attribution
+// rows record per-order commissions when those codes are used.
+model Affiliate {
+  id               String                  @id @default(cuid())
+  vendorId         String
+  vendor           Vendor                  @relation("VendorAffiliates", fields: [vendorId], references: [id], onDelete: Cascade)
+  code             String                  @unique
+  name             String
+  commissionPct    Float                   @default(0.10)
+  totalEarnedCents Int                     @default(0)
+  createdAt        DateTime                @default(now())
+  deletedAt        DateTime?
+
+  attributions     AffiliateAttribution[]
+
+  @@index([vendorId])
+}
+
+model AffiliateAttribution {
+  id              String    @id @default(cuid())
+  orderId         String
+  affiliateId     String
+  affiliate       Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  commissionCents Int
+  status          String    @default("pending") // pending | paid | void
+  paidAt          DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([affiliateId])
+  @@index([orderId])
+}
+
+// Soko vendor-to-vendor referral program. refereeVendorId is unique so a
+// vendor can only be claimed once.
+model Referral {
+  id                String    @id @default(cuid())
+  referrerVendorId  String
+  refereeVendorId   String    @unique
+  status            String    @default("pending") // pending | qualified | rewarded
+  rewardedAt        DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@index([referrerVendorId])
+}
+
+// Soko payments — single ledger across all rails (Paystack, Flutterwave,
+// M-Pesa, etc.). metadata is stringified JSON so we never need a JSONB
+// migration. status mirrors the provider's terminal state.
+model PaymentIntent {
+  id           String    @id @default(cuid())
+  orderId      String?
+  order        Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  vendorId     String
+  vendor       Vendor    @relation("VendorPaymentIntents", fields: [vendorId], references: [id], onDelete: Cascade)
+  provider     String
+  providerRef  String?
+  amountCents  Int
+  currency     String    @default("NGN")
+  status       String    @default("created") // created | pending | succeeded | failed | refunded
+  method       String?
+  metadata     String    @default("")
+  createdAt    DateTime  @default(now())
+  completedAt  DateTime?
+
+  @@index([vendorId])
+  @@index([orderId])
+  @@index([provider, status])
+}
+
+// Soko WhatsApp bot — inbound message log. Vendor link is optional so we
+// can record events from unknown numbers (multi-tenant routing failure).
+model BotEvent {
+  id        String   @id @default(cuid())
+  vendorId  String?
+  vendor    Vendor?  @relation("VendorBotEvents", fields: [vendorId], references: [id], onDelete: SetNull)
+  from      String
+  intent    String   @default("unknown")
+  raw       String
+  responded Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([vendorId])
+  @@index([from])
+}
+
+/**
+ * One-time codes for WhatsApp OTP onboarding/login. We store only the SHA-256
+ * hash of the 6-digit code (never plaintext), cap attempts, and expire fast.
+ */
+model OtpCode {
+  id         String    @id @default(cuid())
+  phone      String
+  codeHash   String
+  purpose    String    @default("login")
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([phone])
+}
+
+model WhatsAppMessage {
+  id        String   @id @default(cuid())
+  vendorId  String
+  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  direction String // IN | OUT
+  contact   String // phone number
+  body      String
+  status    String   @default("stubbed") // stubbed | sent | delivered | read | received | failed
+  // Provider message id (Meta wamid) for OUT messages — lets the status webhook
+  // match delivery/read receipts back to the row.
+  messageId String?
+  orderId   String?
+  createdAt DateTime @default(now())
+
+  @@index([vendorId])
+  @@index([messageId])
+}
+
+/**
+ * Per-vendor, per-day LLM call counter — backs the spend cap on the optional
+ * bot AI layer. `day` is an ISO date (YYYY-MM-DD, UTC). One row per vendor/day;
+ * the bot increments on each grounded LLM reply and refuses once `count`
+ * reaches JAPORA_LLM_DAILY_CAP_PER_VENDOR.
+ */
+model LlmUsage {
+  id        String   @id @default(cuid())
+  vendorId  String
+  day       String
+  count     Int      @default(0)
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([vendorId, day])
+  @@index([day])
+}
+
+/**
+ * The spine bus outbox — one row per fact the catalogue owes the ecosystem.
+ *
+ * Written inside the same transaction as the catalogue write it describes, so
+ * the product and the fact about the product commit together or not at all. The
+ * network is attempted afterwards and separately: publishing must never be able
+ * to refuse a merchant's catalogue update because the bus is unreachable.
+ *
+ * `status` is queued | sent | dead. A row that cannot be delivered stays here
+ * and stays counted — a lost event nobody was told about is how eight consumers
+ * wait for ever without anybody knowing.
+ *
+ * Deliberately no foreign key to Vendor: this is a fact about the past, and it
+ * must not be the thing that blocks an account deletion. `vendorId` is resolved
+ * to a spine tenant at send time, so linking a vendor drains their backlog
+ * instead of stranding it.
+ */
+model BusEvent {
+  id            String    @id @default(cuid())
+  type          String
+  vendorId      String
+  subjectType   String
+  subjectId     String
+  data          Json?
+  correlationId String    @default("")
+  actorType     String    @default("system")
+  actorId       String    @default("")
+  occurredAt    DateTime  @default(now())
+  status        String    @default("queued") // queued | sent | dead
+  attempts      Int       @default(0)
+  lastError     String    @default("")
+  sentAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([status, createdAt])
+  @@index([vendorId])
+  @@index([subjectId])
+}
+
+model Collection {
+  id          String    @id @default(cuid())
+  vendorId    String
+  vendor      Vendor    @relation("VendorCollections", fields: [vendorId], references: [id], onDelete: Cascade)
+  name        String
+  slug        String
+  description String    @default("")
+  createdAt   DateTime  @default(now())
+  products    Product[]
+
+  @@unique([vendorId, slug])
+  @@index([vendorId])
+}
+
+model Review {
+  id           String    @id @default(cuid())
+  productId    String
+  product      Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  vendorId     String
+  vendor       Vendor    @relation("VendorReviews", fields: [vendorId], references: [id], onDelete: Cascade)
+  customerName String
+  rating       Int       @default(5)
+  comment      String    @default("")
+  reply        String    @default("")
+  createdAt    DateTime  @default(now())
+
+  @@index([productId])
+  @@index([vendorId])
+}
+
+model PaymentLink {
+  id          String    @id @default(cuid())
+  vendorId    String
+  vendor      Vendor    @relation("VendorPaymentLinks", fields: [vendorId], references: [id], onDelete: Cascade)
+  amountCents Int
+  description String    @default("")
+  currency    String    @default("XOF")
+  expiresAt   DateTime?
+  isPaid      Boolean   @default(false)
+  paidAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([vendorId])
+}
+

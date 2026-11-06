@@ -1,0 +1,1 @@
+ALTER TABLE "Vendor" ADD COLUMN "uiPrefs" JSONB NOT NULL DEFAULT '{}';

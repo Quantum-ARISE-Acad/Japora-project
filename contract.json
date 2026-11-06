@@ -1,0 +1,209 @@
+{
+  "$schema": "../_ecosystem/contracts/product-contract.schema.json",
+  "id": "wcatalog",
+  "folder": "frontend/WCatalog",
+  "name": "Japora",
+  "tagline": "One product record, kept properly — the asset every other tool reads.",
+  "cluster": "commerce",
+  "wave": 2,
+  "status": "in-progress",
+  "owner": "unassigned",
+  "user_types": [
+    "micro-merchant",
+    "sme",
+    "creator",
+    "reseller-agency",
+    "diaspora-buyer"
+  ],
+  "merchant_tiers": [
+    "micro",
+    "small"
+  ],
+  "markets_at_launch": [
+    "TG-Lome"
+  ],
+  "entry_points": [
+    "whatsapp-inbound",
+    "web",
+    "qr-code",
+    "google-business-profile"
+  ],
+  "provides": [
+    "canonical-product-record",
+    "catalogue-render",
+    "collection-definition",
+    "collection-links",
+    "feed-validation",
+    "image-hosting",
+    "indexable-storefront",
+    "margin-floor",
+    "price-rules",
+    "sku-lifecycle-signal",
+    "stock-availability"
+  ],
+  "consumes": [
+    "ai-inference",
+    "claim-screen",
+    "event-bus",
+    "identity",
+    "infrastructure-capability"
+  ],
+  "emits_events": [
+    "catalog.collection.changed",
+    "catalog.price.changed",
+    "catalog.product.published",
+    "catalog.product.updated",
+    "catalog.sku.retired",
+    "catalog.stock.depleted",
+    "feed.validation.failed"
+  ],
+  "emits_events_specified_not_yet_built": [
+    "catalog.collection.changed",
+    "catalog.sku.retired",
+    "feed.validation.failed"
+  ],
+  "consumes_events": [
+    "brain.confidence.low",
+    "gate.approval.granted",
+    "order.created",
+    "order.payment.confirmed"
+  ],
+  "requires_capabilities": [
+    {
+      "capability": "relational-database",
+      "scale": "medium",
+      "budget": "paid",
+      "residency": "follow-merchant",
+      "revenue_path": true
+    },
+    {
+      "capability": "error-tracking",
+      "scale": "low",
+      "budget": "free-tier",
+      "residency": "any",
+      "revenue_path": false
+    },
+    {
+      "capability": "cdn-static-hosting",
+      "scale": "medium",
+      "budget": "free-tier",
+      "residency": "any",
+      "revenue_path": false
+    },
+    {
+      "capability": "scheduled-jobs",
+      "scale": "per-minute",
+      "budget": "paid",
+      "residency": "follow-merchant",
+      "revenue_path": false
+    }
+  ],
+  "ai_jobs": [
+    {
+      "job": "ocr-spreadsheet",
+      "route": "claude-sonnet-5",
+      "cached_prefix": false,
+      "batchable": true
+    },
+    {
+      "job": "product-photo-vision",
+      "route": "claude-sonnet-5",
+      "cached_prefix": false,
+      "batchable": true
+    },
+    {
+      "job": "intent-classification",
+      "route": "claude-haiku-4-5",
+      "cached_prefix": false,
+      "batchable": false
+    },
+    {
+      "job": "long-context-reasoning",
+      "route": "claude-opus-5",
+      "cached_prefix": true,
+      "batchable": true
+    }
+  ],
+  "background_automation": "Parses a workbook and proposes the column mapping, drafts titles, descriptions and category mappings from a photo plus a two-word row, flags missing identifiers before a destination silently rejects them, compresses and re-hosts images with a nightly reachability crawl, recomputes collection membership on every feed change, regenerates the storefront and pings the sitemap, decrements stock on payment, and computes the quarterly reprice-and-retire shortlist.",
+  "approval_gates": [],
+  "regulatory_flags": [
+    "data-protection",
+    "marketing-claims"
+  ],
+  "killswitch_env": "WA_WCATALOG_DISABLED",
+  "data_budgets": {
+    "first_paint_kb": 150,
+    "voice_note_kb": 300,
+    "product_image_kb": 100
+  },
+  "owns_numbers": [
+    "none"
+  ],
+  "revenue_model": "Free at 40 SKUs so a micro-merchant is not over-tooled. Paid above roughly 150 SKUs or multiple workbooks, plus a per-workbook onboarding fee for agencies migrating a merchant's book. The single 3% success-based commission on Japora-routed orders is collected by Spine, not charged again here.",
+  "ladder_rungs": [
+    "fruit",
+    "manna",
+    "bread"
+  ],
+  "free_window_dependency": false,
+  "repricing_plan": null,
+  "depends_on_products": [
+    "wabrain",
+    "waguard",
+    "waquartermaster",
+    "waspine"
+  ],
+  "absorbs_candidates": [
+    "pricelist-ingestor",
+    "catalogue-rescue",
+    "feed-core",
+    "listing-enricher",
+    "image-pipeline",
+    "price-currency-engine",
+    "stock-sync",
+    "collections-builder",
+    "schema-storefront",
+    "sku-lifecycle",
+    "selar-digital-feed",
+    "sabi-b2b-feed",
+    "catalogue-builder",
+    "whatsapp-storefront",
+    "ops-rail-bridge"
+  ],
+  "source_provenance": [
+    {
+      "claim": "A catalogue is not a photo album inside an app; it is a structured product feed that happens to have one rendering inside WhatsApp. Japora owns the canonical product record (id, title, description, price, condition, availability, image link, product link), and it gets there from where merchants actually keep it: an Excel or Sheets price book ingested table-region by table-region and written back t",
+      "source": "Product decomposition; see this product's SPEC.md"
+    }
+  ],
+  "docs": {
+    "spec": "SPEC.md",
+    "use_process": "docs/use-process.md"
+  },
+  "internal_features": [
+    "attribute-completion",
+    "b2b-price-tier",
+    "currency-normalization",
+    "destination-spec-registry",
+    "digital-product-feed",
+    "image-validation",
+    "listing-copy",
+    "marketplace-directory",
+    "ops-rail-inventory",
+    "oversell-guard",
+    "product-feed",
+    "product-link",
+    "reprice-proposal",
+    "schema-org-markup"
+  ],
+  "unmet_needs": [
+    "approval-gate",
+    "currency-minor-units",
+    "payment-checkout",
+    "short-link",
+    "whatsapp-transport"
+  ],
+  "unmet_event_needs": [
+    "delivery.completed"
+  ]
+}
