@@ -10,7 +10,8 @@ services:
       POSTGRES_DB: japora
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    networks: [internal, monitoring]
+    # Seulement le réseau interne : Caddy, exposé à Internet, ne peut pas joindre la base.
+    networks: [internal]
     security_opt: ["no-new-privileges:true"]
     mem_limit: 1g
     logging: &logging
