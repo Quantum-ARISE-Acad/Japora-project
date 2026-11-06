@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { recordClick, prefillText } from "@/lib/campaigns";
 import { logger } from "@/lib/logger";
+import { publicOrigin } from "@/lib/public-origin";
 
 /**
  * GET /go/<refCode> — the trackable CTWA link.
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ ref: string
 
   if (!hit || !hit.vendorPhone) {
     logger.warn("go.unknown_ref", { ref });
-    return NextResponse.redirect(new URL("/", req.url));
+    return NextResponse.redirect(new URL("/", publicOrigin(req)));
   }
 
   const text = prefillText({

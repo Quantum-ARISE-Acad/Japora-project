@@ -14,6 +14,7 @@ import { crossedToZero, stockDepleted } from "@/lib/catalog-events";
 import { normalizePhone, isValidPhone } from "@/lib/otp";
 import { sendEmail } from "@/lib/email";
 import { buyerOrderConfirmationEmail } from "@/lib/email-templates";
+import { publicOrigin } from "@/lib/public-origin";
 
 export async function GET(req: NextRequest) {
   const vendor = await getCurrentVendor();
@@ -231,7 +232,7 @@ export async function POST(req: NextRequest) {
   // Buyer email confirmation (if email provided)
   if (customerEmail && customerEmail.includes("@")) {
     try {
-      const origin = req.nextUrl.origin || "http://localhost:5174";
+      const origin = publicOrigin(req);
       const payUrl = `${origin}/pay/${order.id}`;
       const emailTemplate = buyerOrderConfirmationEmail({
         orderId: order.id,

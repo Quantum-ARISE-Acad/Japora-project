@@ -1,0 +1,11 @@
+# Japora — déploiement MVP de la Foire de Lomé.
+#
+# Utilisation : passez par deploy/mvp.sh (voir deploy/README.md), qui fournit les
+# fichiers de configuration .env.mvp et .env.keys à Docker Compose.
+name: wataru-mvp
+
+include:
+  - { path: deploy/compose/proxy.yml, project_directory: ., env_file: [.env.mvp, .env.keys] }
+  - { path: deploy/compose/data.yml, project_directory: ., env_file: [.env.mvp, .env.keys] }
+  - { path: deploy/compose/app.yml, project_directory: ., env_file: [.env.mvp, .env.keys] }
+  - { path: deploy/compose/observability.yml, project_directory: ., env_file: [.env.mvp, .env.keys] }
