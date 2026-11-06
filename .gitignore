@@ -3,7 +3,7 @@
 
 # next.js & vercel
 /.next/
-/.next-synthetic/
+/.next-*/
 /out/
 /.vercel/
 
