@@ -12,6 +12,12 @@ The app is a multi-vendor marketplace with a public directory (`/marketplace`), 
 
 ## Quick start
 
+> ### 🔐 Configuration `.env` pour l'équipe (Projet Privé)
+> Le fichier `.env` contenant les variables d'environnement de développement de l'équipe n'est pas versionné sur Git pour des raisons de sécurité.
+> - **Télécharger le fichier `.env` de l'équipe sur Google Drive** : [📂 Dossier Google Drive `.env` — Japora](https://drive.google.com/drive/folders/1XXs6psLdMgQMPkFWJYSFxkbAbfPUt4YR?usp=sharing)
+> - Placez le fichier `.env` téléchargé directement à la racine du projet avant de lancer l'application.
+> - Consultez également [`GIT_WORKFLOW.md`](./GIT_WORKFLOW.md) pour le fonctionnement des branches d'équipe (`develop`, `staging`, `main`).
+
 ```bash
 # 1. Start local Postgres (one-time per machine boot)
 colima start                 # if you're using Colima; skip on Docker Desktop
@@ -19,7 +25,7 @@ docker-compose up -d         # spins up the wcatalog-db container
 
 # 2. Install + initialise
 pnpm install                 # install + auto-generates the Prisma client
-pnpm db:deploy               # apply migrations
+pnpm db:push                 # apply schema to local database
 pnpm db:seed                 # populate the demo shop
 pnpm dev                     # http://localhost:5174
 ```
