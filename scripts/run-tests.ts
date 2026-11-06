@@ -22,7 +22,7 @@ process.once("SIGTERM", () => {
   process.exit(143);
 });
 
-const prismaCli = path.join(projectRoot, "node_modules", ".bin", "prisma");
+const prismaCli = path.join(projectRoot, "node_modules", "prisma", "build", "index.js");
 const databaseSuites = new Set([
   "bus.test.ts",
   "campaign-safety.test.ts",
@@ -94,7 +94,7 @@ for (const file of testFiles) {
       suiteFailed = true;
       suiteError = true;
     } else {
-      const setup = run(prismaCli, ["db", "push", "--schema", "prisma/schema.prisma", "--skip-generate"], suiteTemp, databaseUrl);
+      const setup = run(process.execPath, [prismaCli, "db", "push", "--schema", "prisma/schema.prisma", "--skip-generate"], suiteTemp, databaseUrl);
       if (setup.stdout) process.stdout.write(setup.stdout);
       if (setup.stderr) process.stderr.write(setup.stderr);
       if (setup.error || setup.status !== 0) {

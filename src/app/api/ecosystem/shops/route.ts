@@ -19,6 +19,7 @@ export async function GET() {
         whatsappNumber: true,
         momoNumber: true,
         currency: true,
+        category: true,
         verifiedAt: true,
         products: {
           select: {
@@ -54,7 +55,7 @@ export async function GET() {
           name: p.name,
           description: p.description,
           priceCents: p.priceCents,
-          category: p.collection?.name || "goods",
+          category: p.collection?.name || v.category || "goods",
           imageUrl: p.imageUrl,
           status: p.isActive ? "ACTIVE" : "INACTIVE",
         })),

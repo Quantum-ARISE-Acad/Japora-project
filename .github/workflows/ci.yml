@@ -55,10 +55,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate Prisma Client & Apply Migrations
+      - name: Generate Prisma Client & Sync Schema
         run: |
           pnpm exec prisma generate
-          pnpm exec prisma migrate deploy
+          pnpm exec prisma db push --skip-generate
 
       - name: TypeScript check
         run: pnpm exec tsc --noEmit
@@ -68,4 +68,3 @@ jobs:
 
       - name: Build production bundle
         run: pnpm build
-
