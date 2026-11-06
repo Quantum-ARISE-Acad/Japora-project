@@ -10,6 +10,7 @@ export default function ShopWhatsAppQrBanner({
   assistantName = "Assistant IA",
   whatsappPrefillMessage,
   onOpenWebAssistant,
+  onOpenShopAi,
 }: {
   shopName: string;
   shopSlug: string;
@@ -17,6 +18,7 @@ export default function ShopWhatsAppQrBanner({
   assistantName?: string;
   whatsappPrefillMessage?: string;
   onOpenWebAssistant?: () => void;
+  onOpenShopAi?: () => void;
 }) {
   const [waQrSvg, setWaQrSvg] = useState<string>("");
   const [zoomOpen, setZoomOpen] = useState(false);
@@ -59,6 +61,10 @@ export default function ShopWhatsAppQrBanner({
   function triggerWebAssistant() {
     if (onOpenWebAssistant) {
       onOpenWebAssistant();
+      return;
+    }
+    if (onOpenShopAi) {
+      onOpenShopAi();
       return;
     }
     if (typeof window !== "undefined") {

@@ -165,6 +165,8 @@ export type OutboundTemplate = {
   // Meta template components — left as `unknown[]` to avoid coupling to one
   // provider's shape. Stub provider just logs the count.
   components?: unknown[];
+  // Optional shorthand for body text parameters (converted into a body component).
+  parameters?: string[];
   orderId?: string | null;
 };
 
@@ -274,6 +276,16 @@ class CloudApiInteractive implements InteractiveCapable {
   }
 
   async sendTemplate(msg: OutboundTemplate) {
+    const components =
+      msg.components ??
+      (msg.parameters && msg.parameters.length > 0
+        ? [
+            {
+              type: "body",
+              parameters: msg.parameters.map((text) => ({ type: "text", text })),
+            },
+          ]
+        : undefined);
     return this.post({
       messaging_product: "whatsapp",
       recipient_type: "individual",
@@ -282,7 +294,7 @@ class CloudApiInteractive implements InteractiveCapable {
       template: {
         name: msg.templateName,
         language: { code: msg.languageCode },
-        ...(msg.components ? { components: msg.components } : {}),
+        ...(components ? { components } : {}),
       },
     });
   }

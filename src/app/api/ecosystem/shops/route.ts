@@ -26,9 +26,13 @@ export async function GET() {
             name: true,
             description: true,
             priceCents: true,
-            category: true,
             imageUrl: true,
-            status: true,
+            isActive: true,
+            collection: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
       },
@@ -50,9 +54,9 @@ export async function GET() {
           name: p.name,
           description: p.description,
           priceCents: p.priceCents,
-          category: p.category || "goods",
+          category: p.collection?.name || "goods",
           imageUrl: p.imageUrl,
-          status: p.status,
+          status: p.isActive ? "ACTIVE" : "INACTIVE",
         })),
       })),
     });

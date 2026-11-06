@@ -42,6 +42,7 @@ interface ShopAiAssistantProps {
   assistantName?: string;
   welcomeMessage?: string;
   whatsappPrefillMessage?: string;
+  externalOpenRequest?: number;
   onAddProductById?: (productId: string) => void;
   onBuyNowProductById?: (productId: string) => void;
   onViewProductById?: (productId: string) => void;
@@ -55,6 +56,7 @@ export default function ShopAiAssistant({
   assistantName,
   welcomeMessage,
   whatsappPrefillMessage,
+  externalOpenRequest,
   onAddProductById,
   onBuyNowProductById,
   onViewProductById,
@@ -138,6 +140,13 @@ export default function ShopAiAssistant({
     window.addEventListener("japora:open-ai-assistant", onOpenEvent);
     return () => window.removeEventListener("japora:open-ai-assistant", onOpenEvent);
   }, []);
+
+  useEffect(() => {
+    if (externalOpenRequest && externalOpenRequest > 0) {
+      setIsOpen(true);
+      setActiveTab("chat");
+    }
+  }, [externalOpenRequest]);
 
   // Generate QR code for WhatsApp redirect
   useEffect(() => {
