@@ -97,7 +97,8 @@ services:
       DATA_SOURCE_URI: postgres:5432/japora?sslmode=disable
       DATA_SOURCE_USER: japora
       DATA_SOURCE_PASS: ${POSTGRES_PASSWORD:?}
-    networks: [monitoring]
+    # Le seul service de supervision qui rejoint le réseau de la base, pour la mesurer.
+    networks: [internal, monitoring]
     security_opt: ["no-new-privileges:true"]
     mem_limit: 64m
     logging: *logging
