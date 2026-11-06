@@ -13,7 +13,7 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset --force",
     "db:synthetic-recovery": "tsx scripts/synthetic-recovery-demo.ts",
-    "setup": "prisma migrate deploy && tsx prisma/seed.ts",
+    "setup": "prisma db push && tsx prisma/seed.ts",
     "test": "node --import tsx scripts/run-tests.ts",
     "lh:mobile": "pnpm dlx lighthouse@latest http://localhost:5174/ --quiet --chrome-flags='--headless=new --no-sandbox' --only-categories=performance --view",
 
