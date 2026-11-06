@@ -38,6 +38,7 @@ Aucun développeur ne travaille directement sur `main`, `staging` ou `develop`. 
 
 - **`feat/<nom-fonctionnalite>`** : Nouvelle fonctionnalité (ex. `feat/paiement-tmoney`, `feat/catalogue-vendeur`)
 - **`fix/<nom-bug>`** : Correction de bug détecté en développement ou QA (ex. `fix/panier-calcul-total`)
+- **`refactor/<nom-tache>`** : Amélioration interne du code sans changement fonctionnel
 - **`chore/<nom-tache>`** : Maintenance, dépendances, configuration (ex. `chore/update-prisma`)
 - **`hotfix/<nom-correctif>`** : Bug critique en **production uniquement** (créée depuis `main`, puis fusionnée dans `main` **et** `develop`)
 
@@ -62,6 +63,8 @@ git checkout -b feat/ma-fonctionnalite
 - `chore: mise à jour du schéma Prisma`
 
 ```bash
+pnpm test
+pnpm build
 git add .
 git commit -m "feat: description claire du changement"
 git push -u origin feat/ma-fonctionnalite
@@ -69,8 +72,9 @@ git push -u origin feat/ma-fonctionnalite
 
 ### Étape 4 — Ouvrir une Pull Request (PR)
 1. Sur GitHub, ouvrir une **Pull Request** de `feat/ma-fonctionnalite` vers **`develop`**.
-2. Au moins **1 membre de l'équipe** relit le code (Code Review).
-3. Une fois approuvée, fusionner (**Squash and Merge** recommandé) dans `develop`.
+2. Attendre que la CI GitHub Actions (**Typecheck, Tests & Build**) passe au vert.
+3. Au moins **1 membre de l'équipe** relit le code (Code Review).
+4. Une fois approuvée, fusionner (**Squash and Merge** recommandé) dans `develop`.
 
 ---
 
@@ -89,3 +93,13 @@ git push -u origin feat/ma-fonctionnalite
 
 - **Ne jamais commiter** de fichiers `.env`, `.env.local`, `.env.production`, clés privées (`*.pem`, `*.key`), ni de bases SQLite locales (`*.db`).
 - Si une nouvelle variable d'environnement est nécessaire, l'ajouter **sans valeur secrète** dans `.env.example` et prévenir l'équipe.
+- La pipeline CI (`.github/workflows/ci.yml`) vérifie automatiquement à chaque push et Pull Request qu'aucun fichier `.env` ou `.db` n'est versionné.
+
+---
+
+## 6. Règles de Protection des Branches sur GitHub (Branch Protection)
+
+Dans **Settings ➔ Branches** sur le dépôt GitHub `Quantum-ARISE-Acad/Japora-project`, activer une règle de protection pour **`main`**, **`staging`** et **`develop`** :
+- [x] **Require a pull request before merging** (avec au moins 1 approbation pour `main` et `staging`)
+- [x] **Require status checks to pass before merging** (cocher le job CI `Typecheck, Tests & Build`)
+- [x] **Block force pushes**

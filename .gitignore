@@ -1,7 +1,7 @@
 # dependencies
 /node_modules
 
-# next.js
+# next.js & vercel
 /.next/
 /.next-synthetic/
 /out/
@@ -17,13 +17,13 @@ prisma/prisma/
 *.db
 *.db-*
 *.sqlite
-*.sqlite-*
+*.sqlite*
 
 # uploads (user content)
 /public/uploads/*
 !/public/uploads/.gitkeep
 
-# env & secrets
+# env & secrets (never commit sensitive files)
 .env
 .env.*
 !.env.example
@@ -35,6 +35,7 @@ prisma/prisma/
 # misc & backups
 .DS_Store
 *.bak
+next.config.synthetic.mjs
 npm-debug.log*
 .pnpm-debug.log*
 next-env.d.ts
@@ -43,4 +44,4 @@ next-env.d.ts
 *.tsbuildinfo
 
 # local preview tooling
-.claude/launch.json
+.claude/
