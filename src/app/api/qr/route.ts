@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { renderQrSvg } from "@/lib/qr";
-import { getClientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
+import { getClientIp, rateLimit, tooManyRequests, envLimit } from "@/lib/ratelimit";
 import { logger } from "@/lib/logger";
 
 /**
@@ -14,7 +14,7 @@ import { logger } from "@/lib/logger";
  */
 export async function GET(req: NextRequest) {
   const ip = getClientIp(req);
-  const rl = rateLimit({ key: `qr:${ip}`, limit: 60, windowMs: 60_000 });
+  const rl = rateLimit({ key: `qr:${ip}`, limit: envLimit("QR_RATE_LIMIT", 60), windowMs: 60_000 });
   if (!rl.allowed) return tooManyRequests(rl);
 
   const data = req.nextUrl.searchParams.get("data") || "";

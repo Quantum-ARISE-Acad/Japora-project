@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Vendor } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getCurrentVendor } from "@/lib/auth";
-import { getClientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
+import { getClientIp, rateLimit, tooManyRequests, envLimit } from "@/lib/ratelimit";
 import { logger } from "@/lib/logger";
 import { linkCartSessionToCustomer, upsertFromOrder } from "@/lib/customers";
 import { createForUnpaidOrder } from "@/lib/receivables";
@@ -62,12 +62,12 @@ export async function POST(req: NextRequest) {
     const slug = String(b.shopSlug || "");
     const rl = rateLimit({
       key: `order:${ip}:${slug}`,
-      limit: 10,
+      limit: envLimit("ORDER_RATE_LIMIT", 10),
       windowMs: 5 * 60_000,
     });
     if (!rl.allowed) {
       logger.warn("order.rate_limited", { ip, slug });
-      return tooManyRequests(rl, "Too many orders. Please try again in a few minutes.");
+      return tooManyRequests(rl, "Trop de commandes. Réessayez dans quelques minutes.");
     }
   }
 

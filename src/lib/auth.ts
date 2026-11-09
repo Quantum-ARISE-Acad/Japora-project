@@ -25,10 +25,10 @@ export function validateEmail(email: boolean | string): boolean {
 export type PasswordCheck = { ok: true } | { ok: false; reason: string };
 
 export function validatePassword(password: string): PasswordCheck {
-  if (password.length < 8) return { ok: false, reason: "Password must be at least 8 characters." };
-  if (password.length > 200) return { ok: false, reason: "Password is too long (max 200 chars)." };
-  if (!/[a-zA-Z]/.test(password)) return { ok: false, reason: "Password must include at least one letter." };
-  if (!/\d/.test(password)) return { ok: false, reason: "Password must include at least one number." };
+  if (password.length < 8) return { ok: false, reason: "Le mot de passe doit contenir au moins 8 caractères." };
+  if (password.length > 200) return { ok: false, reason: "Le mot de passe est trop long (200 caractères max)." };
+  if (!/[a-zA-Z]/.test(password)) return { ok: false, reason: "Le mot de passe doit contenir au moins une lettre." };
+  if (!/\d/.test(password)) return { ok: false, reason: "Le mot de passe doit contenir au moins un chiffre." };
   return { ok: true };
 }
 

@@ -16,6 +16,7 @@ ARG NEXT_PUBLIC_APP_URL="http://localhost:5174"
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY \
     NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
     DATABASE_URL="file:/data/dev.db" \
+    UPLOADS_DIR="/data/uploads" \
     NEXT_TELEMETRY_DISABLED=1
 RUN npx prisma generate && npm run build
 
