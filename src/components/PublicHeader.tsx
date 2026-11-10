@@ -156,7 +156,7 @@ export default function PublicHeader({ isAuthenticated = false, shopSlug }: Publ
                 {tr("Connexion", "Sign in")}
               </Link>
               <Link
-                href="/start"
+                href="/signup"
                 className="a-btn a-btn--cafe px-4 text-xs font-bold shadow-elev-1"
               >
                 {tr("Créer ma boutique", "Open a shop")}
@@ -222,7 +222,7 @@ export default function PublicHeader({ isAuthenticated = false, shopSlug }: Publ
                 <Link href="/login" className="btn-ghost w-full justify-center text-xs">
                   {tr("Connexion", "Sign in")}
                 </Link>
-                <Link href="/start" className="a-btn a-btn--cafe w-full justify-center text-xs font-bold">
+                <Link href="/signup" className="a-btn a-btn--cafe w-full justify-center text-xs font-bold">
                   {tr("Ouvrir ma boutique", "Open a shop")}
                 </Link>
               </div>

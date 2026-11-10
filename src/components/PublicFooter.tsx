@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { REGIONS, CATEGORIES } from "@/lib/regions";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import { CategoryIcon } from "@/components/ui/SaasIcons";
 
 const CATEGORY_FR: Record<string, string> = {
   fashion: "Mode & Wax",
@@ -120,13 +121,8 @@ export default function PublicFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="/start" className="hover:text-arctic-900 hover:underline">
-                  {tr("Inscription rapide WhatsApp OTP", "Quick WhatsApp OTP Signup")}
-                </Link>
-              </li>
-              <li>
                 <Link href="/signup" className="hover:text-arctic-900 hover:underline">
-                  {tr("Créer une boutique par Email", "Create Shop with Email")}
+                  {tr("Créer une boutique", "Create a Shop")}
                 </Link>
               </li>
               <li>
@@ -149,7 +145,7 @@ export default function PublicFooter() {
                     href={`/marketplace?category=${c.slug}`}
                     className="inline-flex items-center gap-1.5 hover:text-arctic-900 hover:underline"
                   >
-                    <span>{c.icon}</span>
+                    <CategoryIcon slug={c.slug} size={14} className="text-brand-dark" />
                     <span>{tr(CATEGORY_FR[c.slug] || c.label, c.label)}</span>
                   </Link>
                 </li>
@@ -246,7 +242,7 @@ export default function PublicFooter() {
             <Link href="/privacy" className="hover:text-arctic-900">
               {tr("Confidentialité", "Privacy")}
             </Link>
-            <Link href="/start" className="font-bold text-arctic-900 hover:underline">
+            <Link href="/signup" className="font-bold text-arctic-900 hover:underline">
               {tr("Ouvrir ma boutique →", "Open my shop →")}
             </Link>
           </div>

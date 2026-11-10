@@ -7,6 +7,7 @@ import VerifiedBadge from "@/components/VerifiedBadge";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import { SaasIcon, CategoryIcon, type SaasIconName } from "@/components/ui/SaasIcons";
 
 const CATEGORY_FR: Record<string, string> = {
   fashion: "Mode & Wax",
@@ -74,8 +75,8 @@ export default function LandingClient({
                 {/* Bottom overlay inside the image frame */}
                 <div className="absolute bottom-3.5 left-3.5 right-3.5 flex flex-wrap items-center justify-between gap-2 rounded-shape-md border border-white/25 bg-white/90 p-3 text-arctic-900 shadow-elev-2 backdrop-blur-md">
                   <div className="flex items-center gap-2.5">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-700 text-xs font-bold text-white">
-                      ✓
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-700 text-white">
+                      <SaasIcon name="check" size={16} />
                     </span>
                     <div>
                       <div className="text-xs font-bold text-arctic-900">
@@ -160,15 +161,15 @@ export default function LandingClient({
 
             <p className="a-body-lg a-measure mt-4 leading-relaxed text-arctic-700">
               {tr(
-                "Créez votre boutique en ligne en 90 secondes, laissez votre assistant WhatsApp répondre aux clients 24h/24, encaissez par Mobile Money (T-Money, Flooz, Wave, Orange Money) et pilotez vos stocks, vos livraisons et votre chiffre d'affaires en temps réel.",
-                "Create your online storefront in 90 seconds, let your WhatsApp assistant reply to customers 24/7, accept Mobile Money payments (T-Money, Flooz, Wave, Orange Money), and manage your inventory, deliveries, and revenue in real time."
+                "Créez votre boutique en ligne en quelques instants, laissez votre assistant WhatsApp répondre aux clients 24h/24, encaissez par Mobile Money (T-Money, Flooz, Wave, Orange Money) et pilotez vos stocks, vos livraisons et votre chiffre d'affaires en temps réel.",
+                "Create your online storefront in moments, let your WhatsApp assistant reply to customers 24/7, accept Mobile Money payments (T-Money, Flooz, Wave, Orange Money), and manage your inventory, deliveries, and revenue in real time."
               )}
             </p>
 
             {/* Primary CTAs */}
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <Link
-                href="/start"
+                href="/signup"
                 className="a-btn a-btn--cafe a-btn--lg font-bold shadow-elev-2"
               >
                 <span>
@@ -177,13 +178,13 @@ export default function LandingClient({
                     "Open my free shop now"
                   )}
                 </span>
-                <span>→</span>
+                <SaasIcon name="arrow-right" size={16} />
               </Link>
               <Link
                 href="/marketplace"
                 className="btn-ghost a-btn--lg flex items-center gap-2"
               >
-                <span>🛍️</span>
+                <SaasIcon name="store" size={16} className="text-brand-dark" />
                 <span>
                   {tr("Explorer le Marketplace", "Explore the Marketplace")}
                 </span>
@@ -194,12 +195,12 @@ export default function LandingClient({
             <div className="mt-7 grid grid-cols-3 gap-3 border-t border-arctic-200/70 pt-5">
               <div>
                 <div className="a-num font-display text-lg font-bold text-arctic-900">
-                  ~90 sec
+                  ~2 min
                 </div>
                 <div className="text-[11px] text-arctic-600">
                   {tr(
-                    "Création rapide par WhatsApp",
-                    "Quick setup via WhatsApp"
+                    "Mise en ligne de votre boutique",
+                    "Quick storefront setup"
                   )}
                 </div>
               </div>
@@ -252,13 +253,13 @@ export default function LandingClient({
 
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {[
-                  { name: "T-Money", region: "🇹🇬 Togo" },
-                  { name: "Flooz (Moov)", region: "🇹🇬 🇧🇯 UEMOA" },
-                  { name: "CinetPay", region: "🌍 West Africa" },
-                  { name: "Wave", region: "🇸🇳 🇨🇮 SN / CI" },
-                  { name: "Orange Money", region: "🌍 Zone Franc" },
-                  { name: "MTN MoMo", region: "🇧🇯 🇬🇭 🇨🇮" },
-                  { name: "Paystack & M-Pesa", region: "🇳🇬 🇰🇪" },
+                  { name: "T-Money", region: "TG · Togo" },
+                  { name: "Flooz (Moov)", region: "TG · BJ · UEMOA" },
+                  { name: "CinetPay", region: "West Africa" },
+                  { name: "Wave", region: "SN · CI" },
+                  { name: "Orange Money", region: "Zone Franc" },
+                  { name: "MTN MoMo", region: "BJ · GH · CI" },
+                  { name: "Paystack & M-Pesa", region: "NG · KE" },
                 ].map((p) => (
                   <div
                     key={p.name}
@@ -266,7 +267,9 @@ export default function LandingClient({
                   >
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
                     <span className="font-bold text-arctic-900">{p.name}</span>
-                    <span className="text-[10px] text-arctic-500">{p.region}</span>
+                    <span className="rounded bg-arctic-100 px-1.5 py-0.5 text-[10px] font-semibold text-arctic-600">
+                      {p.region}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -306,7 +309,7 @@ export default function LandingClient({
             >
               <div className="relative flex-1">
                 <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-arctic-500">
-                  🔍
+                  <SaasIcon name="search" size={18} />
                 </span>
                 <input
                   type="text"
@@ -334,7 +337,7 @@ export default function LandingClient({
                   href={`/marketplace?category=${c.slug}`}
                   className="inline-flex items-center gap-1.5 rounded-shape-full border border-arctic-300/70 bg-white/85 px-3.5 py-1.5 text-xs font-semibold text-arctic-800 shadow-xs transition-all hover:-translate-y-0.5 hover:border-brand hover:bg-white"
                 >
-                  <span>{c.icon}</span>
+                  <CategoryIcon slug={c.slug} size={14} className="text-brand-dark" />
                   <span>{tr(CATEGORY_FR[c.slug] || c.label, c.label)}</span>
                 </Link>
               ))}
@@ -349,9 +352,10 @@ export default function LandingClient({
                 <Link
                   key={r.slug}
                   href={`/marketplace/${r.slug}`}
-                  className="rounded-md px-2 py-0.5 font-medium text-arctic-700 hover:bg-arctic-200/60 hover:text-arctic-900"
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-medium text-arctic-700 hover:bg-arctic-200/60 hover:text-arctic-900"
                 >
-                  📍 {r.label}
+                  <SaasIcon name="map-pin" size={12} className="text-brand-dark" />
+                  <span>{r.label}</span>
                 </Link>
               ))}
             </div>
@@ -381,7 +385,7 @@ export default function LandingClient({
                     "View all shops in Marketplace"
                   )}
                 </span>
-                <span>→</span>
+                <SaasIcon name="arrow-right" size={14} />
               </Link>
             </div>
 
@@ -417,20 +421,28 @@ export default function LandingClient({
                                 <VerifiedBadge size="sm" withLabel={false} />
                               )}
                             </div>
-                            <div className="truncate text-xs text-arctic-500">
-                              📍{" "}
-                              {regionObj
-                                ? `${regionObj.label}, ${regionObj.country}`
-                                : shop.region || "Togo"}{" "}
-                              ·{" "}
-                              {categoryObj
-                                ? `${categoryObj.icon} ${tr(
-                                    CATEGORY_FR[categoryObj.slug] ||
-                                      categoryObj.label,
-                                    categoryObj.label
-                                  )}`
-                                : shop.category ||
-                                  tr("Commerce", "General")}
+                            <div className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-arctic-500">
+                              <SaasIcon name="map-pin" size={12} className="text-arctic-400" />
+                              <span className="truncate">
+                                {regionObj
+                                  ? `${regionObj.label}, ${regionObj.country}`
+                                  : shop.region || "Togo"}
+                              </span>
+                              <span>·</span>
+                              <span className="inline-flex items-center gap-1 truncate">
+                                <CategoryIcon
+                                  slug={categoryObj?.slug}
+                                  size={12}
+                                  className="text-brand-dark"
+                                />
+                                {categoryObj
+                                  ? tr(
+                                      CATEGORY_FR[categoryObj.slug] ||
+                                        categoryObj.label,
+                                      categoryObj.label
+                                    )
+                                  : shop.category || tr("Commerce", "General")}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -481,7 +493,7 @@ export default function LandingClient({
                           )}
                         </span>
                         <span className="transition-transform group-hover:translate-x-1">
-                          →
+                          <SaasIcon name="arrow-right" size={14} />
                         </span>
                       </div>
                     </Link>
@@ -500,7 +512,7 @@ export default function LandingClient({
                   <Link href="/marketplace" className="btn-primary text-xs">
                     {tr("Ouvrir le Marketplace", "Open Marketplace")}
                   </Link>
-                  <Link href="/start" className="btn-ghost text-xs">
+                  <Link href="/signup" className="btn-ghost text-xs">
                     {tr("Inscrire ma boutique", "List my shop")}
                   </Link>
                 </div>
@@ -569,8 +581,8 @@ export default function LandingClient({
                   "Get paid where your customers are"
                 ),
                 body: tr(
-                  "T-Money, Flooz, Wave, Orange Money ou paiement à la livraison. Le client règle dans la conversation et votre commande passe en « ✓ Payé » dès confirmation.",
-                  "T-Money, Flooz, Wave, Orange Money, or Cash on Delivery. Customers pay inline and your order flips to '✓ Paid' the moment money clears."
+                  "T-Money, Flooz, Wave, Orange Money ou paiement à la livraison. Le client règle dans la conversation et votre commande passe en « Payé » dès confirmation.",
+                  "T-Money, Flooz, Wave, Orange Money, or Cash on Delivery. Customers pay inline and your order flips to 'Paid' the moment money clears."
                 ),
                 bullets: [
                   tr(
@@ -644,7 +656,7 @@ export default function LandingClient({
                   <ul className="mt-4 space-y-1.5 border-t border-arctic-200/70 pt-3 text-xs text-arctic-800">
                     {f.bullets.map((b) => (
                       <li key={b} className="flex items-start gap-2">
-                        <span className="font-bold text-brand-dark">✓</span>
+                        <SaasIcon name="check" size={14} className="mt-0.5 text-brand-dark" />
                         <span>{b}</span>
                       </li>
                     ))}
@@ -675,7 +687,7 @@ export default function LandingClient({
             {/* Sans Japora */}
             <div className="rounded-shape-xl border border-arctic-300/70 bg-white/60 p-6 sm:p-8">
               <div className="inline-flex items-center gap-2 rounded-full bg-red-500/10 px-3 py-1 text-xs font-bold text-red-700">
-                <span>✕</span>
+                <SaasIcon name="x" size={14} />
                 <span>
                   {tr(
                     "Vendre sur WhatsApp sans outil",
@@ -713,7 +725,7 @@ export default function LandingClient({
                   ),
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-2.5">
-                    <span className="mt-0.5 font-bold text-red-600">✕</span>
+                    <SaasIcon name="x" size={15} className="mt-0.5 text-red-600" />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -723,7 +735,7 @@ export default function LandingClient({
             {/* Avec Japora */}
             <div className="glass glass-edge relative overflow-hidden rounded-shape-xl border-brand/40 p-6 shadow-elev-2 sm:p-8">
               <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-800">
-                <span>✓</span>
+                <SaasIcon name="check" size={14} />
                 <span>
                   {tr(
                     "Avec votre boutique Japora",
@@ -761,7 +773,7 @@ export default function LandingClient({
                   ),
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-2.5">
-                    <span className="mt-0.5 font-bold text-emerald-700">✓</span>
+                    <SaasIcon name="check" size={15} className="mt-0.5 text-emerald-700" />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -793,111 +805,115 @@ export default function LandingClient({
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              {
-                icon: "📦",
-                tag: tr("Logistique locale", "Local Logistics"),
-                title: tr(
-                  "Tarifs de livraison par quartier",
-                  "Neighborhood Delivery Zones"
-                ),
-                desc: tr(
-                  "Configurez vos zones (Lomé Centre, Agoè, Baguida, Akpakpa, Cocody…) avec calcul automatique des frais.",
-                  "Set your delivery rates by neighborhood (Lomé Center, Agoè, Cocody…) with automatic fee calculation."
-                ),
-              },
-              {
-                icon: "🔗",
-                tag: tr("Encaissement", "Payments"),
-                title: tr(
-                  "Liens de paiement & Acomptes",
-                  "Payment Links & Deposits"
-                ),
-                desc: tr(
-                  "Générez un lien de paiement Mobile Money en 5 secondes pour sécuriser une commande sur-mesure ou une précommande.",
-                  "Create a Mobile Money payment link in 5 seconds to secure custom orders or pre-order deposits."
-                ),
-              },
-              {
-                icon: "📒",
-                tag: tr("CRM & Crédit", "CRM & Credit"),
-                title: tr(
-                  "Fichier clients & Créances",
-                  "Customer Ledger & Receivables"
-                ),
-                desc: tr(
-                  "Historique d'achats par numéro WhatsApp, statut VIP fidélité automatique et suivi des ventes à crédit.",
-                  "Purchase history by WhatsApp phone number, automatic VIP loyalty tiers, and pay-later credit tracking."
-                ),
-              },
-              {
-                icon: "📣",
-                tag: tr("Fidélisation", "Retention"),
-                title: tr(
-                  "Diffusions & Alertes Nouveautés",
-                  "Broadcasts & New Drop Alerts"
-                ),
-                desc: tr(
-                  "Vos clients s'abonnent à votre boutique (🔔 Follow) et reçoivent une alerte dès qu'un nouvel arrivage tombe.",
-                  "Shoppers follow your store (🔔 Follow) and get notified on WhatsApp whenever you post a new arrival."
-                ),
-              },
-              {
-                icon: "📲",
-                tag: tr("Réseaux sociaux", "Social Kit"),
-                title: tr(
-                  "Kit Statut WhatsApp, IG & TikTok",
-                  "WhatsApp Status, IG & TikTok Kit"
-                ),
-                desc: tr(
-                  "Téléchargez des visuels produits prêts à poster sur votre Statut WhatsApp avec légende pré-rédigée.",
-                  "Download ready-to-post product cards formatted for WhatsApp Status, Instagram, and TikTok."
-                ),
-              },
-              {
-                icon: "🤝",
-                tag: tr("Croissance", "Growth"),
-                title: tr(
-                  "Affiliés & Coopératives",
-                  "Affiliates & Cooperatives"
-                ),
-                desc: tr(
-                  "Créez des codes affiliés pour vos apporteurs d'affaires ou rejoignez une coopérative de commerçants locale.",
-                  "Generate affiliate codes for promoters or join a local merchant cooperative to sell together."
-                ),
-              },
-              {
-                icon: "📊",
-                tag: tr("Finance", "Bookkeeping"),
-                title: tr(
-                  "Comptabilité P&L Mensuelle",
-                  "Monthly P&L Bookkeeping"
-                ),
-                desc: tr(
-                  "Revenus confirmés, dépenses manuelles et marge nette calculés automatiquement et exportables en CSV/JSON.",
-                  "Confirmed revenue, manual expenses, and net profit automatically calculated and exportable to CSV/JSON."
-                ),
-              },
-              {
-                icon: "⚡",
-                tag: tr("Performance 2G/3G", "2G/3G Ready"),
-                title: tr(
-                  "PWA Légère & Compression Photo",
-                  "Lightweight PWA & Image Compression"
-                ),
-                desc: tr(
-                  "Application installable sur Android/iOS avec compression d'images automatique pour économiser vos forfaits data.",
-                  "Installable on Android/iOS with client-side image compression so you never waste mobile data."
-                ),
-              },
-            ].map((item) => (
+            {(
+              [
+                {
+                  icon: "truck" as SaasIconName,
+                  tag: tr("Logistique locale", "Local Logistics"),
+                  title: tr(
+                    "Tarifs de livraison par quartier",
+                    "Neighborhood Delivery Zones"
+                  ),
+                  desc: tr(
+                    "Configurez vos zones (Lomé Centre, Agoè, Baguida, Akpakpa, Cocody…) avec calcul automatique des frais.",
+                    "Set your delivery rates by neighborhood (Lomé Center, Agoè, Cocody…) with automatic fee calculation."
+                  ),
+                },
+                {
+                  icon: "link" as SaasIconName,
+                  tag: tr("Encaissement", "Payments"),
+                  title: tr(
+                    "Liens de paiement & Acomptes",
+                    "Payment Links & Deposits"
+                  ),
+                  desc: tr(
+                    "Générez un lien de paiement Mobile Money en 5 secondes pour sécuriser une commande sur-mesure ou une précommande.",
+                    "Create a Mobile Money payment link in 5 seconds to secure custom orders or pre-order deposits."
+                  ),
+                },
+                {
+                  icon: "users" as SaasIconName,
+                  tag: tr("CRM & Crédit", "CRM & Credit"),
+                  title: tr(
+                    "Fichier clients & Créances",
+                    "Customer Ledger & Receivables"
+                  ),
+                  desc: tr(
+                    "Historique d'achats par numéro WhatsApp, statut VIP fidélité automatique et suivi des ventes à crédit.",
+                    "Purchase history by WhatsApp phone number, automatic VIP loyalty tiers, and pay-later credit tracking."
+                  ),
+                },
+                {
+                  icon: "megaphone" as SaasIconName,
+                  tag: tr("Fidélisation", "Retention"),
+                  title: tr(
+                    "Diffusions & Alertes Nouveautés",
+                    "Broadcasts & New Drop Alerts"
+                  ),
+                  desc: tr(
+                    "Vos clients s'abonnent à votre boutique (Suivre) et reçoivent une alerte dès qu'un nouvel arrivage tombe.",
+                    "Shoppers follow your store and get notified on WhatsApp whenever you post a new arrival."
+                  ),
+                },
+                {
+                  icon: "smartphone" as SaasIconName,
+                  tag: tr("Réseaux sociaux", "Social Kit"),
+                  title: tr(
+                    "Kit Statut WhatsApp, IG & TikTok",
+                    "WhatsApp Status, IG & TikTok Kit"
+                  ),
+                  desc: tr(
+                    "Téléchargez des visuels produits prêts à poster sur votre Statut WhatsApp avec légende pré-rédigée.",
+                    "Download ready-to-post product cards formatted for WhatsApp Status, Instagram, and TikTok."
+                  ),
+                },
+                {
+                  icon: "network" as SaasIconName,
+                  tag: tr("Croissance", "Growth"),
+                  title: tr(
+                    "Affiliés & Coopératives",
+                    "Affiliates & Cooperatives"
+                  ),
+                  desc: tr(
+                    "Créez des codes affiliés pour vos apporteurs d'affaires ou rejoignez une coopérative de commerçants locale.",
+                    "Generate affiliate codes for promoters or join a local merchant cooperative to sell together."
+                  ),
+                },
+                {
+                  icon: "chart" as SaasIconName,
+                  tag: tr("Finance", "Bookkeeping"),
+                  title: tr(
+                    "Comptabilité P&L Mensuelle",
+                    "Monthly P&L Bookkeeping"
+                  ),
+                  desc: tr(
+                    "Revenus confirmés, dépenses manuelles et marge nette calculés automatiquement et exportables en CSV/JSON.",
+                    "Confirmed revenue, manual expenses, and net profit automatically calculated and exportable to CSV/JSON."
+                  ),
+                },
+                {
+                  icon: "zap" as SaasIconName,
+                  tag: tr("Performance 2G/3G", "2G/3G Ready"),
+                  title: tr(
+                    "PWA Légère & Compression Photo",
+                    "Lightweight PWA & Image Compression"
+                  ),
+                  desc: tr(
+                    "Application installable sur Android/iOS avec compression d'images automatique pour économiser vos forfaits data.",
+                    "Installable on Android/iOS with client-side image compression so you never waste mobile data."
+                  ),
+                },
+              ] as const
+            ).map((item) => (
               <div
                 key={item.title}
                 className="glass glass-edge flex flex-col justify-between rounded-shape-lg p-5 transition-all duration-short hover:-translate-y-1 hover:shadow-elev-2"
               >
                 <div>
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="text-2xl">{item.icon}</span>
+                  <div className="mb-3.5 flex items-center justify-between">
+                    <span className="grid h-9 w-9 place-items-center rounded-shape-md border border-brand/30 bg-brand/10 text-brand-dark">
+                      <SaasIcon name={item.icon} size={18} />
+                    </span>
                     <span className="rounded-full bg-arctic-200/75 px-2 py-0.5 text-[10px] font-bold text-arctic-700">
                       {item.tag}
                     </span>
@@ -930,11 +946,17 @@ export default function LandingClient({
                 )}
               </h2>
             </div>
-            <Link href="/how-to-use" className="btn-ghost text-xs font-bold">
-              {tr(
-                "Voir le guide interactif complet →",
-                "See the full interactive guide →"
-              )}
+            <Link
+              href="/how-to-use"
+              className="btn-ghost inline-flex items-center gap-1.5 text-xs font-bold"
+            >
+              <span>
+                {tr(
+                  "Voir le guide interactif complet",
+                  "See the full interactive guide"
+                )}
+              </span>
+              <SaasIcon name="arrow-right" size={14} />
             </Link>
           </div>
 
@@ -942,10 +964,10 @@ export default function LandingClient({
             {[
               {
                 step: "01",
-                title: tr("Ouvrez votre boutique", "Open your shop"),
+                title: tr("Créez votre boutique", "Create your shop"),
                 desc: tr(
-                  "Entrez votre numéro WhatsApp sur /start. Vous recevez un code à 6 chiffres et votre espace est prêt en 90 secondes.",
-                  "Enter your WhatsApp number on /start. Verify with a 6-digit code and your shop is live in 90 seconds."
+                  "Inscrivez votre boutique en quelques clics avec votre numéro WhatsApp commercial et votre devise locale (FCFA).",
+                  "Register your shop in a few clicks with your business WhatsApp number and local currency (XOF)."
                 ),
               },
               {
@@ -1054,8 +1076,11 @@ export default function LandingClient({
                 </div>
                 <div className="mt-5 border-t border-arctic-200/60 pt-3">
                   <div className="text-xs font-bold text-arctic-900">{t.author}</div>
-                  <div className="text-[11px] text-arctic-600">
-                    {t.role} · 📍 {t.city}
+                  <div className="mt-0.5 flex items-center gap-1 text-[11px] text-arctic-600">
+                    <span>{t.role}</span>
+                    <span>·</span>
+                    <SaasIcon name="map-pin" size={11} className="text-brand-dark" />
+                    <span>{t.city}</span>
                   </div>
                 </div>
               </div>
@@ -1127,8 +1152,8 @@ export default function LandingClient({
                   "How do I get the 'Verified Shop' badge?"
                 ),
                 a: tr(
-                  "Vérifiez votre numéro WhatsApp par code OTP et complétez vos premières commandes payées avec succès. Le badge s'active automatiquement.",
-                  "Verify your WhatsApp number via OTP and complete your first paid orders. The badge unlocks automatically to boost buyer trust."
+                  "Complétez le profil de votre boutique avec votre numéro WhatsApp commercial et vos premières commandes payées avec succès. Le badge s'active automatiquement.",
+                  "Complete your shop profile with your business WhatsApp number and your first paid orders. The badge unlocks automatically to boost buyer trust."
                 ),
               },
               {
@@ -1170,8 +1195,8 @@ export default function LandingClient({
             <div className="relative z-10 mx-auto max-w-2xl space-y-4">
               <span className="inline-block rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-200">
                 {tr(
-                  "Prêt en 90 secondes · Sans abonnement",
-                  "Ready in 90 seconds · Free to start"
+                  "Inscription rapide · Sans abonnement",
+                  "Quick setup · Free to start"
                 )}
               </span>
               <h2 className="font-display text-2xl font-extrabold tracking-tight sm:text-4xl">
@@ -1188,13 +1213,16 @@ export default function LandingClient({
               </p>
               <div className="flex flex-wrap justify-center gap-3 pt-3">
                 <Link
-                  href="/start"
+                  href="/signup"
                   className="a-btn a-btn--cafe a-btn--lg font-bold shadow-lg"
                 >
-                  {tr(
-                    "Ouvrir ma boutique gratuitement →",
-                    "Open my shop for free →"
-                  )}
+                  <span>
+                    {tr(
+                      "Ouvrir ma boutique gratuitement",
+                      "Open my shop for free"
+                    )}
+                  </span>
+                  <SaasIcon name="arrow-right" size={16} />
                 </Link>
                 <Link
                   href="/marketplace"
@@ -1258,4 +1286,3 @@ function FeatureGlyph({ k }: { k: string }) {
     </svg>
   );
 }
-
