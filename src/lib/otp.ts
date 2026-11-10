@@ -85,3 +85,12 @@ export async function verifyOtp(phone: string, code: string): Promise<OtpVerifyR
   await prisma.otpCode.update({ where: { id: rec.id }, data: { consumedAt: new Date() } });
   return { ok: true };
 }
+
+/**
+ * Phone (WhatsApp OTP) sign-up is off by default: the WhatsApp line that
+ * delivers the code is not connected yet. Set JAPORA_ENABLE_PHONE_SIGNUP=1
+ * once it is.
+ */
+export function phoneSignupEnabled(): boolean {
+  return process.env.JAPORA_ENABLE_PHONE_SIGNUP === "1";
+}

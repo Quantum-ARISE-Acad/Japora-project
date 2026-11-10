@@ -18,6 +18,7 @@ ARG NEXT_PUBLIC_APP_URL="http://localhost:5174"
 ARG PRISMA_PROVIDER="sqlite"
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY \
     NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
+    UPLOADS_DIR="/app/public/uploads" \
     NEXT_TELEMETRY_DISABLED=1
 RUN sed -i "s/provider = \"sqlite\"/provider = \"$PRISMA_PROVIDER\"/" prisma/schema.prisma \
     && case "$PRISMA_PROVIDER" in \

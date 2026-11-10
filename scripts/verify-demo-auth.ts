@@ -1,7 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { loadDotEnv, resolveDatabaseUrl } from '../src/lib/db-url';
 
-const prisma = new PrismaClient();
+loadDotEnv();
+const prisma = new PrismaClient({ datasourceUrl: resolveDatabaseUrl(process.env.DATABASE_URL) });
 
 async function main() {
   const vendor = await prisma.vendor.findUnique({ where: { email: 'demo@wcatalog.app' } });
