@@ -28,7 +28,7 @@ model Vendor {
   // webhook maps an incoming phone_number_id → vendor via this (multi-tenant
   // routing); unique so two vendors can't claim the same line.
   whatsappPhoneNumberId String? @unique
-  currency        String    @default("USD")
+  currency        String    @default("XOF")
   tagline         String    @default("")
   emailVerifiedAt DateTime?
   onboardedAt     DateTime?

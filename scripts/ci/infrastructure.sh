@@ -70,6 +70,25 @@ curl --silent --show-error --insecure --max-time 15 --dump-header "$RESULTS/head
 grep -qi '^strict-transport-security:' "$RESULTS/headers.txt"
 dc exec -T wcatalog sh -ec 'printf "ci-upload-persistence\n" > public/uploads/ci-proof.txt'
 test "$(curl --fail --silent --show-error --insecure --max-time 10 "$BASE/uploads/ci-proof.txt")" = ci-upload-persistence
+dc exec -T wcatalog node -e 'const fs=require("node:fs"),path=require("node:path");fs.writeFileSync(path.join(process.env.UPLOADS_DIR,"ci-photo.png"),Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl1sAAAAASUVORK5CYII=","base64"));'
+# Verify both paths read the same persistent directory: Caddy bypasses Next.js
+# for /uploads, whereas direct Next.js uses Ferdinand's rewrite/API handler.
+dc exec -T wcatalog node - <<'JS'
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+(async () => {
+  const expected = fs.readFileSync(path.join(process.env.UPLOADS_DIR, 'ci-photo.png'));
+  for (const url of ['http://localhost:5174/api/uploads/ci-photo.png', 'http://localhost:5174/uploads/ci-photo.png']) {
+    const response = await fetch(url);
+    assert.equal(response.status, 200, url);
+    assert.equal(response.headers.get('content-type'), 'image/png');
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()), expected);
+  }
+})().catch(error => { console.error(error); process.exitCode = 1; });
+JS
+curl --fail --silent --show-error --insecure --max-time 10 "$BASE/uploads/ci-photo.png" > "$RESULTS/ci-photo.png"
+node -e 'const assert=require("node:assert/strict"),fs=require("node:fs");assert.equal(fs.readFileSync(process.argv[1]).toString("base64"),"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl1sAAAAASUVORK5CYII=");' "$RESULTS/ci-photo.png"
 
 echo 'Checking scheduled backup, manual backup and restore into a separate database...'
 # Stop the scheduler after proving two automatic runs; manual backup then has

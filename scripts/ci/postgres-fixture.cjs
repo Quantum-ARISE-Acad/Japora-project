@@ -10,7 +10,7 @@ async function main() {
     await prisma.$transaction(async (tx) => {
       const vendor = await tx.vendor.create({data: {
         id: 'ci-vendor', email: 'vendor@example.invalid', passwordHash: 'not-a-login-password',
-        shopName: 'CI Shop', shopSlug: 'ci-shop', clerkId: 'ci-clerk-id', currency: 'XOF',
+        shopName: 'CI Shop', shopSlug: 'ci-shop', clerkId: 'ci-clerk-id',
         businessHours: {enabled: true, days: [1, 2], open: '08:00', close: '18:00'},
         uiPrefs: {theme: 'light'}, deliveryEnabled: true, deliveryFeeCents: 500,
       }});
@@ -29,6 +29,7 @@ async function main() {
   }
   const vendor = await prisma.vendor.findUniqueOrThrow({where: {id: 'ci-vendor'}, include: {products: true, orders: {include: {items: true}}, customers: true, collections: true, reviews: true, paymentLinks: true, funnelEvents: true}});
   assert.equal(vendor.clerkId, 'ci-clerk-id');
+  assert.equal(vendor.currency, 'XOF', 'New vendors default to XOF after migrations');
   assert.deepEqual(vendor.businessHours.days, [1, 2]);
   assert.equal(vendor.uiPrefs.theme, 'light');
   assert.equal(vendor.deliveryFeeCents, 500);

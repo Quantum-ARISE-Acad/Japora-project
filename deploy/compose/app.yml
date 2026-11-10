@@ -15,6 +15,8 @@ services:
       - { path: .env.keys, required: false }
     environment:
       DATABASE_URL: postgresql://japora:${POSTGRES_PASSWORD:?}@postgres:5432/japora
+      # Same volume as Caddy and backup: never let .env.keys redirect photos elsewhere.
+      UPLOADS_DIR: /app/public/uploads
       NEXT_PUBLIC_APP_URL: ${PUBLIC_URL:?}
       # Fixe l'adresse des liens du bot : sinon le webhook la déduit de la requête reçue.
       NEXT_PUBLIC_PUBLIC_TUNNEL_URL: ${PUBLIC_URL:?}

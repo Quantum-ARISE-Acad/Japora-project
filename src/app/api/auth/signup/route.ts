@@ -4,7 +4,7 @@ import { hashPassword, validateEmail, validatePassword } from "@/lib/auth";
 import { createSession } from "@/lib/session";
 import { setUnifiedCookie } from "@/lib/unified-auth";
 import { slugify } from "@/lib/utils";
-import { getClientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
+import { envLimit, getClientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
 import { logger } from "@/lib/logger";
 import { issueVerificationEmail } from "@/lib/verification";
 import { sendEmail } from "@/lib/email";
@@ -14,35 +14,40 @@ import { newVendorTrialDates } from "@/lib/billing";
 import { ensureReferralCode, recordSignupReferral } from "@/lib/referral";
 import { joinByCode } from "@/lib/cooperative";
 
+const SUPPORTED_CURRENCIES = new Set(["XOF", "XAF", "USD", "EUR", "GHS", "NGN", "KES"]);
+
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  const rl = rateLimit({ key: `signup:${ip}`, limit: 3, windowMs: 60 * 60_000 });
+  const rl = rateLimit({ key: `signup:${ip}`, limit: envLimit("SIGNUP_RATE_LIMIT", 3), windowMs: 60 * 60_000 });
   if (!rl.allowed) {
     logger.warn("auth.signup.rate_limited", { ip });
-    return tooManyRequests(rl, "Too many signups from this network. Try again later.");
+    return tooManyRequests(rl, "Trop d'inscriptions depuis ce réseau. Réessayez plus tard.");
   }
 
   const body = await req.json().catch(() => null);
-  if (!body) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  if (!body) return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
 
   const email = String(body.email || "").trim().toLowerCase();
   const password = String(body.password || "");
   const shopName = String(body.shopName || "").trim();
+  const whatsappNumber = String(body.whatsappNumber || "").trim();
+  const currencyInput = String(body.currency || "").trim().toUpperCase();
+  const currency = SUPPORTED_CURRENCIES.has(currencyInput) ? currencyInput : "XOF";
 
   if (!validateEmail(email)) {
-    return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
+    return NextResponse.json({ error: "Entrez une adresse email valide." }, { status: 400 });
   }
   const pwCheck = validatePassword(password);
   if (!pwCheck.ok) {
     return NextResponse.json({ error: pwCheck.reason }, { status: 400 });
   }
   if (!shopName) {
-    return NextResponse.json({ error: "Enter your shop name." }, { status: 400 });
+    return NextResponse.json({ error: "Entrez le nom de votre boutique." }, { status: 400 });
   }
 
   const existing = await prisma.vendor.findUnique({ where: { email } });
   if (existing) {
-    return NextResponse.json({ error: "An account with this email already exists." }, { status: 409 });
+    return NextResponse.json({ error: "Un compte existe déjà avec cet email." }, { status: 409 });
   }
 
   // Derive a unique catalog slug from the shop name.
@@ -59,6 +64,8 @@ export async function POST(req: NextRequest) {
       passwordHash: await hashPassword(password),
       shopName,
       shopSlug,
+      whatsappNumber,
+      currency,
       ...newVendorTrialDates(),
     },
   });
