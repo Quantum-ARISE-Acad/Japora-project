@@ -1,7 +1,10 @@
 import { PrismaClient } from "@prisma/client";
+import { loadDotEnv, resolveDatabaseUrl } from "../src/lib/db-url";
 import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+loadDotEnv();
+// Same SQLite file as the site (see src/lib/db-url.ts).
+const prisma = new PrismaClient({ datasourceUrl: resolveDatabaseUrl(process.env.DATABASE_URL) });
 
 /** Inline SVG placeholder so the demo has images without any external files. */
 function placeholder(label: string, c1: string, c2: string): string {

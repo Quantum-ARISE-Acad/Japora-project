@@ -1,0 +1,58 @@
+# Module données : PostgreSQL et sauvegardes. Aucun port publié.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: wataru-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: japora
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?lancez deploy/mvp.sh init}
+      POSTGRES_DB: japora
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Seulement le réseau interne : Caddy, exposé à Internet, ne peut pas joindre la base.
+    networks: [internal]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 1g
+    logging: &logging
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U japora -d japora"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
+  backup:
+    build: ./deploy/backup
+    container_name: wataru-backup
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGUSER: japora
+      PGDATABASE: japora
+      PGPASSWORD: ${POSTGRES_PASSWORD:?}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-21600}   # 6 heures
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-7}
+      BACKUP_OWNER: ${BACKUP_OWNER:-0:0}
+    volumes:
+      - ./backups:/backups
+      - japora_uploads:/data/uploads:ro
+      - backup_metrics:/metrics
+    networks: [internal]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 512m
+    logging: *logging
+    depends_on:
+      postgres: { condition: service_healthy }
+
+networks:
+  edge: {}
+  internal: { internal: true }
+  monitoring: { internal: true }
+
+volumes:
+  postgres_data: {}
+  japora_uploads: {}
+  backup_metrics: {}

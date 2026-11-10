@@ -19,16 +19,27 @@ export interface StorageProvider {
 }
 
 /**
- * Local filesystem provider — the default. Writes to public/uploads and
- * returns a relative URL. Fine for a single Node host, broken on serverless
- * (the filesystem is ephemeral on Vercel/Lambda).
+ * Folder where uploaded photos live. Set UPLOADS_DIR to a persistent folder
+ * (a Docker volume, a disk outside the build) so photos survive a site update.
+ * Defaults to ./public/uploads for local development.
+ */
+export function uploadsDir(): string {
+  const configured = process.env.UPLOADS_DIR?.trim();
+  return configured ? path.resolve(configured) : path.join(process.cwd(), "public", "uploads");
+}
+
+/**
+ * Local filesystem provider — the default. Writes to uploadsDir() and returns
+ * a relative /uploads/<key> URL, served by /api/uploads/<key> (a production
+ * Next.js server does not serve files added to public/ after the build).
+ * Fine for a single Node host, broken on serverless (ephemeral filesystem).
  */
 class LocalStorageProvider implements StorageProvider {
   name = "local";
 
   async save({ buffer, ext }: SaveInput): Promise<SaveResult> {
     const key = `${randomUUID()}.${ext}`;
-    const dir = path.join(process.cwd(), "public", "uploads");
+    const dir = uploadsDir();
     await mkdir(dir, { recursive: true });
     await writeFile(path.join(dir, key), buffer);
     return { url: `/uploads/${key}`, key };
