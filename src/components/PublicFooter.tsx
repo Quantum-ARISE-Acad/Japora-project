@@ -1,7 +1,22 @@
+"use client";
+
 import Link from "next/link";
 import { REGIONS, CATEGORIES } from "@/lib/regions";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
+
+const CATEGORY_FR: Record<string, string> = {
+  fashion: "Mode & Wax",
+  food: "Alimentation",
+  beauty: "Beauté & Soins",
+  electronics: "Électronique",
+  home: "Maison & Déco",
+  groceries: "Épicerie",
+  services: "Services",
+  other: "Autres",
+};
 
 export default function PublicFooter() {
+  const { tr } = usePublicLang();
   const topRegions = REGIONS.slice(0, 6);
   const topCategories = CATEGORIES.slice(0, 6);
 
@@ -12,24 +27,36 @@ export default function PublicFooter() {
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-4 px-4 py-6 sm:grid-cols-4">
           {[
             {
-              title: "Paiements Mobile Money",
-              desc: "T-Money, Flooz, Wave, Orange & MTN MoMo",
-              badge: "Instant",
+              title: tr("Paiements Mobile Money", "Mobile Money Payments"),
+              desc: tr(
+                "T-Money, Flooz, Wave, Orange & MTN MoMo",
+                "T-Money, Flooz, Wave, Orange & MTN MoMo"
+              ),
+              badge: tr("Instant", "Instant"),
             },
             {
-              title: "Vendeurs Vérifiés",
-              desc: "Numéro WhatsApp & historique contrôlés",
-              badge: "Confiance",
+              title: tr("Vendeurs Vérifiés", "Verified Sellers"),
+              desc: tr(
+                "Numéro WhatsApp & historique contrôlés",
+                "Verified WhatsApp number & order history"
+              ),
+              badge: tr("Confiance", "Trusted"),
             },
             {
-              title: "Bot WhatsApp 24h/24",
-              desc: "Réponses automatiques aux prix & stocks",
-              badge: "IA Active",
+              title: tr("Bot WhatsApp 24h/24", "24/7 WhatsApp Bot"),
+              desc: tr(
+                "Réponses automatiques aux prix & stocks",
+                "Automated price & stock answers day and night"
+              ),
+              badge: tr("IA Active", "AI Powered"),
             },
             {
-              title: "0 FCFA d'abonnement",
-              desc: "Démarrez gratuitement, gardez 97% par vente",
-              badge: "Transparent",
+              title: tr("Suivi Complet des Ventes", "Complete Sales Tracking"),
+              desc: tr(
+                "Tableau Kanban, CRM clients & bilan chaque soir à 18h",
+                "Kanban board, customer CRM & 6 PM daily summary"
+              ),
+              badge: tr("Pilotage", "Analytics"),
             },
           ].map((item) => (
             <div key={item.title} className="flex flex-col gap-1">
@@ -38,8 +65,8 @@ export default function PublicFooter() {
                   {item.badge}
                 </span>
               </div>
-              <div className="text-xs font-bold text-arctic-900 mt-1">{item.title}</div>
-              <div className="text-[11px] text-arctic-600 leading-relaxed">{item.desc}</div>
+              <div className="mt-1 text-xs font-bold text-arctic-900">{item.title}</div>
+              <div className="text-[11px] leading-relaxed text-arctic-600">{item.desc}</div>
             </div>
           ))}
         </div>
@@ -58,8 +85,11 @@ export default function PublicFooter() {
                 Japora
               </span>
             </Link>
-            <p className="text-xs leading-relaxed text-arctic-600 max-w-xs">
-              La plateforme de commerce conversationnel et le marketplace des marchands WhatsApp en Afrique. Créez votre catalogue, automatisez vos réponses et encaissez par Mobile Money sans quitter WhatsApp.
+            <p className="max-w-xs text-xs leading-relaxed text-arctic-600">
+              {tr(
+                "La plateforme de commerce en ligne et sur WhatsApp en Afrique. Créez votre catalogue, automatisez vos réponses, encaissez par Mobile Money et suivez vos ventes en temps réel.",
+                "The online and WhatsApp commerce platform for Africa. Build your catalog, automate replies, get paid via Mobile Money, and track your sales in real time."
+              )}
             </p>
             <div className="flex flex-wrap gap-1.5 pt-1">
               {["T-Money", "Flooz", "Wave", "Orange Money", "MTN MoMo", "CinetPay"].map((rail) => (
@@ -75,38 +105,33 @@ export default function PublicFooter() {
 
           {/* Column 2: Plateforme */}
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-arctic-900 mb-3">
-              Plateforme
+            <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-arctic-900">
+              {tr("Plateforme", "Platform")}
             </h3>
             <ul className="space-y-2 text-xs text-arctic-600">
               <li>
                 <Link href="/marketplace" className="hover:text-arctic-900 hover:underline">
-                  Explorer le Marketplace
+                  {tr("Explorer le Marketplace", "Explore Marketplace")}
                 </Link>
               </li>
               <li>
                 <Link href="/how-to-use" className="hover:text-arctic-900 hover:underline">
-                  Comment ça marche (How it works)
-                </Link>
-              </li>
-              <li>
-                <Link href="/pricing" className="hover:text-arctic-900 hover:underline">
-                  Tarifs &amp; Commissions
+                  {tr("Comment ça marche", "How it works")}
                 </Link>
               </li>
               <li>
                 <Link href="/start" className="hover:text-arctic-900 hover:underline">
-                  Inscription rapide WhatsApp OTP
+                  {tr("Inscription rapide WhatsApp OTP", "Quick WhatsApp OTP Signup")}
                 </Link>
               </li>
               <li>
                 <Link href="/signup" className="hover:text-arctic-900 hover:underline">
-                  Créer une boutique par Email
+                  {tr("Créer une boutique par Email", "Create Shop with Email")}
                 </Link>
               </li>
               <li>
                 <Link href="/login" className="hover:text-arctic-900 hover:underline">
-                  Connexion Vendeur
+                  {tr("Connexion Vendeur", "Vendor Sign in")}
                 </Link>
               </li>
             </ul>
@@ -114,8 +139,8 @@ export default function PublicFooter() {
 
           {/* Column 3: Catégories */}
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-arctic-900 mb-3">
-              Rayons Populaires
+            <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-arctic-900">
+              {tr("Rayons Populaires", "Popular Categories")}
             </h3>
             <ul className="space-y-2 text-xs text-arctic-600">
               {topCategories.map((c) => (
@@ -125,7 +150,7 @@ export default function PublicFooter() {
                     className="inline-flex items-center gap-1.5 hover:text-arctic-900 hover:underline"
                   >
                     <span>{c.icon}</span>
-                    <span>{c.label}</span>
+                    <span>{tr(CATEGORY_FR[c.slug] || c.label, c.label)}</span>
                   </Link>
                 </li>
               ))}
@@ -134,8 +159,8 @@ export default function PublicFooter() {
 
           {/* Column 4: Villes & Marchés */}
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-arctic-900 mb-3">
-              Villes &amp; Marchés
+            <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-arctic-900">
+              {tr("Villes & Marchés", "Cities & Markets")}
             </h3>
             <ul className="space-y-2 text-xs text-arctic-600">
               {topRegions.map((r) => (
@@ -153,35 +178,44 @@ export default function PublicFooter() {
                   href="/marketplace"
                   className="font-semibold text-brand-dark hover:underline"
                 >
-                  Toutes les régions ({REGIONS.length}) →
+                  {tr(
+                    `Toutes les régions (${REGIONS.length}) →`,
+                    `All regions (${REGIONS.length}) →`
+                  )}
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Column 5: Écosystème & Légal */}
+          {/* Column 5: Ressources & Légal */}
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-arctic-900 mb-3">
-              Suite Wataru &amp; Légal
+            <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-arctic-900">
+              {tr("Outils & Légal", "Tools & Legal")}
             </h3>
             <ul className="space-y-2 text-xs text-arctic-600">
               <li>
-                <span className="font-semibold text-arctic-800">Japora</span> — Boutiques &amp; Catalogues
+                <span className="font-semibold text-arctic-800">
+                  {tr("Catalogue & QR Code", "Catalog & Stall QR")}
+                </span>
               </li>
               <li>
-                <span className="font-semibold text-arctic-800">Soko CRM</span> — Matching &amp; Opportunités
+                <span className="font-semibold text-arctic-800">
+                  {tr("Bot WhatsApp & CRM", "WhatsApp Bot & CRM")}
+                </span>
               </li>
               <li>
-                <span className="font-semibold text-arctic-800">WEscrow</span> — Séquestre Safe Hands
+                <span className="font-semibold text-arctic-800">
+                  {tr("Comptabilité & Bilan 18h", "Bookkeeping & 6 PM Recap")}
+                </span>
               </li>
-              <li className="pt-2 border-t border-arctic-200/60">
+              <li className="border-t border-arctic-200/60 pt-2">
                 <Link href="/terms" className="hover:text-arctic-900 hover:underline">
-                  Conditions d&apos;utilisation (Terms)
+                  {tr("Conditions d'utilisation", "Terms of Service")}
                 </Link>
               </li>
               <li>
                 <Link href="/privacy" className="hover:text-arctic-900 hover:underline">
-                  Politique de confidentialité (Privacy)
+                  {tr("Politique de confidentialité", "Privacy Policy")}
                 </Link>
               </li>
             </ul>
@@ -193,25 +227,27 @@ export default function PublicFooter() {
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold text-arctic-900">© {new Date().getFullYear()} Japora</span>
             <span>·</span>
-            <span>Sell on WhatsApp. Get paid. Grow your hustle.</span>
+            <span>
+              {tr(
+                "Vendez en ligne et sur WhatsApp. Suivez vos ventes.",
+                "Sell online and on WhatsApp. Track your sales."
+              )}
+            </span>
             <span>·</span>
             <span className="text-arctic-500">Lomé · Cotonou · Abidjan · Dakar · Lagos · Nairobi</span>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/how-to-use" className="hover:text-arctic-900">
-              How it works
-            </Link>
-            <Link href="/pricing" className="hover:text-arctic-900">
-              Pricing
+              {tr("Comment ça marche", "How it works")}
             </Link>
             <Link href="/terms" className="hover:text-arctic-900">
-              Terms
+              {tr("Conditions", "Terms")}
             </Link>
             <Link href="/privacy" className="hover:text-arctic-900">
-              Privacy
+              {tr("Confidentialité", "Privacy")}
             </Link>
-            <Link href="/signup" className="font-bold text-arctic-900 hover:underline">
-              Start your shop →
+            <Link href="/start" className="font-bold text-arctic-900 hover:underline">
+              {tr("Ouvrir ma boutique →", "Open my shop →")}
             </Link>
           </div>
         </div>
@@ -219,4 +255,3 @@ export default function PublicFooter() {
     </footer>
   );
 }
-

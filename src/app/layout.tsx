@@ -4,6 +4,7 @@ import "./globals.css";
 import InstallPrompt from "@/components/InstallPrompt";
 import ThemeSync from "@/components/ThemeSync";
 import ClerkAuthProvider from "@/components/auth/ClerkAuthProvider";
+import { PublicLanguageProvider } from "@/components/PublicLanguageProvider";
 
 
 // Body / UI face — Inter, with the tabular-figure feature used by the ledger.
@@ -59,9 +60,11 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen font-sans antialiased">
         <ClerkAuthProvider>
-          <ThemeSync />
-          {children}
-          <InstallPrompt />
+          <PublicLanguageProvider>
+            <ThemeSync />
+            {children}
+            <InstallPrompt />
+          </PublicLanguageProvider>
         </ClerkAuthProvider>
       </body>
 

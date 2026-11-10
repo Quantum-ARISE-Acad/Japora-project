@@ -1,10 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
-
-export const metadata = { title: "Politique de Confidentialité (Privacy Policy) — Japora" };
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 export default function PrivacyPage() {
+  const { tr } = usePublicLang();
+
   return (
     <div className="min-h-screen flex flex-col">
       <PublicHeader />
@@ -12,81 +15,180 @@ export default function PrivacyPage() {
       <main className="mx-auto max-w-4xl flex-1 px-4 py-12 w-full">
         <div className="glass glass-edge rounded-shape-xl p-6 sm:p-10">
           <header className="border-b border-arctic-200/70 pb-6">
-            <span className="a-eyebrow">Protection des Données</span>
+            <span className="a-eyebrow">
+              {tr("Protection des Données", "Data Protection")}
+            </span>
             <h1 className="a-display-sm mt-1 text-arctic-900">
-              Politique de Confidentialité (Privacy Policy)
+              {tr("Politique de Confidentialité", "Privacy Policy")}
             </h1>
             <p className="mt-1 text-xs text-arctic-500">
-              Dernière mise à jour : Novembre 2026
+              {tr(
+                "Dernière mise à jour : Novembre 2026",
+                "Last updated: November 2026"
+              )}
             </p>
           </header>
 
           <div className="mt-6 space-y-6 text-arctic-700">
             <Notice>
-              Chez Japora, la confidentialité des données de vos clients et de votre commerce est une priorité absolue. Vous restez propriétaire de votre fichier client.
+              {tr(
+                "Chez Japora, la confidentialité des données de vos clients et de votre commerce est une priorité absolue. Vous restez propriétaire de votre fichier client.",
+                "At Japora, the privacy of your customers' and business data is a top priority. You retain full ownership of your customer records."
+              )}
             </Notice>
 
-            <Section title="Qui sommes-nous ?">
+            <Section title={tr("Qui sommes-nous ?", "Who We Are")}>
               <p>
-                Japora est une plateforme permettant aux commerçants (« Vendeurs ») de partager leurs catalogues produits, d&apos;automatiser leurs discussions et de gérer les commandes reçues sur WhatsApp.
+                {tr(
+                  "Japora est une plateforme permettant aux commerçants (« Vendeurs ») de partager leurs catalogues produits, d'automatiser leurs discussions et de gérer les commandes reçues sur WhatsApp.",
+                  "Japora is a platform enabling merchants ('Sellers') to share their product catalogs, automate chats, and manage orders received on WhatsApp."
+                )}
               </p>
             </Section>
 
-            <Section title="Données collectées">
+            <Section title={tr("Données collectées", "Data We Collect")}>
               <ul className="ml-5 list-disc space-y-1.5 text-xs sm:text-sm">
                 <li>
-                  <strong>Données de compte :</strong> email, mot de passe haché (bcrypt), nom de boutique, devise, numéro WhatsApp.
+                  <strong>{tr("Données de compte :", "Account data:")}</strong>{" "}
+                  {tr(
+                    "email, mot de passe haché (bcrypt), nom de boutique, devise, numéro WhatsApp.",
+                    "email, hashed password (bcrypt), shop name, currency, WhatsApp number."
+                  )}
                 </li>
                 <li>
-                  <strong>Données catalogue :</strong> photos, titres, prix, descriptions, tailles et stocks que vous mettez en ligne.
+                  <strong>
+                    {tr("Données catalogue :", "Catalog data:")}
+                  </strong>{" "}
+                  {tr(
+                    "photos, titres, prix, descriptions, tailles et stocks que vous mettez en ligne.",
+                    "photos, titles, prices, descriptions, sizes, and stock levels you publish."
+                  )}
                 </li>
                 <li>
-                  <strong>Données de commandes &amp; CRM :</strong> nom du client, numéro de téléphone, articles commandés, consentement marketing explicite et historique.
+                  <strong>
+                    {tr(
+                      "Données de commandes & CRM :",
+                      "Order & CRM data:"
+                    )}
+                  </strong>{" "}
+                  {tr(
+                    "nom du client, numéro de téléphone, articles commandés, consentement marketing explicite et historique.",
+                    "customer name, phone number, ordered items, explicit marketing consent, and history."
+                  )}
                 </li>
                 <li>
-                  <strong>Journaux techniques :</strong> adresse IP (uniquement pour la protection anti-abus et le rate-limiting).
+                  <strong>
+                    {tr("Journaux techniques :", "Technical logs:")}
+                  </strong>{" "}
+                  {tr(
+                    "adresse IP (uniquement pour la protection anti-abus et le rate-limiting).",
+                    "IP address (strictly for anti-abuse protection and rate-limiting)."
+                  )}
                 </li>
               </ul>
             </Section>
 
-            <Section title="Pourquoi nous les collectons">
+            <Section
+              title={tr("Pourquoi nous les collectons", "Why We Collect It")}
+            >
               <ul className="ml-5 list-disc space-y-1.5 text-xs sm:text-sm">
-                <li>Pour afficher votre vitrine en ligne et traiter vos commandes.</li>
-                <li>Pour authentifier votre session en toute sécurité.</li>
-                <li>Pour envoyer vos notifications de commandes et le bilan quotidien de 18h.</li>
-                <li>Pour prévenir la fraude et respecter le consentement marketing des clients.</li>
+                <li>
+                  {tr(
+                    "Pour afficher votre vitrine en ligne et traiter vos commandes.",
+                    "To display your online storefront and process your orders."
+                  )}
+                </li>
+                <li>
+                  {tr(
+                    "Pour authentifier votre session en toute sécurité.",
+                    "To authenticate your session securely."
+                  )}
+                </li>
+                <li>
+                  {tr(
+                    "Pour envoyer vos notifications de commandes et le bilan quotidien de 18h.",
+                    "To send your order notifications and the 6 PM daily digest."
+                  )}
+                </li>
+                <li>
+                  {tr(
+                    "Pour prévenir la fraude et respecter le consentement marketing des clients.",
+                    "To prevent fraud and honor customer marketing consent."
+                  )}
+                </li>
               </ul>
             </Section>
 
-            <Section title="Sous-traitants et partenaires techniques">
+            <Section
+              title={tr(
+                "Sous-traitants et partenaires techniques",
+                "Subprocessors and Technical Partners"
+              )}
+            >
               <p>
-                Vos données ne sont partagées qu&apos;avec les infrastructures strictement nécessaires au service : hébergement sécurisé, base de données PostgreSQL, stockage d&apos;images (S3/R2), API officielle WhatsApp Cloud et passerelles de paiement Mobile Money (PayGate Global, CinetPay, Flutterwave, Paystack, M-Pesa).{" "}
-                <strong>Nous ne vendons jamais vos données personnelles.</strong>
+                {tr(
+                  "Vos données ne sont partagées qu'avec les infrastructures strictement nécessaires au service : hébergement sécurisé, base de données PostgreSQL, stockage d'images (S3/R2), API officielle WhatsApp Cloud et passerelles de paiement Mobile Money (PayGate Global, CinetPay, Flutterwave, Paystack, M-Pesa). ",
+                  "Your data is shared only with infrastructure strictly necessary for the service: secure hosting, PostgreSQL database, image storage (S3/R2), official WhatsApp Cloud API, and Mobile Money payment gateways (PayGate Global, CinetPay, Flutterwave, Paystack, M-Pesa). "
+                )}
+                <strong>
+                  {tr(
+                    "Nous ne vendons jamais vos données personnelles.",
+                    "We never sell your personal data."
+                  )}
+                </strong>
               </p>
             </Section>
 
-            <Section title="Vos droits (Export & Suppression)">
+            <Section
+              title={tr(
+                "Vos droits (Export & Suppression)",
+                "Your Rights (Export & Deletion)"
+              )}
+            >
               <ul className="ml-5 list-disc space-y-1.5 text-xs sm:text-sm">
                 <li>
-                  <strong>Exporter</strong> l&apos;intégralité de vos données au format JSON ou CSV depuis{" "}
-                  <Link href="/dashboard/settings" className="font-semibold text-brand-dark underline">
-                    vos paramètres
+                  <strong>{tr("Exporter", "Export")}</strong>{" "}
+                  {tr(
+                    "l'intégralité de vos données au format JSON ou CSV depuis ",
+                    "all of your data in JSON or CSV format from "
+                  )}
+                  <Link
+                    href="/dashboard/settings"
+                    className="font-semibold text-brand-dark underline"
+                  >
+                    {tr("vos paramètres", "your settings")}
                   </Link>
                   .
                 </li>
                 <li>
-                  <strong>Supprimer</strong> votre compte et vos données depuis la même page.
+                  <strong>{tr("Supprimer", "Delete")}</strong>{" "}
+                  {tr(
+                    "votre compte et vos données depuis la même page.",
+                    "your account and data from the same page."
+                  )}
                 </li>
                 <li>
-                  <strong>Modifier</strong> vos informations et préférences de consentement à tout moment.
+                  <strong>{tr("Modifier", "Update")}</strong>{" "}
+                  {tr(
+                    "vos informations et préférences de consentement à tout moment.",
+                    "your information and consent preferences at any time."
+                  )}
                 </li>
               </ul>
             </Section>
 
-            <Section title="Sécurité & Contact">
+            <Section
+              title={tr("Sécurité & Contact", "Security & Contact")}
+            >
               <p>
-                Les mots de passe sont chiffrés avec bcrypt, les sessions utilisent des jetons JWT signés en cookies HTTP-only et toutes les connexions sont chiffrées en HTTPS. Pour toute question relative à la sécurité ou à vos données :{" "}
-                <a className="font-semibold text-brand-dark underline" href="mailto:security@japora.app">
+                {tr(
+                  "Les mots de passe sont chiffrés avec bcrypt, les sessions utilisent des jetons JWT signés en cookies HTTP-only et toutes les connexions sont chiffrées en HTTPS. Pour toute question relative à la sécurité ou à vos données : ",
+                  "Passwords are encrypted with bcrypt, sessions use signed JWT tokens in HTTP-only cookies, and all connections are encrypted over HTTPS. For any security or data inquiry: "
+                )}
+                <a
+                  className="font-semibold text-brand-dark underline"
+                  href="mailto:security@japora.app"
+                >
                   security@japora.app
                 </a>
                 .
@@ -101,13 +203,21 @@ export default function PrivacyPage() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <section>
       <h2 className="mb-1.5 font-display text-base font-bold text-arctic-900">
         {title}
       </h2>
-      <div className="space-y-2 text-xs sm:text-sm leading-relaxed">{children}</div>
+      <div className="space-y-2 text-xs sm:text-sm leading-relaxed">
+        {children}
+      </div>
     </section>
   );
 }

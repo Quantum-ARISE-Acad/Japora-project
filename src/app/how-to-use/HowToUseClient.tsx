@@ -4,137 +4,285 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 /**
- * "How Japora works" — an animated, scroll-driven explainer with interactive
- * WhatsApp Bot & Flow simulator, daily vendor timeline, offline-to-online
- * QR showcase, payment rails breakdown, and FAQ.
+ * "How Japora works" — bilingual (FR / EN) animated, scroll-driven explainer
+ * with interactive WhatsApp Bot & Flow simulator, daily vendor timeline, and
+ * offline-to-online QR showcase.
  */
 
-type Step = {
-  n: string;
-  phase: string;
-  title: string;
-  subtitle: string;
-  body: string;
-  highlights: string[];
-  icon: "shop" | "tag" | "share" | "chat" | "wallet" | "moon";
-};
-
-const STEPS: Step[] = [
-  {
-    n: "01",
-    phase: "Inscription · ~90 secondes",
-    title: "Ouvrez votre boutique sur WhatsApp",
-    subtitle: "Open your shop — sans mot de passe complexe ni carte bancaire",
-    body: "Saisissez simplement votre numéro WhatsApp sur /start. Vous recevez un code OTP à 6 chiffres et votre boutique est immédiatement créée en FCFA (ou votre devise locale). Aucune application supplémentaire à installer.",
-    highlights: [
-      "Connexion ultra-rapide par code WhatsApp OTP",
-      "Devise FCFA (XOF) configurée par défaut sans erreur de décimale",
-      "30 jours d'essai Pro inclus + offre Starter gratuite à vie",
-    ],
-    icon: "shop",
-  },
-  {
-    n: "02",
-    phase: "Catalogue · 2 minutes",
-    title: "Ajoutez vos produits ou importez-les en 1 clic",
-    subtitle: "Add what you sell — photos compressées automatiquement pour la 2G/3G",
-    body: "Ajoutez vos articles avec photos, prix, tailles, état (neuf/occasion), stock, tarifs de gros ou précommande avec acompte. Vous avez déjà un catalogue WhatsApp Business ? Importez-le en un seul clic.",
-    highlights: [
-      "Import direct depuis Meta WhatsApp Business Catalog",
-      "Compression d'image côté navigateur pour économiser vos data",
-      "Gestion des tailles, stocks, prix de gros et acomptes",
-    ],
-    icon: "tag",
-  },
-  {
-    n: "03",
-    phase: "Visibilité · En ligne & Au marché",
-    title: "Partagez un lien unique et votre QR code de stand",
-    subtitle: "Share one link — Statut WhatsApp, TikTok, Instagram et stand physique",
-    body: "Diffusez le lien de votre boutique sur votre Statut WhatsApp, dans votre bio Instagram/TikTok ou dans vos groupes de vente. Au marché, imprimez votre affiche QR code officielle pour que les passants scannent votre catalogue.",
-    highlights: [
-      "Générateur de visuels prêts pour Statut WhatsApp, IG & TikTok",
-      "QR code vectoriel (SVG) imprimable pour votre boutique physique",
-      "Référencement automatique sur le Marketplace public Japora",
-    ],
-    icon: "share",
-  },
-  {
-    n: "04",
-    phase: "Automatisation · 24h/24 & 7j/7",
-    title: "Le Bot WhatsApp répond aux clients jour et nuit",
-    subtitle: "The bot answers — fini de répéter « C'est combien ? » 50 fois par jour",
-    body: "Quand un client écrit sur votre WhatsApp, le bot répond instantanément à partir de votre catalogue en direct : prix, tailles disponibles, frais de livraison par quartier. En dehors de vos horaires d'ouverture, votre message d'absence prend le relais.",
-    highlights: [
-      "Boutons interactifs WhatsApp : Voir le menu, Commander, Mon solde",
-      "Assistant IA de boutique pour conseiller les acheteurs",
-      "Horaires d'ouverture personnalisables & message d'absence auto",
-    ],
-    icon: "chat",
-  },
-  {
-    n: "05",
-    phase: "Encaissement · Mobile Money natif",
-    title: "Vos clients paient directement dans la conversation",
-    subtitle: "They pay inline — T-Money, Flooz, Wave, Orange Money & MTN MoMo",
-    body: "Le client choisit son moyen de paiement habituel. Dès que le paiement Mobile Money est validé, la commande passe automatiquement au statut « ✓ Payé » sur votre tableau Kanban et le stock est mis à jour.",
-    highlights: [
-      "PayGate Global (T-Money & Flooz natifs au Togo) + CinetPay UEMOA",
-      "Wave, Orange Money, MTN MoMo, Flutterwave, Paystack & M-Pesa",
-      "Liens de paiement rapides pour acomptes et commandes sur-mesure",
-    ],
-    icon: "wallet",
-  },
-  {
-    n: "06",
-    phase: "Pilotage · Chaque soir à 18h00",
-    title: "Recevez votre bilan quotidien sur WhatsApp",
-    subtitle: "Read the 6 PM summary — votre journée résumée en un coup d'œil",
-    body: "À 18h00, Japora vous envoie un message récapitulatif sur WhatsApp : chiffre d'affaires du jour, nombre de commandes payées, produit le plus vendu, créances en attente et alertes de réapprovisionnement.",
-    highlights: [
-      "Résumé WhatsApp quotidien à 18h00 sans ouvrir le tableau de bord",
-      "Suivi des créances clients (Pay-later) et relances paniers abandonnés",
-      "Comptabilité mensuelle P&L automatique exportable en CSV",
-    ],
-    icon: "moon",
-  },
-];
-
-const SIMULATOR_SCENARIOS = [
-  {
-    id: "price",
-    label: "💬 Demande de prix (« C'est combien ? »)",
-    buyerMsg: "Bonjour ! C'est combien le Sac Bogolan Cuir et vous livrez à Agoè ?",
-    botReply:
-      "Bonjour 👋 ! Le **Sac Bogolan Cuir** est à **15 000 FCFA** (En stock : 6 pièces).\n\n📍 Livraison vers **Agoè** : **1 500 FCFA**.\nTotal avec livraison : **16 500 FCFA**.",
-    buttons: ["🛒 Commander maintenant", "📖 Voir tout le catalogue", "💬 Parler au vendeur"],
-    statusBadge: "Réponse automatique en 0.8s",
-  },
-  {
-    id: "order",
-    label: "💳 Paiement T-Money / Flooz en direct",
-    buyerMsg: "Je prends 1 Sac Bogolan Cuir avec livraison à Agoè. Je paie par T-Money.",
-    botReply:
-      "Parfait ! Votre commande **#JP-4092** (16 500 FCFA) est enregistrée.\n\n👉 Appuyez ci-dessous pour valider votre paiement **T-Money / Flooz** en toute sécurité :",
-    buttons: ["📲 Payer 16 500 FCFA (T-Money / Flooz)", "📄 Voir le récapitulatif"],
-    statusBadge: "Statut : ✓ Payé confirmé automatiquement",
-  },
-  {
-    id: "summary",
-    label: "🌙 Bilan du soir à 18h00 (Côté Vendeur)",
-    buyerMsg: "[Notification automatique Japora — 18h00]",
-    botReply:
-      "🌙 **Bilan du jour — Chez Améyo**\n• Commandes payées : **11 commandes**\n• Chiffre d'affaires : **134 500 FCFA**\n• Top vente : **Robe Bazin Brodé (5x)**\n• ⚠️ Stock bas : **Sandales Cuir (reste 2)**",
-    buttons: ["📊 Ouvrir le tableau de bord", "📦 Réapprovisionner le stock"],
-    statusBadge: "Envoyé chaque soir à 18h00",
-  },
-];
+type StepIconName = "shop" | "tag" | "share" | "chat" | "wallet" | "moon";
 
 export default function HowToUseClient() {
   const root = useRef<HTMLDivElement>(null);
+  const { tr } = usePublicLang();
   const [activeScenario, setActiveScenario] = useState(0);
+
+  const steps = [
+    {
+      n: "01",
+      phase: tr("Inscription · ~90 secondes", "Onboarding · ~90 seconds"),
+      title: tr(
+        "Ouvrez votre boutique sur WhatsApp",
+        "Open your shop on WhatsApp"
+      ),
+      subtitle: tr(
+        "Sans mot de passe complexe ni carte bancaire",
+        "No complex password or credit card required"
+      ),
+      body: tr(
+        "Saisissez simplement votre numéro WhatsApp sur /start. Vous recevez un code OTP à 6 chiffres et votre boutique est immédiatement créée en FCFA (ou votre devise locale). Aucune application supplémentaire à installer.",
+        "Simply enter your WhatsApp number on /start. You receive a 6-digit OTP code and your shop is immediately created in XOF (or your local currency). No extra app to install."
+      ),
+      highlights: [
+        tr(
+          "Connexion ultra-rapide par code WhatsApp OTP",
+          "Instant login via 6-digit WhatsApp OTP"
+        ),
+        tr(
+          "Devise FCFA (XOF) configurée par défaut sans erreur de décimale",
+          "XOF currency configured by default with zero decimal errors"
+        ),
+        tr(
+          "Démarrage immédiat gratuit sur votre téléphone",
+          "Immediate free setup right from your phone"
+        ),
+      ],
+      icon: "shop" as StepIconName,
+    },
+    {
+      n: "02",
+      phase: tr("Catalogue · 2 minutes", "Catalog · 2 minutes"),
+      title: tr(
+        "Ajoutez vos produits ou importez-les en 1 clic",
+        "Add your products or import in 1 click"
+      ),
+      subtitle: tr(
+        "Photos compressées automatiquement pour la 2G/3G",
+        "Photos automatically compressed for 2G/3G networks"
+      ),
+      body: tr(
+        "Ajoutez vos articles avec photos, prix, tailles, état (neuf/occasion), stock, tarifs de gros ou précommande avec acompte. Vous avez déjà un catalogue WhatsApp Business ? Importez-le en un seul clic.",
+        "Add your items with photos, prices, sizes, condition (new/used), stock, wholesale tiers, or pre-order deposits. Already have a WhatsApp Business catalog? Import it in one tap."
+      ),
+      highlights: [
+        tr(
+          "Import direct depuis Meta WhatsApp Business Catalog",
+          "Direct import from Meta WhatsApp Business Catalog"
+        ),
+        tr(
+          "Compression d'image côté navigateur pour économiser vos data",
+          "Client-side image compression to save mobile data"
+        ),
+        tr(
+          "Gestion des tailles, stocks, prix de gros et acomptes",
+          "Manage sizes, stock levels, wholesale prices, and deposits"
+        ),
+      ],
+      icon: "tag" as StepIconName,
+    },
+    {
+      n: "03",
+      phase: tr(
+        "Visibilité · En ligne & Au marché",
+        "Visibility · Online & At the Market"
+      ),
+      title: tr(
+        "Partagez un lien unique et votre QR code de stand",
+        "Share one link and your printable stall QR code"
+      ),
+      subtitle: tr(
+        "Statut WhatsApp, TikTok, Instagram et stand physique",
+        "WhatsApp Status, TikTok, Instagram, and physical stall"
+      ),
+      body: tr(
+        "Diffusez le lien de votre boutique sur votre Statut WhatsApp, dans votre bio Instagram/TikTok ou dans vos groupes de vente. Au marché, imprimez votre affiche QR code officielle pour que les passants scannent votre catalogue.",
+        "Share your shop link in your WhatsApp Status, Instagram/TikTok bio, or market groups. At your physical stall, print your official QR poster so passersby can scan and browse."
+      ),
+      highlights: [
+        tr(
+          "Générateur de visuels prêts pour Statut WhatsApp, IG & TikTok",
+          "Ready-to-post visual cards for WhatsApp Status, IG & TikTok"
+        ),
+        tr(
+          "QR code vectoriel (SVG) imprimable pour votre boutique physique",
+          "Printable SVG QR code poster for your physical shop"
+        ),
+        tr(
+          "Référencement automatique sur le Marketplace public Japora",
+          "Automatic listing on the public Japora Marketplace"
+        ),
+      ],
+      icon: "share" as StepIconName,
+    },
+    {
+      n: "04",
+      phase: tr("Automatisation · 24h/24 & 7j/7", "Automation · 24/7"),
+      title: tr(
+        "Le Bot WhatsApp répond aux clients jour et nuit",
+        "The WhatsApp Bot replies day and night"
+      ),
+      subtitle: tr(
+        "Fini de répéter « C'est combien ? » 50 fois par jour",
+        "Stop repeating 'How much?' 50 times a day"
+      ),
+      body: tr(
+        "Quand un client écrit sur votre WhatsApp, le bot répond instantanément à partir de votre catalogue en direct : prix, tailles disponibles, frais de livraison par quartier. En dehors de vos horaires d'ouverture, votre message d'absence prend le relais.",
+        "When a buyer messages your WhatsApp, the bot replies instantly from your live catalog: prices, available sizes, and delivery fees by neighborhood. Outside business hours, your away message takes over."
+      ),
+      highlights: [
+        tr(
+          "Boutons interactifs WhatsApp : Voir le menu, Commander, Mon solde",
+          "Interactive WhatsApp buttons: See menu, Order this, My balance"
+        ),
+        tr(
+          "Assistant IA de boutique pour conseiller les acheteurs",
+          "AI Shop Assistant to guide buyers"
+        ),
+        tr(
+          "Horaires d'ouverture personnalisables & message d'absence auto",
+          "Custom business hours & automated away message"
+        ),
+      ],
+      icon: "chat" as StepIconName,
+    },
+    {
+      n: "05",
+      phase: tr("Encaissement · Mobile Money natif", "Payments · Native Mobile Money"),
+      title: tr(
+        "Vos clients paient directement dans la conversation",
+        "Customers pay inline inside the chat"
+      ),
+      subtitle: tr(
+        "T-Money, Flooz, Wave, Orange Money & MTN MoMo",
+        "T-Money, Flooz, Wave, Orange Money & MTN MoMo"
+      ),
+      body: tr(
+        "Le client choisit son moyen de paiement habituel. Dès que le paiement Mobile Money est validé, la commande passe automatiquement au statut « ✓ Payé » sur votre tableau Kanban et le stock est mis à jour.",
+        "Buyers pay with their favorite local wallet. The moment Mobile Money clears, the order flips to '✓ Paid' on your Kanban board and stock updates automatically."
+      ),
+      highlights: [
+        tr(
+          "PayGate Global (T-Money & Flooz natifs au Togo) + CinetPay UEMOA",
+          "PayGate Global (native T-Money & Flooz in Togo) + CinetPay"
+        ),
+        tr(
+          "Wave, Orange Money, MTN MoMo, Flutterwave, Paystack & M-Pesa",
+          "Wave, Orange Money, MTN MoMo, Flutterwave, Paystack & M-Pesa"
+        ),
+        tr(
+          "Liens de paiement rapides pour acomptes et commandes sur-mesure",
+          "Quick payment links for deposits and custom orders"
+        ),
+      ],
+      icon: "wallet" as StepIconName,
+    },
+    {
+      n: "06",
+      phase: tr("Pilotage · Chaque soir à 18h00", "Tracking · Every Evening at 6 PM"),
+      title: tr(
+        "Suivez vos ventes et recevez votre bilan quotidien à 18h",
+        "Track your sales and read your 6 PM daily summary"
+      ),
+      subtitle: tr(
+        "Votre journée résumée en un coup d'œil sur WhatsApp",
+        "Your entire day distilled into one WhatsApp message"
+      ),
+      body: tr(
+        "À 18h00, Japora vous envoie un message récapitulatif sur WhatsApp : chiffre d'affaires du jour, nombre de commandes payées, produit le plus vendu, créances en attente et alertes de réapprovisionnement.",
+        "At 6 PM, Japora sends a concise recap to your WhatsApp: today's revenue, paid order count, top-selling product, pending receivables, and low-stock alerts."
+      ),
+      highlights: [
+        tr(
+          "Résumé WhatsApp quotidien à 18h00 sans ouvrir le tableau de bord",
+          "Daily 6 PM WhatsApp summary without opening the dashboard"
+        ),
+        tr(
+          "Suivi des créances clients (Pay-later) et relances paniers abandonnés",
+          "Customer receivables tracking & abandoned cart recovery"
+        ),
+        tr(
+          "Comptabilité mensuelle P&L automatique exportable en CSV",
+          "Automated monthly P&L bookkeeping exportable to CSV"
+        ),
+      ],
+      icon: "moon" as StepIconName,
+    },
+  ];
+
+  const simulatorScenarios = [
+    {
+      id: "price",
+      label: tr(
+        "💬 Demande de prix (« C'est combien ? »)",
+        "💬 Price check ('How much is this?')"
+      ),
+      buyerMsg: tr(
+        "Bonjour ! C'est combien le Sac Bogolan Cuir et vous livrez à Agoè ?",
+        "Hello! How much is the Bogolan Leather Bag and do you deliver to Agoè?"
+      ),
+      botReply: tr(
+        "Bonjour 👋 ! Le **Sac Bogolan Cuir** est à **15 000 FCFA** (En stock : 6 pièces).\n\n📍 Livraison vers **Agoè** : **1 500 FCFA**.\nTotal avec livraison : **16 500 FCFA**.",
+        "Hello 👋! The **Bogolan Leather Bag** is **15,000 XOF** (In stock: 6 left).\n\n📍 Delivery to **Agoè**: **1,500 XOF**.\nTotal with delivery: **16,500 XOF**."
+      ),
+      buttons: [
+        tr("🛒 Commander maintenant", "🛒 Order now"),
+        tr("📖 Voir tout le catalogue", "📖 View full catalog"),
+        tr("💬 Parler au vendeur", "💬 Talk to seller"),
+      ],
+      statusBadge: tr(
+        "Réponse automatique en 0.8s",
+        "Automated reply in 0.8s"
+      ),
+    },
+    {
+      id: "order",
+      label: tr(
+        "💳 Paiement T-Money / Flooz en direct",
+        "💳 Inline T-Money / Flooz Payment"
+      ),
+      buyerMsg: tr(
+        "Je prends 1 Sac Bogolan Cuir avec livraison à Agoè. Je paie par T-Money.",
+        "I'll take 1 Bogolan Leather Bag with delivery to Agoè. Paying via T-Money."
+      ),
+      botReply: tr(
+        "Parfait ! Votre commande **#JP-4092** (16 500 FCFA) est enregistrée.\n\n👉 Appuyez ci-dessous pour valider votre paiement **T-Money / Flooz** en toute sécurité :",
+        "Awesome! Your order **#JP-4092** (16,500 XOF) is created.\n\n👉 Tap below to complete your **T-Money / Flooz** payment securely:"
+      ),
+      buttons: [
+        tr("📲 Payer 16 500 FCFA (T-Money / Flooz)", "📲 Pay 16,500 XOF (T-Money / Flooz)"),
+        tr("📄 Voir le récapitulatif", "📄 View order summary"),
+      ],
+      statusBadge: tr(
+        "Statut : ✓ Payé confirmé automatiquement",
+        "Status: ✓ Paid confirmed automatically"
+      ),
+    },
+    {
+      id: "summary",
+      label: tr(
+        "🌙 Bilan du soir à 18h00 (Côté Vendeur)",
+        "🌙 6 PM Daily Summary (Merchant View)"
+      ),
+      buyerMsg: tr(
+        "[Notification automatique Japora — 18h00]",
+        "[Automated Japora Notification — 6:00 PM]"
+      ),
+      botReply: tr(
+        "🌙 **Bilan du jour — Chez Améyo**\n• Commandes payées : **11 commandes**\n• Chiffre d'affaires : **134 500 FCFA**\n• Top vente : **Robe Bazin Brodé (5x)**\n• ⚠️ Stock bas : **Sandales Cuir (reste 2)**",
+        "🌙 **Daily Hustle Summary — Chez Améyo**\n• Paid orders: **11 orders**\n• Revenue: **134,500 XOF**\n• Top seller: **Embroidered Bazin Dress (5x)**\n• ⚠️ Low stock: **Leather Sandals (2 left)**"
+      ),
+      buttons: [
+        tr("📊 Ouvrir le tableau de bord", "📊 Open dashboard"),
+        tr("📦 Réapprovisionner le stock", "📦 Restock items"),
+      ],
+      statusBadge: tr(
+        "Envoyé chaque soir à 18h00",
+        "Sent every evening at 6:00 PM"
+      ),
+    },
+  ];
 
   useEffect(() => {
     const el = root.current;
@@ -142,12 +290,12 @@ export default function HowToUseClient() {
 
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     const heroes = el.querySelectorAll<HTMLElement>("[data-hero]");
-    const steps = el.querySelectorAll<HTMLElement>("[data-step]");
+    const stepNodes = el.querySelectorAll<HTMLElement>("[data-step]");
     const line = el.querySelector<SVGPathElement>("[data-ledger-line]");
     const counter = el.querySelector<HTMLElement>("[data-count]");
 
     const revealAll = () => {
-      [...heroes, ...steps].forEach((n) => {
+      [...heroes, ...stepNodes].forEach((n) => {
         n.style.opacity = "1";
         n.style.transform = "none";
       });
@@ -240,10 +388,10 @@ export default function HowToUseClient() {
           },
           { threshold: 0.12, rootMargin: "0px 0px -8% 0px" }
         );
-        steps.forEach((s) => io.observe(s));
+        stepNodes.forEach((s) => io.observe(s));
 
         safety = window.setTimeout(() => {
-          steps.forEach((s) => revealStep(s as HTMLElement));
+          stepNodes.forEach((s) => revealStep(s as HTMLElement));
         }, 1600);
       })
       .catch(revealAll);
@@ -254,7 +402,7 @@ export default function HowToUseClient() {
     };
   }, []);
 
-  const currentScenario = SIMULATOR_SCENARIOS[activeScenario];
+  const currentScenario = simulatorScenarios[activeScenario];
 
   return (
     <div ref={root} className="min-h-screen flex flex-col">
@@ -266,21 +414,27 @@ export default function HowToUseClient() {
          * ============================================================ */}
         <section className="py-14 text-center sm:py-20">
           <div data-hero style={{ opacity: 0 }} className="a-eyebrow">
-            Guide Complet · How Japora Works
+            {tr("Guide Complet · Comment ça marche", "Complete Guide · How Japora Works")}
           </div>
           <h1
             data-hero
             style={{ opacity: 0 }}
             className="a-display-sm mx-auto mt-3 max-w-3xl text-arctic-900 sm:a-display-md"
           >
-            De « C&apos;est combien ? » jusqu&apos;au paiement — sans quitter WhatsApp.
+            {tr(
+              "De « C'est combien ? » jusqu'au paiement — sans quitter WhatsApp.",
+              "From “how much?” to paid — without leaving WhatsApp."
+            )}
           </h1>
           <p
             data-hero
             style={{ opacity: 0 }}
             className="a-body-lg mx-auto mt-4 max-w-2xl text-arctic-700"
           >
-            Six étapes simples, de l&apos;ouverture de votre boutique au bilan comptable de 18h. Aucune nouvelle application à imposer à vos clients : tout se passe dans la discussion WhatsApp qu&apos;ils utilisent déjà.
+            {tr(
+              "Six étapes simples, de l'ouverture de votre boutique en ligne jusqu'au suivi de vos ventes et au bilan de 18h.",
+              "Six simple steps, from opening your online storefront to tracking your sales and reading your 6 PM daily summary."
+            )}
           </p>
           <div
             data-hero
@@ -288,10 +442,13 @@ export default function HowToUseClient() {
             className="mt-7 flex flex-wrap justify-center gap-3"
           >
             <Link href="/start" className="a-btn a-btn--cafe a-btn--lg font-bold">
-              Démarrer sur WhatsApp en 90 sec →
+              {tr(
+                "Démarrer sur WhatsApp en 90 sec →",
+                "Start on WhatsApp in 90 sec →"
+              )}
             </Link>
             <Link href="/marketplace" className="btn-ghost a-btn--lg">
-              Explorer le Marketplace
+              {tr("Explorer le Marketplace", "Explore the Marketplace")}
             </Link>
           </div>
         </section>
@@ -300,7 +457,6 @@ export default function HowToUseClient() {
          * 2. THE 6 STEPS WITH GOLD LEDGER SPINE
          * ============================================================ */}
         <section className="relative mx-auto max-w-4xl pb-12">
-          {/* Gold "ledger" spine */}
           <svg
             aria-hidden
             className="pointer-events-none absolute left-[27px] top-2 hidden h-[calc(100%-3rem)] w-2 sm:block"
@@ -318,10 +474,9 @@ export default function HowToUseClient() {
           </svg>
 
           <ol className="space-y-6">
-            {STEPS.map((s) => (
+            {steps.map((s) => (
               <li key={s.n} data-step className="relative">
                 <article className="flex items-start gap-4 sm:gap-6">
-                  {/* Number medallion */}
                   <div
                     data-rise
                     style={{ opacity: 0 }}
@@ -356,7 +511,7 @@ export default function HowToUseClient() {
                     <p
                       data-rise
                       style={{ opacity: 0 }}
-                      className="a-body-md mt-2 text-arctic-700 leading-relaxed"
+                      className="a-body-md mt-2 leading-relaxed text-arctic-700"
                     >
                       {s.body}
                     </p>
@@ -388,7 +543,9 @@ export default function HowToUseClient() {
          * ============================================================ */}
         <section className="mb-20 mt-4">
           <div className="glass glass-edge mx-auto max-w-xl rounded-shape-xl p-8 text-center shadow-elev-2">
-            <div className="a-eyebrow">Temps moyen de mise en ligne</div>
+            <div className="a-eyebrow">
+              {tr("Temps moyen de mise en ligne", "Time to your first shop")}
+            </div>
             <div className="mt-2 flex items-end justify-center gap-1.5">
               <span
                 data-count="90"
@@ -397,14 +554,17 @@ export default function HowToUseClient() {
                 90
               </span>
               <span className="a-num pb-1 font-display text-2xl font-bold text-brand-dark">
-                secondes
+                {tr("secondes", "sec")}
               </span>
             </div>
             <div className="mx-auto mt-4 h-px max-w-[14rem]">
               <hr className="a-rule-gold" />
             </div>
             <p className="a-body-md mt-3 text-arctic-700">
-              Recevez un code à 6 chiffres sur WhatsApp, validez, et votre vitrine est prête à encaisser vos premières commandes.
+              {tr(
+                "Recevez un code à 6 chiffres sur WhatsApp, validez, et votre vitrine est prête à encaisser vos premières commandes.",
+                "Receive a 6-digit code on WhatsApp, confirm, and your storefront is live and ready to take orders."
+              )}
             </p>
           </div>
         </section>
@@ -414,19 +574,26 @@ export default function HowToUseClient() {
          * ============================================================ */}
         <section className="mb-20 rounded-shape-xl border border-arctic-300/60 bg-white/85 p-6 shadow-elev-2 backdrop-blur-md sm:p-10">
           <div className="mx-auto max-w-2xl text-center">
-            <span className="a-eyebrow">Démonstration Interactive</span>
+            <span className="a-eyebrow">
+              {tr("Démonstration Interactive", "Interactive Demo")}
+            </span>
             <h2 className="a-headline-lg mt-1 text-arctic-900">
-              Voyez comment le Bot WhatsApp gère vos clients en direct
+              {tr(
+                "Voyez comment le Bot WhatsApp gère vos clients en direct",
+                "See how the WhatsApp Bot handles your customers live"
+              )}
             </h2>
-            <p className="mt-2 text-xs sm:text-sm text-arctic-600">
-              Sélectionnez un scénario ci-dessous pour visualiser la conversation telle qu&apos;elle se déroule sur WhatsApp.
+            <p className="mt-2 text-xs text-arctic-600 sm:text-sm">
+              {tr(
+                "Sélectionnez un scénario ci-dessous pour visualiser la conversation telle qu'elle se déroule sur WhatsApp.",
+                "Select a scenario below to preview the conversation right inside WhatsApp."
+              )}
             </p>
           </div>
 
           <div className="mt-8 grid items-center gap-8 lg:grid-cols-[1fr,1.25fr]">
-            {/* Scenario Selector Buttons */}
             <div className="space-y-3">
-              {SIMULATOR_SCENARIOS.map((scen, idx) => {
+              {simulatorScenarios.map((scen, idx) => {
                 const isSelected = activeScenario === idx;
                 return (
                   <button
@@ -462,13 +629,15 @@ export default function HowToUseClient() {
 
               <div className="rounded-shape-md border border-brand/30 bg-brand/10 p-4 text-xs text-arctic-800">
                 <strong className="font-bold text-brand-dark">
-                  Astuce Vendeur :
+                  {tr("Astuce Vendeur :", "Merchant Tip:")}
                 </strong>{" "}
-                Depuis votre tableau de bord (<code>/dashboard/bot</code>), vous disposez d&apos;un simulateur complet pour tester les réponses de votre propre boutique avant de les activer.
+                {tr(
+                  "Depuis votre tableau de bord (/dashboard/bot), vous disposez d'un simulateur complet pour tester les réponses de votre propre boutique.",
+                  "From your dashboard (/dashboard/bot), you get a full simulator to test your own shop's automated replies."
+                )}
               </div>
             </div>
 
-            {/* Simulated WhatsApp Screen */}
             <div className="glass glass-edge rounded-shape-xl p-6 shadow-elev-2">
               <div className="mb-4 flex items-center justify-between border-b border-arctic-200/70 pb-3">
                 <div className="flex items-center gap-2.5">
@@ -477,10 +646,13 @@ export default function HowToUseClient() {
                   </div>
                   <div>
                     <div className="text-xs font-bold text-arctic-900">
-                      Chez Améyo · Boutique Vérifiée ✓
+                      {tr(
+                        "Chez Améyo · Boutique Vérifiée ✓",
+                        "Chez Améyo · Verified Shop ✓"
+                      )}
                     </div>
-                    <div className="text-[10px] text-emerald-700 font-medium">
-                      ● Bot Japora actif 24h/24
+                    <div className="text-[10px] font-medium text-emerald-700">
+                      {tr("● Bot Japora actif 24h/24", "● Japora Bot active 24/7")}
                     </div>
                   </div>
                 </div>
@@ -490,19 +662,17 @@ export default function HowToUseClient() {
               </div>
 
               <div className="space-y-3">
-                {/* Buyer Bubble */}
                 <div className="max-w-md rounded-shape-lg rounded-tl-xs border border-arctic-200 bg-white p-3.5 text-xs text-arctic-800 shadow-xs">
                   <div className="mb-1 text-[10px] font-bold text-arctic-500">
-                    Message entrant
+                    {tr("Message entrant", "Incoming message")}
                   </div>
                   {currentScenario.buyerMsg}
                 </div>
 
-                {/* Bot Reply Bubble */}
                 <div className="ml-auto max-w-md rounded-shape-lg rounded-tr-xs border border-brand/35 bg-brand/10 p-4 text-xs text-arctic-900 shadow-xs">
                   <div className="mb-1.5 flex items-center justify-between text-[10px] font-bold text-brand-dark">
                     <span>🤖 Assistant Japora</span>
-                    <span>Instantané</span>
+                    <span>{tr("Instantané", "Instant")}</span>
                   </div>
                   <div className="whitespace-pre-line leading-relaxed">
                     {currentScenario.botReply}
@@ -526,7 +696,7 @@ export default function HowToUseClient() {
                   href="/start"
                   className="font-bold text-brand-dark hover:underline"
                 >
-                  Activer sur mon numéro →
+                  {tr("Activer sur mon numéro →", "Activate on my number →")}
                 </Link>
               </div>
             </div>
@@ -538,33 +708,62 @@ export default function HowToUseClient() {
          * ============================================================ */}
         <section className="mb-20">
           <div className="mx-auto mb-10 max-w-2xl text-center">
-            <span className="a-eyebrow">Une journée type</span>
+            <span className="a-eyebrow">
+              {tr("Une journée type", "A Day in the Life")}
+            </span>
             <h2 className="a-headline-lg mt-1 text-arctic-900">
-              Comment Japora vous fait gagner 3 heures par jour
+              {tr(
+                "Comment Japora vous fait gagner 3 heures par jour",
+                "How Japora saves you 3 hours every single day"
+              )}
             </h2>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               {
-                time: "07h30 · Matin",
-                title: "Commandes de la nuit déjà payées",
-                desc: "Pendant votre sommeil, le bot a répondu aux clients nocturnes. Vous vous réveillez avec 3 commandes déjà payées par T-Money.",
+                time: tr("07h30 · Matin", "07:30 AM · Morning"),
+                title: tr(
+                  "Commandes de la nuit déjà payées",
+                  "Overnight orders already paid"
+                ),
+                desc: tr(
+                  "Pendant votre sommeil, le bot a répondu aux clients nocturnes. Vous vous réveillez avec 3 commandes déjà payées par T-Money.",
+                  "While you slept, the bot answered night shoppers. You wake up to 3 orders already paid via T-Money."
+                ),
               },
               {
-                time: "11h00 · Au marché",
-                title: "Scan QR code au stand & Statut WhatsApp",
-                desc: "Vous publiez une carte produit sur votre Statut WhatsApp en 1 clic. Au stand, les clients scannent votre QR code pour voir toutes les tailles.",
+                time: tr("11h00 · Au marché", "11:00 AM · At the Stall"),
+                title: tr(
+                  "Scan QR code au stand & Statut WhatsApp",
+                  "Stall QR scans & WhatsApp Status"
+                ),
+                desc: tr(
+                  "Vous publiez une carte produit sur votre Statut WhatsApp en 1 clic. Au stand, les clients scannent votre QR code pour voir toutes les tailles.",
+                  "You post a product card to your WhatsApp Status in 1 tap. At your stall, buyers scan your QR poster to browse all sizes."
+                ),
               },
               {
-                time: "15h00 · Livraisons",
-                title: "Suivi Kanban & Zones de livraison",
-                desc: "Votre livreur récupère les colis avec l'adresse exacte et les frais de quartier (Lomé Centre, Agoè…) déjà réglés.",
+                time: tr("15h00 · Livraisons", "03:00 PM · Deliveries"),
+                title: tr(
+                  "Suivi Kanban & Zones de livraison",
+                  "Kanban tracking & Delivery zones"
+                ),
+                desc: tr(
+                  "Votre livreur récupère les colis avec l'adresse exacte et les frais de quartier (Lomé Centre, Agoè…) déjà réglés.",
+                  "Your rider picks up parcels with the exact neighborhood address and delivery fees already settled."
+                ),
               },
               {
-                time: "18h00 · Bilan du soir",
-                title: "Résumé automatique sur WhatsApp",
-                desc: "Vous recevez votre récapitulatif de 18h : ventes du jour, produit phare et alerte sur les articles à réapprovisionner.",
+                time: tr("18h00 · Bilan du soir", "06:00 PM · Evening Recap"),
+                title: tr(
+                  "Résumé automatique sur WhatsApp",
+                  "Automated WhatsApp summary"
+                ),
+                desc: tr(
+                  "Vous recevez votre récapitulatif de 18h : ventes du jour, produit phare et alerte sur les articles à réapprovisionner.",
+                  "You get your 6 PM recap on WhatsApp: daily revenue, top seller, and alerts on items to restock."
+                ),
               },
             ].map((slot) => (
               <div
@@ -592,37 +791,53 @@ export default function HowToUseClient() {
          * ============================================================ */}
         <section className="mb-20 grid gap-6 md:grid-cols-2">
           <div className="glass glass-edge rounded-shape-xl p-6 sm:p-8">
-            <span className="a-eyebrow">Pont Physique → Digital</span>
+            <span className="a-eyebrow">
+              {tr("Pont Physique → Digital", "Offline → Online Bridge")}
+            </span>
             <h3 className="mt-2 font-display text-xl font-bold text-arctic-900">
-              Affiche QR Code pour votre boutique ou étal de marché
+              {tr(
+                "Affiche QR Code pour votre boutique ou étal de marché",
+                "Printable QR Poster for your physical shop or market stall"
+              )}
             </h3>
-            <p className="mt-2 text-xs sm:text-sm leading-relaxed text-arctic-700">
-              Depuis vos paramètres (<code>/dashboard/settings</code>), téléchargez et imprimez votre affiche QR code officielle. Même lorsque votre stand est bondé ou fermé, les clients scannent le code, parcourent vos articles et s&apos;abonnent (🔔 Follow) pour recevoir vos prochains arrivages.
+            <p className="mt-2 text-xs leading-relaxed text-arctic-700 sm:text-sm">
+              {tr(
+                "Depuis vos paramètres (/dashboard/settings), téléchargez et imprimez votre affiche QR code officielle. Même lorsque votre stand est bondé ou fermé, les clients scannent le code, parcourent vos articles et s'abonnent (🔔 Follow).",
+                "From your settings (/dashboard/settings), download and print your official QR code poster. Even when your stall is busy or closed, shoppers scan to browse your catalog and subscribe (🔔 Follow)."
+              )}
             </p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-arctic-800">
-              <span className="rounded-md bg-white/80 px-2.5 py-1 border border-arctic-300/60">
-                ✓ Format SVG haute définition
+              <span className="rounded-md border border-arctic-300/60 bg-white/80 px-2.5 py-1">
+                {tr("✓ Format SVG haute définition", "✓ High-res printable SVG")}
               </span>
-              <span className="rounded-md bg-white/80 px-2.5 py-1 border border-arctic-300/60">
-                ✓ Bouton « 🔔 Suivre la boutique »
+              <span className="rounded-md border border-arctic-300/60 bg-white/80 px-2.5 py-1">
+                {tr("✓ Bouton « 🔔 Suivre la boutique »", "✓ '🔔 Follow shop' opt-in")}
               </span>
             </div>
           </div>
 
           <div className="glass glass-edge rounded-shape-xl p-6 sm:p-8">
-            <span className="a-eyebrow">Kit Réseaux Sociaux</span>
+            <span className="a-eyebrow">
+              {tr("Kit Réseaux Sociaux", "Social Share Kit")}
+            </span>
             <h3 className="mt-2 font-display text-xl font-bold text-arctic-900">
-              Visuels Statut WhatsApp, Instagram &amp; TikTok générés automatiquement
+              {tr(
+                "Visuels Statut WhatsApp, Instagram & TikTok générés automatiquement",
+                "Auto-generated WhatsApp Status, Instagram & TikTok cards"
+              )}
             </h3>
-            <p className="mt-2 text-xs sm:text-sm leading-relaxed text-arctic-700">
-              Chaque produit de votre catalogue dispose d&apos;un générateur de visuels promotionnels avec prix, badge de disponibilité et légende prête à copier. Postez sur votre Statut WhatsApp en quelques secondes et suivez quelle campagne génère le plus de ventes.
+            <p className="mt-2 text-xs leading-relaxed text-arctic-700 sm:text-sm">
+              {tr(
+                "Chaque produit de votre catalogue dispose d'un générateur de visuels promotionnels avec prix, badge de disponibilité et légende prête à copier. Postez sur votre Statut WhatsApp en quelques secondes et suivez vos ventes par campagne.",
+                "Every product in your catalog includes a promotional image generator with price, stock badge, and copyable caption. Post to your WhatsApp Status in seconds and track attributed sales."
+              )}
             </p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-arctic-800">
-              <span className="rounded-md bg-white/80 px-2.5 py-1 border border-arctic-300/60">
-                ✓ Attribution des ventes par campagne
+              <span className="rounded-md border border-arctic-300/60 bg-white/80 px-2.5 py-1">
+                {tr("✓ Attribution des ventes par campagne", "✓ Campaign sales attribution")}
               </span>
-              <span className="rounded-md bg-white/80 px-2.5 py-1 border border-arctic-300/60">
-                ✓ Relance des paniers abandonnés
+              <span className="rounded-md border border-arctic-300/60 bg-white/80 px-2.5 py-1">
+                {tr("✓ Relance des paniers abandonnés", "✓ Abandoned cart recovery")}
               </span>
             </div>
           </div>
@@ -632,20 +847,31 @@ export default function HowToUseClient() {
          * 7. CLOSING CTA
          * ============================================================ */}
         <section className="mb-20 text-center">
-          <div className="glass glass-edge mx-auto max-w-3xl rounded-shape-xl p-8 sm:p-12 shadow-elev-2">
-            <span className="a-eyebrow">Lancez-vous aujourd&apos;hui</span>
+          <div className="glass glass-edge mx-auto max-w-3xl rounded-shape-xl p-8 shadow-elev-2 sm:p-12">
+            <span className="a-eyebrow">
+              {tr("Lancez-vous aujourd'hui", "Get started today")}
+            </span>
             <h2 className="a-headline-lg mt-2 font-display text-arctic-900">
-              Votre commerce, géré avec sérénité.
+              {tr(
+                "Vendez en ligne et sur WhatsApp, suivez vos ventes en toute sérénité.",
+                "Sell online and on WhatsApp, track your sales with peace of mind."
+              )}
             </h2>
             <p className="a-body-md mx-auto mt-2 max-w-lg text-arctic-700">
-              Démarrez gratuitement — gardez 97% lorsque vous encaissez en ligne. Aucun frais mensuel.
+              {tr(
+                "Créez votre boutique gratuitement en 90 secondes — aucune carte bancaire requise.",
+                "Open your shop for free in 90 seconds — no credit card required."
+              )}
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Link href="/start" className="a-btn a-btn--cafe a-btn--lg font-bold">
-                Ouvrir ma boutique gratuitement →
+                {tr(
+                  "Ouvrir ma boutique gratuitement →",
+                  "Open my free shop now →"
+                )}
               </Link>
-              <Link href="/pricing" className="btn-ghost a-btn--lg">
-                Voir les tarifs détaillés
+              <Link href="/marketplace" className="btn-ghost a-btn--lg">
+                {tr("Explorer le Marketplace", "Explore the Marketplace")}
               </Link>
             </div>
           </div>
@@ -657,9 +883,8 @@ export default function HowToUseClient() {
   );
 }
 
-/* Small line-art step glyphs (gold), consistent with the Lumière icon set. */
-function StepIcon({ name }: { name: Step["icon"] }) {
-  const paths: Record<Step["icon"], string> = {
+function StepIcon({ name }: { name: StepIconName }) {
+  const paths: Record<StepIconName, string> = {
     shop: "M4 9l1-4h14l1 4M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9M4 9h16M9 20v-6h6v6",
     tag: "M3 7v5l9 9 6-6-9-9H4a1 1 0 0 0-1 1zM7.5 7.5h.01",
     share: "M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13",

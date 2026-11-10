@@ -5,10 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 function StartInner() {
   const router = useRouter();
   const sp = useSearchParams();
+  const { tr } = usePublicLang();
   const ref = sp.get("ref") || "";
   const coop = sp.get("coop") || "";
 
@@ -32,7 +34,10 @@ function StartInner() {
     const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(data.error || "Impossible d'envoyer le code.");
+      setError(
+        data.error ||
+          tr("Impossible d'envoyer le code.", "Unable to send the code.")
+      );
       return;
     }
     if (data.devCode) setDevCode(String(data.devCode));
@@ -51,7 +56,10 @@ function StartInner() {
     const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(data.error || "Code invalide ou expiré.");
+      setError(
+        data.error ||
+          tr("Code invalide ou expiré.", "Invalid or expired code.")
+      );
       return;
     }
     router.push("/dashboard");
@@ -66,31 +74,54 @@ function StartInner() {
         <div className="grid w-full items-center gap-10 lg:grid-cols-[1.05fr,1fr]">
           {/* Left Value Pitch */}
           <div className="space-y-5 a-fade-in">
-            <span className="a-eyebrow">Accélérateur d&apos;inscription · ~90 sec</span>
+            <span className="a-eyebrow">
+              {tr(
+                "Accélérateur d'inscription · ~90 sec",
+                "Quick onboarding · ~90 sec"
+              )}
+            </span>
             <h1 className="a-display-sm text-arctic-900">
-              Ouvrez votre boutique avec votre numéro WhatsApp.
+              {tr(
+                "Ouvrez votre boutique avec votre numéro WhatsApp.",
+                "Open your shop with your WhatsApp number."
+              )}
             </h1>
             <p className="a-body-md text-arctic-700 leading-relaxed">
-              Aucun mot de passe à retenir ni carte bancaire à saisir. Recevez un code à 6 chiffres et accédez immédiatement à votre catalogue, votre bot WhatsApp et vos liens de paiement Mobile Money.
+              {tr(
+                "Aucun mot de passe à retenir ni carte bancaire à saisir. Recevez un code à 6 chiffres et accédez immédiatement à votre catalogue, votre bot WhatsApp et vos liens de paiement Mobile Money.",
+                "No password to remember or credit card required. Receive a 6-digit code and get instant access to your catalog, WhatsApp bot, and Mobile Money payment links."
+              )}
             </p>
 
             <div className="grid gap-3 sm:grid-cols-2 pt-2">
               {[
                 {
-                  title: "Devise FCFA (XOF) native",
-                  desc: "Configurée automatiquement avec les rails T-Money, Flooz, Wave et Orange.",
+                  title: tr("Devise FCFA (XOF) native", "Native FCFA (XOF) currency"),
+                  desc: tr(
+                    "Configurée automatiquement avec les rails T-Money, Flooz, Wave et Orange.",
+                    "Automatically configured with T-Money, Flooz, Wave, and Orange Money rails."
+                  ),
                 },
                 {
-                  title: "Bot WhatsApp pré-activé",
-                  desc: "Répond aux questions de prix et de stock dès votre premier produit ajouté.",
+                  title: tr("Bot WhatsApp pré-activé", "Pre-activated WhatsApp Bot"),
+                  desc: tr(
+                    "Répond aux questions de prix et de stock dès votre premier produit ajouté.",
+                    "Answers price and stock questions as soon as your first product is added."
+                  ),
                 },
                 {
-                  title: "Affiche QR Code incluse",
-                  desc: "Téléchargez votre QR code officiel pour votre stand physique au marché.",
+                  title: tr("Affiche QR Code incluse", "QR Code poster included"),
+                  desc: tr(
+                    "Téléchargez votre QR code officiel pour votre stand physique au marché.",
+                    "Download your official QR code poster for your physical market stall."
+                  ),
                 },
                 {
-                  title: "0 FCFA d'abonnement",
-                  desc: "Offre Starter gratuite à vie, ou gardez 97% sur les paiements intégrés.",
+                  title: tr("Accès immédiat gratuit", "Free instant access"),
+                  desc: tr(
+                    "Commencez à vendre en ligne et sur WhatsApp sans frais d'ouverture.",
+                    "Start selling online and on WhatsApp with zero setup fees."
+                  ),
                 },
               ].map((b) => (
                 <div
@@ -114,33 +145,48 @@ function StartInner() {
               {step === "phone" ? (
                 <>
                   <div className="flex items-center justify-between">
-                    <span className="a-eyebrow">Étape 1 sur 2</span>
+                    <span className="a-eyebrow">
+                      {tr("Étape 1 sur 2", "Step 1 of 2")}
+                    </span>
                     <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">
                       WhatsApp OTP
                     </span>
                   </div>
                   <h2 className="a-headline-sm mt-2 text-arctic-900">
-                    Démarrer sur WhatsApp
+                    {tr("Démarrer sur WhatsApp", "Start with WhatsApp")}
                   </h2>
                   <p className="a-body-md mt-1 text-arctic-600">
-                    Entrez votre numéro WhatsApp. Nous vous envoyons un code de validation instantané.
+                    {tr(
+                      "Entrez votre numéro WhatsApp. Nous vous envoyons un code de validation instantané.",
+                      "Enter your WhatsApp number. We will send you an instant verification code."
+                    )}
                   </p>
                   <form onSubmit={requestCode} className="mt-6 space-y-4">
                     <div>
-                      <label className="label">Nom de votre boutique</label>
+                      <label className="label">
+                        {tr("Nom de votre boutique", "Your shop name")}
+                      </label>
                       <input
                         className="input"
-                        placeholder="ex: Chez Améyo Mode"
+                        placeholder={tr("ex: Chez Améyo Mode", "e.g. Ameyo Fashion")}
                         value={shopName}
                         onChange={(e) => setShopName(e.target.value)}
                       />
                     </div>
                     <div>
-                      <label className="label">Numéro WhatsApp (avec indicatif)</label>
+                      <label className="label">
+                        {tr(
+                          "Numéro WhatsApp (avec indicatif)",
+                          "WhatsApp number (with country code)"
+                        )}
+                      </label>
                       <input
                         className="input"
                         inputMode="tel"
-                        placeholder="ex: 22890112233 ou +228 90 11 22 33"
+                        placeholder={tr(
+                          "ex: 22890112233 ou +228 90 11 22 33",
+                          "e.g. 22890112233 or +228 90 11 22 33"
+                        )}
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         required
@@ -155,28 +201,36 @@ function StartInner() {
                       className="a-btn a-btn--cafe w-full font-bold"
                       disabled={loading}
                     >
-                      {loading ? "Envoi en cours…" : "Recevoir mon code à 6 chiffres →"}
+                      {loading
+                        ? tr("Envoi en cours…", "Sending…")
+                        : tr(
+                            "Recevoir mon code à 6 chiffres →",
+                            "Get my 6-digit code →"
+                          )}
                     </button>
                   </form>
                 </>
               ) : (
                 <>
                   <div className="flex items-center justify-between">
-                    <span className="a-eyebrow">Étape 2 sur 2</span>
+                    <span className="a-eyebrow">
+                      {tr("Étape 2 sur 2", "Step 2 of 2")}
+                    </span>
                     <span className="rounded-full bg-brand/15 px-2.5 py-0.5 text-[10px] font-bold text-brand-dark">
-                      Vérification
+                      {tr("Vérification", "Verification")}
                     </span>
                   </div>
                   <h2 className="a-headline-sm mt-2 text-arctic-900">
-                    Entrez votre code
+                    {tr("Entrez votre code", "Enter your code")}
                   </h2>
                   <p className="a-body-md mt-1 text-arctic-600">
-                    Code à 6 chiffres envoyé au{" "}
-                    <span className="font-semibold text-arctic-900">{phone}</span> sur WhatsApp.
+                    {tr("Code à 6 chiffres envoyé au ", "6-digit code sent to ")}
+                    <span className="font-semibold text-arctic-900">{phone}</span>{" "}
+                    {tr("sur WhatsApp.", "on WhatsApp.")}
                   </p>
                   {devCode && (
                     <p className="mt-3 rounded-shape-md border border-dashed border-brand/55 bg-brand/10 px-3 py-2 a-body-sm text-arctic-800 backdrop-blur-glass-thin">
-                      Mode démo — votre code est{" "}
+                      {tr("Mode démo — votre code est ", "Demo mode — your code is ")}
                       <span className="font-mono font-bold text-arctic-900">
                         {devCode}
                       </span>
@@ -184,7 +238,9 @@ function StartInner() {
                   )}
                   <form onSubmit={verify} className="mt-6 space-y-4">
                     <div>
-                      <label className="label">Code à 6 chiffres</label>
+                      <label className="label">
+                        {tr("Code à 6 chiffres", "6-digit code")}
+                      </label>
                       <input
                         className="input text-center text-lg font-bold tracking-[0.4em]"
                         inputMode="numeric"
@@ -206,7 +262,12 @@ function StartInner() {
                       className="a-btn a-btn--cafe w-full font-bold"
                       disabled={loading}
                     >
-                      {loading ? "Vérification…" : "Confirmer & ouvrir ma boutique"}
+                      {loading
+                        ? tr("Vérification…", "Verifying…")
+                        : tr(
+                            "Confirmer & ouvrir ma boutique",
+                            "Confirm & open my shop"
+                          )}
                     </button>
                     <button
                       type="button"
@@ -217,19 +278,22 @@ function StartInner() {
                       }}
                       className="btn-ghost w-full"
                     >
-                      Modifier le numéro
+                      {tr("Modifier le numéro", "Change phone number")}
                     </button>
                   </form>
                 </>
               )}
 
               <p className="mt-6 border-t border-arctic-200/60 pt-4 text-center a-body-sm text-arctic-600">
-                Vous préférez utiliser une adresse email ?{" "}
+                {tr(
+                  "Vous préférez utiliser une adresse email ? ",
+                  "Prefer to sign up with an email address? "
+                )}
                 <Link
                   href="/signup"
                   className="font-semibold text-brand-dark hover:underline"
                 >
-                  Inscription classique
+                  {tr("Inscription classique", "Email sign up")}
                 </Link>
               </p>
             </div>
