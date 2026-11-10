@@ -8,6 +8,7 @@ import CopyableLink from "./CopyableLink";
 import NotifyFollowers from "./NotifyFollowers";
 import Glyph from "@/components/Glyph";
 import EmailVerificationBanner from "@/components/EmailVerificationBanner";
+import { emailMode } from "@/lib/email";
 
 export default async function OverviewPage() {
   const vendor = await requireVendor();
@@ -96,7 +97,11 @@ export default async function OverviewPage() {
 
   return (
     <div className="space-y-7 a-fade-in">
-      <EmailVerificationBanner email={vendor.email} verified={Boolean(vendor.emailVerifiedAt)} />
+      {/* No email service connected in production: don't ask sellers to verify an address nobody can mail. */}
+      <EmailVerificationBanner
+        email={vendor.email}
+        verified={Boolean(vendor.emailVerifiedAt) || (emailMode() === "stub" && process.env.NODE_ENV === "production")}
+      />
 
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>

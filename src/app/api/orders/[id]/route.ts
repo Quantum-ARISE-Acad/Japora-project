@@ -11,6 +11,7 @@ import { parseWhatsAppAssistantConfig } from "@/lib/whatsapp-config";
 import { parseDealNote } from "@/lib/bot";
 import { createForUnpaidOrder } from "@/lib/receivables";
 import { logger } from "@/lib/logger";
+import { publicOrigin } from "@/lib/public-origin";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -192,7 +193,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (newStatus !== order.status && targetPhone && waCfg.autoNotifyOrderStatus) {
     try {
       const origin =
-        req.nextUrl.origin || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5174";
+        publicOrigin(req);
       const payUrl = `${origin.replace(/\/$/, "")}/pay/${id}`;
       const itemsSummary = order.items
         .map((it) => `${it.quantity}× ${it.productName}`)
