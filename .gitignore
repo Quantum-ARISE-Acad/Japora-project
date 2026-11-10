@@ -48,3 +48,6 @@ next-env.d.ts
 
 # sauvegardes du déploiement (deploy/mvp.sh)
 /backups/
+
+# disposable CI diagnostics
+/ci-results/
