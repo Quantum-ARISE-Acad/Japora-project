@@ -1,102 +1,167 @@
 /**
  * Public marketplace home — top-level discovery for Japora.
  *
- * Aurora-skinned: glass region/category chips, glass shop cards with the
- * cursor-follow halo on hover. Dynamic filtering by category, region, and search term.
+ * Aurora-skinned: glass region/category chips, glass shop cards with mini
+ * product previews and formatted prices, buyer protection guarantees,
+ * regional market hubs, and merchant recruitment banner.
  */
 
 import Link from "next/link";
 import type { Metadata } from "next";
 import { listShops, type ShopCard as ShopCardType } from "@/lib/directory";
 import { REGIONS, CATEGORIES, findRegion, findCategory } from "@/lib/regions";
+import { formatMoney } from "@/lib/utils";
 import { AuroraIsoscout } from "@/components/aurora";
 import VerifiedBadge from "@/components/VerifiedBadge";
-import ThemeToggle from "@/components/ThemeToggle";
+import PublicHeader from "@/components/PublicHeader";
+import PublicFooter from "@/components/PublicFooter";
 
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: "Japora — Discover WhatsApp shops near you",
+  title: "Marketplace Japora — Découvrez les boutiques WhatsApp vérifiées",
   description:
-    "Trusted WhatsApp sellers across Africa. Fashion, food, beauty, electronics. Tap a shop, browse, order. You never leave WhatsApp.",
+    "Explorez les meilleurs vendeurs WhatsApp vérifiés en Afrique. Mode, électronique, beauté, alimentation. Parcourez les catalogues et commandez en direct.",
 };
 
 function ShopCard({ shop }: { shop: ShopCardType }) {
   const region = findRegion(shop.region);
   const category = findCategory(shop.category);
   const initial = shop.shopName.charAt(0).toUpperCase() || "S";
+  const cur = shop.currency || "XOF";
 
   return (
-    <Link
-      href={`/shop/${shop.shopSlug}`}
-      className="glass glass-edge group flex flex-col gap-3 rounded-shape-lg p-5 transition-all duration-short ease-spring hover:-translate-y-1 hover:shadow-elev-2"
-    >
-      <div className="flex items-center gap-3">
-        {shop.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={shop.avatarUrl}
-            alt=""
-            className="h-12 w-12 rounded-full object-cover"
-          />
-        ) : (
-          <div className="grid h-12 w-12 place-items-center rounded-full bg-arctic-200/85 a-label-lg text-arctic-900 backdrop-blur-glass-thin">
-            {initial}
-          </div>
-        )}
-        <div className="min-w-0">
-          <div className="a-title-md flex items-center gap-1.5 truncate text-arctic-900 transition-colors duration-short group-hover:text-arctic-700">
-            <span className="truncate">{shop.shopName}</span>
-            {shop.verified && <VerifiedBadge size="sm" withLabel={false} className="shrink-0" />}
-          </div>
-          {shop.tagline ? (
-            <div className="a-body-sm truncate text-arctic-600">{shop.tagline}</div>
-          ) : null}
-        </div>
-      </div>
-
-      {shop.bio ? (
-        <p className="a-body-md line-clamp-2 text-arctic-700">{shop.bio}</p>
-      ) : (
-        <p className="a-body-sm italic text-arctic-500">No bio yet</p>
-      )}
-
-      {/* Mini Product Previews */}
-      {shop.products && shop.products.length > 0 && (
-        <div className="flex items-center gap-2 py-1">
-          {shop.products.map((p) => (
-            <div
-              key={p.id}
-              className="group/item relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-shape-md border border-arctic-300/40 bg-arctic-100/50"
-              title={p.name}
-            >
-              {p.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" />
+    <div className="glass glass-edge group flex flex-col justify-between gap-3.5 rounded-shape-xl p-5 transition-all duration-short ease-spring hover:-translate-y-1 hover:shadow-elev-2">
+      <div>
+        {/* Shop Header */}
+        <div className="flex items-start justify-between gap-3">
+          <Link href={`/shop/${shop.shopSlug}`} className="flex items-center gap-3 min-w-0">
+            {shop.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={shop.avatarUrl}
+                alt=""
+                className="h-12 w-12 shrink-0 rounded-full border border-arctic-200 object-cover"
+              />
+            ) : (
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-arctic-200/85 a-label-lg text-arctic-900 backdrop-blur-glass-thin">
+                {initial}
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="a-title-md flex items-center gap-1.5 truncate text-arctic-900 transition-colors duration-short group-hover:text-brand-dark">
+                <span className="truncate">{shop.shopName}</span>
+                {shop.verified && (
+                  <VerifiedBadge size="sm" withLabel={false} className="shrink-0" />
+                )}
+              </div>
+              {shop.tagline ? (
+                <div className="a-body-sm truncate text-arctic-600">{shop.tagline}</div>
               ) : (
-                <div className="grid h-full w-full place-items-center text-[10px] font-semibold text-arctic-600">
-                  {p.name.charAt(0)}
+                <div className="a-body-sm truncate text-arctic-500">
+                  Boutique WhatsApp active
                 </div>
               )}
             </div>
-          ))}
-          <span className="text-xs text-arctic-500 ml-1">Catalogue</span>
-        </div>
-      )}
+          </Link>
 
-      <div className="mt-auto flex flex-wrap gap-1.5 pt-1">
-        {region ? (
-          <span className="rounded-shape-sm border border-arctic-400/45 bg-white/65 px-2 py-0.5 a-label-md text-arctic-800 backdrop-blur-glass-thin">
-            {region.label}
+          <span className="shrink-0 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+            En ligne
           </span>
-        ) : null}
-        {category ? (
-          <span className="rounded-shape-sm border border-arctic-400/45 bg-arctic-200/65 px-2 py-0.5 a-label-md text-arctic-900 backdrop-blur-glass-thin">
-            {category.icon} {category.label}
-          </span>
-        ) : null}
+        </div>
+
+        {/* Bio */}
+        {shop.bio ? (
+          <p className="mt-3 a-body-md line-clamp-2 text-arctic-700 leading-relaxed">
+            {shop.bio}
+          </p>
+        ) : (
+          <p className="mt-3 a-body-sm italic text-arctic-500">
+            Catalogue disponible en commande directe sur WhatsApp.
+          </p>
+        )}
+
+        {/* Mini Product Previews with Prices */}
+        {shop.products && shop.products.length > 0 && (
+          <div className="mt-3.5 rounded-shape-md border border-arctic-200/70 bg-white/60 p-2.5">
+            <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-arctic-500">
+              <span>Aperçu du catalogue</span>
+              <span>{shop.products.length} articles phares</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {shop.products.map((p) => (
+                <Link
+                  key={p.id}
+                  href={`/c/${shop.shopSlug}?product=${p.id}`}
+                  className="group/item flex flex-col overflow-hidden rounded-shape-sm border border-arctic-200/80 bg-white transition-all hover:border-brand"
+                  title={p.name}
+                >
+                  <div className="relative h-14 w-full overflow-hidden bg-arctic-100/70">
+                    {p.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={p.imageUrl}
+                        alt={p.name}
+                        className="h-full w-full object-cover transition-transform duration-short group-hover/item:scale-105"
+                      />
+                    ) : (
+                      <div className="grid h-full w-full place-items-center text-xs font-bold text-arctic-600">
+                        {p.name.charAt(0)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-1.5">
+                    <div className="truncate text-[10px] font-medium text-arctic-800">
+                      {p.name}
+                    </div>
+                    <div className="a-num text-[10px] font-bold text-brand-dark">
+                      {formatMoney(p.priceCents, cur)}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
-    </Link>
+
+      {/* Footer Tags + Dual Action Links */}
+      <div className="mt-2 space-y-3 border-t border-arctic-200/60 pt-3">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {region ? (
+            <Link
+              href={`/marketplace/${region.slug}`}
+              className="rounded-shape-sm border border-arctic-400/45 bg-white/75 px-2 py-0.5 text-[11px] font-semibold text-arctic-800 hover:border-brand"
+            >
+              📍 {region.label}, {region.country}
+            </Link>
+          ) : null}
+          {category ? (
+            <Link
+              href={`/marketplace?category=${category.slug}`}
+              className="rounded-shape-sm border border-arctic-400/45 bg-arctic-200/65 px-2 py-0.5 text-[11px] font-semibold text-arctic-900 hover:border-brand"
+            >
+              {category.icon} {category.label}
+            </Link>
+          ) : null}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/shop/${shop.shopSlug}`}
+            className="btn-ghost flex-1 py-2 text-xs justify-center"
+          >
+            Profil boutique
+          </Link>
+          <Link
+            href={`/c/${shop.shopSlug}`}
+            className="btn-primary flex-1 py-2 text-xs justify-center"
+          >
+            Catalogue →
+          </Link>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -135,110 +200,178 @@ export default async function MarketplacePage({ searchParams }: Props) {
   };
 
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-transparent bg-white/0 backdrop-blur-0">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
-          <Link href="/" className="group flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-shape-md bg-arctic-800 font-black text-arctic-50 transition-transform duration-short ease-spring group-hover:rotate-6 group-hover:scale-105">J</span>
-            <span className="a-title-md tracking-[-0.01em] text-arctic-900">Japora</span>
-          </Link>
-          <nav className="flex items-center gap-1.5">
-            <Link
-              href="/how-to-use"
-              className="hidden a-label-md text-arctic-700 hover:text-arctic-900 sm:mr-1 sm:inline"
-            >
-              How it works
-            </Link>
-            <ThemeToggle className="mr-0.5" />
-            <Link href="/login" className="btn-ghost">
-              Sign in
-            </Link>
-            <Link href="/signup" className="btn-primary">
-              Open a shop
-            </Link>
-          </nav>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col">
+      <PublicHeader />
 
-      <section>
+      {/* ============================================================
+       * 1. MARKETPLACE HERO & PROMINENT SEARCH
+       * ============================================================ */}
+      <section className="border-b border-arctic-200/60 bg-gradient-to-b from-white/75 to-transparent">
         <div className="mx-auto max-w-6xl px-4 py-12 text-center md:py-16">
-          <h1 className="a-display-sm text-arctic-900 sm:a-display-md a-fade-in">
-            Discover WhatsApp shops
+          <span className="inline-flex items-center gap-2 rounded-shape-full border border-brand/35 bg-white/80 px-3.5 py-1 text-xs font-semibold text-arctic-800 shadow-xs">
+            <span>🛍️</span>
+            <span>Annuaire Officiel des Boutiques WhatsApp</span>
+          </span>
+
+          <h1 className="a-display-sm mt-4 text-arctic-900 sm:a-display-md a-fade-in">
+            Découvrez les boutiques WhatsApp
             <br />
-            <span className="text-arctic-700">near you.</span>
+            <span className="text-brand-dark">près de chez vous.</span>
           </h1>
-          <p className="a-body-lg a-measure mx-auto mt-4 text-arctic-700">
-            Trusted WhatsApp sellers across Africa. Tap a shop, browse the catalog, order.
-            You never leave WhatsApp.
+          <p className="a-body-lg a-measure mx-auto mt-3 text-arctic-700">
+            Des vendeurs vérifiés à travers l&apos;Afrique de l&apos;Ouest et au-delà. Choisissez une boutique, parcourez son catalogue en direct et commandez sans quitter WhatsApp.
           </p>
 
           {/* Prominent Search Bar */}
-          <form method="GET" action="/marketplace" className="mx-auto mt-8 max-w-xl">
-            {activeCategory && <input type="hidden" name="category" value={activeCategory} />}
-            {activeRegion && <input type="hidden" name="region" value={activeRegion} />}
-            <div className="flex items-center rounded-shape-full border border-arctic-300/50 bg-white/80 p-1.5 shadow-elev-1 backdrop-blur-glass-md focus-within:border-arctic-600 focus-within:ring-2 focus-within:ring-arctic-400/20">
-              <span className="pl-3.5 pr-2 text-arctic-500">🔍</span>
+          <form method="GET" action="/marketplace" className="mx-auto mt-7 max-w-2xl">
+            {activeCategory && (
+              <input type="hidden" name="category" value={activeCategory} />
+            )}
+            {activeRegion && (
+              <input type="hidden" name="region" value={activeRegion} />
+            )}
+            <div className="flex items-center rounded-shape-full border border-arctic-300/75 bg-white/90 p-1.5 shadow-elev-2 backdrop-blur-md focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/25">
+              <span className="pl-4 pr-2 text-arctic-500">🔍</span>
               <input
                 type="text"
                 name="q"
                 defaultValue={query}
-                placeholder="Search shops or products..."
-                className="w-full bg-transparent px-2 py-2 a-body-md text-arctic-900 outline-none placeholder:text-arctic-400"
+                placeholder="Rechercher une boutique, un produit, une ville (ex: Lomé, Mode, Wax)..."
+                className="w-full bg-transparent px-2 py-2.5 a-body-md text-arctic-900 outline-none placeholder:text-arctic-400"
               />
               <button
                 type="submit"
-                className="rounded-shape-full bg-arctic-800 px-5 py-2 a-label-md text-white transition hover:bg-arctic-900"
+                className="rounded-shape-full bg-arctic-900 px-6 py-2.5 a-label-md font-bold text-white transition hover:bg-arctic-800"
               >
-                Search
+                Rechercher
               </button>
             </div>
           </form>
+
+          {/* Marketplace Quick Stats */}
+          <div className="mx-auto mt-7 flex max-w-2xl flex-wrap items-center justify-center gap-4 text-xs text-arctic-600 sm:gap-8">
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-arctic-900">{REGIONS.length}</span>
+              <span>villes &amp; marchés couverts</span>
+            </div>
+            <span className="hidden sm:inline text-arctic-300">•</span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-arctic-900">{CATEGORIES.length}</span>
+              <span>rayons spécialisés</span>
+            </div>
+            <span className="hidden sm:inline text-arctic-300">•</span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-emerald-700">✓ Paiement direct</span>
+              <span>T-Money, Flooz, Wave &amp; Cash</span>
+            </div>
+          </div>
         </div>
       </section>
 
-      <main className="mx-auto max-w-6xl px-4 pb-16">
-        {/* Active Filters Bar */}
+      <main className="mx-auto max-w-6xl flex-1 px-4 py-10">
+        {/* ============================================================
+         * 2. ACTIVE FILTERS BAR
+         * ============================================================ */}
         {(activeCategory || activeRegion || query) && (
-          <div className="mb-6 flex flex-wrap items-center gap-2 rounded-shape-md border border-arctic-300/40 bg-arctic-100/60 p-3">
-            <span className="a-label-md text-arctic-600">Active filters:</span>
+          <div className="mb-8 flex flex-wrap items-center gap-2 rounded-shape-lg border border-brand/35 bg-brand/10 p-3.5">
+            <span className="a-label-md font-bold text-arctic-800">
+              Filtres actifs :
+            </span>
             {selectedCategoryObj && (
               <Link
                 href={makeFilterUrl({ category: "" })}
-                className="inline-flex items-center gap-1.5 rounded-shape-full bg-white px-3 py-1 text-xs font-semibold text-arctic-800 shadow-sm hover:bg-arctic-50"
+                className="inline-flex items-center gap-1.5 rounded-shape-full bg-white px-3 py-1 text-xs font-semibold text-arctic-900 shadow-xs hover:bg-arctic-50"
               >
-                {selectedCategoryObj.icon} {selectedCategoryObj.label}
+                <span>
+                  {selectedCategoryObj.icon} {selectedCategoryObj.label}
+                </span>
                 <span className="text-arctic-500 hover:text-arctic-900">✕</span>
               </Link>
             )}
             {selectedRegionObj && (
               <Link
                 href={makeFilterUrl({ region: "" })}
-                className="inline-flex items-center gap-1.5 rounded-shape-full bg-white px-3 py-1 text-xs font-semibold text-arctic-800 shadow-sm hover:bg-arctic-50"
+                className="inline-flex items-center gap-1.5 rounded-shape-full bg-white px-3 py-1 text-xs font-semibold text-arctic-900 shadow-xs hover:bg-arctic-50"
               >
-                📍 {selectedRegionObj.label}
+                <span>
+                  📍 {selectedRegionObj.label} ({selectedRegionObj.country})
+                </span>
                 <span className="text-arctic-500 hover:text-arctic-900">✕</span>
               </Link>
             )}
             {query && (
               <Link
                 href={makeFilterUrl({ q: "" })}
-                className="inline-flex items-center gap-1.5 rounded-shape-full bg-white px-3 py-1 text-xs font-semibold text-arctic-800 shadow-sm hover:bg-arctic-50"
+                className="inline-flex items-center gap-1.5 rounded-shape-full bg-white px-3 py-1 text-xs font-semibold text-arctic-900 shadow-xs hover:bg-arctic-50"
               >
-                &ldquo;{query}&rdquo;
+                <span>&ldquo;{query}&rdquo;</span>
                 <span className="text-arctic-500 hover:text-arctic-900">✕</span>
               </Link>
             )}
             <Link
               href="/marketplace"
-              className="ml-auto text-xs font-semibold text-arctic-600 underline hover:text-arctic-900"
+              className="ml-auto text-xs font-bold text-brand-dark underline hover:text-arctic-900"
             >
-              Reset all
+              Réinitialiser tous les filtres
             </Link>
           </div>
         )}
 
-        <section className="mb-8">
-          <h2 className="mb-3 a-label-md text-arctic-700">Browse by region</h2>
+        {/* ============================================================
+         * 3. CATEGORY SPOTLIGHT CARDS
+         * ============================================================ */}
+        <section className="mb-10">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="a-label-md uppercase tracking-wider text-arctic-700">
+              Explorer par rayon (Browse by category)
+            </h2>
+            {activeCategory && (
+              <Link
+                href={makeFilterUrl({ category: "" })}
+                className="text-xs font-semibold text-brand-dark hover:underline"
+              >
+                Tous les rayons
+              </Link>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-8">
+            {CATEGORIES.map((c) => {
+              const isSelected = activeCategory === c.slug;
+              return (
+                <Link
+                  key={c.slug}
+                  href={makeFilterUrl({ category: isSelected ? "" : c.slug })}
+                  className={`flex flex-col items-center justify-center gap-1.5 rounded-shape-lg border p-3 text-center transition-all duration-short hover:-translate-y-0.5 ${
+                    isSelected
+                      ? "border-arctic-900 bg-arctic-900 text-arctic-50 shadow-elev-1"
+                      : "border-arctic-300/60 bg-white/75 text-arctic-800 hover:border-brand/60 hover:bg-white"
+                  }`}
+                >
+                  <span className="text-2xl">{c.icon}</span>
+                  <span className="text-xs font-bold">{c.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* ============================================================
+         * 4. REGION FILTER CHIPS
+         * ============================================================ */}
+        <section className="mb-12">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="a-label-md uppercase tracking-wider text-arctic-700">
+              Filtrer par ville &amp; pays (Browse by region)
+            </h2>
+            {activeRegion && (
+              <Link
+                href={makeFilterUrl({ region: "" })}
+                className="text-xs font-semibold text-brand-dark hover:underline"
+              >
+                Toutes les villes
+              </Link>
+            )}
+          </div>
           <div className="flex flex-wrap gap-2">
             {REGIONS.map((r) => {
               const isSelected = activeRegion === r.slug;
@@ -248,12 +381,16 @@ export default async function MarketplacePage({ searchParams }: Props) {
                   href={makeFilterUrl({ region: isSelected ? "" : r.slug })}
                   className={`a-chip transition-all ${
                     isSelected
-                      ? "border-arctic-800 bg-arctic-800 text-white font-semibold"
-                      : "hover:border-arctic-500"
+                      ? "border-arctic-900 bg-arctic-900 text-white font-semibold shadow-xs"
+                      : "hover:border-brand/60"
                   }`}
                 >
-                  {r.label}
-                  <span className={`ml-1 a-label-md ${isSelected ? "text-arctic-200" : "text-arctic-600"}`}>
+                  <span>{r.label}</span>
+                  <span
+                    className={`ml-1 a-label-md ${
+                      isSelected ? "text-arctic-200" : "text-arctic-500"
+                    }`}
+                  >
                     {r.country}
                   </span>
                 </Link>
@@ -262,64 +399,218 @@ export default async function MarketplacePage({ searchParams }: Props) {
           </div>
         </section>
 
-        <section className="mb-10">
-          <h2 className="mb-3 a-label-md text-arctic-700">Browse by category</h2>
-          <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((c) => {
-              const isSelected = activeCategory === c.slug;
-              return (
-                <Link
-                  key={c.slug}
-                  href={makeFilterUrl({ category: isSelected ? "" : c.slug })}
-                  className={`a-chip transition-all ${
-                    isSelected
-                      ? "border-arctic-800 bg-arctic-800 text-white font-semibold"
-                      : "hover:border-arctic-500"
-                  }`}
-                >
-                  <span className="mr-1">{c.icon}</span>
-                  {c.label}
-                </Link>
-              );
-            })}
+        {/* ============================================================
+         * 5. SHOPS DIRECTORY GRID
+         * ============================================================ */}
+        <section className="mb-16">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-2 border-b border-arctic-200/70 pb-3">
+            <div>
+              <div className="a-eyebrow">Catalogue Marchands</div>
+              <h2 className="a-headline-md text-arctic-900">
+                {activeCategory || activeRegion || query
+                  ? "Boutiques correspondantes"
+                  : "Boutiques à la une"}
+              </h2>
+            </div>
+            <span className="rounded-full bg-arctic-200/70 px-3 py-1 a-body-sm font-semibold text-arctic-800">
+              {shops.length} {shops.length === 1 ? "boutique disponible" : "boutiques disponibles"}
+            </span>
           </div>
-        </section>
 
-        <section>
-          <div className="mb-5 flex items-end justify-between">
-            <h2 className="a-headline-md text-arctic-900">
-              {activeCategory || activeRegion || query ? "Matching shops" : "Featured shops"}
-            </h2>
-            <span className="a-body-sm text-arctic-600">{shops.length} shops</span>
-          </div>
           {shops.length === 0 ? (
-            <div className="glass glass-edge rounded-shape-lg p-6">
+            <div className="glass glass-edge rounded-shape-xl p-8">
               <AuroraIsoscout
                 variant="products"
-                title="No shops found"
-                body="Try modifying your filters or search terms."
+                title="Aucune boutique trouvée pour cette recherche"
+                body="Essayez de modifier vos filtres de ville ou de catégorie, ou lancez la première boutique Japora sur ce créneau."
                 action={
-                  <Link href="/marketplace" className="btn-primary">
-                    View all shops
-                  </Link>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    <Link href="/marketplace" className="btn-primary">
+                      Voir toutes les boutiques
+                    </Link>
+                    <Link href="/start" className="btn-ghost">
+                      Ouvrir ma boutique ici →
+                    </Link>
+                  </div>
                 }
               />
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {shops.map((shop) => (
                 <ShopCard key={shop.id} shop={shop} />
               ))}
             </div>
           )}
         </section>
+
+        {/* ============================================================
+         * 6. BUYER EXPERIENCE — Comment acheter en toute confiance
+         * ============================================================ */}
+        <section className="mb-16 rounded-shape-xl border border-arctic-300/60 bg-white/80 p-6 sm:p-10 shadow-elev-1">
+          <div className="mx-auto max-w-2xl text-center">
+            <span className="a-eyebrow">Expérience Acheteur</span>
+            <h2 className="a-headline-md mt-1 text-arctic-900">
+              Comment commander sur une boutique du Marketplace ?
+            </h2>
+            <p className="mt-2 text-xs sm:text-sm text-arctic-600">
+              Pas besoin de créer un compte acheteur ni de télécharger une application. Tout se passe en 3 étapes simples.
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-6 md:grid-cols-3">
+            {[
+              {
+                step: "1",
+                title: "Choisissez vos articles",
+                desc: "Parcourez le catalogue en ligne du vendeur, vérifiez le stock en temps réel, sélectionnez votre taille et votre zone de livraison.",
+                badge: "Catalogue en direct",
+              },
+              {
+                step: "2",
+                title: "Validez sur WhatsApp ou via le Bot",
+                desc: "Votre panier s'ouvre directement dans la discussion WhatsApp du marchand ou avec son assistant IA qui confirme immédiatement la disponibilité.",
+                badge: "Zéro attente",
+              },
+              {
+                step: "3",
+                title: "Payez par Mobile Money & recevez",
+                desc: "Réglez par T-Money, Flooz, Wave, Orange Money ou à la livraison. Vous recevez votre confirmation de commande instantanément.",
+                badge: "Paiement sécurisé",
+              },
+            ].map((item) => (
+              <div
+                key={item.step}
+                className="rounded-shape-lg border border-arctic-200/80 bg-arctic-50/70 p-5"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-arctic-900 font-display text-xs font-bold text-white">
+                    {item.step}
+                  </span>
+                  <span className="rounded-full bg-brand/15 px-2.5 py-0.5 text-[10px] font-bold text-brand-dark">
+                    {item.badge}
+                  </span>
+                </div>
+                <h3 className="mt-3 font-display text-sm font-bold text-arctic-900">
+                  {item.title}
+                </h3>
+                <p className="mt-1.5 text-xs leading-relaxed text-arctic-600">
+                  {item.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ============================================================
+         * 7. REGIONAL HUBS DIRECTORY — SEO & Local Market Discovery
+         * ============================================================ */}
+        <section className="mb-16">
+          <div className="mb-6">
+            <div className="a-eyebrow">Présence Pan-Africaine</div>
+            <h2 className="a-headline-md mt-1 text-arctic-900">
+              Explorer les pôles commerciaux par région
+            </h2>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                zone: "🇹🇬 Togo (Marché pilote)",
+                cities: REGIONS.filter((r) => r.country === "Togo"),
+                rails: "T-Money & Flooz",
+              },
+              {
+                zone: "🌍 Afrique de l'Ouest Francophone",
+                cities: REGIONS.filter((r) =>
+                  ["Bénin", "Côte d'Ivoire", "Senegal", "Burkina Faso", "Mali", "Niger"].includes(
+                    r.country
+                  )
+                ),
+                rails: "Flooz, Wave, Orange & MoMo",
+              },
+              {
+                zone: "🇬🇭 🇳🇬 Afrique de l'Ouest Anglophone",
+                cities: REGIONS.filter((r) =>
+                  ["Ghana", "Nigeria"].includes(r.country)
+                ),
+                rails: "Paystack, Flutterwave & MoMo",
+              },
+              {
+                zone: "🇰🇪 🇷🇼 Afrique de l'Est & Australe",
+                cities: REGIONS.filter((r) =>
+                  ["Kenya", "Uganda", "Rwanda", "Tanzania", "South Africa"].includes(
+                    r.country
+                  )
+                ),
+                rails: "M-Pesa Daraja & Cartes",
+              },
+            ].map((hub) => (
+              <div
+                key={hub.zone}
+                className="glass rounded-shape-lg p-5 flex flex-col justify-between"
+              >
+                <div>
+                  <h3 className="font-display text-sm font-bold text-arctic-900">
+                    {hub.zone}
+                  </h3>
+                  <p className="mt-1 text-[11px] font-medium text-brand-dark">
+                    Rails : {hub.rails}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {hub.cities.map((city) => (
+                      <Link
+                        key={city.slug}
+                        href={`/marketplace/${city.slug}`}
+                        className="rounded-md border border-arctic-300/60 bg-white/80 px-2 py-1 text-[11px] font-medium text-arctic-800 hover:border-brand hover:text-brand-dark"
+                      >
+                        {city.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ============================================================
+         * 8. VENDOR RECRUITMENT BANNER — List your shop
+         * ============================================================ */}
+        <section className="mb-8">
+          <div className="rounded-shape-xl bg-gradient-to-r from-arctic-900 via-arctic-800 to-slate-900 p-8 text-white shadow-elev-3 sm:p-10">
+            <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
+              <div className="max-w-xl space-y-2">
+                <span className="inline-block rounded-full bg-white/10 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-200">
+                  Vous êtes commerçant ?
+                </span>
+                <h2 className="font-display text-2xl font-extrabold sm:text-3xl">
+                  Référencez votre boutique gratuitement dans le Marketplace
+                </h2>
+                <p className="text-xs sm:text-sm text-arctic-200 leading-relaxed">
+                  Créez votre boutique en 90 secondes, activez l&apos;option « Marketplace public » dans vos paramètres et laissez de nouveaux clients de votre ville vous découvrir chaque jour.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3 shrink-0">
+                <Link
+                  href="/start"
+                  className="a-btn a-btn--cafe px-6 py-3 text-xs font-bold"
+                >
+                  Ouvrir ma boutique →
+                </Link>
+                <Link
+                  href="/how-to-use"
+                  className="a-btn border border-white/25 bg-white/10 px-5 py-3 text-xs text-white hover:bg-white/20"
+                >
+                  Comment ça marche
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
-      <footer className="border-t border-arctic-400/30 bg-white/55 backdrop-blur-glass-thin">
-        <div className="mx-auto max-w-6xl px-4 py-6 text-center a-body-sm text-arctic-700">
-          Japora — Sell on WhatsApp. Get paid. Grow your hustle.
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

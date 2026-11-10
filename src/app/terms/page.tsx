@@ -1,80 +1,101 @@
 import Link from "next/link";
+import PublicHeader from "@/components/PublicHeader";
+import PublicFooter from "@/components/PublicFooter";
 
-export const metadata = { title: "Terms of Service — Japora" };
+export const metadata = { title: "Conditions d'utilisation (Terms of Service) — Japora" };
 
 export default function TermsPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12">
-      <Link href="/" className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-arctic-600 hover:text-brand-dark">
-        ← Back to Japora
-      </Link>
+    <div className="min-h-screen flex flex-col">
+      <PublicHeader />
 
-      <article className="prose-content space-y-6 text-arctic-700">
-        <header>
-          <h1 className="text-3xl font-extrabold text-arctic-900">Terms of Service</h1>
-          <p className="text-sm text-arctic-500">Last updated: today</p>
-        </header>
+      <main className="mx-auto max-w-4xl flex-1 px-4 py-12 w-full">
+        <div className="glass glass-edge rounded-shape-xl p-6 sm:p-10">
+          <header className="border-b border-arctic-200/70 pb-6">
+            <span className="a-eyebrow">Informations Légales</span>
+            <h1 className="a-display-sm mt-1 text-arctic-900">
+              Conditions Générales d&apos;Utilisation (Terms of Service)
+            </h1>
+            <p className="mt-1 text-xs text-arctic-500">
+              Dernière mise à jour : Novembre 2026
+            </p>
+          </header>
 
-        <Notice>
-          This template covers the essentials but is <strong>not legal advice</strong>. Have a
-          lawyer review before you take payment from real users.
-        </Notice>
+          <div className="mt-6 space-y-6 text-arctic-700">
+            <Notice>
+              Ce document définit les règles d&apos;utilisation de la plateforme Japora pour les marchands et acheteurs mais ne constitue pas un conseil juridique personnalisé.
+            </Notice>
 
-        <Section title="1. The deal">
-          <p>
-            Japora (&ldquo;we&rdquo;, &ldquo;us&rdquo;) provides a hosted catalog + order
-            management tool for businesses that sell via WhatsApp. By creating an account
-            (&ldquo;Account&rdquo;) you agree to these terms.
-          </p>
-        </Section>
+            <Section title="1. Objet du service (The deal)">
+              <p>
+                Japora (« nous ») fournit une solution hébergée de catalogue en ligne, d&apos;automatisation WhatsApp et de gestion de commandes pour les commerçants qui vendent via WhatsApp. En créant un compte (« Compte »), vous acceptez les présentes conditions.
+              </p>
+            </Section>
 
-        <Section title="2. Your account">
-          <p>You must be at least 18 and provide accurate information. You&apos;re responsible for everything that happens under your account, including keeping your password safe and your contact info current.</p>
-        </Section>
+            <Section title="2. Votre compte marchand (Your account)">
+              <p>
+                Vous devez avoir au moins 18 ans et fournir des informations exactes (numéro WhatsApp, nom de boutique, coordonnées). Vous êtes responsable de la sécurité de vos identifiants et de l&apos;activité exercée depuis votre boutique.
+              </p>
+            </Section>
 
-        <Section title="3. What you sell">
-          <p>You — not Japora — sell the products listed in your catalog. You&apos;re responsible for the legality, accuracy, quality, safety, and lawful sale of your goods or services. You agree not to use Japora for anything illegal, infringing, hateful, or otherwise prohibited.</p>
-        </Section>
+            <Section title="3. Produits et ventes (What you sell)">
+              <p>
+                Vous — et non Japora — êtes le vendeur des articles référencés dans votre catalogue. Vous êtes responsable de la légalité, de la qualité, de la conformité et de la livraison des biens ou services proposés. Toute vente de produits illicites ou contrefaits est strictement interdite.
+              </p>
+            </Section>
 
-        <Section title="4. Subscription, trial, and payment">
-          <p>New accounts get a free trial; details are shown at checkout. After the trial you&apos;ll be billed at the rate displayed when you subscribed, until you cancel. You can cancel any time in the billing portal — cancellations stop the next charge but don&apos;t refund the current period.</p>
-        </Section>
+            <Section title="4. Tarification, commissions et paiements">
+              <p>
+                Le mode Starter est gratuit. Pour les commandes encaissées via les rails de paiement intégrés de Japora (mode Pay-as-you-sell), une commission transparente de 3% (gratuite sous 2 000 FCFA et plafonnée à 1 000 FCFA par commande) s&apos;applique conformément à la page{" "}
+                <Link href="/pricing" className="font-semibold text-brand-dark underline">
+                  Tarifs
+                </Link>
+                .
+              </p>
+            </Section>
 
-        <Section title="5. Acceptable use">
-          <p>Don&apos;t abuse the service: no spamming, no scraping, no attempting to break our systems, no impersonation, no malware, no circumventing rate limits.</p>
-        </Section>
+            <Section title="5. Utilisation acceptable (Acceptable use)">
+              <p>
+                Il est interdit d&apos;utiliser la plateforme pour l&apos;envoi de spam sur WhatsApp, l&apos;usurpation d&apos;identité, l&apos;extraction automatisée de données ou le contournement des limites de sécurité.
+              </p>
+            </Section>
 
-        <Section title="6. Your content">
-          <p>You keep ownership of the content you upload (product photos, descriptions, customer data). You grant us a limited licence to host and display it solely so we can run the service for you. We don&apos;t sell your data.</p>
-        </Section>
+            <Section title="6. Propriété de vos contenus">
+              <p>
+                Vous conservez l&apos;entière propriété de vos photos produits, descriptions et fichiers clients. Vous nous accordez uniquement le droit d&apos;héberger et d&apos;afficher ces éléments pour assurer le fonctionnement de votre boutique. Nous ne revendons jamais vos données.
+              </p>
+            </Section>
 
-        <Section title="7. Privacy">
-          <p>
-            Our processing of personal data is described in our{" "}
-            <Link href="/privacy" className="font-semibold text-brand-dark underline">Privacy Policy</Link>.
-          </p>
-        </Section>
+            <Section title="7. Protection des données (Privacy)">
+              <p>
+                Le traitement de vos données personnelles est détaillé dans notre{" "}
+                <Link href="/privacy" className="font-semibold text-brand-dark underline">
+                  Politique de Confidentialité
+                </Link>
+                .
+              </p>
+            </Section>
 
-        <Section title="8. Termination">
-          <p>You can delete your account any time from your dashboard. We can suspend or terminate accounts that violate these terms or pose a security or legal risk.</p>
-        </Section>
+            <Section title="8. Résiliation et suppression">
+              <p>
+                Vous pouvez exporter vos données et supprimer votre compte à tout moment depuis les paramètres de votre tableau de bord. Nous pouvons suspendre tout compte ne respectant pas les présentes conditions.
+              </p>
+            </Section>
 
-        <Section title="9. Warranty disclaimer">
-          <p>The service is provided &ldquo;as is&rdquo; without warranties. We aim for high uptime but can&apos;t promise the service will be uninterrupted, error-free, or perfectly secure.</p>
-        </Section>
+            <Section title="9. Contact">
+              <p>
+                Une question ? Contactez notre équipe à{" "}
+                <a className="font-semibold text-brand-dark underline" href="mailto:hello@japora.app">
+                  hello@japora.app
+                </a>
+                .
+              </p>
+            </Section>
+          </div>
+        </div>
+      </main>
 
-        <Section title="10. Liability">
-          <p>To the maximum extent allowed by law, our total liability for any claim is limited to the amount you paid us in the 12 months before the claim.</p>
-        </Section>
-
-        <Section title="11. Changes">
-          <p>We may update these terms; meaningful changes will be announced by email and in-app. Continuing to use Japora after a change means you accept the new terms.</p>
-        </Section>
-
-        <Section title="12. Contact">
-          <p>Questions? Email <a className="font-semibold text-brand-dark underline" href="mailto:hello@japora.app">hello@japora.app</a>.</p>
-        </Section>
-      </article>
+      <PublicFooter />
     </div>
   );
 }
@@ -82,15 +103,17 @@ export default function TermsPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="mb-2 text-lg font-bold text-arctic-900">{title}</h2>
-      <div className="space-y-2 text-sm leading-relaxed">{children}</div>
+      <h2 className="mb-1.5 font-display text-base font-bold text-arctic-900">
+        {title}
+      </h2>
+      <div className="space-y-2 text-xs sm:text-sm leading-relaxed">{children}</div>
     </section>
   );
 }
 
 function Notice({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+    <div className="rounded-shape-lg border border-amber-300/70 bg-amber-50 p-4 text-xs sm:text-sm text-amber-900">
       {children}
     </div>
   );
