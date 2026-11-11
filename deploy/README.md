@@ -52,7 +52,7 @@ git switch main
 ### 4. Configurer et lancer
 
 ```bash
-deploy/mvp.sh init japora.mondomaine.com wataru.japora@gmail.com
+deploy/mvp.sh init japora.mondomaine.com info@quantum-arise.com
 ```
 
 Cette commande crée `.env.mvp` avec des secrets générés. Rangez-en une copie dans
