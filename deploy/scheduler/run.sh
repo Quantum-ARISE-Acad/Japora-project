@@ -9,10 +9,16 @@ call() {
   fi
 }
 
-echo "Planificateur : maintenance à chaque heure, résumé quotidien à 18:00 UTC"
+echo "Planificateur : diffusions chaque minute, maintenance chaque heure, résumé à 18:00 UTC"
 while :; do
   now=$(date -u +%s)
-  sleep $(( 3600 - now % 3600 ))
-  call /api/cron/maintenance
-  [ "$(date -u +%H)" = "18" ] && call /api/cron/daily-summary
+  sleep $(( 60 - now % 60 ))
+  # Capture the tick before network calls so a slow broadcast does not skip the hour.
+  minute=$(date -u +%M)
+  hour=$(date -u +%H)
+  call /api/cron/broadcasts
+  if [ "$minute" = "00" ]; then
+    call /api/cron/maintenance
+    [ "$hour" = "18" ] && call /api/cron/daily-summary
+  fi
 done

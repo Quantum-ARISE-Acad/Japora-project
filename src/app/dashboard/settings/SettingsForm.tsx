@@ -211,7 +211,7 @@ export default function SettingsForm({
 
       <ShopQrCard slug={shopSlug} shopName={initial.shopName} whatsappNumber={whatsappNumber} />
 
-      <form onSubmit={onSubmit} className="card space-y-4 p-5">
+      <form onSubmit={onSubmit} className="card settings-form-card space-y-4 p-5">
         <div>
           <label className="label">Shop name</label>
           <input className="input" value={shopName} onChange={(e) => setShopName(e.target.value)} required />
@@ -273,7 +273,7 @@ export default function SettingsForm({
           </div>
           <div>
             <label className="label">Currency</label>
-            <select className="input" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+            <select className="input settings-select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
               {[currency, ...CURRENCY_PRESETS.filter((c) => c !== currency)].map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
@@ -284,7 +284,7 @@ export default function SettingsForm({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="label">Region</label>
-            <select className="input" value={region} onChange={(e) => setRegion(e.target.value)}>
+            <select className="input settings-select" value={region} onChange={(e) => setRegion(e.target.value)}>
               <option value="">— None —</option>
               {Object.entries(REGIONS_BY_COUNTRY).map(([country, list]) => (
                 <optgroup key={country} label={country}>
@@ -299,7 +299,7 @@ export default function SettingsForm({
           </div>
           <div>
             <label className="label">Category</label>
-            <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
+            <select className="input settings-select" value={category} onChange={(e) => setCategory(e.target.value)}>
               <option value="">— None —</option>
               {CATEGORIES.map((c) => (
                 <option key={c.slug} value={c.slug}>
@@ -313,7 +313,7 @@ export default function SettingsForm({
         <div>
           <label className="label">Language</label>
           <select
-            className="input"
+            className="input settings-select"
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
           >

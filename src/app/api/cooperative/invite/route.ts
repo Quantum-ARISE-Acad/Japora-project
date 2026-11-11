@@ -14,28 +14,35 @@ import { logger } from "@/lib/logger";
  */
 export async function POST(req: NextRequest) {
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: "Veuillez vous connecter pour continuer." }, { status: 401 });
 
   const ip = getClientIp(req);
   const rl = rateLimit({ key: `coop.invite:${vendor.id}:${ip}`, limit: 10, windowMs: 60 * 60_000 });
-  if (!rl.allowed) return tooManyRequests(rl, "Too many invites. Try again later.");
+  if (!rl.allowed) return tooManyRequests(rl, "Trop d’invitations. Réessayez dans quelques minutes.");
 
   const coop = await getCooperativeForVendor(vendor.id);
-  if (!coop) return NextResponse.json({ error: "You're not in a cooperative yet." }, { status: 400 });
+  if (!coop) return NextResponse.json({ error: "Vous n’appartenez pas encore à une coopérative." }, { status: 400 });
 
   const b = await req.json().catch(() => null);
   const phones = parsePhoneList(String(b?.phones || ""));
   if (phones.length === 0) {
-    return NextResponse.json({ error: "Add at least one valid phone number." }, { status: 400 });
+    return NextResponse.json({ error: "Ajoutez au moins un numéro de téléphone valide." }, { status: 400 });
   }
 
-  const { sent } = await inviteByPhones({
+  const summary = await inviteByPhones({
     vendorId: vendor.id,
     cooperative: { id: coop.id, name: coop.name, joinCode: coop.joinCode },
     phones,
     appBaseUrl: appUrl(""),
   });
 
-  logger.info("coop.invite", { vendorId: vendor.id, coopId: coop.id, sent });
-  return NextResponse.json({ ok: true, sent, total: phones.length });
+  logger.info("coop.invite", {
+    vendorId: vendor.id,
+    coopId: coop.id,
+    acceptedByApi: summary.acceptedByApi,
+    simulated: summary.simulated,
+    failed: summary.failed,
+    attempted: summary.attempted,
+  });
+  return NextResponse.json({ ok: true, ...summary });
 }

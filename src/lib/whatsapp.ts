@@ -8,6 +8,7 @@ export type OutboundMessage = {
   to: string;
   body: string;
   orderId?: string | null;
+  broadcastId?: string | null;
 };
 
 export interface WhatsAppProvider {
@@ -155,6 +156,7 @@ export type OutboundInteractive = {
   footer?: string;
   buttons: InteractiveButton[] | InteractiveListSection[];
   orderId?: string | null;
+  broadcastId?: string | null;
 };
 
 export type OutboundTemplate = {
@@ -168,6 +170,7 @@ export type OutboundTemplate = {
   // Optional shorthand for body text parameters (converted into a body component).
   parameters?: string[];
   orderId?: string | null;
+  broadcastId?: string | null;
 };
 
 function isSectionList(
@@ -343,6 +346,7 @@ export async function sendWhatsAppInteractive(msg: OutboundInteractive) {
       status,
       messageId: providerId ?? null,
       orderId: msg.orderId ?? null,
+      broadcastId: msg.broadcastId ?? null,
     },
   });
   return { record, provider: provider.name, status, providerId, error };
@@ -372,6 +376,7 @@ export async function sendWhatsAppTemplate(msg: OutboundTemplate) {
       status,
       messageId: providerId ?? null,
       orderId: msg.orderId ?? null,
+      broadcastId: msg.broadcastId ?? null,
     },
   });
   return { record, provider: provider.name, status, providerId, error };
@@ -403,6 +408,7 @@ export async function sendWhatsApp(msg: OutboundMessage) {
       status,
       messageId: providerId ?? null,
       orderId: msg.orderId ?? null,
+      broadcastId: msg.broadcastId ?? null,
     },
   });
 

@@ -32,7 +32,7 @@ const {
 } = require("../src/lib/customers") as typeof import("../src/lib/customers");
 const { normalizePhone } = require("../src/lib/otp") as typeof import("../src/lib/otp");
 const { getProvider, isLiveMode, sendWhatsAppInteractive, sendWhatsAppTemplate } = require("../src/lib/whatsapp") as typeof import("../src/lib/whatsapp");
-const { dispatchBroadcast } = require("../src/lib/broadcast") as typeof import("../src/lib/broadcast");
+const { dispatchBroadcast, queueBroadcast, processBroadcastQueue } = require("../src/lib/broadcast") as typeof import("../src/lib/broadcast");
 
 after(async () => {
   await prisma.$disconnect();
@@ -643,7 +643,7 @@ describe("campaign safety: weekly rate limit & duplicate dispatch guards", () =>
   test("a successful broadcast stub is persisted as stubbed, not sent", async () => {
     const vendor = await createTestVendor("broadcast_stub");
     const customer = await prisma.customer.create({
-      data: { vendorId: vendor.id, name: "Stub Buyer", phone: "+22890777777" },
+      data: { vendorId: vendor.id, name: "Stub Buyer", phone: "+22890777777", marketingConsent: true },
     });
     const broadcast = await prisma.broadcast.create({
       data: { vendorId: vendor.id, segment: "all", body: "Hi {{name}}, {{product}} at {{store}}" },
@@ -656,7 +656,7 @@ describe("campaign safety: weekly rate limit & duplicate dispatch guards", () =>
     assert.equal(persisted?.status, "stubbed");
     assert.equal(persisted?.sentCount, 1);
     const message = await prisma.whatsAppMessage.findFirst({
-      where: { vendorId: vendor.id, contact: customer.phone, direction: "OUT" },
+      where: { vendorId: vendor.id, contact: normalizePhone(customer.phone), direction: "OUT" },
     });
     assert.equal(message?.status, "stubbed");
     assert.equal(message?.body, `Hi Stub Buyer, at ${vendor.shopName}`);
@@ -775,5 +775,53 @@ describe("campaign safety: approval state isolation & vendor isolation", () => {
       customerId: customerA.id,
     });
     assert.equal(bLink, null);
+  });
+});
+
+
+describe("durable broadcast queue after integration", () => {
+  test("queued recipients are unique and consent is checked again before dispatch", async () => {
+    const vendor = await createTestVendor("durable_consent");
+    await prisma.vendor.update({ where: { id: vendor.id }, data: { subscriptionStatus: "active" } });
+    const first = await prisma.customer.create({ data: { vendorId: vendor.id, name: "First", phone: "+22891111111", marketingConsent: true } });
+    const second = await prisma.customer.create({ data: { vendorId: vendor.id, name: "Second", phone: "+22892222222", marketingConsent: true } });
+    const broadcast = await prisma.broadcast.create({ data: { vendorId: vendor.id, segment: "all", body: "Bonjour {{name}}" } });
+    assert.deepEqual(await queueBroadcast(vendor.id, broadcast.id), { ok: true, targetCount: 2 });
+    assert.deepEqual(await queueBroadcast(vendor.id, broadcast.id), { ok: false, reason: "already_started" });
+    assert.equal(await prisma.broadcastRecipient.count({ where: { broadcastId: broadcast.id } }), 2);
+    await prisma.customer.update({ where: { id: second.id }, data: { marketingConsent: false } });
+    await processBroadcastQueue();
+    const saved = await prisma.broadcast.findUniqueOrThrow({ where: { id: broadcast.id } });
+    assert.equal(saved.status, "partial");
+    assert.equal(saved.sentCount, 1);
+    assert.equal(saved.skippedCount, 1);
+    const messages = await prisma.whatsAppMessage.findMany({ where: { broadcastId: broadcast.id } });
+    assert.equal(messages.length, 1);
+    assert.equal(messages[0].contact, normalizePhone(first.phone));
+    assert.equal(messages[0].status, "stubbed");
+    assert.equal((await processBroadcastQueue()).processed, 0);
+    assert.equal(await prisma.whatsAppMessage.count({ where: { broadcastId: broadcast.id } }), 1);
+  });
+
+  test("another vendor cannot start a broadcast they do not own", async () => {
+    const owner = await createTestVendor("queue_owner");
+    const other = await createTestVendor("queue_other");
+    const broadcast = await prisma.broadcast.create({ data: { vendorId: owner.id, segment: "all", body: "Private" } });
+    assert.deepEqual(await queueBroadcast(other.id, broadcast.id), { ok: false, reason: "not_found" });
+    assert.equal(await prisma.broadcastRecipient.count({ where: { broadcastId: broadcast.id } }), 0);
+  });
+
+  test("an interrupted send is marked uncertain instead of being sent twice", async () => {
+    const vendor = await createTestVendor("queue_interrupted");
+    const customer = await prisma.customer.create({ data: { vendorId: vendor.id, name: "Interrupted", phone: "+22893333333", marketingConsent: true } });
+    const broadcast = await prisma.broadcast.create({ data: { vendorId: vendor.id, segment: "all", body: "Bonjour", status: "sending", targetCount: 1 } });
+    await prisma.broadcastRecipient.create({ data: { broadcastId: broadcast.id, vendorId: vendor.id, customerId: customer.id, name: customer.name, phone: customer.phone, status: "sending", startedAt: new Date(Date.now() - 20 * 60_000), attempts: 1 } });
+    const report = await processBroadcastQueue();
+    assert.equal(report.processed, 0);
+    assert.equal(report.uncertain, 1);
+    const saved = await prisma.broadcast.findUniqueOrThrow({ where: { id: broadcast.id } });
+    assert.equal(saved.status, "attention");
+    assert.equal(saved.uncertainCount, 1);
+    assert.equal(await prisma.whatsAppMessage.count({ where: { broadcastId: broadcast.id } }), 0);
   });
 });
