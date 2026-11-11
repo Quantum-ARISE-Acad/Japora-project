@@ -231,6 +231,7 @@ model Order {
   customerPhone String      @default("")
   status        String      @default("NEW") // NEW | CONFIRMED | PAID | DELIVERED | CANCELLED
   totalCents    Int         @default(0)
+  deliveryFeeCents Int      @default(0)
   note          String      @default("")
   source        String      @default("catalog") // catalog | whatsapp | manual
   // Soko: optional CRM customer link + affiliate attribution + wholesale /

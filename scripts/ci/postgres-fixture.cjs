@@ -42,6 +42,7 @@ async function main() {
   assert.equal(vendor.products[0].collectionId, 'ci-collection');
   assert.equal(vendor.products[0].stock, 3);
   assert.equal(vendor.orders[0].items[0].productId, 'ci-product');
+  assert.equal(vendor.orders[0].deliveryFeeCents, 0, 'Existing checkout callers retain a zero delivery fee');
   assert.equal(vendor.customers[0].marketingConsent, true);
   for (const relation of ['products', 'orders', 'customers', 'collections', 'reviews', 'paymentLinks', 'funnelEvents']) assert.equal(vendor[relation].length, 1, relation);
   assert.deepEqual((await prisma.busEvent.findFirstOrThrow()).data, {ci: true});
