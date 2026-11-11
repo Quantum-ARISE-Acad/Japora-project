@@ -17,6 +17,7 @@ import VerifiedBadge from "@/components/VerifiedBadge";
 import ShopWhatsAppQrBanner from "@/components/ShopWhatsAppQrBanner";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
+import { SaasIcon, CategoryIcon } from "@/components/ui/SaasIcons";
 
 export const revalidate = 300;
 
@@ -58,16 +59,24 @@ export default async function PublicShopPage({ params }: Params) {
           {region && (
             <>
               <span>·</span>
-              <Link href={`/marketplace/${region.slug}`} className="hover:text-arctic-900">
-                📍 {region.label}
+              <Link
+                href={`/marketplace/${region.slug}`}
+                className="inline-flex items-center gap-1 hover:text-arctic-900"
+              >
+                <SaasIcon name="map-pin" size={13} className="text-brand-dark" />
+                <span>{region.label}</span>
               </Link>
             </>
           )}
           {category && (
             <>
               <span>·</span>
-              <Link href={`/marketplace?category=${category.slug}`} className="hover:text-arctic-900">
-                {category.icon} {category.label}
+              <Link
+                href={`/marketplace?category=${category.slug}`}
+                className="inline-flex items-center gap-1 hover:text-arctic-900"
+              >
+                <CategoryIcon slug={category.slug} size={13} className="text-brand-dark" />
+                <span>{category.label}</span>
               </Link>
             </>
           )}
@@ -105,20 +114,28 @@ export default async function PublicShopPage({ params }: Params) {
 
               <div className="flex flex-wrap gap-2 pt-2">
                 {region ? (
-                  <Link href={`/marketplace/${region.slug}`} className="a-chip">
-                    📍 {region.label}, {region.country}
+                  <Link
+                    href={`/marketplace/${region.slug}`}
+                    className="a-chip inline-flex items-center gap-1.5"
+                  >
+                    <SaasIcon name="map-pin" size={13} className="text-brand-dark" />
+                    <span>
+                      {region.label}, {region.country}
+                    </span>
                   </Link>
                 ) : null}
                 {category && region ? (
                   <Link
                     href={`/marketplace/${region.slug}/${category.slug}`}
-                    className="a-chip"
+                    className="a-chip inline-flex items-center gap-1.5"
                   >
-                    {category.icon} {category.label}
+                    <CategoryIcon slug={category.slug} size={13} className="text-brand-dark" />
+                    <span>{category.label}</span>
                   </Link>
                 ) : category ? (
-                  <span className="a-chip">
-                    {category.icon} {category.label}
+                  <span className="a-chip inline-flex items-center gap-1.5">
+                    <CategoryIcon slug={category.slug} size={13} className="text-brand-dark" />
+                    <span>{category.label}</span>
                   </span>
                 ) : null}
               </div>
@@ -152,15 +169,18 @@ export default async function PublicShopPage({ params }: Params) {
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href={`/c/${shop.shopSlug}`}
-                  className="a-btn a-btn--cafe a-btn--lg flex-1 font-bold shadow-elev-1"
+                  className="a-btn a-btn--cafe a-btn--lg flex-1 gap-2 font-bold shadow-elev-1"
                 >
-                  📖 Ouvrir le catalogue complet →
+                  <SaasIcon name="catalog" size={16} />
+                  <span>Ouvrir le catalogue complet</span>
+                  <SaasIcon name="arrow-right" size={15} />
                 </Link>
                 <Link
                   href={`/c/${shop.shopSlug}?assistant=open`}
                   className="btn-ghost a-btn--lg flex-1 gap-1.5 border border-emerald-500/40 text-emerald-800"
                 >
-                  ✨ Poser une question à l&apos;IA
+                  <SaasIcon name="sparkles" size={16} />
+                  <span>Poser une question à l&apos;IA</span>
                 </Link>
                 {waLink ? (
                   <a
@@ -193,9 +213,10 @@ export default async function PublicShopPage({ params }: Params) {
               </div>
               <Link
                 href={`/c/${shop.shopSlug}`}
-                className="text-xs font-bold text-brand-dark hover:underline"
+                className="inline-flex items-center gap-1 text-xs font-bold text-brand-dark hover:underline"
               >
-                Tout voir dans le catalogue →
+                <span>Tout voir dans le catalogue</span>
+                <SaasIcon name="arrow-right" size={13} />
               </Link>
             </div>
 
