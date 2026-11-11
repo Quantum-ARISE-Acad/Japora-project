@@ -18,7 +18,7 @@ export default async function CollectionsPage() {
     prisma.product.findMany({
       where: { vendorId: vendor.id },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, priceCents: true, collectionId: true },
+      select: { id: true, name: true, priceCents: true, imageUrl: true, stock: true, collectionId: true },
     }),
   ]);
 

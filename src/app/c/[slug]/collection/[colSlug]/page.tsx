@@ -29,22 +29,36 @@ export default async function PublicCollectionPage({ params }: Params) {
   const vendor = await prisma.vendor.findUnique({ where: { shopSlug: slug } });
   if (!vendor) notFound();
 
-  const collection = await prisma.collection.findUnique({
-    where: { vendorId_slug: { vendorId: vendor.id, slug: colSlug } },
-    include: {
-      products: {
-        where: { isActive: true },
-        orderBy: { createdAt: "desc" },
+  const [collection, allCollections] = await Promise.all([
+    prisma.collection.findUnique({
+      where: { vendorId_slug: { vendorId: vendor.id, slug: colSlug } },
+      include: {
+        products: {
+          where: { isActive: true },
+          orderBy: { createdAt: "desc" },
+        },
       },
-    },
-  });
+    }),
+    prisma.collection.findMany({
+      where: { vendorId: vendor.id },
+      orderBy: { createdAt: "desc" },
+      include: {
+        products: {
+          where: { isActive: true },
+          select: { id: true, imageUrl: true },
+        },
+      },
+    }),
+  ]);
   if (!collection) notFound();
 
   return (
     <div>
-      <div className="bg-arctic-800 text-white py-2 px-4 text-center text-xs font-medium">
-        <span>Collection : <strong>{collection.name}</strong></span>
-        <Link href={`/c/${vendor.shopSlug}`} className="ml-3 underline hover:text-arctic-200">
+      <div className="bg-gradient-to-r from-brand-dark via-brand to-emerald-700 text-white py-2.5 px-4 text-center text-xs font-medium shadow-xs">
+        <span>
+          📁 Collection : <strong className="font-bold">{collection.name}</strong> ({collection.products.length} article{collection.products.length > 1 ? "s" : ""})
+        </span>
+        <Link href={`/c/${vendor.shopSlug}`} className="ml-3 rounded-full bg-white/20 px-2.5 py-0.5 font-semibold hover:bg-white/30 transition">
           ← Voir toute la boutique
         </Link>
       </div>
@@ -57,6 +71,20 @@ export default async function PublicCollectionPage({ params }: Params) {
         whatsappNumber={vendor.whatsappNumber}
         momoNumber={vendor.momoNumber || vendor.whatsappNumber || ""}
         currency={vendor.currency}
+        avatarUrl={vendor.avatarUrl}
+        bio={vendor.bio}
+        deliveryEnabled={vendor.deliveryEnabled}
+        deliveryFeeCents={vendor.deliveryFeeCents}
+        deliveryZones={vendor.deliveryZones}
+        collections={allCollections.map((c) => ({
+          id: c.id,
+          name: c.name,
+          slug: c.slug,
+          description: c.description,
+          productCount: c.products.length,
+          coverImageUrl: c.products.find((p) => p.imageUrl)?.imageUrl || "",
+        }))}
+        initialCollectionId={collection.id}
         products={collection.products.map((p) => ({
           id: p.id,
           name: p.name,
@@ -66,6 +94,7 @@ export default async function PublicCollectionPage({ params }: Params) {
           sizes: p.sizes,
           stock: p.stock,
           condition: p.condition || "new",
+          collectionId: p.collectionId || null,
           createdAt: p.createdAt.toISOString(),
           wholesalePriceCents: p.wholesalePriceCents,
           wholesaleMinQty: p.wholesaleMinQty,

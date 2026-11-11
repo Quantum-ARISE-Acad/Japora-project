@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
     const name = String(body?.name || "Google Merchant").trim();
     const shopName = String(body?.shopName || `${name}'s Boutique`).trim();
     const currency = String(body?.currency || "XOF");
+    const isSignUp = Boolean(body?.isSignUp);
 
     let vendor = await prisma.vendor.findUnique({ where: { email } });
 
@@ -34,10 +35,18 @@ export async function POST(req: NextRequest) {
           shopName,
           shopSlug,
           currency,
+          language: "fr",
           subscriptionStatus: "trialing",
           trialEndsAt: trialEnd,
           emailVerifiedAt: now,
+          onboardedAt: null,
         },
+      });
+    } else if (isSignUp) {
+      // When testing Google sign-up, reset onboardedAt so the onboarding popup triggers
+      vendor = await prisma.vendor.update({
+        where: { id: vendor.id },
+        data: { onboardedAt: null },
       });
     }
 
