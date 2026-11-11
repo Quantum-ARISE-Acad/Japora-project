@@ -1,0 +1,25 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getCurrentVendor } from "@/lib/auth";
+import { issueVerificationEmail } from "@/lib/verification";
+import { rateLimit, tooManyRequests } from "@/lib/ratelimit";
+
+export async function POST(_req: NextRequest) {
+  const vendor = await getCurrentVendor();
+  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (vendor.emailVerifiedAt) return NextResponse.json({ ok: true, already: true });
+
+  const rl = rateLimit({
+    key: `verify-resend:${vendor.id}`,
+    limit: 3,
+    windowMs: 60 * 60_000,
+  });
+  if (!rl.allowed) {
+    return tooManyRequests(rl, "Please wait before requesting another verification email.");
+  }
+
+  const issued = await issueVerificationEmail(vendor);
+  return NextResponse.json({
+    ok: true,
+    verifyUrl: process.env.NODE_ENV !== "production" ? issued.verifyUrl : undefined,
+  });
+}

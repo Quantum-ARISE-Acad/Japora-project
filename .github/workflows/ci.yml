@@ -1,0 +1,70 @@
+name: CI — Quality & Build
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+      - develop
+  pull_request:
+    branches:
+      - main
+      - staging
+      - develop
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck, Tests & Build
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: "file:./prisma/dev.db"
+      SESSION_SECRET: "ci-test-session-secret-minimum-32-characters-long"
+      NEXT_PUBLIC_APP_URL: "http://localhost:5174"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Security check — ensure no .env or DB files are tracked
+        run: |
+          if git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v '\.env\.example$'; then
+            echo "❌ ERREUR : Un fichier .env sensible est suivi par Git !"
+            exit 1
+          fi
+          if git ls-files | grep -E '\.(db|sqlite|pem|key)$'; then
+            echo "❌ ERREUR : Un fichier de base de données ou clé privée est suivi par Git !"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client & Sync Schema
+        run: |
+          pnpm exec prisma generate
+          pnpm exec prisma db push --skip-generate
+
+      - name: TypeScript check
+        run: pnpm exec tsc --noEmit
+
+      - name: Run test suite
+        run: pnpm test
+
+      - name: Build production bundle
+        run: pnpm build

@@ -1,0 +1,25 @@
+# Local Postgres for dev. Start with: docker-compose up -d
+# Stop with: docker-compose down (data persists in the named volume)
+# Reset:    docker-compose down -v && docker-compose up -d
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: wcatalog-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: wcatalog
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - wcatalog-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d wcatalog"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  wcatalog-db:

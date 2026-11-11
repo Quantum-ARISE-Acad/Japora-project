@@ -1,0 +1,63 @@
+{
+  "name": "soko",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 5174",
+    "build": "next build",
+    "start": "next start",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:push": "prisma db push",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma migrate reset --force",
+    "db:synthetic-recovery": "tsx scripts/synthetic-recovery-demo.ts",
+    "setup": "prisma db push && tsx prisma/seed.ts",
+    "test": "node --import tsx scripts/run-tests.ts",
+    "lh:mobile": "pnpm dlx lighthouse@latest http://localhost:5174/ --quiet --chrome-flags='--headless=new --no-sandbox' --only-categories=performance --view",
+
+    "postinstall": "prisma generate"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^7.9.4",
+    "@prisma/client": "^6.2.1",
+    "animejs": "^4.4.1",
+    "bcryptjs": "^2.4.3",
+    "jose": "^5.9.6",
+    "next": "^15.1.4",
+    "qrcode": "^1.5.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.10.5",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.0.6",
+    "@types/react-dom": "^19.0.3",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "prisma": "^6.2.1",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  },
+  "optionalDependencies": {
+    "@aws-sdk/client-s3": "^3.700.0",
+    "sharp": "^0.34.0",
+    "stripe": "^17.5.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "prisma",
+      "@prisma/client",
+      "@prisma/engines",
+      "esbuild",
+      "sharp"
+    ]
+  }
+}
