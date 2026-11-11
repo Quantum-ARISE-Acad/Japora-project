@@ -166,8 +166,6 @@ export function providersForCurrency(currency: string): PaymentProviderName[] {
   const fits = (p: PaymentProviderName) =>
     PROVIDER_CURRENCIES[p].includes("*") || PROVIDER_CURRENCIES[p].includes(cur);
   return PRIORITY.filter(fits).sort((a, b) => {
-    if (a === "fedapay") return -1;
-    if (b === "fedapay") return 1;
     if (a === "ussd") return -1;
     if (b === "ussd") return 1;
     if (a === "cash") return 1;
@@ -186,7 +184,7 @@ export function apiFallbackForCurrency(currency: string): PaymentProviderName | 
   const fits = (p: PaymentProviderName) =>
     PROVIDER_CURRENCIES[p].includes("*") || PROVIDER_CURRENCIES[p].includes(cur);
   const apiRails: PaymentProviderName[] = ["fedapay", "paygate", "cinetpay", "flutterwave", "paystack", "mpesa"];
-  return apiRails.find((p) => fits(p) && isProviderConfigured(p)) ?? "fedapay";
+  return apiRails.find((p) => fits(p) && isProviderConfigured(p)) ?? null;
 }
 
 /** Providers whose required envs are currently configured (real, not stub). */

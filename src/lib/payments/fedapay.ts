@@ -38,8 +38,8 @@ export type FedaPayConfig = {
 };
 
 export function fedapayConfigured(): boolean {
-  // FedaPay Sandbox is always available in Japora (either via remote API key or built-in Sandbox simulator)
-  return true;
+  // A simulator must not become the automatic fallback for real payments.
+  return hasRealFedaPaySecretKey(process.env.FEDAPAY_SECRET_KEY || "");
 }
 
 function appUrl(): string {
@@ -258,7 +258,10 @@ export const fedapayProvider: PaymentProvider = {
     if (intent?.status === "succeeded") {
       return { status: "succeeded", amountCents: intent.amountCents };
     }
-    return { status: "succeeded", amountCents: intent?.amountCents };
+    return {
+      status: intent?.status === "failed" ? "failed" : "pending",
+      amountCents: intent?.amountCents,
+    };
   },
 
   verifyWebhookSignature(_rawBody: string, _headers: Headers): boolean {
