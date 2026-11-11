@@ -4,10 +4,17 @@ import ProductsClient from "./ProductsClient";
 
 export default async function ProductsPage() {
   const vendor = await requireVendor();
-  const products = await prisma.product.findMany({
-    where: { vendorId: vendor.id },
-    orderBy: { createdAt: "desc" },
-  });
+  const [products, collections] = await Promise.all([
+    prisma.product.findMany({
+      where: { vendorId: vendor.id },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.collection.findMany({
+      where: { vendorId: vendor.id },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, slug: true },
+    }),
+  ]);
 
   const dto = products.map((p) => ({
     id: p.id,
@@ -19,11 +26,13 @@ export default async function ProductsPage() {
     stock: p.stock,
     isActive: p.isActive,
     condition: p.condition || "new",
+    collectionId: p.collectionId || null,
   }));
 
   return (
     <ProductsClient
       initialProducts={dto}
+      collections={collections}
       currency={vendor.currency}
       shopSlug={vendor.shopSlug}
     />

@@ -1,5 +1,5 @@
 // WCatalog — WhatsApp Catalog & Order Manager
-// Postgres + Prisma. Status fields are plain strings (no native enums) so a
+// MySQL + Prisma. Status fields are plain strings (no native enums) so a
 // future provider swap stays mechanical and to keep migrations frictionless.
 
 generator client {
@@ -7,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -29,7 +29,7 @@ model Vendor {
   // routing); unique so two vendors can't claim the same line.
   whatsappPhoneNumberId String? @unique
   currency        String    @default("USD")
-  tagline         String    @default("")
+  tagline         String    @default("") @db.VarChar(500)
   emailVerifiedAt DateTime?
   onboardedAt     DateTime?
   // WhatsApp OTP onboarding. phone is the login identity for vendors who sign
@@ -40,7 +40,7 @@ model Vendor {
   // Away message + business hours (the bot replies with awayMessage outside
   // hours). businessHours JSON: { enabled, days:[0-6], open:"HH:MM", close:"HH:MM" }.
   // tzOffsetMinutes lets non-GMT markets compute "open now" (Togo = 0).
-  awayMessage     String    @default("")
+  awayMessage     String    @default("") @db.VarChar(2000)
   businessHours   Json?
   tzOffsetMinutes Int       @default(0)
   // Cooperative / market-association membership (horizontal onboarding).
@@ -77,14 +77,14 @@ model Vendor {
   referredByVendorId  String?
   commissionPct       Float    @default(0.03)
   isPublic            Boolean  @default(true)
-  bio                 String   @default("")
-  avatarUrl           String   @default("")
+  bio                 String   @default("") @db.VarChar(2000)
+  avatarUrl           String   @default("") @db.VarChar(2048)
   wholesaleEnabled    Boolean  @default(false)
   uiPrefs             Json?
 
   deliveryEnabled     Boolean  @default(false)
   deliveryFeeCents    Int      @default(0)
-  deliveryZones       String   @default("")
+  deliveryZones       String   @default("") @db.VarChar(1000)
 
   // Soft-delete tombstone for GDPR account deletion. Keep the row so we can
   // honour exports / disputes, but treat it as removed everywhere else.
@@ -126,8 +126,8 @@ model Campaign {
   vendor            Vendor          @relation("VendorCampaigns", fields: [vendorId], references: [id], onDelete: Cascade)
   name              String
   productId         String?
-  headline          String          @default("")
-  body              String          @default("")
+  headline          String          @default("") @db.VarChar(500)
+  body              String          @default("") @db.VarChar(2000)
   cta               String          @default("Shop now")
   refCode           String          @unique
   clicks            Int             @default(0)
@@ -137,7 +137,7 @@ model Campaign {
   status            String          @default("active")
   approvedAt        DateTime?
   approvedForPhone  String?
-  approvedBody      String?
+  approvedBody      String?         @db.Text
   approvalHash      String?
   createdAt         DateTime        @default(now())
   deletedAt         DateTime?
@@ -195,9 +195,9 @@ model Product {
   vendorId    String
   vendor      Vendor      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   name        String
-  description String      @default("")
+  description String      @default("") @db.VarChar(2000)
   priceCents  Int
-  imageUrl    String      @default("")
+  imageUrl    String      @default("") @db.VarChar(2048)
   sizes       String      @default("") // comma-separated, e.g. "S,M,L"
   stock       Int         @default(0)
   isActive    Boolean     @default(true)
@@ -225,7 +225,7 @@ model Order {
   customerPhone String      @default("")
   status        String      @default("NEW") // NEW | CONFIRMED | PAID | DELIVERED | CANCELLED
   totalCents    Int         @default(0)
-  note          String      @default("")
+  note          String      @default("") @db.VarChar(2000)
   source        String      @default("catalog") // catalog | whatsapp | manual
   // Soko: optional CRM customer link + affiliate attribution + wholesale /
   // pre-order semantics. paidCents tracks partial payments (deposits or
@@ -298,11 +298,11 @@ model EmailMessage {
   vendorId   String?
   vendor     Vendor?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
   to         String
-  subject    String
-  body       String
+  subject    String   @db.VarChar(500)
+  body       String   @db.Text
   status     String   @default("stubbed") // stubbed | sent | failed
   providerId String?
-  error      String?
+  error      String?  @db.Text
   template   String? // welcome | verify_email | password_reset | new_order | ...
   createdAt  DateTime @default(now())
 
@@ -348,7 +348,7 @@ model Customer {
   totalSpentCents Int          @default(0)
   orderCount      Int          @default(0)
   lastOrderAt     DateTime?
-  notes                   String       @default("")
+  notes                   String       @default("") @db.VarChar(2000)
   marketingConsent         Boolean?
   marketingConsentBasis   String?
   marketingConsentAt       DateTime?
@@ -378,7 +378,7 @@ model Receivable {
   status      String    @default("OPEN") // OPEN | PARTIAL | PAID | WRITTEN_OFF
   dueDate     DateTime?
   paidAt      DateTime?
-  note        String    @default("")
+  note        String    @default("") @db.VarChar(1000)
   createdAt   DateTime  @default(now())
 
   @@index([vendorId, status])
@@ -391,7 +391,7 @@ model Broadcast {
   id            String    @id @default(cuid())
   vendorId      String
   vendor        Vendor    @relation("VendorBroadcasts", fields: [vendorId], references: [id], onDelete: Cascade)
-  body          String
+  body          String    @db.Text
   segment       String    @default("all")
   targetCount   Int       @default(0)
   sentCount     Int       @default(0)
@@ -463,7 +463,7 @@ model PaymentIntent {
   currency     String    @default("NGN")
   status       String    @default("created") // created | pending | succeeded | failed | refunded
   method       String?
-  metadata     String    @default("")
+  metadata     String    @default("") @db.VarChar(4000)
   createdAt    DateTime  @default(now())
   completedAt  DateTime?
 
@@ -480,7 +480,7 @@ model BotEvent {
   vendor    Vendor?  @relation("VendorBotEvents", fields: [vendorId], references: [id], onDelete: SetNull)
   from      String
   intent    String   @default("unknown")
-  raw       String
+  raw       String   @db.Text
   responded Boolean  @default(false)
   createdAt DateTime @default(now())
 
@@ -511,7 +511,7 @@ model WhatsAppMessage {
   vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   direction String // IN | OUT
   contact   String // phone number
-  body      String
+  body      String   @db.Text
   status    String   @default("stubbed") // stubbed | sent | delivered | read | received | failed
   // Provider message id (Meta wamid) for OUT messages — lets the status webhook
   // match delivery/read receipts back to the row.
@@ -570,7 +570,7 @@ model BusEvent {
   occurredAt    DateTime  @default(now())
   status        String    @default("queued") // queued | sent | dead
   attempts      Int       @default(0)
-  lastError     String    @default("")
+  lastError     String    @default("") @db.VarChar(2000)
   sentAt        DateTime?
   createdAt     DateTime  @default(now())
 
@@ -585,7 +585,7 @@ model Collection {
   vendor      Vendor    @relation("VendorCollections", fields: [vendorId], references: [id], onDelete: Cascade)
   name        String
   slug        String
-  description String    @default("")
+  description String    @default("") @db.VarChar(1000)
   createdAt   DateTime  @default(now())
   products    Product[]
 
@@ -601,8 +601,8 @@ model Review {
   vendor       Vendor    @relation("VendorReviews", fields: [vendorId], references: [id], onDelete: Cascade)
   customerName String
   rating       Int       @default(5)
-  comment      String    @default("")
-  reply        String    @default("")
+  comment      String    @default("") @db.VarChar(2000)
+  reply        String    @default("") @db.VarChar(2000)
   createdAt    DateTime  @default(now())
 
   @@index([productId])
@@ -614,7 +614,7 @@ model PaymentLink {
   vendorId    String
   vendor      Vendor    @relation("VendorPaymentLinks", fields: [vendorId], references: [id], onDelete: Cascade)
   amountCents Int
-  description String    @default("")
+  description String    @default("") @db.VarChar(1000)
   currency    String    @default("XOF")
   expiresAt   DateTime?
   isPaid      Boolean   @default(false)

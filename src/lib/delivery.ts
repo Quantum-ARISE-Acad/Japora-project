@@ -32,11 +32,11 @@ export function parseDeliveryZones(
       const rawPrice = match[2];
 
       if (rawPrice !== undefined) {
-        // Price specified in the string
+        // Price specified in the string (in major currency units, e.g. 1000 FCFA -> 100000 cents)
         const parsed = parseFloat(rawPrice);
         return {
           name,
-          feeCents: isNaN(parsed) ? defaultFeeCents : Math.round(parsed),
+          feeCents: isNaN(parsed) ? defaultFeeCents : Math.round(parsed * 100),
         };
       }
 
