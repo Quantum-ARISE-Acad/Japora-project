@@ -90,6 +90,11 @@ JS
 curl --fail --silent --show-error --insecure --max-time 10 "$BASE/uploads/ci-photo.png" > "$RESULTS/ci-photo.png"
 node -e 'const assert=require("node:assert/strict"),fs=require("node:fs");assert.equal(fs.readFileSync(process.argv[1]).toString("base64"),"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl1sAAAAASUVORK5CYII=");' "$RESULTS/ci-photo.png"
 
+echo 'Checking broadcast scheduler endpoint authentication and queue processing...'
+test "$(curl --silent --insecure --max-time 15 -o /dev/null -w '%{http_code}' "$BASE/api/cron/broadcasts")" = 401
+curl --fail --silent --show-error --insecure --max-time 15 -H 'X-Cron-Key: ci-only-broadcast-cron-secret' "$BASE/api/cron/broadcasts" > "$RESULTS/broadcast-cron.json"
+node -e 'const a=require("node:assert/strict"),fs=require("node:fs");const r=JSON.parse(fs.readFileSync(process.argv[1]));a.equal(r.ok,true);a.equal(r.processed,0);a.equal(r.uncertain,0);' "$RESULTS/broadcast-cron.json"
+
 echo 'Checking scheduled backup, manual backup and restore into a separate database...'
 # Stop the scheduler after proving two automatic runs; manual backup then has
 # exclusive access, so dump/photo comparisons cannot race with rotation.
