@@ -237,6 +237,7 @@ export default function CatalogClient({
   }, [deliveryEnabled, fulfillment, deliveryFeeCents, deliveryZones, selectedZone, zonesList]);
 
   const grandTotal = total + deliveryFee;
+  const checkoutZone = selectedZone || zonesList[0]?.name || "";
 
   function addToCart(p: Product, size: string, qty: number) {
     trackCart(shopSlug, p.priceCents * qty);
@@ -318,7 +319,7 @@ export default function CatalogClient({
     const fullNote = [
       `[PAIEMENT: ${paymentLabel}]`,
       deliveryEnabled && fulfillment === "delivery"
-        ? `[LIVRAISON - ${selectedZone || "Standard"}${deliveryAddress ? ` : ${deliveryAddress}` : ""}]`
+        ? `[LIVRAISON - ${checkoutZone || "Standard"}${deliveryAddress ? ` : ${deliveryAddress}` : ""}]`
         : deliveryEnabled
         ? "[RETRAIT EN BOUTIQUE]"
         : "",
@@ -337,6 +338,8 @@ export default function CatalogClient({
         customerEmail: customerEmail.trim() || undefined,
         note: fullNote,
         paymentMethod,
+        fulfillment: deliveryEnabled ? fulfillment : "pickup",
+        deliveryZone: fulfillment === "delivery" ? checkoutZone : "",
         sessionId: getSessionId(),
         items: cart.map((l) => ({ productId: l.productId, size: l.size, qty: l.qty })),
       }),
@@ -349,7 +352,7 @@ export default function CatalogClient({
     }
 
     if (paymentMethod === "tmoney" || paymentMethod === "flooz") {
-      trackPaymentIntent(shopSlug, data.orderId, paymentMethod, grandTotal);
+      trackPaymentIntent(shopSlug, data.orderId, paymentMethod, data.totalCents);
     }
 
     const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -357,9 +360,9 @@ export default function CatalogClient({
     const summary = `Bonjour ${shopName},\n\n` +
       `Je viens de valider ma commande (Réf : #${data.orderId.slice(0, 8)}).\n\n` +
       `📦 *Articles commandés :*\n${cart.map((l) => `• ${l.qty}× ${l.name}${l.size ? ` (${l.size})` : ""} — ${formatMoney(l.priceCents * l.qty, currency)}`).join("\n")}\n\n` +
-      `💰 *Sous-total :* ${formatMoney(total, currency)}\n` +
-      (deliveryFee > 0 ? `🛵 *Frais de livraison :* +${formatMoney(deliveryFee, currency)} (${selectedZone || "Standard"})\n` : "") +
-      `💳 *Total à régler :* ${formatMoney(grandTotal, currency)}\n` +
+      `💰 *Sous-total :* ${formatMoney(data.totalCents - data.deliveryFeeCents, currency)}\n` +
+      (data.deliveryFeeCents > 0 ? `🛵 *Frais de livraison :* +${formatMoney(data.deliveryFeeCents, currency)} (${checkoutZone || "Standard"})\n` : "") +
+      `💳 *Total à régler :* ${formatMoney(data.totalCents, currency)}\n` +
       `📍 *Récupération :* ${fulfillment === "delivery" ? `Livraison à domicile (${deliveryAddress || "Voir adresse"})` : "Retrait en boutique"}\n` +
       `📱 *Mode de paiement :* ${paymentLabel}\n` +
       `👤 *Client :* ${customerName}${customerPhone ? ` (${customerPhone})` : ""}\n` +
@@ -370,7 +373,7 @@ export default function CatalogClient({
       orderId: data.orderId,
       waLink: waMeLink(whatsappNumber, summary),
       paymentMethod,
-      totalCents: grandTotal,
+      totalCents: data.totalCents,
     });
     setStep("success");
     setCart([]);

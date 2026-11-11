@@ -512,7 +512,7 @@ export default function SettingsForm({
 
               <div>
                 <label className="block text-xs font-semibold text-arctic-700">
-                  Zones spécifiques et tarifs (optionnel)
+                  Zones spécifiques et tarifs ({currency}, optionnel)
                 </label>
                 <textarea
                   rows={2}

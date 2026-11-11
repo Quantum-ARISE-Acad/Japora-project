@@ -17,6 +17,7 @@ import { buyerOrderConfirmationEmail } from "@/lib/email-templates";
 import { publicOrigin } from "@/lib/public-origin";
 import { sendWhatsApp } from "@/lib/whatsapp";
 import { formatMoney } from "@/lib/utils";
+import { calculateDeliveryFee, parseDeliveryZones } from "@/lib/delivery";
 
 export async function GET(req: NextRequest) {
   const vendor = await getCurrentVendor();
@@ -109,6 +110,28 @@ export async function POST(req: NextRequest) {
     note = `[PAIEMENT: ${paymentMethod}]\n${note}`.trim();
   }
 
+  // Fees come from the vendor configuration, never from a client-supplied amount.
+  // Legacy/manual callers that omit fulfillment continue to create pickup orders.
+  const fulfillment = b.fulfillment ?? "pickup";
+  if (fulfillment !== "pickup" && fulfillment !== "delivery") {
+    return NextResponse.json({ error: "Mode de réception invalide." }, { status: 400 });
+  }
+  let deliveryFeeCents = 0;
+  if (fulfillment === "delivery") {
+    if (!vendor.deliveryEnabled) {
+      return NextResponse.json({ error: "Cette boutique ne propose pas la livraison." }, { status: 400 });
+    }
+    const zones = parseDeliveryZones(vendor.deliveryZones, vendor.deliveryFeeCents);
+    const requestedZone = typeof b.deliveryZone === "string" ? b.deliveryZone.trim() : "";
+    const zone = requestedZone
+      ? zones.find((z) => z.name.toLowerCase() === requestedZone.toLowerCase())
+      : zones[0];
+    if (requestedZone && !zone) {
+      return NextResponse.json({ error: "Zone de livraison inconnue." }, { status: 400 });
+    }
+    deliveryFeeCents = calculateDeliveryFee(vendor, zone?.name);
+  }
+
   const rawItems = Array.isArray(b.items) ? b.items : [];
   if (rawItems.length === 0) {
     return NextResponse.json({ error: "Add at least one item." }, { status: 400 });
@@ -149,7 +172,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const totalCents = lineItems.reduce((s, li) => s + li.unitPriceCents * li.quantity, 0);
+  const totalCents = lineItems.reduce((s, li) => s + li.unitPriceCents * li.quantity, 0) + deliveryFeeCents;
   const vendorId = vendor.id;
   const isPreOrder = Boolean(b.isPreOrder);
 
@@ -176,6 +199,7 @@ export async function POST(req: NextRequest) {
         source,
         status: "NEW",
         totalCents,
+        deliveryFeeCents,
         isPreOrder,
         depositCents,
         balanceDueAt,
@@ -373,5 +397,5 @@ export async function POST(req: NextRequest) {
   }
 
   kickDrain();
-  return NextResponse.json({ ok: true, orderId: order.id, totalCents });
+  return NextResponse.json({ ok: true, orderId: order.id, totalCents, deliveryFeeCents });
 }
