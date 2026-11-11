@@ -16,8 +16,9 @@
     "setup": "tsx scripts/prisma-cli.ts db push && tsx prisma/seed.ts",
     "test": "node --import tsx scripts/run-tests.ts",
     "lh:mobile": "pnpm dlx lighthouse@latest http://localhost:5174/ --quiet --chrome-flags='--headless=new --no-sandbox' --only-categories=performance --view",
-
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix --max-warnings=0"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -34,12 +35,15 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.10.5",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.0.6",
     "@types/react-dom": "^19.0.3",
     "autoprefixer": "^10.4.20",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "^15.5.24",
     "postcss": "^8.4.49",
     "prisma": "^6.2.1",
     "tailwindcss": "^3.4.17",

@@ -25,7 +25,6 @@ import { isValidPhone, normalizePhone } from "./otp";
 import {
   customerMarketingConsentGranted,
   customerReactivationEligibility,
-  REACTIVATION_STALE_DAYS,
 } from "./customers";
 import { sendWhatsApp } from "./whatsapp";
 
@@ -40,8 +39,6 @@ const TOUCH_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_RECOVERY_MESSAGES_PER_WEEK = 2;
 const RECOVERY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
-// A Prisma client or an interactive-transaction client both satisfy this.
-type Db = typeof prisma | Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 function generateCode(): string {
   const buf = randomBytes(CODE_LEN);

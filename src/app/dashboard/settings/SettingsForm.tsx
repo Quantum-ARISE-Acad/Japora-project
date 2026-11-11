@@ -1,5 +1,7 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import CopyableLink from "../CopyableLink";
@@ -125,8 +127,8 @@ export default function SettingsForm({
         setAvatarUrl(data.url);
         await persistAvatarUrl(data.url);
       }
-    } catch (err: any) {
-      setAvatarError(err.message || "Erreur de connexion lors de l'upload.");
+    } catch (err) {
+      setAvatarError(errorMessage(err, "Erreur de connexion lors de l'upload."));
     } finally {
       setUploadingAvatar(false);
       e.target.value = "";
@@ -389,7 +391,7 @@ export default function SettingsForm({
                 )}
               </div>
               <p className="text-[11px] text-arctic-600">
-                Formats acceptés : PNG, JPG, WebP jusqu'à 5 Mo. Ce logo est enregistré automatiquement dès sa sélection et apparaît sur votre boutique publique et vos fiches produits.
+                Formats acceptés : PNG, JPG, WebP jusqu&apos;à 5 Mo. Ce logo est enregistré automatiquement dès sa sélection et apparaît sur votre boutique publique et vos fiches produits.
               </p>
               {avatarSavedMsg && (
                 <p className="text-xs text-emerald-700 font-semibold">{avatarSavedMsg}</p>
@@ -403,7 +405,7 @@ export default function SettingsForm({
           <div className="mt-3 pt-3 border-t border-arctic-200/60">
             <details className="text-xs text-arctic-600">
               <summary className="cursor-pointer font-medium hover:text-arctic-900">
-                Ou spécifier une URL d'image externe
+                Ou spécifier une URL d&apos;image externe
               </summary>
               <input
                 className="input mt-2 text-xs py-1.5"

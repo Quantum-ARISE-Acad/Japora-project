@@ -367,7 +367,7 @@ export default function CooperativeClient({
         </div>
 
         <div className="divide-y divide-arctic-300/30">
-          {cooperative.members.map((m, idx) => (
+          {cooperative.members.map((m) => (
             <div key={m.id} className="flex items-center justify-between p-4 hover:bg-arctic-50/50">
               <div className="flex items-center gap-3">
                 <div className="grid h-9 w-9 place-items-center rounded-full bg-arctic-200 text-xs font-bold text-arctic-800">

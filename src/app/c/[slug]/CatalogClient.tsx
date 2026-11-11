@@ -8,11 +8,10 @@ import Glyph from "@/components/Glyph";
 import ProductPlaceholder from "@/components/ProductPlaceholder";
 import { ProductReviews } from "@/components/ProductReviews";
 import { parseDeliveryZones, calculateDeliveryFee } from "@/lib/delivery";
-import ShopThemeSelector from "@/components/ShopThemeSelector";
 import ShopCurrencySelector from "@/components/ShopCurrencySelector";
 import ShopAiAssistant from "@/components/ShopAiAssistant";
 import ShopWhatsAppQrBanner from "@/components/ShopWhatsAppQrBanner";
-import { formatConvertedPrice, convertCurrency, formatCurrencyAmount } from "@/lib/currency";
+import { formatConvertedPrice } from "@/lib/currency";
 import { telHref, directUssdCode } from "@/lib/payments/ussd";
 import {
   trackVisit,

@@ -1,3 +1,4 @@
+import { errorMessage } from "@/lib/errors";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createSession } from "@/lib/session";
@@ -63,8 +64,8 @@ export async function POST(req: NextRequest) {
         shopSlug: vendor.shopSlug,
       },
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error("[google-login error]", err);
-    return NextResponse.json({ error: err.message || "Google login failed" }, { status: 500 });
+    return NextResponse.json({ error: errorMessage(err, "Google login failed") }, { status: 500 });
   }
 }

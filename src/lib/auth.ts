@@ -77,7 +77,7 @@ export async function getCurrentVendor(): Promise<Vendor | null> {
       const { auth, currentUser } = await import("@clerk/nextjs/server");
       const clerkAuth = await auth();
       if (clerkAuth?.userId) {
-        let vendor = await (prisma.vendor as any).findFirst({
+        let vendor = await prisma.vendor.findFirst({
           where: { clerkId: clerkAuth.userId },
         });
         if (vendor && !vendor.deletedAt) {
@@ -91,7 +91,7 @@ export async function getCurrentVendor(): Promise<Vendor | null> {
           if (email) {
             vendor = await prisma.vendor.findUnique({ where: { email } });
             if (vendor) {
-              vendor = await (prisma.vendor as any).update({
+              vendor = await prisma.vendor.update({
                 where: { id: vendor.id },
                 data: { clerkId: clerkAuth.userId },
               });
@@ -124,7 +124,7 @@ export async function getCurrentVendor(): Promise<Vendor | null> {
                   subscriptionStatus: "trialing",
                   trialEndsAt: trialEnd,
                   emailVerifiedAt: now,
-                } as any,
+                },
               });
             }
             if (vendor && !vendor.deletedAt) {
