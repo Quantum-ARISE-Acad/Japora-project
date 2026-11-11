@@ -8,6 +8,7 @@ import { isClerkConfigured } from "./ClerkAuthProvider";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import { SaasIcon } from "@/components/ui/SaasIcons";
 
 export default function CustomSignIn() {
   const router = useRouter();
@@ -180,7 +181,7 @@ export default function CustomSignIn() {
 
           <div className="glass glass-edge rounded-shape-xl p-6 sm:p-8 shadow-elev-2 backdrop-blur-md">
             <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand/15 px-3 py-1 text-xs font-bold text-brand-dark">
-              <span>🛍️</span>
+              <SaasIcon name="store" size={14} />
               <span>{tr("Portail Vendeurs Japora", "Japora Merchant Portal")}</span>
             </div>
             <h1 className="a-headline-sm text-arctic-900">
@@ -272,16 +273,7 @@ export default function CustomSignIn() {
               </button>
             </form>
 
-            <div className="mt-6 space-y-2 border-t border-arctic-200/60 pt-4 text-center a-body-sm text-arctic-600">
-              <p>
-                {tr("Connexion rapide par numéro WhatsApp ?", "Quick login via WhatsApp number?")}{" "}
-                <Link
-                  href="/start"
-                  className="font-semibold text-brand-dark underline hover:text-arctic-900"
-                >
-                  {tr("Code WhatsApp OTP", "WhatsApp OTP Code")}
-                </Link>
-              </p>
+            <div className="mt-6 border-t border-arctic-200/60 pt-4 text-center a-body-sm text-arctic-600">
               <p>
                 {tr("Vous n'avez pas encore de boutique ?", "Don't have a shop yet?")}{" "}
                 <Link

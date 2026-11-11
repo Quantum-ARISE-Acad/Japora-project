@@ -12,6 +12,7 @@ import { AuroraIsoscout } from "@/components/aurora";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
+import { SaasIcon, CategoryIcon } from "@/components/ui/SaasIcons";
 
 export const revalidate = 300;
 
@@ -97,9 +98,10 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
         </Link>
         <Link
           href={`/shop/${shop.shopSlug}`}
-          className="a-label-md font-bold text-brand-dark group-hover:underline"
+          className="inline-flex items-center gap-1 a-label-md font-bold text-brand-dark group-hover:underline"
         >
-          Voir la boutique →
+          <span>Voir la boutique</span>
+          <SaasIcon name="arrow-right" size={13} />
         </Link>
       </div>
     </div>
@@ -132,13 +134,19 @@ export default async function MarketplaceRegionCategoryPage({ params }: Params) 
               {r.label} ({r.country})
             </Link>
             <span>/</span>
-            <span className="font-bold text-brand-dark">
-              {c.icon} {c.label}
+            <span className="inline-flex items-center gap-1 font-bold text-brand-dark">
+              <CategoryIcon slug={c.slug} size={13} />
+              <span>{c.label}</span>
             </span>
           </nav>
 
-          <h1 className="a-display-sm text-arctic-900 sm:a-display-md">
-            {c.icon} Boutiques {c.label} à {r.label}
+          <h1 className="a-display-sm flex items-center gap-3 text-arctic-900 sm:a-display-md">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-shape-lg border border-brand/30 bg-brand/10 text-brand-dark">
+              <CategoryIcon slug={c.slug} size={22} />
+            </span>
+            <span>
+              Boutiques {c.label} à {r.label}
+            </span>
           </h1>
           <p className="a-body-lg a-measure mt-2 text-arctic-700">
             Vendeurs WhatsApp vérifiés dans le rayon {c.label.toLowerCase()} à {r.label} ({r.country}). Parcourez leurs articles et commandez en direct.
@@ -156,10 +164,10 @@ export default async function MarketplaceRegionCategoryPage({ params }: Params) 
               <Link
                 key={x.slug}
                 href={`/marketplace/${r.slug}/${x.slug}`}
-                className="a-chip"
+                className="a-chip inline-flex items-center gap-1.5"
               >
-                <span className="mr-1">{x.icon}</span>
-                {x.label}
+                <CategoryIcon slug={x.slug} size={14} className="text-brand-dark" />
+                <span>{x.label}</span>
               </Link>
             ))}
           </div>
@@ -184,7 +192,7 @@ export default async function MarketplaceRegionCategoryPage({ params }: Params) 
                 title={`Aucune boutique ${c.label.toLowerCase()} à ${r.label} pour l'instant`}
                 body={`Lancez la première boutique ${c.label.toLowerCase()} à ${r.label} sur Japora et captez les premiers clients de votre ville.`}
                 action={
-                  <Link href="/start" className="btn-primary">
+                  <Link href="/signup" className="btn-primary">
                     Créer ma boutique maintenant →
                   </Link>
                 }

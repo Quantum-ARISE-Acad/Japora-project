@@ -12,6 +12,7 @@ import { AuroraIsoscout } from "@/components/aurora";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
+import { SaasIcon, CategoryIcon } from "@/components/ui/SaasIcons";
 
 export const revalidate = 300;
 
@@ -94,17 +95,19 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
 
       <div className="mt-3 flex items-center justify-between border-t border-arctic-200/60 pt-3">
         {category ? (
-          <span className="rounded-shape-sm border border-arctic-400/45 bg-arctic-200/65 px-2 py-0.5 a-label-md text-arctic-900 backdrop-blur-glass-thin">
-            {category.icon} {category.label}
+          <span className="inline-flex items-center gap-1 rounded-shape-sm border border-arctic-400/45 bg-arctic-200/65 px-2 py-0.5 a-label-md text-arctic-900 backdrop-blur-glass-thin">
+            <CategoryIcon slug={category.slug} size={13} className="text-brand-dark" />
+            <span>{category.label}</span>
           </span>
         ) : (
           <span />
         )}
         <Link
           href={`/shop/${shop.shopSlug}`}
-          className="a-label-md font-bold text-brand-dark group-hover:underline"
+          className="inline-flex items-center gap-1 a-label-md font-bold text-brand-dark group-hover:underline"
         >
-          Voir la boutique →
+          <span>Voir la boutique</span>
+          <SaasIcon name="arrow-right" size={13} />
         </Link>
       </div>
     </div>
@@ -129,8 +132,11 @@ export default async function MarketplaceRegionPage({ params }: Params) {
               Marketplace
             </Link>
             <span>/</span>
-            <span className="font-bold text-brand-dark">
-              📍 {r.label} ({r.country})
+            <span className="inline-flex items-center gap-1 font-bold text-brand-dark">
+              <SaasIcon name="map-pin" size={13} />
+              <span>
+                {r.label} ({r.country})
+              </span>
             </span>
           </div>
 
@@ -153,10 +159,10 @@ export default async function MarketplaceRegionPage({ params }: Params) {
               <Link
                 key={c.slug}
                 href={`/marketplace/${r.slug}/${c.slug}`}
-                className="a-chip hover:border-brand"
+                className="a-chip inline-flex items-center gap-1.5 hover:border-brand"
               >
-                <span className="mr-1">{c.icon}</span>
-                {c.label}
+                <CategoryIcon slug={c.slug} size={14} className="text-brand-dark" />
+                <span>{c.label}</span>
               </Link>
             ))}
           </div>
@@ -194,9 +200,9 @@ export default async function MarketplaceRegionPage({ params }: Params) {
               <AuroraIsoscout
                 variant="products"
                 title={`Aucune boutique publique à ${r.label} pour le moment`}
-                body={`Soyez le premier commerçant à référencer votre boutique WhatsApp à ${r.label}. L'inscription prend 90 secondes et est 100% gratuite.`}
+                body={`Soyez le premier commerçant à référencer votre boutique WhatsApp à ${r.label}. L'inscription est rapide et 100% gratuite.`}
                 action={
-                  <Link href="/start" className="btn-primary">
+                  <Link href="/signup" className="btn-primary">
                     Ouvrir la première boutique à {r.label} →
                   </Link>
                 }

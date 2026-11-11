@@ -5,6 +5,7 @@ import Link from "next/link";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import { SaasIcon, type SaasIconName } from "@/components/ui/SaasIcons";
 
 /**
  * "How Japora works" — bilingual (FR / EN) animated, scroll-driven explainer
@@ -22,31 +23,31 @@ export default function HowToUseClient() {
   const steps = [
     {
       n: "01",
-      phase: tr("Inscription · ~90 secondes", "Onboarding · ~90 seconds"),
+      phase: tr("Inscription · Mise en ligne rapide", "Onboarding · Quick Setup"),
       title: tr(
-        "Ouvrez votre boutique sur WhatsApp",
-        "Open your shop on WhatsApp"
+        "Ouvrez votre boutique marchande Japora",
+        "Open your Japora merchant shop"
       ),
       subtitle: tr(
-        "Sans mot de passe complexe ni carte bancaire",
-        "No complex password or credit card required"
+        "Configuration immédiate avec Google ou votre adresse email",
+        "Instant setup with Google or your email address"
       ),
       body: tr(
-        "Saisissez simplement votre numéro WhatsApp sur /start. Vous recevez un code OTP à 6 chiffres et votre boutique est immédiatement créée en FCFA (ou votre devise locale). Aucune application supplémentaire à installer.",
-        "Simply enter your WhatsApp number on /start. You receive a 6-digit OTP code and your shop is immediately created in XOF (or your local currency). No extra app to install."
+        "Créez votre compte vendeur en quelques clics avec le nom de votre boutique, votre numéro WhatsApp commercial et votre devise locale (FCFA / XOF). Aucune application supplémentaire à installer.",
+        "Create your merchant account in a few clicks with your shop name, business WhatsApp number, and local currency (XOF). No extra app to install."
       ),
       highlights: [
         tr(
-          "Connexion ultra-rapide par code WhatsApp OTP",
-          "Instant login via 6-digit WhatsApp OTP"
+          "Inscription rapide par Email ou compte Google en 1 clic",
+          "Fast sign-up via Email or 1-click Google account"
         ),
         tr(
           "Devise FCFA (XOF) configurée par défaut sans erreur de décimale",
           "XOF currency configured by default with zero decimal errors"
         ),
         tr(
-          "Démarrage immédiat gratuit sur votre téléphone",
-          "Immediate free setup right from your phone"
+          "Démarrage immédiat gratuit sur votre téléphone ou ordinateur",
+          "Immediate free setup right from your phone or computer"
         ),
       ],
       icon: "shop" as StepIconName,
@@ -159,8 +160,8 @@ export default function HowToUseClient() {
         "T-Money, Flooz, Wave, Orange Money & MTN MoMo"
       ),
       body: tr(
-        "Le client choisit son moyen de paiement habituel. Dès que le paiement Mobile Money est validé, la commande passe automatiquement au statut « ✓ Payé » sur votre tableau Kanban et le stock est mis à jour.",
-        "Buyers pay with their favorite local wallet. The moment Mobile Money clears, the order flips to '✓ Paid' on your Kanban board and stock updates automatically."
+        "Le client choisit son moyen de paiement habituel. Dès que le paiement Mobile Money est validé, la commande passe automatiquement au statut « Payé » sur votre tableau Kanban et le stock est mis à jour.",
+        "Buyers pay with their favorite local wallet. The moment Mobile Money clears, the order flips to 'Paid' on your Kanban board and stock updates automatically."
       ),
       highlights: [
         tr(
@@ -211,25 +212,34 @@ export default function HowToUseClient() {
     },
   ];
 
-  const simulatorScenarios = [
+  const simulatorScenarios: {
+    id: string;
+    icon: SaasIconName;
+    label: string;
+    buyerMsg: string;
+    botReply: string;
+    buttons: { icon: SaasIconName; text: string }[];
+    statusBadge: string;
+  }[] = [
     {
       id: "price",
+      icon: "message",
       label: tr(
-        "💬 Demande de prix (« C'est combien ? »)",
-        "💬 Price check ('How much is this?')"
+        "Demande de prix (« C'est combien ? »)",
+        "Price check ('How much is this?')"
       ),
       buyerMsg: tr(
         "Bonjour ! C'est combien le Sac Bogolan Cuir et vous livrez à Agoè ?",
         "Hello! How much is the Bogolan Leather Bag and do you deliver to Agoè?"
       ),
       botReply: tr(
-        "Bonjour 👋 ! Le **Sac Bogolan Cuir** est à **15 000 FCFA** (En stock : 6 pièces).\n\n📍 Livraison vers **Agoè** : **1 500 FCFA**.\nTotal avec livraison : **16 500 FCFA**.",
-        "Hello 👋! The **Bogolan Leather Bag** is **15,000 XOF** (In stock: 6 left).\n\n📍 Delivery to **Agoè**: **1,500 XOF**.\nTotal with delivery: **16,500 XOF**."
+        "Bonjour ! Le Sac Bogolan Cuir est à 15 000 FCFA (En stock : 6 pièces).\n\nLivraison vers Agoè : 1 500 FCFA.\nTotal avec livraison : 16 500 FCFA.",
+        "Hello! The Bogolan Leather Bag is 15,000 XOF (In stock: 6 left).\n\nDelivery to Agoè: 1,500 XOF.\nTotal with delivery: 16,500 XOF."
       ),
       buttons: [
-        tr("🛒 Commander maintenant", "🛒 Order now"),
-        tr("📖 Voir tout le catalogue", "📖 View full catalog"),
-        tr("💬 Parler au vendeur", "💬 Talk to seller"),
+        { icon: "cart", text: tr("Commander maintenant", "Order now") },
+        { icon: "catalog", text: tr("Voir tout le catalogue", "View full catalog") },
+        { icon: "message", text: tr("Parler au vendeur", "Talk to seller") },
       ],
       statusBadge: tr(
         "Réponse automatique en 0.8s",
@@ -238,44 +248,49 @@ export default function HowToUseClient() {
     },
     {
       id: "order",
+      icon: "wallet",
       label: tr(
-        "💳 Paiement T-Money / Flooz en direct",
-        "💳 Inline T-Money / Flooz Payment"
+        "Paiement T-Money / Flooz en direct",
+        "Inline T-Money / Flooz Payment"
       ),
       buyerMsg: tr(
         "Je prends 1 Sac Bogolan Cuir avec livraison à Agoè. Je paie par T-Money.",
         "I'll take 1 Bogolan Leather Bag with delivery to Agoè. Paying via T-Money."
       ),
       botReply: tr(
-        "Parfait ! Votre commande **#JP-4092** (16 500 FCFA) est enregistrée.\n\n👉 Appuyez ci-dessous pour valider votre paiement **T-Money / Flooz** en toute sécurité :",
-        "Awesome! Your order **#JP-4092** (16,500 XOF) is created.\n\n👉 Tap below to complete your **T-Money / Flooz** payment securely:"
+        "Parfait ! Votre commande #JP-4092 (16 500 FCFA) est enregistrée.\n\nSélectionnez le bouton ci-dessous pour valider votre paiement T-Money / Flooz en toute sécurité :",
+        "Awesome! Your order #JP-4092 (16,500 XOF) is created.\n\nSelect the button below to complete your T-Money / Flooz payment securely:"
       ),
       buttons: [
-        tr("📲 Payer 16 500 FCFA (T-Money / Flooz)", "📲 Pay 16,500 XOF (T-Money / Flooz)"),
-        tr("📄 Voir le récapitulatif", "📄 View order summary"),
+        {
+          icon: "smartphone",
+          text: tr("Payer 16 500 FCFA (T-Money / Flooz)", "Pay 16,500 XOF (T-Money / Flooz)"),
+        },
+        { icon: "catalog", text: tr("Voir le récapitulatif", "View order summary") },
       ],
       statusBadge: tr(
-        "Statut : ✓ Payé confirmé automatiquement",
-        "Status: ✓ Paid confirmed automatically"
+        "Statut : Payé confirmé automatiquement",
+        "Status: Paid confirmed automatically"
       ),
     },
     {
       id: "summary",
+      icon: "moon",
       label: tr(
-        "🌙 Bilan du soir à 18h00 (Côté Vendeur)",
-        "🌙 6 PM Daily Summary (Merchant View)"
+        "Bilan du soir à 18h00 (Côté Vendeur)",
+        "6 PM Daily Summary (Merchant View)"
       ),
       buyerMsg: tr(
         "[Notification automatique Japora — 18h00]",
         "[Automated Japora Notification — 6:00 PM]"
       ),
       botReply: tr(
-        "🌙 **Bilan du jour — Chez Améyo**\n• Commandes payées : **11 commandes**\n• Chiffre d'affaires : **134 500 FCFA**\n• Top vente : **Robe Bazin Brodé (5x)**\n• ⚠️ Stock bas : **Sandales Cuir (reste 2)**",
-        "🌙 **Daily Hustle Summary — Chez Améyo**\n• Paid orders: **11 orders**\n• Revenue: **134,500 XOF**\n• Top seller: **Embroidered Bazin Dress (5x)**\n• ⚠️ Low stock: **Leather Sandals (2 left)**"
+        "Bilan du jour — Chez Améyo\n• Commandes payées : 11 commandes\n• Chiffre d'affaires : 134 500 FCFA\n• Top vente : Robe Bazin Brodé (5x)\n• Alerte stock bas : Sandales Cuir (reste 2)",
+        "Daily Hustle Summary — Chez Améyo\n• Paid orders: 11 orders\n• Revenue: 134,500 XOF\n• Top seller: Embroidered Bazin Dress (5x)\n• Low stock alert: Leather Sandals (2 left)"
       ),
       buttons: [
-        tr("📊 Ouvrir le tableau de bord", "📊 Open dashboard"),
-        tr("📦 Réapprovisionner le stock", "📦 Restock items"),
+        { icon: "chart", text: tr("Ouvrir le tableau de bord", "Open dashboard") },
+        { icon: "package", text: tr("Réapprovisionner le stock", "Restock items") },
       ],
       statusBadge: tr(
         "Envoyé chaque soir à 18h00",
@@ -441,11 +456,14 @@ export default function HowToUseClient() {
             style={{ opacity: 0 }}
             className="mt-7 flex flex-wrap justify-center gap-3"
           >
-            <Link href="/start" className="a-btn a-btn--cafe a-btn--lg font-bold">
-              {tr(
-                "Démarrer sur WhatsApp en 90 sec →",
-                "Start on WhatsApp in 90 sec →"
-              )}
+            <Link href="/signup" className="a-btn a-btn--cafe a-btn--lg font-bold">
+              <span>
+                {tr(
+                  "Créer ma boutique gratuitement",
+                  "Create my free shop"
+                )}
+              </span>
+              <SaasIcon name="arrow-right" size={16} />
             </Link>
             <Link href="/marketplace" className="btn-ghost a-btn--lg">
               {tr("Explorer le Marketplace", "Explore the Marketplace")}
@@ -526,7 +544,7 @@ export default function HowToUseClient() {
                           key={h}
                           className="flex items-start gap-1.5 text-xs text-arctic-800"
                         >
-                          <span className="font-bold text-brand-dark">✓</span>
+                          <SaasIcon name="check" size={14} className="mt-0.5 text-brand-dark" />
                           <span>{h}</span>
                         </li>
                       ))}
@@ -539,22 +557,22 @@ export default function HowToUseClient() {
         </section>
 
         {/* ============================================================
-         * 3. LEDGER METRIC COUNTER — 90 Seconds
+         * 3. LEDGER METRIC COUNTER — 24/7 Automation
          * ============================================================ */}
         <section className="mb-20 mt-4">
           <div className="glass glass-edge mx-auto max-w-xl rounded-shape-xl p-8 text-center shadow-elev-2">
             <div className="a-eyebrow">
-              {tr("Temps moyen de mise en ligne", "Time to your first shop")}
+              {tr("Disponibilité de votre vitrine", "Storefront & Bot Uptime")}
             </div>
             <div className="mt-2 flex items-end justify-center gap-1.5">
               <span
-                data-count="90"
+                data-count="24"
                 className="a-num font-display text-6xl font-bold leading-none text-arctic-900"
               >
-                90
+                24
               </span>
               <span className="a-num pb-1 font-display text-2xl font-bold text-brand-dark">
-                {tr("secondes", "sec")}
+                {tr("heures / 24", "hours / 7")}
               </span>
             </div>
             <div className="mx-auto mt-4 h-px max-w-[14rem]">
@@ -562,8 +580,8 @@ export default function HowToUseClient() {
             </div>
             <p className="a-body-md mt-3 text-arctic-700">
               {tr(
-                "Recevez un code à 6 chiffres sur WhatsApp, validez, et votre vitrine est prête à encaisser vos premières commandes.",
-                "Receive a 6-digit code on WhatsApp, confirm, and your storefront is live and ready to take orders."
+                "Votre catalogue en ligne et votre assistant WhatsApp répondent aux clients, encaissent par Mobile Money et suivent vos commandes sans interruption.",
+                "Your online catalog and WhatsApp assistant reply to buyers, collect Mobile Money payments, and track orders around the clock."
               )}
             </p>
           </div>
@@ -606,18 +624,23 @@ export default function HowToUseClient() {
                         : "border-arctic-300/70 bg-white/80 text-arctic-900 hover:border-brand"
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold">{scen.label}</span>
-                      <span
-                        className={`text-xs ${
-                          isSelected ? "text-gold-bright" : "text-arctic-400"
-                        }`}
-                      >
-                        →
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-2 text-xs font-bold">
+                        <SaasIcon
+                          name={scen.icon}
+                          size={15}
+                          className={isSelected ? "text-amber-300" : "text-brand-dark"}
+                        />
+                        <span>{scen.label}</span>
                       </span>
+                      <SaasIcon
+                        name="arrow-right"
+                        size={14}
+                        className={isSelected ? "text-gold-bright" : "text-arctic-400"}
+                      />
                     </div>
                     <p
-                      className={`mt-1 text-[11px] ${
+                      className={`mt-1.5 text-[11px] ${
                         isSelected ? "text-arctic-200" : "text-arctic-600"
                       }`}
                     >
@@ -645,11 +668,13 @@ export default function HowToUseClient() {
                     WA
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-arctic-900">
-                      {tr(
-                        "Chez Améyo · Boutique Vérifiée ✓",
-                        "Chez Améyo · Verified Shop ✓"
-                      )}
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-arctic-900">
+                      <span>Chez Améyo</span>
+                      <span>·</span>
+                      <span className="inline-flex items-center gap-1 text-emerald-800">
+                        <SaasIcon name="shield-check" size={13} />
+                        {tr("Boutique Vérifiée", "Verified Shop")}
+                      </span>
                     </div>
                     <div className="text-[10px] font-medium text-emerald-700">
                       {tr("● Bot Japora actif 24h/24", "● Japora Bot active 24/7")}
@@ -671,7 +696,10 @@ export default function HowToUseClient() {
 
                 <div className="ml-auto max-w-md rounded-shape-lg rounded-tr-xs border border-brand/35 bg-brand/10 p-4 text-xs text-arctic-900 shadow-xs">
                   <div className="mb-1.5 flex items-center justify-between text-[10px] font-bold text-brand-dark">
-                    <span>🤖 Assistant Japora</span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <SaasIcon name="bot" size={13} />
+                      <span>Assistant Japora</span>
+                    </span>
                     <span>{tr("Instantané", "Instant")}</span>
                   </div>
                   <div className="whitespace-pre-line leading-relaxed">
@@ -680,10 +708,11 @@ export default function HowToUseClient() {
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {currentScenario.buttons.map((b) => (
                       <span
-                        key={b}
-                        className="rounded-full border border-arctic-300/80 bg-white px-3 py-1 text-[10px] font-bold text-arctic-900 shadow-xs"
+                        key={b.text}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-arctic-300/80 bg-white px-3 py-1 text-[10px] font-bold text-arctic-900 shadow-xs"
                       >
-                        {b}
+                        <SaasIcon name={b.icon} size={12} className="text-brand-dark" />
+                        <span>{b.text}</span>
                       </span>
                     ))}
                   </div>
@@ -693,10 +722,13 @@ export default function HowToUseClient() {
               <div className="mt-4 flex items-center justify-between border-t border-arctic-200/70 pt-3 text-[11px] text-arctic-600">
                 <span>{currentScenario.statusBadge}</span>
                 <Link
-                  href="/start"
-                  className="font-bold text-brand-dark hover:underline"
+                  href="/signup"
+                  className="inline-flex items-center gap-1 font-bold text-brand-dark hover:underline"
                 >
-                  {tr("Activer sur mon numéro →", "Activate on my number →")}
+                  <span>
+                    {tr("Activer sur ma boutique", "Activate on my shop")}
+                  </span>
+                  <SaasIcon name="arrow-right" size={12} />
                 </Link>
               </div>
             </div>
@@ -791,9 +823,12 @@ export default function HowToUseClient() {
          * ============================================================ */}
         <section className="mb-20 grid gap-6 md:grid-cols-2">
           <div className="glass glass-edge rounded-shape-xl p-6 sm:p-8">
-            <span className="a-eyebrow">
+            <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-shape-md border border-brand/30 bg-brand/10 text-brand-dark">
+              <SaasIcon name="qr" size={20} />
+            </div>
+            <div className="a-eyebrow">
               {tr("Pont Physique → Digital", "Offline → Online Bridge")}
-            </span>
+            </div>
             <h3 className="mt-2 font-display text-xl font-bold text-arctic-900">
               {tr(
                 "Affiche QR Code pour votre boutique ou étal de marché",
@@ -802,24 +837,33 @@ export default function HowToUseClient() {
             </h3>
             <p className="mt-2 text-xs leading-relaxed text-arctic-700 sm:text-sm">
               {tr(
-                "Depuis vos paramètres (/dashboard/settings), téléchargez et imprimez votre affiche QR code officielle. Même lorsque votre stand est bondé ou fermé, les clients scannent le code, parcourent vos articles et s'abonnent (🔔 Follow).",
-                "From your settings (/dashboard/settings), download and print your official QR code poster. Even when your stall is busy or closed, shoppers scan to browse your catalog and subscribe (🔔 Follow)."
+                "Depuis vos paramètres (/dashboard/settings), téléchargez et imprimez votre affiche QR code officielle. Même lorsque votre stand est bondé ou fermé, les clients scannent le code, parcourent vos articles et s'abonnent à votre boutique.",
+                "From your settings (/dashboard/settings), download and print your official QR code poster. Even when your stall is busy or closed, shoppers scan to browse your catalog and subscribe to your shop."
               )}
             </p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-arctic-800">
-              <span className="rounded-md border border-arctic-300/60 bg-white/80 px-2.5 py-1">
-                {tr("✓ Format SVG haute définition", "✓ High-res printable SVG")}
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-arctic-300/60 bg-white/80 px-2.5 py-1">
+                <SaasIcon name="check" size={13} className="text-brand-dark" />
+                <span>
+                  {tr("Format SVG haute définition", "High-res printable SVG")}
+                </span>
               </span>
-              <span className="rounded-md border border-arctic-300/60 bg-white/80 px-2.5 py-1">
-                {tr("✓ Bouton « 🔔 Suivre la boutique »", "✓ '🔔 Follow shop' opt-in")}
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-arctic-300/60 bg-white/80 px-2.5 py-1">
+                <SaasIcon name="bell" size={13} className="text-brand-dark" />
+                <span>
+                  {tr("Bouton « Suivre la boutique »", "'Follow shop' opt-in")}
+                </span>
               </span>
             </div>
           </div>
 
           <div className="glass glass-edge rounded-shape-xl p-6 sm:p-8">
-            <span className="a-eyebrow">
+            <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-shape-md border border-brand/30 bg-brand/10 text-brand-dark">
+              <SaasIcon name="smartphone" size={20} />
+            </div>
+            <div className="a-eyebrow">
               {tr("Kit Réseaux Sociaux", "Social Share Kit")}
-            </span>
+            </div>
             <h3 className="mt-2 font-display text-xl font-bold text-arctic-900">
               {tr(
                 "Visuels Statut WhatsApp, Instagram & TikTok générés automatiquement",
@@ -833,11 +877,23 @@ export default function HowToUseClient() {
               )}
             </p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-arctic-800">
-              <span className="rounded-md border border-arctic-300/60 bg-white/80 px-2.5 py-1">
-                {tr("✓ Attribution des ventes par campagne", "✓ Campaign sales attribution")}
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-arctic-300/60 bg-white/80 px-2.5 py-1">
+                <SaasIcon name="check" size={13} className="text-brand-dark" />
+                <span>
+                  {tr(
+                    "Attribution des ventes par campagne",
+                    "Campaign sales attribution"
+                  )}
+                </span>
               </span>
-              <span className="rounded-md border border-arctic-300/60 bg-white/80 px-2.5 py-1">
-                {tr("✓ Relance des paniers abandonnés", "✓ Abandoned cart recovery")}
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-arctic-300/60 bg-white/80 px-2.5 py-1">
+                <SaasIcon name="check" size={13} className="text-brand-dark" />
+                <span>
+                  {tr(
+                    "Relance des paniers abandonnés",
+                    "Abandoned cart recovery"
+                  )}
+                </span>
               </span>
             </div>
           </div>
@@ -859,16 +915,19 @@ export default function HowToUseClient() {
             </h2>
             <p className="a-body-md mx-auto mt-2 max-w-lg text-arctic-700">
               {tr(
-                "Créez votre boutique gratuitement en 90 secondes — aucune carte bancaire requise.",
-                "Open your shop for free in 90 seconds — no credit card required."
+                "Créez votre boutique gratuitement — aucune carte bancaire requise.",
+                "Open your shop for free — no credit card required."
               )}
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
-              <Link href="/start" className="a-btn a-btn--cafe a-btn--lg font-bold">
-                {tr(
-                  "Ouvrir ma boutique gratuitement →",
-                  "Open my free shop now →"
-                )}
+              <Link href="/signup" className="a-btn a-btn--cafe a-btn--lg font-bold">
+                <span>
+                  {tr(
+                    "Ouvrir ma boutique gratuitement",
+                    "Open my free shop now"
+                  )}
+                </span>
+                <SaasIcon name="arrow-right" size={16} />
               </Link>
               <Link href="/marketplace" className="btn-ghost a-btn--lg">
                 {tr("Explorer le Marketplace", "Explore the Marketplace")}
