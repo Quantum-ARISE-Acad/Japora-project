@@ -43,7 +43,7 @@ jobs:
             deploy/mvp.sh deploy/backup/backup.sh deploy/scheduler/run.sh scripts/ci/infrastructure.sh
 
   verify:
-    name: Typecheck, Tests & Build
+    name: Lint, Typecheck, Tests & Build
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -66,6 +66,10 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Validate Prisma schema
         run: npx --no-install prisma validate
+      - name: Lint React and TypeScript (no warnings)
+        run: |
+          mkdir -p ci-results
+          npm run lint 2>&1 | tee ci-results/lint.log
       - name: TypeScript check
         run: npx --no-install tsc --noEmit
       - name: Run isolated SQLite test suites

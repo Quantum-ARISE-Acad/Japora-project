@@ -6,7 +6,6 @@ import { formatMoney, parseSizes } from "@/lib/utils";
 import { compressImage } from "@/lib/client-image";
 import AssetDownloads from "./AssetDownloads";
 import { AuroraIsoscout } from "@/components/aurora";
-import Glyph from "@/components/Glyph";
 import ProductPlaceholder from "@/components/ProductPlaceholder";
 
 type Product = {
@@ -304,7 +303,7 @@ export default function ProductsClient({
 
           <select
             value={stockFilter}
-            onChange={(e) => setStockFilter(e.target.value as any)}
+            onChange={(e) => setStockFilter(e.target.value as typeof stockFilter)}
             className="input !w-auto text-xs font-medium"
           >
             <option value="all">Tous les stocks ({products.length})</option>
@@ -315,7 +314,7 @@ export default function ProductsClient({
 
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
             className="input !w-auto text-xs font-medium"
           >
             <option value="default">Tri : Date (récent)</option>

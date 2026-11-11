@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { formatMoney, waMeLink } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
 
 export interface PaymentLinkItem {
   id: string;

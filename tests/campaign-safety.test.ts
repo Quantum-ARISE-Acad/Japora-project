@@ -18,7 +18,6 @@ delete process.env.WHATSAPP_PHONE_NUMBER_ID;
 // temporary root when the Prisma client is imported below.
 const { prisma } = require("../src/lib/db") as typeof import("../src/lib/db");
 const {
-  createCampaign,
   createRecoveryCampaign,
   approveRecoveryCampaign,
   dispatchRecoveryCampaign,

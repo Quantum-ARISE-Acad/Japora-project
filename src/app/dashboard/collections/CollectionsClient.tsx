@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatMoney } from "@/lib/utils";
-import Glyph from "@/components/Glyph";
 import ProductPlaceholder from "@/components/ProductPlaceholder";
 
 type ProductSummary = {
@@ -47,8 +46,6 @@ export default function CollectionsClient({
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-
-  const appBaseUrl = typeof window !== "undefined" ? window.location.origin : "https://japora.app";
 
   function openCreate() {
     setName("");
@@ -140,7 +137,6 @@ export default function CollectionsClient({
       ) : (
         <div className="grid gap-5 md:grid-cols-2">
           {collections.map((c) => {
-            const publicUrl = `${appBaseUrl}/c/${shopSlug}/collection/${c.slug}`;
             return (
               <div key={c.id} className="card p-5 space-y-4 flex flex-col justify-between">
                 <div>

@@ -1,3 +1,4 @@
+import { errorMessage } from "@/lib/errors";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -60,7 +61,7 @@ Ne renvoie rien d'autre que l'objet JSON.`;
     }
 
     // Smart fallback if API is unreachable
-    const fallbacks: Record<string, any> = {
+    const fallbacks: Record<string, { headline: string; body: string; cta: string; hashtags: string }> = {
       meta: {
         headline: `🔥 Offre Spéciale : ${productName || "Nouveautés en stock"}`,
         body: `Découvrez la nouvelle collection chez ${storeName} ! ${productName ? `${productName} disponible immédiatement.` : "Qualité premium certifiée."} Cliquez pour commander directement sur WhatsApp avec paiement sécurisé Flooz/T-Money.`,
@@ -82,7 +83,7 @@ Ne renvoie rien d'autre que l'objet JSON.`;
     };
 
     return NextResponse.json(fallbacks[platform] || fallbacks.meta);
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (e) {
+    return NextResponse.json({ error: errorMessage(e, "Unable to generate ad copy") }, { status: 500 });
   }
 }
