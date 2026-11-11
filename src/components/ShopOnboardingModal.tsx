@@ -164,8 +164,8 @@ export default function ShopOnboardingModal({
       setSaving(false);
       setIsOpen(false);
       router.refresh();
-    } catch (err: any) {
-      setError(err.message || "Erreur réseau.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erreur réseau.");
       setSaving(false);
     }
   }
@@ -457,4 +457,3 @@ export default function ShopOnboardingModal({
     </div>
   );
 }
-

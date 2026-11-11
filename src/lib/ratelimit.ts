@@ -64,17 +64,56 @@ export function rateLimit(opts: {
   };
 }
 
-/** Best-effort client IP. Trusts the first X-Forwarded-For value (set by your proxy/CDN). */
+/**
+ * Read a positive integer from the environment (e.g. SIGNUP_RATE_LIMIT=500),
+ * falling back to `fallback` when unset or invalid. Lets an event (a fair, a
+ * shared Wi-Fi) raise a limit without a code change.
+ */
+export function envLimit(name: string, fallback: number): number {
+  const n = Number.parseInt(process.env[name] ?? "", 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+/** Cookie set by the middleware so each browser is counted separately. */
+export const VISITOR_COOKIE = "jp_vid";
+
+function shortHash(input: string): string {
+  // FNV-1a — non-cryptographic, only used to bucket anonymous visitors.
+  let h = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(36);
+}
+
+/**
+ * Best-effort client identity for rate limiting. Uses the proxy/CDN headers
+ * when present. Without any (e.g. `next start` behind no proxy) the old code
+ * returned "unknown" for EVERYONE, so one counter was shared by all visitors.
+ * We now fall back to a fingerprint of the browser (user-agent + language) so
+ * visitors are told apart instead of sharing a single bucket.
+ */
 export function getClientIp(req: NextRequest): string {
   const xff = req.headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0].trim();
-  const real = req.headers.get("x-real-ip");
+  if (xff) {
+    const first = xff.split(",")[0].trim();
+    if (first) return first;
+  }
+  const real = req.headers.get("x-real-ip") || req.headers.get("cf-connecting-ip");
   if (real) return real;
-  return "unknown";
+  // No proxy header: use the visitor cookie set by the middleware (one per
+  // browser), then, for a very first request, a browser fingerprint.
+  const vid = req.cookies?.get?.(VISITOR_COOKIE)?.value;
+  if (vid && /^[A-Za-z0-9-]{8,64}$/.test(vid)) return `vid-${vid}`;
+  const ua = req.headers.get("user-agent") || "";
+  const lang = req.headers.get("accept-language") || "";
+  if (!ua && !lang) return "unknown";
+  return `anon-${shortHash(`${ua}|${lang}`)}`;
 }
 
 /** Convenience: 429 response with Retry-After + rate-limit headers. */
-export function tooManyRequests(result: RateLimitResult, message = "Too many requests.") {
+export function tooManyRequests(result: RateLimitResult, message = "Trop de requêtes. Réessayez dans un instant.") {
   const headers = new Headers({
     "Retry-After": String(result.retryAfterSeconds ?? 60),
     "X-RateLimit-Remaining": "0",

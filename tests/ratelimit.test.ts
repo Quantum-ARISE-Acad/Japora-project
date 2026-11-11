@@ -44,3 +44,22 @@ describe("rateLimit — in-process sliding window", () => {
     assert.equal(r3.remaining, 0);
   });
 });
+
+test("envLimit reads a positive integer from the environment and falls back otherwise", async () => {
+  const { envLimit } = await import("../src/lib/ratelimit");
+  process.env.TEST_RATE_LIMIT = "500";
+  assert.equal(envLimit("TEST_RATE_LIMIT", 3), 500);
+  process.env.TEST_RATE_LIMIT = "abc";
+  assert.equal(envLimit("TEST_RATE_LIMIT", 3), 3);
+  delete process.env.TEST_RATE_LIMIT;
+  assert.equal(envLimit("TEST_RATE_LIMIT", 3), 3);
+});
+
+test("getClientIp tells visitors apart even without proxy headers", async () => {
+  const { getClientIp } = await import("../src/lib/ratelimit");
+  const mk = (h: Record<string, string>) => ({ headers: new Headers(h) }) as never;
+  const a = getClientIp(mk({ "user-agent": "Chrome/1", "accept-language": "fr" }));
+  const b = getClientIp(mk({ "user-agent": "Safari/2", "accept-language": "fr" }));
+  assert.notEqual(a, b);
+  assert.equal(getClientIp(mk({ "x-forwarded-for": "1.2.3.4, 5.6.7.8" })), "1.2.3.4");
+});

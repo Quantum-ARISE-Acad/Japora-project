@@ -2,83 +2,96 @@ import { requireVendor } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatMoney } from "@/lib/utils";
 import { getVendorFunnel } from "@/lib/funnel";
+import { buildDailyRevenueSeries, buildDailyRevenueWindow, buildLocalHourBuckets } from "@/lib/analytics";
 
 export default async function AnalyticsPage() {
   const vendor = await requireVendor();
-  const currency = vendor.currency || "USD";
+  const currency = vendor.currency || "XOF";
+  const now = new Date();
+  const dailyWindow = buildDailyRevenueWindow(now, vendor.tzOffsetMinutes);
+  const allOrdersWhere = { vendorId: vendor.id, deletedAt: null };
+  const paidOrdersWhere = {
+    ...allOrdersWhere,
+    status: { in: ["PAID", "DELIVERED"] },
+  };
 
-  // Fetch vendor orders
-  const orders = await prisma.order.findMany({
-    where: { vendorId: vendor.id, deletedAt: null },
-    include: { items: true },
-    orderBy: { createdAt: "desc" },
-  });
+  // Keep lifetime totals in the database; fetch detailed rows only for the
+  // bounded 14-day charts. This avoids loading every historical order/item.
+  const [totalOrders, paidAggregate, sourceGroups, recentOrders, productGroups, funnel] = await Promise.all([
+    prisma.order.count({ where: allOrdersWhere }),
+    prisma.order.aggregate({
+      where: paidOrdersWhere,
+      _count: { _all: true },
+      _sum: { totalCents: true },
+    }),
+    prisma.order.groupBy({
+      by: ["source"],
+      where: allOrdersWhere,
+      _count: { _all: true },
+    }),
+    prisma.order.findMany({
+      where: {
+        ...allOrdersWhere,
+        createdAt: { gte: dailyWindow.from, lt: dailyWindow.toExclusive },
+      },
+      select: { status: true, createdAt: true, totalCents: true },
+    }),
+    prisma.orderItem.groupBy({
+      by: ["productId", "productName", "unitPriceCents"],
+      where: {
+        order: {
+          is: {
+            ...paidOrdersWhere,
+          },
+        },
+      },
+      _sum: { quantity: true },
+    }),
+    getVendorFunnel(vendor.id, { from: dailyWindow.from, to: new Date(dailyWindow.toExclusive.getTime() - 1) }),
+  ]);
 
-  const totalOrders = orders.length;
-  const paidOrders = orders.filter((o) => o.status === "PAID" || o.status === "DELIVERED");
-  const paidCount = paidOrders.length;
-  const totalRevenue = paidOrders.reduce((sum, o) => sum + o.totalCents, 0);
+  const paidCount = paidAggregate._count._all;
+  const totalRevenue = paidAggregate._sum.totalCents ?? 0;
   const avgOrder = paidCount > 0 ? Math.round(totalRevenue / paidCount) : 0;
+  const sourceCounts = new Map(sourceGroups.map((group) => [group.source, group._count._all]));
+  const sources = {
+    catalog: sourceCounts.get("catalog") ?? 0,
+    whatsapp: sourceCounts.get("whatsapp") ?? 0,
+    manual: sourceCounts.get("manual") ?? 0,
+    other: sourceGroups
+      .filter((group) => !["catalog", "whatsapp", "manual"].includes(group.source))
+      .reduce((sum, group) => sum + group._count._all, 0),
+  };
 
-  // 1. Sources breakdown
-  const sources: Record<string, number> = { catalog: 0, whatsapp: 0, manual: 0 };
-  for (const o of orders) {
-    const s = o.source || "catalog";
-    sources[s] = (sources[s] || 0) + 1;
-  }
-
-  // 2. Real Telemetry Funnel (5 stages)
-  const funnel = await getVendorFunnel(vendor.id);
   const conversionRate = funnel.totalVisits > 0
     ? funnel.overallConversionRatePct.toFixed(1)
     : "0.0";
 
-  // 3. Last 14 days daily revenue
-  const now = Date.now();
-  const dayMs = 24 * 60 * 60 * 1000;
-  const dailyData = Array.from({ length: 14 }, (_, i) => {
-    const d = new Date(now - (13 - i) * dayMs);
-    const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-    const dayEnd = dayStart + dayMs;
+  const recentPaidOrders = recentOrders.filter((order) => order.status === "PAID" || order.status === "DELIVERED");
+  const dailyData = buildDailyRevenueSeries(recentPaidOrders, dailyWindow);
+  const chartRevenue = dailyData.reduce((sum, day) => sum + day.revenueCents, 0);
+  const maxDayRev = Math.max(1, ...dailyData.map((day) => day.revenueCents));
 
-    const matched = paidOrders.filter((o) => {
-      const time = new Date(o.createdAt).getTime();
-      return time >= dayStart && time < dayEnd;
-    });
+  // Peak hours use the same bounded period and merchant-local clock as revenue.
+  const hourBuckets = buildLocalHourBuckets(recentOrders, vendor.tzOffsetMinutes);
+  const hourSlots = Array.from({ length: 12 }, (_, index) => hourBuckets[index * 2] + hourBuckets[index * 2 + 1]);
+  const maxHourCount = Math.max(1, ...hourSlots);
 
-    const rev = matched.reduce((acc, o) => acc + o.totalCents, 0);
-    return {
-      date: `${d.getDate()}/${d.getMonth() + 1}`,
-      rev,
-      count: matched.length,
-    };
-  });
-  const maxDayRev = Math.max(1, ...dailyData.map((d) => d.rev));
-
-  // 4. Peak hours (0 to 23h)
-  const hourBuckets = Array.from({ length: 24 }, () => 0);
-  for (const o of orders) {
-    const h = new Date(o.createdAt).getHours();
-    hourBuckets[h]++;
-  }
-  const maxHourCount = Math.max(1, ...hourBuckets);
-
-  // 5. Top products by revenue
+  // Lifetime top products are aggregated by product and historical unit price.
   const productStats = new Map<string, { name: string; qty: number; revenue: number }>();
-  for (const o of paidOrders) {
-    for (const it of o.items) {
-      const existing = productStats.get(it.productName);
-      const lineRev = it.unitPriceCents * it.quantity;
-      if (existing) {
-        existing.qty += it.quantity;
-        existing.revenue += lineRev;
-      } else {
-        productStats.set(it.productName, {
-          name: it.productName,
-          qty: it.quantity,
-          revenue: lineRev,
-        });
-      }
+  for (const group of productGroups) {
+    const quantity = group._sum.quantity ?? 0;
+    // Keep distinct active products separate even when their names match.
+    // Deleted/unlinked historical items have no productId, so use their name
+    // and historical unit price as the best available stable key.
+    const key = group.productId ?? `historical:${group.productName}:${group.unitPriceCents}`;
+    const existing = productStats.get(key);
+    const revenue = group.unitPriceCents * quantity;
+    if (existing) {
+      existing.qty += quantity;
+      existing.revenue += revenue;
+    } else {
+      productStats.set(key, { name: group.productName, qty: quantity, revenue });
     }
   }
   const topProducts = [...productStats.values()]
@@ -100,25 +113,25 @@ export default async function AnalyticsPage() {
         <div className="card p-5 space-y-1">
           <div className="text-xs uppercase tracking-wider text-arctic-500 font-semibold">Chiffre d&apos;affaires</div>
           <div className="text-2xl font-black text-arctic-900">{formatMoney(totalRevenue, currency)}</div>
-          <div className="text-[11px] text-emerald-600 font-medium">Commandes encaissées</div>
+          <div className="text-[11px] text-emerald-600 font-medium">Valeur des commandes payées ou livrées · depuis l’ouverture</div>
         </div>
 
         <div className="card p-5 space-y-1">
-          <div className="text-xs uppercase tracking-wider text-arctic-500 font-semibold">Commandes payées</div>
+          <div className="text-xs uppercase tracking-wider text-arctic-500 font-semibold">Commandes payées / livrées</div>
           <div className="text-2xl font-black text-arctic-900">{paidCount}</div>
-          <div className="text-[11px] text-arctic-500 font-medium">Sur {totalOrders} commande{totalOrders > 1 ? "s" : ""} totales</div>
+          <div className="text-[11px] text-arctic-500 font-medium">Depuis l&apos;ouverture · {totalOrders} commande{totalOrders > 1 ? "s" : ""} au total</div>
         </div>
 
         <div className="card p-5 space-y-1">
           <div className="text-xs uppercase tracking-wider text-arctic-500 font-semibold">Panier moyen</div>
           <div className="text-2xl font-black text-arctic-900">{formatMoney(avgOrder, currency)}</div>
-          <div className="text-[11px] text-arctic-500 font-medium">Par commande payée</div>
+          <div className="text-[11px] text-arctic-500 font-medium">Depuis l&apos;ouverture · valeur moyenne par commande payée ou livrée</div>
         </div>
 
         <div className="card p-5 space-y-1">
           <div className="text-xs uppercase tracking-wider text-arctic-500 font-semibold">Taux de conversion</div>
           <div className="text-2xl font-black text-emerald-700 dark:text-emerald-400">{conversionRate}%</div>
-          <div className="text-[11px] text-arctic-500 font-medium">Visites → Achat validé</div>
+          <div className="text-[11px] text-arctic-500 font-medium">14 derniers jours · visites suivies → session avec commande payée</div>
         </div>
       </div>
 
@@ -126,33 +139,39 @@ export default async function AnalyticsPage() {
       <section className="card p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 className="text-base font-bold text-arctic-900">Évolution du chiffre d&apos;affaires (14 derniers jours)</h2>
-            <p className="text-xs text-arctic-500">Revenus générés jour par jour</p>
+            <h2 className="text-base font-bold text-arctic-900">Commandes payées ou livrées · 14 derniers jours</h2>
+            <p className="text-xs text-arctic-500">Valeur des commandes payées ou livrées, par date de création</p>
           </div>
           <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-            {formatMoney(totalRevenue, currency)} total
+            {formatMoney(chartRevenue, currency)} sur 14 jours
           </span>
         </div>
 
-        <div className="grid grid-cols-14 items-end gap-1.5 h-36 pt-4 border-t border-arctic-300/30">
+        <div
+          className="grid grid-cols-[repeat(14,minmax(0,1fr))] items-end gap-1.5 h-36 pt-4 border-t border-arctic-300/30"
+          aria-label="Valeur des commandes payées ou livrées, par date de création sur les 14 derniers jours, selon le fuseau horaire de la boutique"
+        >
           {dailyData.map((d, i) => {
-            const pct = Math.max(6, Math.round((d.rev / maxDayRev) * 100));
+            const pct = d.revenueCents > 0 ? Math.max(2, Math.round((d.revenueCents / maxDayRev) * 100)) : 0;
             return (
-              <div key={i} className="flex flex-col items-center gap-1.5 h-full justify-end group">
+              <div
+                key={d.dateKey}
+                className="flex flex-col items-center gap-1.5 h-full justify-end group"
+                title={`${d.label} · ${d.orderCount} commande${d.orderCount > 1 ? "s" : ""} payée${d.orderCount > 1 ? "s" : ""} · ${formatMoney(d.revenueCents, currency)}`}
+                aria-label={`${d.label}: ${d.orderCount} commande(s) payée(s), ${formatMoney(d.revenueCents, currency)}`}
+              >
                 <div className="relative flex flex-col items-center w-full">
-                  {d.rev > 0 && (
+                  {d.revenueCents > 0 && (
                     <span className="absolute -top-7 text-[10px] font-mono text-arctic-800 bg-white px-1 rounded shadow-xs opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-10">
-                      {formatMoney(d.rev, currency)}
+                      {formatMoney(d.revenueCents, currency)}
                     </span>
                   )}
                   <div
-                    className={`w-full rounded-t-sm transition-all duration-medium ${
-                      i === 13 ? "bg-emerald-600" : "bg-arctic-300/80 hover:bg-arctic-400"
-                    }`}
+                    className={`w-full rounded-t-sm transition-all duration-medium ${pct > 0 ? (i === 13 ? "bg-emerald-600" : "bg-arctic-300/80 hover:bg-arctic-400") : "bg-transparent"}`}
                     style={{ height: `${pct}%` }}
                   />
                 </div>
-                <span className="text-[10px] font-medium text-arctic-500 truncate">{d.date}</span>
+                <span className="text-[10px] font-medium text-arctic-500 truncate">{d.label}</span>
               </div>
             );
           })}
@@ -165,8 +184,8 @@ export default async function AnalyticsPage() {
         <section className="card p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-bold text-arctic-900">Entonnoir de conversion (5 étapes)</h2>
-              <p className="text-xs text-arctic-500">Télémétrie en temps réel · Sessions uniques</p>
+              <h2 className="text-base font-bold text-arctic-900">Parcours de conversion (5 étapes)</h2>
+              <p className="text-xs text-arctic-500">14 derniers jours · sessions uniques suivies</p>
             </div>
             <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
               {funnel.totalVisits} visite{funnel.totalVisits > 1 ? "s" : ""}
@@ -199,30 +218,30 @@ export default async function AnalyticsPage() {
                       style={{ width: `${Math.max(st.count > 0 ? 4 : 0, Math.min(100, st.conversionFromVisitPct))}%` }}
                     />
                   </div>
-                  {idx > 0 && st.stepDropOffPct > 0 && (
-                    <div className="text-[10px] text-right text-arctic-500">
-                      Abandon étape : -{st.stepDropOffPct}%
-                    </div>
-                  )}
+
                 </div>
               );
             })}
           </div>
 
           <div className="mt-3 pt-3 border-t border-arctic-200/60 flex items-center justify-between text-xs text-arctic-600">
-            <span>Efficacité USSD (Intentions → Encaissé) :</span>
+            <span>Commandes USSD payées / intentions USSD :</span>
             <span className="font-bold text-emerald-700">{funnel.ussdIntentToConfirmedPct}%</span>
           </div>
         </section>
 
         {/* Channels */}
         <section className="card p-6 space-y-4">
-          <h2 className="text-base font-bold text-arctic-900">Origine des commandes</h2>
+          <div>
+            <h2 className="text-base font-bold text-arctic-900">Origine des commandes</h2>
+            <p className="text-xs text-arctic-500">Depuis l&apos;ouverture de la boutique</p>
+          </div>
           <div className="space-y-3 pt-2">
             {[
               { label: "Catalogue web public", count: sources.catalog || 0, color: "bg-emerald-600" },
               { label: "Discussion WhatsApp", count: sources.whatsapp || 0, color: "bg-teal-500" },
               { label: "Saisie manuelle vendeur", count: sources.manual || 0, color: "bg-arctic-600" },
+              { label: "Autre ou non classée", count: sources.other, color: "bg-violet-500" },
             ].map((src) => {
               const pct = totalOrders > 0 ? Math.round((src.count / totalOrders) * 100) : 0;
               return (
@@ -245,7 +264,7 @@ export default async function AnalyticsPage() {
       <div className="grid gap-6 md:grid-cols-2">
         {/* Top products */}
         <section className="card p-6 space-y-4">
-          <h2 className="text-base font-bold text-arctic-900">Top 5 produits par chiffre d&apos;affaires</h2>
+          <h2 className="text-base font-bold text-arctic-900">Top 5 produits · depuis l&apos;ouverture</h2>
           {topProducts.length === 0 ? (
             <p className="text-xs text-arctic-500 italic">Aucune commande enregistrée pour le moment.</p>
           ) : (
@@ -273,16 +292,16 @@ export default async function AnalyticsPage() {
         {/* Peak ordering hours */}
         <section className="card p-6 space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-base font-bold text-arctic-900">Heures d&apos;affluence des commandes</h2>
-            <span className="text-xs text-arctic-500">Créneaux 0h - 23h</span>
+            <h2 className="text-base font-bold text-arctic-900">Commandes créées · 14 derniers jours</h2>
+            <span className="text-xs text-arctic-500">Toutes les commandes créées · heure locale · 0h–23h</span>
           </div>
 
           <div className="grid grid-cols-12 items-end gap-1 h-28 pt-4 border-t border-arctic-300/30">
             {/* Show every 2 hours */}
             {Array.from({ length: 12 }, (_, i) => {
               const h = i * 2;
-              const count = (hourBuckets[h] || 0) + (hourBuckets[h + 1] || 0);
-              const pct = Math.max(8, Math.round((count / (maxHourCount * 2)) * 100));
+              const count = hourSlots[i];
+              const pct = count > 0 ? Math.max(2, Math.round((count / maxHourCount) * 100)) : 0;
               return (
                 <div key={h} className="flex flex-col items-center gap-1 h-full justify-end group">
                   <div className="relative w-full flex flex-col items-center">
@@ -292,7 +311,7 @@ export default async function AnalyticsPage() {
                       </span>
                     )}
                     <div
-                      className="w-full rounded-t-sm bg-brand/70 group-hover:bg-brand transition-all"
+                      className={`w-full rounded-t-sm transition-all ${pct > 0 ? "bg-brand/70 group-hover:bg-brand" : "bg-transparent"}`}
                       style={{ height: `${pct}%` }}
                     />
                   </div>

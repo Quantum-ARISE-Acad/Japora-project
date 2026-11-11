@@ -59,8 +59,6 @@ export default function CollectionsClient({
     setProductsState(allProducts);
   }, [allProducts]);
 
-  const appBaseUrl = typeof window !== "undefined" ? window.location.origin : "https://japora.app";
-
   function openCreate() {
     setName("");
     setSlug("");
@@ -190,7 +188,7 @@ export default function CollectionsClient({
   }
 
   function copyLink(c: Collection) {
-    const url = `${appBaseUrl}/c/${shopSlug}/collection/${c.slug}`;
+    const url = `${window.location.origin}/c/${shopSlug}/collection/${c.slug}`;
     navigator.clipboard.writeText(url);
     setCopiedId(c.id);
     setTimeout(() => setCopiedId(null), 2000);

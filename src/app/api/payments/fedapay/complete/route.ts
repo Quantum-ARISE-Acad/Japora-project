@@ -187,7 +187,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Transaction introuvable." }, { status: 404 });
   }
 
-  let meta: Record<string, any> = {};
+  let meta: Record<string, string> = {};
   try {
     meta = intent.metadata ? JSON.parse(intent.metadata) : {};
   } catch {
