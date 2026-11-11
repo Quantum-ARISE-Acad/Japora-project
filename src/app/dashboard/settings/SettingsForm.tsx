@@ -210,7 +210,7 @@ export default function SettingsForm({
       router.refresh();
     } catch (err: unknown) {
       setSaving(false);
-      setError(err.message || "Erreur réseau lors de l'enregistrement.");
+      setError(err instanceof Error ? err.message : "Erreur réseau lors de l'enregistrement.");
     }
   }
 
