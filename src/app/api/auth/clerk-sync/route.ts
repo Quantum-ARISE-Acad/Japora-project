@@ -71,7 +71,7 @@ export async function POST(req: Request) {
           passwordHash: "clerk_managed_auth",
           shopName: baseName,
           shopSlug: slug,
-          whatsappNumber: whatsappNumber.trim(),
+          whatsappNumber: String(whatsappNumber).replace(/[^0-9]/g, ""),
           currency: currency || "XOF",
           category: category || "",
           subscriptionStatus: "trialing",
