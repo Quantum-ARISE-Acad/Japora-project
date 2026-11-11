@@ -30,7 +30,8 @@ export async function POST(req: NextRequest) {
   const email = String(body.email || "").trim().toLowerCase();
   const password = String(body.password || "");
   const shopName = String(body.shopName || "").trim();
-  const whatsappNumber = String(body.whatsappNumber || "").trim();
+  // Digits only (wa.me format): strip spaces, "+", dashes and parentheses.
+  const whatsappNumber = String(body.whatsappNumber || "").replace(/[^0-9]/g, "");
   const currencyInput = String(body.currency || "").trim().toUpperCase();
   const currency = SUPPORTED_CURRENCIES.has(currencyInput) ? currencyInput : "XOF";
 
