@@ -15,6 +15,8 @@ import { normalizePhone, isValidPhone } from "@/lib/otp";
 import { sendEmail } from "@/lib/email";
 import { buyerOrderConfirmationEmail } from "@/lib/email-templates";
 import { publicOrigin } from "@/lib/public-origin";
+import { sendWhatsApp } from "@/lib/whatsapp";
+import { formatMoney } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
   const vendor = await getCurrentVendor();
@@ -259,6 +261,32 @@ export async function POST(req: NextRequest) {
       });
     } catch (e) {
       logger.error("order.buyer_email_failed", { orderId: order.id, error: String(e) });
+    }
+  }
+
+  // Send order summary + FedaPay payment link via WhatsApp Cloud API if customerPhone provided
+  if (customerPhone) {
+    try {
+      const origin = (process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin || "http://localhost:5174").replace(/\/$/, "");
+      const payUrl = `${origin}/pay/${order.id}`;
+      const amountFormatted = formatMoney(totalCents, vendor.currency || "XOF");
+      const itemsText = lineItems
+        .map((li) => `• ${li.quantity}× ${li.productName}${li.size ? ` (${li.size})` : ""}`)
+        .join("\n");
+
+      await sendWhatsApp({
+        vendorId: vendor.id,
+        to: customerPhone,
+        orderId: order.id,
+        body:
+          `🛍️ *Commande enregistrée chez ${vendor.shopName} !*\n\n` +
+          `Réf : *#${order.id.slice(-6).toUpperCase()}*\n` +
+          `${itemsText}\n\n` +
+          `💰 Total : *${amountFormatted}*\n\n` +
+          `👉 *Lien de paiement sécurisé FedaPay (T-Money, Flooz, Mobile Money & Carte) :*\n${payUrl}`,
+      });
+    } catch (e) {
+      logger.error("order.buyer_whatsapp_failed", { orderId: order.id, error: String(e) });
     }
   }
 

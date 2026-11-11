@@ -72,8 +72,9 @@ function SignUpForm({ clerk }: { clerk?: ReturnType<typeof useSignUp> }) {
         body: JSON.stringify({
           email: "nouveau.vendeur.google@japora.app",
           name: name.trim() || "Nouveau Vendeur Google",
-          shopName: shopName.trim() || "Boutique Japora Google",
+          shopName: shopName.trim() || "",
           currency: currency || "XOF",
+          isSignUp: true,
         }),
       });
       const data = await res.json().catch(() => ({}));

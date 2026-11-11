@@ -174,6 +174,39 @@ function extractEvent(
   provider: PaymentProviderName,
   payload: Record<string, unknown>,
 ): { providerRef?: string; status: "pending" | "succeeded" | "failed"; amountCents?: number } {
+  // FedaPay webhook: { entity: "event", name: "transaction.approved", object: { id, status, amount, custom_metadata } }
+  if (provider === "fedapay") {
+    const obj = (payload.object ?? payload.transaction ?? payload.data ?? {}) as Record<string, unknown>;
+    const customMeta = (obj.custom_metadata ?? {}) as Record<string, unknown>;
+    const ref =
+      typeof customMeta.reference === "string"
+        ? customMeta.reference
+        : obj.id !== undefined
+          ? String(obj.id)
+          : typeof payload.providerRef === "string"
+            ? payload.providerRef
+            : undefined;
+    const eventName = String(payload.name ?? "");
+    const status = String(obj.status ?? payload.status ?? "").toLowerCase();
+    const mapped =
+      eventName.includes("approved") ||
+      eventName.includes("transferred") ||
+      status === "approved" ||
+      status === "succeeded"
+        ? "succeeded"
+        : eventName.includes("declined") ||
+            eventName.includes("canceled") ||
+            status === "declined" ||
+            status === "failed"
+          ? "failed"
+          : "pending";
+    const amountMajor = typeof obj.amount === "number" ? obj.amount : undefined;
+    return {
+      providerRef: ref,
+      status: mapped,
+      amountCents: typeof amountMajor === "number" ? Math.round(amountMajor * 100) : undefined,
+    };
+  }
   // Paystack: { event: "charge.success", data: { reference, status, amount } }
   if (provider === "paystack") {
     const event = String(payload.event ?? "");

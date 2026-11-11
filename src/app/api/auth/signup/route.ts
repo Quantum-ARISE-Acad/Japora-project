@@ -34,6 +34,8 @@ export async function POST(req: NextRequest) {
   const currencyInput = String(body.currency || "").trim().toUpperCase();
   const currency = SUPPORTED_CURRENCIES.has(currencyInput) ? currencyInput : "XOF";
 
+  const language = String(body.language || "fr").trim() || "fr";
+
   if (!validateEmail(email)) {
     return NextResponse.json({ error: "Entrez une adresse email valide." }, { status: 400 });
   }
@@ -66,6 +68,8 @@ export async function POST(req: NextRequest) {
       shopSlug,
       whatsappNumber,
       currency,
+      language,
+      onboardedAt: new Date(),
       ...newVendorTrialDates(),
     },
   });

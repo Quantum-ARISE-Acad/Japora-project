@@ -1,131 +1,155 @@
-import Link from "next/link";
 import { requireVendor } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getEntitlement, computeCommissionCents } from "@/lib/billing";
-import { billingMode, priceDisplay } from "@/lib/stripe";
-import { formatMoney } from "@/lib/utils";
-import BillingActions from "./BillingActions";
+import { getVendorFedaPayConfig } from "@/lib/payments/fedapay";
+import MoneyDashboardClient from "./MoneyDashboardClient";
 
 export default async function BillingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ok?: string; canceled?: string }>;
+  searchParams: Promise<{ ok?: string; canceled?: string; ref?: string }>;
 }) {
   const vendor = await requireVendor();
   const ent = getEntitlement(vendor);
-  const mode = billingMode();
   const sp = await searchParams;
+  const fedaConfig = await getVendorFedaPayConfig(vendor.id);
 
-  // Japora fee this month — per-order with the success-based floor + cap applied
-  // (free under the small-order floor, capped per order). PAID/DELIVERED orders
-  // in the current calendar month. Starter (0%) vendors show zero.
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const paidThisMonth = await prisma.order.findMany({
-    where: {
-      vendorId: vendor.id,
-      status: { in: ["PAID", "DELIVERED"] },
-      createdAt: { gte: monthStart, lt: monthEnd },
-      deletedAt: null,
-    },
-    select: { totalCents: true },
-  });
+
+  const [orders, paymentLinks, paymentIntents] = await Promise.all([
+    prisma.order.findMany({
+      where: { vendorId: vendor.id, deletedAt: null },
+      select: {
+        id: true,
+        totalCents: true,
+        paidCents: true,
+        status: true,
+        customerName: true,
+        createdAt: true,
+      },
+    }),
+    prisma.paymentLink.findMany({
+      where: { vendorId: vendor.id },
+      select: {
+        id: true,
+        amountCents: true,
+        isPaid: true,
+        description: true,
+      },
+    }),
+    prisma.paymentIntent.findMany({
+      where: { vendorId: vendor.id },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+    }),
+  ]);
+
+  const paidOrders = orders.filter((o) => o.status === "PAID" || o.status === "DELIVERED");
+  const pendingOrders = orders.filter(
+    (o) => o.status !== "PAID" && o.status !== "DELIVERED" && o.status !== "CANCELLED",
+  );
+
+  const paidThisMonth = paidOrders.filter(
+    (o) => o.createdAt >= monthStart && o.createdAt < monthEnd,
+  );
   const commissionCents = paidThisMonth.reduce(
     (sum, o) => sum + computeCommissionCents(o.totalCents, vendor.commissionPct || undefined),
     0,
   );
 
+  const paidOrdersCents = paidOrders.reduce((s, o) => s + o.totalCents, 0);
+  const paidLinks = paymentLinks.filter((l) => l.isPaid);
+  const paidLinksCents = paidLinks.reduce((s, l) => s + l.amountCents, 0);
+
+  // Also include standalone succeeded Sandbox test transactions
+  const standaloneFedaCents = paymentIntents
+    .filter((pi) => pi.status === "succeeded" && !pi.orderId)
+    .reduce((s, pi) => {
+      try {
+        const m = pi.metadata ? JSON.parse(pi.metadata) : {};
+        if (m.paymentLinkId) return s; // already counted in paidLinksCents
+      } catch {
+        // ignore
+      }
+      return s + pi.amountCents;
+    }, 0);
+
+  const totalCollectedCents = paidOrdersCents + paidLinksCents + standaloneFedaCents;
+
+  const pendingOrdersCents = pendingOrders.reduce(
+    (s, o) => s + Math.max(0, o.totalCents - o.paidCents),
+    0,
+  );
+  const pendingLinksCents = paymentLinks
+    .filter((l) => !l.isPaid)
+    .reduce((s, l) => s + l.amountCents, 0);
+  const pendingCents = pendingOrdersCents + pendingLinksCents;
+
+  const fedaSuccessCount = paymentIntents.filter(
+    (pi) => pi.provider === "fedapay" && pi.status === "succeeded",
+  ).length;
+
+  const transactions = paymentIntents.map((pi) => {
+    let meta: Record<string, any> = {};
+    try {
+      meta = pi.metadata ? JSON.parse(pi.metadata) : {};
+    } catch {
+      meta = {};
+    }
+    const linkedOrder = pi.orderId ? orders.find((o) => o.id === pi.orderId) : null;
+    return {
+      id: pi.id,
+      orderId: pi.orderId,
+      provider: pi.provider,
+      providerRef: pi.providerRef || pi.id,
+      amountCents: pi.amountCents,
+      currency: pi.currency,
+      status: pi.status,
+      wallet: String(meta.wallet || meta.network || ""),
+      title:
+        meta.title ||
+        (linkedOrder
+          ? `Commande #${linkedOrder.id.slice(-6).toUpperCase()}`
+          : "Paiement Japora"),
+      customerName:
+        meta.customerName || linkedOrder?.customerName || "",
+      createdAt: pi.createdAt.toISOString(),
+    };
+  });
+
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="a-headline-md text-arctic-900">Billing</h1>
-        <p className="text-sm text-arctic-600">Manage your Japora Pro subscription.</p>
-      </div>
-
-      <div className="card p-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-arctic-900">Commission this month</h2>
-          <span className="rounded-full bg-arctic-200/65 px-2 py-0.5 text-xs font-semibold text-arctic-700">
-            {(vendor.commissionPct * 100).toFixed(1)}%
-          </span>
-        </div>
-        <div className="mt-2 text-3xl font-bold text-brand-dark">
-          {commissionCents > 0
-            ? formatMoney(commissionCents, vendor.currency)
-            : `0 ${vendor.currency} — no paid orders this month yet`}
-        </div>
-        <p className="mt-1 text-xs text-arctic-600">
-          {commissionCents > 0
-            ? "Auto-deducted on next settled payment."
-            : "We only take a cut after you get paid."}
-        </p>
-      </div>
-
-      {sp.ok === "1" && (
-        <div className="rounded-xl border border-brand/20 bg-brand/10 px-4 py-3 text-sm text-brand-dark">
-          You&apos;re on Pro. That&apos;s it — nothing else to do.
-        </div>
-      )}
-      {sp.canceled === "1" && (
-        <div className="rounded-xl border border-arctic-400/30 bg-arctic-100/55 px-4 py-3 text-sm text-arctic-800">
-          Checkout cancelled. Come back any time.
-        </div>
-      )}
-
-      <div className="card p-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-arctic-900">Current plan</h2>
-          <span
-            className={
-              "rounded-full px-2 py-0.5 text-xs font-semibold " +
-              (ent.active
-                ? "bg-brand/10 text-brand-dark"
-                : "bg-amber-100 text-amber-800")
-            }
-          >
-            ● {ent.status.replace("_", " ")}
-          </span>
-        </div>
-        <p className="mt-2 text-sm text-arctic-700">{ent.summary}</p>
-
-        {ent.status === "trialing" && ent.trialDaysRemaining !== null && (
-          <div className="mt-4 rounded-lg bg-arctic-100/55 p-4">
-            <div className="text-xs uppercase tracking-wide text-arctic-600">Trial countdown</div>
-            <div className="mt-1 a-headline-md text-arctic-900">
-              {ent.trialDaysRemaining} days left
-            </div>
-            <p className="mt-1 text-sm text-arctic-600">
-              You can add a card any time — you won&apos;t be charged until day 30.
-            </p>
-          </div>
-        )}
-
-        <div className="mt-5">
-          {mode === "stub" ? (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-              <strong>Stripe isn&apos;t configured yet.</strong>
-              <br />
-              Add <code>STRIPE_SECRET_KEY</code>, <code>STRIPE_WEBHOOK_SECRET</code>, and{" "}
-              <code>STRIPE_PRICE_ID</code> to <code>.env</code>, then{" "}
-              <code>pnpm add stripe</code> to enable checkout.
-            </div>
-          ) : (
-            <BillingActions
-              hasSubscription={Boolean(vendor.stripeSubscriptionId)}
-              priceDisplay={priceDisplay()}
-            />
-          )}
-        </div>
-      </div>
-
-      <div className="card p-5 text-sm text-arctic-600">
-        Need a receipt or to change payment method?{" "}
-        <Link href="/dashboard/billing" className="font-semibold text-brand-dark hover:underline">
-          Use &ldquo;Manage subscription&rdquo;
-        </Link>{" "}
-        to open Stripe&apos;s hosted billing portal.
-      </div>
-    </div>
+    <MoneyDashboardClient
+      currency={vendor.currency || "XOF"}
+      shopName={vendor.shopName}
+      shopSlug={vendor.shopSlug}
+      momoNumber={vendor.momoNumber || ""}
+      whatsappNumber={vendor.whatsappNumber || ""}
+      initialFedaConfig={{
+        environment: fedaConfig.environment,
+        publicKey: fedaConfig.publicKey,
+        secretKey: fedaConfig.secretKey,
+        webhookSecret: fedaConfig.webhookSecret || "",
+        enabled: fedaConfig.enabled,
+      }}
+      stats={{
+        totalCollectedCents,
+        pendingCents,
+        commissionCents,
+        commissionPct: vendor.commissionPct,
+        paidOrdersCount: paidOrders.length,
+        paidLinksCount: paidLinks.length,
+        fedaSuccessCount,
+      }}
+      entitlement={{
+        active: ent.active,
+        status: ent.status,
+        summary: ent.summary,
+        trialDaysRemaining: ent.trialDaysRemaining,
+      }}
+      transactions={transactions}
+      queryStatus={sp}
+    />
   );
 }
