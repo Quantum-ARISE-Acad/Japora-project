@@ -20,7 +20,7 @@ export default function JoinButton({ code, coopName }: { code: string; coopName:
     const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(data.error || "Could not join.");
+      setError(data.error || "Impossible de rejoindre cette coopérative.");
       return;
     }
     router.push("/dashboard/settings");
@@ -30,7 +30,7 @@ export default function JoinButton({ code, coopName }: { code: string; coopName:
   return (
     <div className="space-y-2">
       <button onClick={join} disabled={loading} className="btn-primary w-full">
-        {loading ? "Joining…" : `Join ${coopName}`}
+        {loading ? "Adhésion en cours…" : `Rejoindre ${coopName}`}
       </button>
       {error && <p className="text-sm text-red-600">{error}</p>}
     </div>
