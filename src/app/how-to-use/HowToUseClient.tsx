@@ -1,39 +1,288 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import ThemeToggle from "@/components/ThemeToggle";
+import PublicHeader from "@/components/PublicHeader";
+import PublicFooter from "@/components/PublicFooter";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 /**
- * "How Japora works" — an animated, scroll-driven explainer.
- *
- * anime.js (v4, lazy-imported) does the explaining: the hero rises in on load,
- * the gold "ledger line" draws itself down the page as you scroll, each numbered
- * step lifts into place when it enters the viewport, and the headline metric
- * counts up. Everything degrades gracefully: if anime fails to load or the user
- * prefers reduced motion, the final state is shown immediately (no hidden
- * content, no motion). Built on the Lumière system — Playfair display, gold
- * accents, the ledger.
+ * "How Japora works" — bilingual (FR / EN) animated, scroll-driven explainer
+ * with interactive WhatsApp Bot & Flow simulator, daily vendor timeline, and
+ * offline-to-online QR showcase.
  */
 
-type Step = {
-  n: string;
-  title: string;
-  body: string;
-  icon: "shop" | "tag" | "share" | "chat" | "wallet" | "moon";
-};
-
-const STEPS: Step[] = [
-  { n: "01", title: "Open your shop", body: "Phone number or email — about ninety seconds. No app to install; it runs on the WhatsApp you already use.", icon: "shop" },
-  { n: "02", title: "Add what you sell", body: "Photo, price, sizes, stock. Or import your existing WhatsApp Business catalog in one tap.", icon: "tag" },
-  { n: "03", title: "Share one link", body: "Drop your catalog link in your Status, bio, and market groups — or print the QR for your stall.", icon: "share" },
-  { n: "04", title: "The bot answers", body: "Customers ask “how much?” and the bot replies from your live catalog, day or night. You handle the tricky ones.", icon: "chat" },
-  { n: "05", title: "They pay inline", body: "T-Money, Flooz, Moov, Orange Money — settled in the chat. You see ✓ Paid the moment the money clears.", icon: "wallet" },
-  { n: "06", title: "Read the 6 PM summary", body: "Orders, what’s unpaid, your top seller, what to restock. The day distilled — sent to your WhatsApp.", icon: "moon" },
-];
+type StepIconName = "shop" | "tag" | "share" | "chat" | "wallet" | "moon";
 
 export default function HowToUseClient() {
   const root = useRef<HTMLDivElement>(null);
+  const { tr } = usePublicLang();
+  const [activeScenario, setActiveScenario] = useState(0);
+
+  const steps = [
+    {
+      n: "01",
+      phase: tr("Inscription · ~90 secondes", "Onboarding · ~90 seconds"),
+      title: tr(
+        "Ouvrez votre boutique sur WhatsApp",
+        "Open your shop on WhatsApp"
+      ),
+      subtitle: tr(
+        "Sans mot de passe complexe ni carte bancaire",
+        "No complex password or credit card required"
+      ),
+      body: tr(
+        "Saisissez simplement votre numéro WhatsApp sur /start. Vous recevez un code OTP à 6 chiffres et votre boutique est immédiatement créée en FCFA (ou votre devise locale). Aucune application supplémentaire à installer.",
+        "Simply enter your WhatsApp number on /start. You receive a 6-digit OTP code and your shop is immediately created in XOF (or your local currency). No extra app to install."
+      ),
+      highlights: [
+        tr(
+          "Connexion ultra-rapide par code WhatsApp OTP",
+          "Instant login via 6-digit WhatsApp OTP"
+        ),
+        tr(
+          "Devise FCFA (XOF) configurée par défaut sans erreur de décimale",
+          "XOF currency configured by default with zero decimal errors"
+        ),
+        tr(
+          "Démarrage immédiat gratuit sur votre téléphone",
+          "Immediate free setup right from your phone"
+        ),
+      ],
+      icon: "shop" as StepIconName,
+    },
+    {
+      n: "02",
+      phase: tr("Catalogue · 2 minutes", "Catalog · 2 minutes"),
+      title: tr(
+        "Ajoutez vos produits ou importez-les en 1 clic",
+        "Add your products or import in 1 click"
+      ),
+      subtitle: tr(
+        "Photos compressées automatiquement pour la 2G/3G",
+        "Photos automatically compressed for 2G/3G networks"
+      ),
+      body: tr(
+        "Ajoutez vos articles avec photos, prix, tailles, état (neuf/occasion), stock, tarifs de gros ou précommande avec acompte. Vous avez déjà un catalogue WhatsApp Business ? Importez-le en un seul clic.",
+        "Add your items with photos, prices, sizes, condition (new/used), stock, wholesale tiers, or pre-order deposits. Already have a WhatsApp Business catalog? Import it in one tap."
+      ),
+      highlights: [
+        tr(
+          "Import direct depuis Meta WhatsApp Business Catalog",
+          "Direct import from Meta WhatsApp Business Catalog"
+        ),
+        tr(
+          "Compression d'image côté navigateur pour économiser vos data",
+          "Client-side image compression to save mobile data"
+        ),
+        tr(
+          "Gestion des tailles, stocks, prix de gros et acomptes",
+          "Manage sizes, stock levels, wholesale prices, and deposits"
+        ),
+      ],
+      icon: "tag" as StepIconName,
+    },
+    {
+      n: "03",
+      phase: tr(
+        "Visibilité · En ligne & Au marché",
+        "Visibility · Online & At the Market"
+      ),
+      title: tr(
+        "Partagez un lien unique et votre QR code de stand",
+        "Share one link and your printable stall QR code"
+      ),
+      subtitle: tr(
+        "Statut WhatsApp, TikTok, Instagram et stand physique",
+        "WhatsApp Status, TikTok, Instagram, and physical stall"
+      ),
+      body: tr(
+        "Diffusez le lien de votre boutique sur votre Statut WhatsApp, dans votre bio Instagram/TikTok ou dans vos groupes de vente. Au marché, imprimez votre affiche QR code officielle pour que les passants scannent votre catalogue.",
+        "Share your shop link in your WhatsApp Status, Instagram/TikTok bio, or market groups. At your physical stall, print your official QR poster so passersby can scan and browse."
+      ),
+      highlights: [
+        tr(
+          "Générateur de visuels prêts pour Statut WhatsApp, IG & TikTok",
+          "Ready-to-post visual cards for WhatsApp Status, IG & TikTok"
+        ),
+        tr(
+          "QR code vectoriel (SVG) imprimable pour votre boutique physique",
+          "Printable SVG QR code poster for your physical shop"
+        ),
+        tr(
+          "Référencement automatique sur le Marketplace public Japora",
+          "Automatic listing on the public Japora Marketplace"
+        ),
+      ],
+      icon: "share" as StepIconName,
+    },
+    {
+      n: "04",
+      phase: tr("Automatisation · 24h/24 & 7j/7", "Automation · 24/7"),
+      title: tr(
+        "Le Bot WhatsApp répond aux clients jour et nuit",
+        "The WhatsApp Bot replies day and night"
+      ),
+      subtitle: tr(
+        "Fini de répéter « C'est combien ? » 50 fois par jour",
+        "Stop repeating 'How much?' 50 times a day"
+      ),
+      body: tr(
+        "Quand un client écrit sur votre WhatsApp, le bot répond instantanément à partir de votre catalogue en direct : prix, tailles disponibles, frais de livraison par quartier. En dehors de vos horaires d'ouverture, votre message d'absence prend le relais.",
+        "When a buyer messages your WhatsApp, the bot replies instantly from your live catalog: prices, available sizes, and delivery fees by neighborhood. Outside business hours, your away message takes over."
+      ),
+      highlights: [
+        tr(
+          "Boutons interactifs WhatsApp : Voir le menu, Commander, Mon solde",
+          "Interactive WhatsApp buttons: See menu, Order this, My balance"
+        ),
+        tr(
+          "Assistant IA de boutique pour conseiller les acheteurs",
+          "AI Shop Assistant to guide buyers"
+        ),
+        tr(
+          "Horaires d'ouverture personnalisables & message d'absence auto",
+          "Custom business hours & automated away message"
+        ),
+      ],
+      icon: "chat" as StepIconName,
+    },
+    {
+      n: "05",
+      phase: tr("Encaissement · Mobile Money natif", "Payments · Native Mobile Money"),
+      title: tr(
+        "Vos clients paient directement dans la conversation",
+        "Customers pay inline inside the chat"
+      ),
+      subtitle: tr(
+        "T-Money, Flooz, Wave, Orange Money & MTN MoMo",
+        "T-Money, Flooz, Wave, Orange Money & MTN MoMo"
+      ),
+      body: tr(
+        "Le client choisit son moyen de paiement habituel. Dès que le paiement Mobile Money est validé, la commande passe automatiquement au statut « ✓ Payé » sur votre tableau Kanban et le stock est mis à jour.",
+        "Buyers pay with their favorite local wallet. The moment Mobile Money clears, the order flips to '✓ Paid' on your Kanban board and stock updates automatically."
+      ),
+      highlights: [
+        tr(
+          "PayGate Global (T-Money & Flooz natifs au Togo) + CinetPay UEMOA",
+          "PayGate Global (native T-Money & Flooz in Togo) + CinetPay"
+        ),
+        tr(
+          "Wave, Orange Money, MTN MoMo, Flutterwave, Paystack & M-Pesa",
+          "Wave, Orange Money, MTN MoMo, Flutterwave, Paystack & M-Pesa"
+        ),
+        tr(
+          "Liens de paiement rapides pour acomptes et commandes sur-mesure",
+          "Quick payment links for deposits and custom orders"
+        ),
+      ],
+      icon: "wallet" as StepIconName,
+    },
+    {
+      n: "06",
+      phase: tr("Pilotage · Chaque soir à 18h00", "Tracking · Every Evening at 6 PM"),
+      title: tr(
+        "Suivez vos ventes et recevez votre bilan quotidien à 18h",
+        "Track your sales and read your 6 PM daily summary"
+      ),
+      subtitle: tr(
+        "Votre journée résumée en un coup d'œil sur WhatsApp",
+        "Your entire day distilled into one WhatsApp message"
+      ),
+      body: tr(
+        "À 18h00, Japora vous envoie un message récapitulatif sur WhatsApp : chiffre d'affaires du jour, nombre de commandes payées, produit le plus vendu, créances en attente et alertes de réapprovisionnement.",
+        "At 6 PM, Japora sends a concise recap to your WhatsApp: today's revenue, paid order count, top-selling product, pending receivables, and low-stock alerts."
+      ),
+      highlights: [
+        tr(
+          "Résumé WhatsApp quotidien à 18h00 sans ouvrir le tableau de bord",
+          "Daily 6 PM WhatsApp summary without opening the dashboard"
+        ),
+        tr(
+          "Suivi des créances clients (Pay-later) et relances paniers abandonnés",
+          "Customer receivables tracking & abandoned cart recovery"
+        ),
+        tr(
+          "Comptabilité mensuelle P&L automatique exportable en CSV",
+          "Automated monthly P&L bookkeeping exportable to CSV"
+        ),
+      ],
+      icon: "moon" as StepIconName,
+    },
+  ];
+
+  const simulatorScenarios = [
+    {
+      id: "price",
+      label: tr(
+        "💬 Demande de prix (« C'est combien ? »)",
+        "💬 Price check ('How much is this?')"
+      ),
+      buyerMsg: tr(
+        "Bonjour ! C'est combien le Sac Bogolan Cuir et vous livrez à Agoè ?",
+        "Hello! How much is the Bogolan Leather Bag and do you deliver to Agoè?"
+      ),
+      botReply: tr(
+        "Bonjour 👋 ! Le **Sac Bogolan Cuir** est à **15 000 FCFA** (En stock : 6 pièces).\n\n📍 Livraison vers **Agoè** : **1 500 FCFA**.\nTotal avec livraison : **16 500 FCFA**.",
+        "Hello 👋! The **Bogolan Leather Bag** is **15,000 XOF** (In stock: 6 left).\n\n📍 Delivery to **Agoè**: **1,500 XOF**.\nTotal with delivery: **16,500 XOF**."
+      ),
+      buttons: [
+        tr("🛒 Commander maintenant", "🛒 Order now"),
+        tr("📖 Voir tout le catalogue", "📖 View full catalog"),
+        tr("💬 Parler au vendeur", "💬 Talk to seller"),
+      ],
+      statusBadge: tr(
+        "Réponse automatique en 0.8s",
+        "Automated reply in 0.8s"
+      ),
+    },
+    {
+      id: "order",
+      label: tr(
+        "💳 Paiement T-Money / Flooz en direct",
+        "💳 Inline T-Money / Flooz Payment"
+      ),
+      buyerMsg: tr(
+        "Je prends 1 Sac Bogolan Cuir avec livraison à Agoè. Je paie par T-Money.",
+        "I'll take 1 Bogolan Leather Bag with delivery to Agoè. Paying via T-Money."
+      ),
+      botReply: tr(
+        "Parfait ! Votre commande **#JP-4092** (16 500 FCFA) est enregistrée.\n\n👉 Appuyez ci-dessous pour valider votre paiement **T-Money / Flooz** en toute sécurité :",
+        "Awesome! Your order **#JP-4092** (16,500 XOF) is created.\n\n👉 Tap below to complete your **T-Money / Flooz** payment securely:"
+      ),
+      buttons: [
+        tr("📲 Payer 16 500 FCFA (T-Money / Flooz)", "📲 Pay 16,500 XOF (T-Money / Flooz)"),
+        tr("📄 Voir le récapitulatif", "📄 View order summary"),
+      ],
+      statusBadge: tr(
+        "Statut : ✓ Payé confirmé automatiquement",
+        "Status: ✓ Paid confirmed automatically"
+      ),
+    },
+    {
+      id: "summary",
+      label: tr(
+        "🌙 Bilan du soir à 18h00 (Côté Vendeur)",
+        "🌙 6 PM Daily Summary (Merchant View)"
+      ),
+      buyerMsg: tr(
+        "[Notification automatique Japora — 18h00]",
+        "[Automated Japora Notification — 6:00 PM]"
+      ),
+      botReply: tr(
+        "🌙 **Bilan du jour — Chez Améyo**\n• Commandes payées : **11 commandes**\n• Chiffre d'affaires : **134 500 FCFA**\n• Top vente : **Robe Bazin Brodé (5x)**\n• ⚠️ Stock bas : **Sandales Cuir (reste 2)**",
+        "🌙 **Daily Hustle Summary — Chez Améyo**\n• Paid orders: **11 orders**\n• Revenue: **134,500 XOF**\n• Top seller: **Embroidered Bazin Dress (5x)**\n• ⚠️ Low stock: **Leather Sandals (2 left)**"
+      ),
+      buttons: [
+        tr("📊 Ouvrir le tableau de bord", "📊 Open dashboard"),
+        tr("📦 Réapprovisionner le stock", "📦 Restock items"),
+      ],
+      statusBadge: tr(
+        "Envoyé chaque soir à 18h00",
+        "Sent every evening at 6:00 PM"
+      ),
+    },
+  ];
 
   useEffect(() => {
     const el = root.current;
@@ -41,13 +290,12 @@ export default function HowToUseClient() {
 
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     const heroes = el.querySelectorAll<HTMLElement>("[data-hero]");
-    const steps = el.querySelectorAll<HTMLElement>("[data-step]");
+    const stepNodes = el.querySelectorAll<HTMLElement>("[data-step]");
     const line = el.querySelector<SVGPathElement>("[data-ledger-line]");
     const counter = el.querySelector<HTMLElement>("[data-count]");
 
-    // Reduced motion / no-JS-anim fallback: reveal everything, skip motion.
     const revealAll = () => {
-      [...heroes, ...steps].forEach((n) => {
+      [...heroes, ...stepNodes].forEach((n) => {
         n.style.opacity = "1";
         n.style.transform = "none";
       });
@@ -67,7 +315,6 @@ export default function HowToUseClient() {
       .then(({ animate, stagger }) => {
         if (cancelled) return;
 
-        // Hero: staggered rise on load.
         animate(heroes, {
           opacity: [0, 1],
           translateY: [14, 0],
@@ -76,7 +323,6 @@ export default function HowToUseClient() {
           ease: "outQuint",
         });
 
-        // Headline metric counts up once it's on screen.
         if (counter) {
           const target = Number(counter.dataset.count || "0");
           const obj = { v: 0 };
@@ -95,12 +341,11 @@ export default function HowToUseClient() {
                 io.unobserve(e.target);
               });
             },
-            { threshold: 0.6 },
+            { threshold: 0.6 }
           );
           io.observe(counter);
         }
 
-        // The ledger line draws itself as it scrolls into view.
         if (line) {
           const len = line.getTotalLength();
           line.style.strokeDasharray = String(len);
@@ -117,12 +362,11 @@ export default function HowToUseClient() {
                 io.unobserve(e.target);
               });
             },
-            { threshold: 0.25 },
+            { threshold: 0.2 }
           );
           io.observe(line);
         }
 
-        // Each step lifts into place as it enters the viewport.
         const revealStep = (node: HTMLElement) => {
           if (node.dataset.shown) return;
           node.dataset.shown = "1";
@@ -142,17 +386,15 @@ export default function HowToUseClient() {
               io.unobserve(e.target);
             });
           },
-          { threshold: 0.12, rootMargin: "0px 0px -8% 0px" },
+          { threshold: 0.12, rootMargin: "0px 0px -8% 0px" }
         );
-        steps.forEach((s) => io.observe(s));
+        stepNodes.forEach((s) => io.observe(s));
 
-        // Safety net: never leave content hidden. After a beat, reveal any step
-        // the observer hasn't fired for yet (short viewport, no-scroll, etc.).
         safety = window.setTimeout(() => {
-          steps.forEach((s) => revealStep(s as HTMLElement));
+          stepNodes.forEach((s) => revealStep(s as HTMLElement));
         }, 1600);
       })
-      .catch(revealAll); // anime failed to load → show everything.
+      .catch(revealAll);
 
     return () => {
       cancelled = true;
@@ -160,63 +402,61 @@ export default function HowToUseClient() {
     };
   }, []);
 
-  return (
-    <div ref={root} className="min-h-screen">
-      {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-arctic-300/40 bg-arctic-50/80 backdrop-blur-glass-thin">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
-          <Link href="/" className="group flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-shape-md bg-brand font-display text-lg font-black text-white">
-              J
-            </span>
-            <span className="font-display text-[17px] font-semibold text-arctic-900">Japora</span>
-          </Link>
-          <nav className="flex items-center gap-1.5">
-            <ThemeToggle className="mr-0.5" />
-            <Link href="/marketplace" className="btn-ghost hidden sm:inline-flex">
-              Marketplace
-            </Link>
-            <Link href="/start" className="btn-primary">
-              Start free
-            </Link>
-          </nav>
-        </div>
-      </header>
+  const currentScenario = simulatorScenarios[activeScenario];
 
-      <main className="mx-auto max-w-5xl px-4">
-        {/* Hero */}
-        <section className="py-16 text-center sm:py-24">
+  return (
+    <div ref={root} className="min-h-screen flex flex-col">
+      <PublicHeader />
+
+      <main className="mx-auto max-w-6xl flex-1 px-4">
+        {/* ============================================================
+         * 1. HERO SECTION
+         * ============================================================ */}
+        <section className="py-14 text-center sm:py-20">
           <div data-hero style={{ opacity: 0 }} className="a-eyebrow">
-            How Japora works
+            {tr("Guide Complet · Comment ça marche", "Complete Guide · How Japora Works")}
           </div>
           <h1
             data-hero
             style={{ opacity: 0 }}
             className="a-display-sm mx-auto mt-3 max-w-3xl text-arctic-900 sm:a-display-md"
           >
-            From “how much?” to paid — without leaving WhatsApp.
+            {tr(
+              "De « C'est combien ? » jusqu'au paiement — sans quitter WhatsApp.",
+              "From “how much?” to paid — without leaving WhatsApp."
+            )}
           </h1>
           <p
             data-hero
             style={{ opacity: 0 }}
-            className="a-body-lg mx-auto mt-4 max-w-xl text-arctic-700"
+            className="a-body-lg mx-auto mt-4 max-w-2xl text-arctic-700"
           >
-            Six steps, start to settled. No new app for you or your customers — just the chat they
-            already live in.
+            {tr(
+              "Six étapes simples, de l'ouverture de votre boutique en ligne jusqu'au suivi de vos ventes et au bilan de 18h.",
+              "Six simple steps, from opening your online storefront to tracking your sales and reading your 6 PM daily summary."
+            )}
           </p>
-          <div data-hero style={{ opacity: 0 }} className="mt-7 flex flex-wrap justify-center gap-3">
-            <Link href="/start" className="btn-primary">
-              Start on WhatsApp
+          <div
+            data-hero
+            style={{ opacity: 0 }}
+            className="mt-7 flex flex-wrap justify-center gap-3"
+          >
+            <Link href="/start" className="a-btn a-btn--cafe a-btn--lg font-bold">
+              {tr(
+                "Démarrer sur WhatsApp en 90 sec →",
+                "Start on WhatsApp in 90 sec →"
+              )}
             </Link>
-            <Link href="/marketplace" className="btn-ghost">
-              Explore the marketplace →
+            <Link href="/marketplace" className="btn-ghost a-btn--lg">
+              {tr("Explorer le Marketplace", "Explore the Marketplace")}
             </Link>
           </div>
         </section>
 
-        {/* Steps with the ledger line */}
-        <section className="relative pb-8">
-          {/* Gold "ledger" spine — sits behind the numbers on sm+; draws on scroll. */}
+        {/* ============================================================
+         * 2. THE 6 STEPS WITH GOLD LEDGER SPINE
+         * ============================================================ */}
+        <section className="relative mx-auto max-w-4xl pb-12">
           <svg
             aria-hidden
             className="pointer-events-none absolute left-[27px] top-2 hidden h-[calc(100%-3rem)] w-2 sm:block"
@@ -233,26 +473,64 @@ export default function HowToUseClient() {
             />
           </svg>
 
-          <ol className="space-y-5">
-            {STEPS.map((s) => (
+          <ol className="space-y-6">
+            {steps.map((s) => (
               <li key={s.n} data-step className="relative">
                 <article className="flex items-start gap-4 sm:gap-6">
-                  {/* Number medallion — serif, tabular, gold. */}
                   <div
                     data-rise
                     style={{ opacity: 0 }}
-                    className="relative z-10 grid h-14 w-14 shrink-0 place-items-center rounded-full border border-brand/40 bg-arctic-50 font-display text-lg font-semibold text-brand-dark shadow-elev-1"
+                    className="relative z-10 grid h-14 w-14 shrink-0 place-items-center rounded-full border border-brand/45 bg-arctic-50 font-display text-lg font-bold text-brand-dark shadow-elev-1"
                   >
                     <span className="a-num">{s.n}</span>
                   </div>
-                  <div className="card flex-1 p-5 sm:p-6">
-                    <div data-rise style={{ opacity: 0 }} className="flex items-center gap-2.5">
-                      <StepIcon name={s.icon} />
-                      <h2 className="a-title-lg font-display text-arctic-900">{s.title}</h2>
+
+                  <div className="glass glass-edge flex-1 rounded-shape-xl p-6 sm:p-7">
+                    <div
+                      data-rise
+                      style={{ opacity: 0 }}
+                      className="flex flex-wrap items-center justify-between gap-2"
+                    >
+                      <span className="rounded-full bg-brand/15 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-dark">
+                        {s.phase}
+                      </span>
+                      <span className="text-xs text-arctic-500">{s.subtitle}</span>
                     </div>
-                    <p data-rise style={{ opacity: 0 }} className="a-body-md a-measure mt-2 text-arctic-700">
+
+                    <div
+                      data-rise
+                      style={{ opacity: 0 }}
+                      className="mt-3 flex items-center gap-2.5"
+                    >
+                      <StepIcon name={s.icon} />
+                      <h2 className="a-title-lg font-display text-arctic-900">
+                        {s.title}
+                      </h2>
+                    </div>
+
+                    <p
+                      data-rise
+                      style={{ opacity: 0 }}
+                      className="a-body-md mt-2 leading-relaxed text-arctic-700"
+                    >
                       {s.body}
                     </p>
+
+                    <ul
+                      data-rise
+                      style={{ opacity: 0 }}
+                      className="mt-4 grid gap-2 border-t border-arctic-200/70 pt-3.5 sm:grid-cols-3"
+                    >
+                      {s.highlights.map((h) => (
+                        <li
+                          key={h}
+                          className="flex items-start gap-1.5 text-xs text-arctic-800"
+                        >
+                          <span className="font-bold text-brand-dark">✓</span>
+                          <span>{h}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </article>
               </li>
@@ -260,64 +538,353 @@ export default function HowToUseClient() {
           </ol>
         </section>
 
-        {/* Ledger metric — counts up on scroll. */}
-        <section className="mb-14 mt-6">
-          <div className="glass glass-edge mx-auto max-w-md rounded-shape-lg p-7 text-center">
-            <div className="a-eyebrow">Time to your first shop</div>
-            <div className="mt-2 flex items-end justify-center gap-1">
+        {/* ============================================================
+         * 3. LEDGER METRIC COUNTER — 90 Seconds
+         * ============================================================ */}
+        <section className="mb-20 mt-4">
+          <div className="glass glass-edge mx-auto max-w-xl rounded-shape-xl p-8 text-center shadow-elev-2">
+            <div className="a-eyebrow">
+              {tr("Temps moyen de mise en ligne", "Time to your first shop")}
+            </div>
+            <div className="mt-2 flex items-end justify-center gap-1.5">
               <span
                 data-count="90"
-                className="a-num font-display text-6xl font-semibold leading-none text-arctic-900"
+                className="a-num font-display text-6xl font-bold leading-none text-arctic-900"
               >
-                0
+                90
               </span>
-              <span className="a-num pb-1 font-display text-2xl font-semibold text-brand-dark">
-                sec
+              <span className="a-num pb-1 font-display text-2xl font-bold text-brand-dark">
+                {tr("secondes", "sec")}
               </span>
             </div>
-            <div className="mx-auto mt-4 h-px max-w-[12rem]">
+            <div className="mx-auto mt-4 h-px max-w-[14rem]">
               <hr className="a-rule-gold" />
             </div>
-            <p className="a-body-sm mt-3 text-arctic-600">
-              Scan a code, tap to confirm, your shop is live with the products you already had.
+            <p className="a-body-md mt-3 text-arctic-700">
+              {tr(
+                "Recevez un code à 6 chiffres sur WhatsApp, validez, et votre vitrine est prête à encaisser vos premières commandes.",
+                "Receive a 6-digit code on WhatsApp, confirm, and your storefront is live and ready to take orders."
+              )}
             </p>
           </div>
         </section>
 
-        {/* Closing CTA */}
+        {/* ============================================================
+         * 4. INTERACTIVE WHATSAPP BOT & FLOW SIMULATOR
+         * ============================================================ */}
+        <section className="mb-20 rounded-shape-xl border border-arctic-300/60 bg-white/85 p-6 shadow-elev-2 backdrop-blur-md sm:p-10">
+          <div className="mx-auto max-w-2xl text-center">
+            <span className="a-eyebrow">
+              {tr("Démonstration Interactive", "Interactive Demo")}
+            </span>
+            <h2 className="a-headline-lg mt-1 text-arctic-900">
+              {tr(
+                "Voyez comment le Bot WhatsApp gère vos clients en direct",
+                "See how the WhatsApp Bot handles your customers live"
+              )}
+            </h2>
+            <p className="mt-2 text-xs text-arctic-600 sm:text-sm">
+              {tr(
+                "Sélectionnez un scénario ci-dessous pour visualiser la conversation telle qu'elle se déroule sur WhatsApp.",
+                "Select a scenario below to preview the conversation right inside WhatsApp."
+              )}
+            </p>
+          </div>
+
+          <div className="mt-8 grid items-center gap-8 lg:grid-cols-[1fr,1.25fr]">
+            <div className="space-y-3">
+              {simulatorScenarios.map((scen, idx) => {
+                const isSelected = activeScenario === idx;
+                return (
+                  <button
+                    key={scen.id}
+                    type="button"
+                    onClick={() => setActiveScenario(idx)}
+                    className={`w-full rounded-shape-lg border p-4 text-left transition-all ${
+                      isSelected
+                        ? "border-arctic-900 bg-arctic-900 text-white shadow-elev-1"
+                        : "border-arctic-300/70 bg-white/80 text-arctic-900 hover:border-brand"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold">{scen.label}</span>
+                      <span
+                        className={`text-xs ${
+                          isSelected ? "text-gold-bright" : "text-arctic-400"
+                        }`}
+                      >
+                        →
+                      </span>
+                    </div>
+                    <p
+                      className={`mt-1 text-[11px] ${
+                        isSelected ? "text-arctic-200" : "text-arctic-600"
+                      }`}
+                    >
+                      {scen.statusBadge}
+                    </p>
+                  </button>
+                );
+              })}
+
+              <div className="rounded-shape-md border border-brand/30 bg-brand/10 p-4 text-xs text-arctic-800">
+                <strong className="font-bold text-brand-dark">
+                  {tr("Astuce Vendeur :", "Merchant Tip:")}
+                </strong>{" "}
+                {tr(
+                  "Depuis votre tableau de bord (/dashboard/bot), vous disposez d'un simulateur complet pour tester les réponses de votre propre boutique.",
+                  "From your dashboard (/dashboard/bot), you get a full simulator to test your own shop's automated replies."
+                )}
+              </div>
+            </div>
+
+            <div className="glass glass-edge rounded-shape-xl p-6 shadow-elev-2">
+              <div className="mb-4 flex items-center justify-between border-b border-arctic-200/70 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="grid h-9 w-9 place-items-center rounded-full bg-emerald-700 text-xs font-bold text-white">
+                    WA
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-arctic-900">
+                      {tr(
+                        "Chez Améyo · Boutique Vérifiée ✓",
+                        "Chez Améyo · Verified Shop ✓"
+                      )}
+                    </div>
+                    <div className="text-[10px] font-medium text-emerald-700">
+                      {tr("● Bot Japora actif 24h/24", "● Japora Bot active 24/7")}
+                    </div>
+                  </div>
+                </div>
+                <span className="rounded-full bg-arctic-200/80 px-2.5 py-0.5 text-[10px] font-semibold text-arctic-800">
+                  WhatsApp Business
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                <div className="max-w-md rounded-shape-lg rounded-tl-xs border border-arctic-200 bg-white p-3.5 text-xs text-arctic-800 shadow-xs">
+                  <div className="mb-1 text-[10px] font-bold text-arctic-500">
+                    {tr("Message entrant", "Incoming message")}
+                  </div>
+                  {currentScenario.buyerMsg}
+                </div>
+
+                <div className="ml-auto max-w-md rounded-shape-lg rounded-tr-xs border border-brand/35 bg-brand/10 p-4 text-xs text-arctic-900 shadow-xs">
+                  <div className="mb-1.5 flex items-center justify-between text-[10px] font-bold text-brand-dark">
+                    <span>🤖 Assistant Japora</span>
+                    <span>{tr("Instantané", "Instant")}</span>
+                  </div>
+                  <div className="whitespace-pre-line leading-relaxed">
+                    {currentScenario.botReply}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {currentScenario.buttons.map((b) => (
+                      <span
+                        key={b}
+                        className="rounded-full border border-arctic-300/80 bg-white px-3 py-1 text-[10px] font-bold text-arctic-900 shadow-xs"
+                      >
+                        {b}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between border-t border-arctic-200/70 pt-3 text-[11px] text-arctic-600">
+                <span>{currentScenario.statusBadge}</span>
+                <Link
+                  href="/start"
+                  className="font-bold text-brand-dark hover:underline"
+                >
+                  {tr("Activer sur mon numéro →", "Activate on my number →")}
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ============================================================
+         * 5. A DAY IN THE LIFE OF A JAPORA MERCHANT
+         * ============================================================ */}
+        <section className="mb-20">
+          <div className="mx-auto mb-10 max-w-2xl text-center">
+            <span className="a-eyebrow">
+              {tr("Une journée type", "A Day in the Life")}
+            </span>
+            <h2 className="a-headline-lg mt-1 text-arctic-900">
+              {tr(
+                "Comment Japora vous fait gagner 3 heures par jour",
+                "How Japora saves you 3 hours every single day"
+              )}
+            </h2>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                time: tr("07h30 · Matin", "07:30 AM · Morning"),
+                title: tr(
+                  "Commandes de la nuit déjà payées",
+                  "Overnight orders already paid"
+                ),
+                desc: tr(
+                  "Pendant votre sommeil, le bot a répondu aux clients nocturnes. Vous vous réveillez avec 3 commandes déjà payées par T-Money.",
+                  "While you slept, the bot answered night shoppers. You wake up to 3 orders already paid via T-Money."
+                ),
+              },
+              {
+                time: tr("11h00 · Au marché", "11:00 AM · At the Stall"),
+                title: tr(
+                  "Scan QR code au stand & Statut WhatsApp",
+                  "Stall QR scans & WhatsApp Status"
+                ),
+                desc: tr(
+                  "Vous publiez une carte produit sur votre Statut WhatsApp en 1 clic. Au stand, les clients scannent votre QR code pour voir toutes les tailles.",
+                  "You post a product card to your WhatsApp Status in 1 tap. At your stall, buyers scan your QR poster to browse all sizes."
+                ),
+              },
+              {
+                time: tr("15h00 · Livraisons", "03:00 PM · Deliveries"),
+                title: tr(
+                  "Suivi Kanban & Zones de livraison",
+                  "Kanban tracking & Delivery zones"
+                ),
+                desc: tr(
+                  "Votre livreur récupère les colis avec l'adresse exacte et les frais de quartier (Lomé Centre, Agoè…) déjà réglés.",
+                  "Your rider picks up parcels with the exact neighborhood address and delivery fees already settled."
+                ),
+              },
+              {
+                time: tr("18h00 · Bilan du soir", "06:00 PM · Evening Recap"),
+                title: tr(
+                  "Résumé automatique sur WhatsApp",
+                  "Automated WhatsApp summary"
+                ),
+                desc: tr(
+                  "Vous recevez votre récapitulatif de 18h : ventes du jour, produit phare et alerte sur les articles à réapprovisionner.",
+                  "You get your 6 PM recap on WhatsApp: daily revenue, top seller, and alerts on items to restock."
+                ),
+              },
+            ].map((slot) => (
+              <div
+                key={slot.time}
+                className="glass glass-edge flex flex-col justify-between rounded-shape-lg p-5"
+              >
+                <div>
+                  <span className="inline-block rounded-full bg-brand/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-dark">
+                    {slot.time}
+                  </span>
+                  <h3 className="mt-3 font-display text-sm font-bold text-arctic-900">
+                    {slot.title}
+                  </h3>
+                  <p className="mt-1.5 text-xs leading-relaxed text-arctic-600">
+                    {slot.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ============================================================
+         * 6. OFFLINE-TO-ONLINE BRIDGE & SOCIAL SHARE KIT
+         * ============================================================ */}
+        <section className="mb-20 grid gap-6 md:grid-cols-2">
+          <div className="glass glass-edge rounded-shape-xl p-6 sm:p-8">
+            <span className="a-eyebrow">
+              {tr("Pont Physique → Digital", "Offline → Online Bridge")}
+            </span>
+            <h3 className="mt-2 font-display text-xl font-bold text-arctic-900">
+              {tr(
+                "Affiche QR Code pour votre boutique ou étal de marché",
+                "Printable QR Poster for your physical shop or market stall"
+              )}
+            </h3>
+            <p className="mt-2 text-xs leading-relaxed text-arctic-700 sm:text-sm">
+              {tr(
+                "Depuis vos paramètres (/dashboard/settings), téléchargez et imprimez votre affiche QR code officielle. Même lorsque votre stand est bondé ou fermé, les clients scannent le code, parcourent vos articles et s'abonnent (🔔 Follow).",
+                "From your settings (/dashboard/settings), download and print your official QR code poster. Even when your stall is busy or closed, shoppers scan to browse your catalog and subscribe (🔔 Follow)."
+              )}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-arctic-800">
+              <span className="rounded-md border border-arctic-300/60 bg-white/80 px-2.5 py-1">
+                {tr("✓ Format SVG haute définition", "✓ High-res printable SVG")}
+              </span>
+              <span className="rounded-md border border-arctic-300/60 bg-white/80 px-2.5 py-1">
+                {tr("✓ Bouton « 🔔 Suivre la boutique »", "✓ '🔔 Follow shop' opt-in")}
+              </span>
+            </div>
+          </div>
+
+          <div className="glass glass-edge rounded-shape-xl p-6 sm:p-8">
+            <span className="a-eyebrow">
+              {tr("Kit Réseaux Sociaux", "Social Share Kit")}
+            </span>
+            <h3 className="mt-2 font-display text-xl font-bold text-arctic-900">
+              {tr(
+                "Visuels Statut WhatsApp, Instagram & TikTok générés automatiquement",
+                "Auto-generated WhatsApp Status, Instagram & TikTok cards"
+              )}
+            </h3>
+            <p className="mt-2 text-xs leading-relaxed text-arctic-700 sm:text-sm">
+              {tr(
+                "Chaque produit de votre catalogue dispose d'un générateur de visuels promotionnels avec prix, badge de disponibilité et légende prête à copier. Postez sur votre Statut WhatsApp en quelques secondes et suivez vos ventes par campagne.",
+                "Every product in your catalog includes a promotional image generator with price, stock badge, and copyable caption. Post to your WhatsApp Status in seconds and track attributed sales."
+              )}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-arctic-800">
+              <span className="rounded-md border border-arctic-300/60 bg-white/80 px-2.5 py-1">
+                {tr("✓ Attribution des ventes par campagne", "✓ Campaign sales attribution")}
+              </span>
+              <span className="rounded-md border border-arctic-300/60 bg-white/80 px-2.5 py-1">
+                {tr("✓ Relance des paniers abandonnés", "✓ Abandoned cart recovery")}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        {/* ============================================================
+         * 7. CLOSING CTA
+         * ============================================================ */}
         <section className="mb-20 text-center">
-          <h2 className="a-headline-md font-display text-arctic-900">Your hustle, quietly handled.</h2>
-          <p className="a-body-md mx-auto mt-2 max-w-md text-arctic-700">
-            Start free — keep 97% when you sell. No monthly fee.
-          </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <Link href="/start" className="btn-primary">
-              Open my shop
-            </Link>
-            <Link href="/pricing" className="btn-ghost">
-              See pricing
-            </Link>
+          <div className="glass glass-edge mx-auto max-w-3xl rounded-shape-xl p-8 shadow-elev-2 sm:p-12">
+            <span className="a-eyebrow">
+              {tr("Lancez-vous aujourd'hui", "Get started today")}
+            </span>
+            <h2 className="a-headline-lg mt-2 font-display text-arctic-900">
+              {tr(
+                "Vendez en ligne et sur WhatsApp, suivez vos ventes en toute sérénité.",
+                "Sell online and on WhatsApp, track your sales with peace of mind."
+              )}
+            </h2>
+            <p className="a-body-md mx-auto mt-2 max-w-lg text-arctic-700">
+              {tr(
+                "Créez votre boutique gratuitement en 90 secondes — aucune carte bancaire requise.",
+                "Open your shop for free in 90 seconds — no credit card required."
+              )}
+            </p>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <Link href="/start" className="a-btn a-btn--cafe a-btn--lg font-bold">
+                {tr(
+                  "Ouvrir ma boutique gratuitement →",
+                  "Open my free shop now →"
+                )}
+              </Link>
+              <Link href="/marketplace" className="btn-ghost a-btn--lg">
+                {tr("Explorer le Marketplace", "Explore the Marketplace")}
+              </Link>
+            </div>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-arctic-300/40 bg-arctic-50/55 backdrop-blur-glass-thin">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-6">
-          <span className="a-body-sm text-arctic-700">© Japora</span>
-          <nav className="flex items-center gap-5">
-            <Link href="/pricing" className="a-label-md text-arctic-700 hover:text-arctic-900">Pricing</Link>
-            <Link href="/marketplace" className="a-label-md text-arctic-700 hover:text-arctic-900">Marketplace</Link>
-            <Link href="/start" className="a-label-md font-bold text-arctic-900 hover:underline">Start your shop →</Link>
-          </nav>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }
 
-/* Small line-art step glyphs (gold), consistent with the Lumière icon set. */
-function StepIcon({ name }: { name: Step["icon"] }) {
-  const paths: Record<Step["icon"], string> = {
+function StepIcon({ name }: { name: StepIconName }) {
+  const paths: Record<StepIconName, string> = {
     shop: "M4 9l1-4h14l1 4M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9M4 9h16M9 20v-6h6v6",
     tag: "M3 7v5l9 9 6-6-9-9H4a1 1 0 0 0-1 1zM7.5 7.5h.01",
     share: "M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13",
@@ -326,7 +893,16 @@ function StepIcon({ name }: { name: Step["icon"] }) {
     moon: "M20 14.5A8 8 0 1 1 9.5 4 6.2 6.2 0 0 0 20 14.5z",
   };
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 text-brand-dark" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5 shrink-0 text-brand-dark"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <path d={paths[name]} />
     </svg>
   );

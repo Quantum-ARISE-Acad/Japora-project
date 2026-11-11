@@ -5,10 +5,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { listShops } from "@/lib/directory";
+import { listShops, type ShopCard as ShopCardType } from "@/lib/directory";
 import { CATEGORIES, REGIONS, findRegion, findCategory } from "@/lib/regions";
+import { formatMoney } from "@/lib/utils";
 import { AuroraIsoscout } from "@/components/aurora";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import PublicHeader from "@/components/PublicHeader";
+import PublicFooter from "@/components/PublicFooter";
 
 export const revalidate = 300;
 
@@ -19,71 +22,92 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const r = findRegion(region);
   if (!r) return { title: "Region not found — Japora" };
   return {
-    title: `WhatsApp shops in ${r.label} — Japora`,
-    description: `Trusted WhatsApp sellers in ${r.label}, ${r.country}. Fashion, food, beauty, more.`,
+    title: `Boutiques WhatsApp à ${r.label} (${r.country}) — Japora`,
+    description: `Découvrez les vendeurs WhatsApp vérifiés à ${r.label}, ${r.country}. Mode, alimentation, beauté, électronique et services.`,
   };
 }
 
-function ShopCard({
-  shop,
-}: {
-  shop: {
-    id: string;
-    shopName: string;
-    shopSlug: string;
-    bio: string;
-    avatarUrl: string;
-    region: string;
-    category: string;
-    tagline: string;
-    verified: boolean;
-  };
-}) {
+function ShopCard({ shop }: { shop: ShopCardType }) {
   const category = findCategory(shop.category);
   const initial = shop.shopName.charAt(0).toUpperCase() || "S";
+  const cur = shop.currency || "XOF";
 
   return (
-    <Link
-      href={`/shop/${shop.shopSlug}`}
-      className="glass glass-edge group flex flex-col gap-3 rounded-shape-lg p-5 transition-all duration-short ease-spring hover:-translate-y-1 hover:shadow-elev-2"
-    >
-      <div className="flex items-center gap-3">
-        {shop.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={shop.avatarUrl}
-            alt=""
-            className="h-12 w-12 rounded-full object-cover"
-          />
+    <div className="glass glass-edge group flex flex-col justify-between gap-3 rounded-shape-xl p-5 transition-all duration-short ease-spring hover:-translate-y-1 hover:shadow-elev-2">
+      <div>
+        <div className="flex items-center gap-3">
+          {shop.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={shop.avatarUrl}
+              alt=""
+              className="h-12 w-12 rounded-full border border-arctic-200 object-cover"
+            />
+          ) : (
+            <div className="grid h-12 w-12 place-items-center rounded-full bg-arctic-200/85 a-label-lg text-arctic-900 backdrop-blur-glass-thin">
+              {initial}
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <Link
+              href={`/shop/${shop.shopSlug}`}
+              className="a-title-md flex items-center gap-1.5 truncate text-arctic-900 transition-colors duration-short group-hover:text-brand-dark"
+            >
+              <span className="truncate">{shop.shopName}</span>
+              {shop.verified && (
+                <VerifiedBadge size="sm" withLabel={false} className="shrink-0" />
+              )}
+            </Link>
+            {shop.tagline ? (
+              <div className="a-body-sm truncate text-arctic-600">{shop.tagline}</div>
+            ) : null}
+          </div>
+        </div>
+
+        {shop.bio ? (
+          <p className="mt-3 a-body-md line-clamp-2 text-arctic-700">{shop.bio}</p>
         ) : (
-          <div className="grid h-12 w-12 place-items-center rounded-full bg-arctic-200/85 a-label-lg text-arctic-900 backdrop-blur-glass-thin">
-            {initial}
+          <p className="mt-3 a-body-sm italic text-arctic-500">
+            Catalogue disponible en commande directe sur WhatsApp.
+          </p>
+        )}
+
+        {shop.products && shop.products.length > 0 && (
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {shop.products.map((p) => (
+              <Link
+                key={p.id}
+                href={`/c/${shop.shopSlug}?product=${p.id}`}
+                className="overflow-hidden rounded-shape-sm border border-arctic-200 bg-white/80 p-1.5 text-center hover:border-brand"
+              >
+                <div className="truncate text-[10px] font-medium text-arctic-800">
+                  {p.name}
+                </div>
+                <div className="a-num text-[10px] font-bold text-brand-dark">
+                  {formatMoney(p.priceCents, cur)}
+                </div>
+              </Link>
+            ))}
           </div>
         )}
-        <div className="min-w-0">
-          <div className="a-title-md flex items-center gap-1.5 truncate text-arctic-900 transition-colors duration-short group-hover:text-arctic-700">
-            <span className="truncate">{shop.shopName}</span>
-            {shop.verified && <VerifiedBadge size="sm" withLabel={false} className="shrink-0" />}
-          </div>
-          {shop.tagline ? (
-            <div className="a-body-sm truncate text-arctic-600">{shop.tagline}</div>
-          ) : null}
-        </div>
       </div>
-      {shop.bio ? (
-        <p className="a-body-md line-clamp-2 text-arctic-700">{shop.bio}</p>
-      ) : (
-        <p className="a-body-sm italic text-arctic-500">No bio yet</p>
-      )}
-      <div className="mt-auto flex flex-wrap gap-1.5">
+
+      <div className="mt-3 flex items-center justify-between border-t border-arctic-200/60 pt-3">
         {category ? (
           <span className="rounded-shape-sm border border-arctic-400/45 bg-arctic-200/65 px-2 py-0.5 a-label-md text-arctic-900 backdrop-blur-glass-thin">
             {category.icon} {category.label}
           </span>
-        ) : null}
-        <span className="a-label-md text-arctic-700 group-hover:underline">View shop →</span>
+        ) : (
+          <span />
+        )}
+        <Link
+          href={`/shop/${shop.shopSlug}`}
+          className="a-label-md font-bold text-brand-dark group-hover:underline"
+        >
+          Voir la boutique →
+        </Link>
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -95,40 +119,41 @@ export default async function MarketplaceRegionPage({ params }: Params) {
   const shops = await listShops({ region, take: 24 });
 
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-transparent bg-white/0 backdrop-blur-0">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
-          <Link href="/" className="group flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-shape-md bg-arctic-800 font-black text-arctic-50 transition-transform duration-short ease-spring group-hover:rotate-6 group-hover:scale-105">J</span>
-            <span className="a-title-md tracking-[-0.01em] text-arctic-900">Japora</span>
-          </Link>
-          <Link href="/marketplace" className="a-label-md text-arctic-700 hover:text-arctic-900">
-            ← All regions
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col">
+      <PublicHeader />
 
-      <section>
+      <section className="border-b border-arctic-200/60 bg-white/60">
         <div className="mx-auto max-w-6xl px-4 py-10 md:py-14">
-          <p className="a-label-md text-arctic-700">{r.country}</p>
-          <h1 className="a-headline-lg mt-1 text-arctic-900 sm:[font-size:var(--aurora-display-sm)] sm:[line-height:44px]">
-            Shops in {r.label}
+          <div className="flex flex-wrap items-center gap-2 text-xs text-arctic-600 mb-3">
+            <Link href="/marketplace" className="font-semibold hover:text-arctic-900">
+              Marketplace
+            </Link>
+            <span>/</span>
+            <span className="font-bold text-brand-dark">
+              📍 {r.label} ({r.country})
+            </span>
+          </div>
+
+          <h1 className="a-display-sm text-arctic-900 sm:a-display-md">
+            Boutiques WhatsApp à {r.label}
           </h1>
           <p className="a-body-lg a-measure mt-2 text-arctic-700">
-            Browse WhatsApp sellers in {r.label}. Tap a shop to view their catalog and chat.
+            Explorez les marchands vérifiés de {r.label} ({r.country}). Consultez leurs catalogues en ligne et commandez directement sur WhatsApp.
           </p>
         </div>
       </section>
 
-      <main className="mx-auto max-w-6xl px-4 pb-16">
+      <main className="mx-auto max-w-6xl flex-1 px-4 py-10">
         <section className="mb-10">
-          <h2 className="mb-3 a-label-md text-arctic-700">Filter by category</h2>
+          <h2 className="mb-3 a-label-md uppercase tracking-wider text-arctic-700">
+            Filtrer par rayon à {r.label}
+          </h2>
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((c) => (
               <Link
                 key={c.slug}
                 href={`/marketplace/${r.slug}/${c.slug}`}
-                className="a-chip"
+                className="a-chip hover:border-brand"
               >
                 <span className="mr-1">{c.icon}</span>
                 {c.label}
@@ -136,10 +161,10 @@ export default async function MarketplaceRegionPage({ params }: Params) {
             ))}
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <span className="a-label-md text-arctic-700">Other regions:</span>
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <span className="a-label-md text-arctic-600">Autres villes :</span>
             {REGIONS.filter((x) => x.slug !== r.slug)
-              .slice(0, 6)
+              .slice(0, 8)
               .map((x) => (
                 <Link
                   key={x.slug}
@@ -152,27 +177,33 @@ export default async function MarketplaceRegionPage({ params }: Params) {
           </div>
         </section>
 
-        <section>
-          <div className="mb-5 flex items-end justify-between">
+        <section className="mb-12">
+          <div className="mb-5 flex items-end justify-between border-b border-arctic-200/70 pb-3">
             <h2 className="a-headline-md text-arctic-900">
-              {shops.length} {shops.length === 1 ? "shop" : "shops"}
+              {shops.length} {shops.length === 1 ? "boutique active" : "boutiques actives"} à {r.label}
             </h2>
+            <Link
+              href="/marketplace"
+              className="text-xs font-semibold text-brand-dark hover:underline"
+            >
+              ← Toutes les régions
+            </Link>
           </div>
           {shops.length === 0 ? (
-            <div className="glass glass-edge rounded-shape-lg p-6">
+            <div className="glass glass-edge rounded-shape-xl p-8">
               <AuroraIsoscout
                 variant="products"
-                title={`No public shops in ${r.label} yet`}
-                body="Be the first to list your hustle here. Toggle the public-marketplace switch in your settings and your shop appears in this grid."
+                title={`Aucune boutique publique à ${r.label} pour le moment`}
+                body={`Soyez le premier commerçant à référencer votre boutique WhatsApp à ${r.label}. L'inscription prend 90 secondes et est 100% gratuite.`}
                 action={
-                  <Link href="/signup" className="btn-primary">
-                    Open the first one
+                  <Link href="/start" className="btn-primary">
+                    Ouvrir la première boutique à {r.label} →
                   </Link>
                 }
               />
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {shops.map((shop) => (
                 <ShopCard key={shop.id} shop={shop} />
               ))}
@@ -180,6 +211,8 @@ export default async function MarketplaceRegionPage({ params }: Params) {
           )}
         </section>
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

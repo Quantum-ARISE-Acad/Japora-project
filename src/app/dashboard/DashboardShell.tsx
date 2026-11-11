@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
-import EcosystemSwitcher from "@/components/EcosystemSwitcher";
 
 /**
  * Lumière dashboard shell — the "orchestrator".
@@ -213,7 +212,6 @@ export default function DashboardShell({
             </kbd>
           </button>
 
-          <EcosystemSwitcher current="japora" />
           <ThemeToggle />
         </header>
 
