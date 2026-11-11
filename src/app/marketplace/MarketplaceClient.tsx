@@ -9,6 +9,7 @@ import VerifiedBadge from "@/components/VerifiedBadge";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import { SaasIcon, CategoryIcon } from "@/components/ui/SaasIcons";
 
 const CATEGORY_FR: Record<string, string> = {
   fashion: "Mode & Wax",
@@ -130,17 +131,21 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
           {region ? (
             <Link
               href={`/marketplace/${region.slug}`}
-              className="rounded-shape-sm border border-arctic-400/45 bg-white/75 px-2 py-0.5 text-[11px] font-semibold text-arctic-800 hover:border-brand"
+              className="inline-flex items-center gap-1 rounded-shape-sm border border-arctic-400/45 bg-white/75 px-2 py-0.5 text-[11px] font-semibold text-arctic-800 hover:border-brand"
             >
-              📍 {region.label}, {region.country}
+              <SaasIcon name="map-pin" size={12} className="text-brand-dark" />
+              <span>
+                {region.label}, {region.country}
+              </span>
             </Link>
           ) : null}
           {category ? (
             <Link
               href={`/marketplace?category=${category.slug}`}
-              className="rounded-shape-sm border border-arctic-400/45 bg-arctic-200/65 px-2 py-0.5 text-[11px] font-semibold text-arctic-900 hover:border-brand"
+              className="inline-flex items-center gap-1 rounded-shape-sm border border-arctic-400/45 bg-arctic-200/65 px-2 py-0.5 text-[11px] font-semibold text-arctic-900 hover:border-brand"
             >
-              {category.icon} {tr(CATEGORY_FR[category.slug] || category.label, category.label)}
+              <CategoryIcon slug={category.slug} size={12} className="text-brand-dark" />
+              <span>{tr(CATEGORY_FR[category.slug] || category.label, category.label)}</span>
             </Link>
           ) : null}
         </div>
@@ -154,9 +159,10 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
           </Link>
           <Link
             href={`/c/${shop.shopSlug}`}
-            className="btn-primary flex-1 justify-center py-2 text-xs"
+            className="btn-primary flex-1 justify-center gap-1 py-2 text-xs"
           >
-            {tr("Catalogue →", "Catalog →")}
+            <span>{tr("Catalogue", "Catalog")}</span>
+            <SaasIcon name="arrow-right" size={13} />
           </Link>
         </div>
       </div>
@@ -204,7 +210,7 @@ export default function MarketplaceClient({
       <section className="border-b border-arctic-200/60 bg-gradient-to-b from-white/75 to-transparent">
         <div className="mx-auto max-w-6xl px-4 py-12 text-center md:py-16">
           <span className="inline-flex items-center gap-2 rounded-shape-full border border-brand/35 bg-white/80 px-3.5 py-1 text-xs font-semibold text-arctic-800 shadow-xs">
-            <span>🛍️</span>
+            <SaasIcon name="store" size={14} className="text-brand-dark" />
             <span>
               {tr(
                 "Annuaire Officiel des Boutiques en ligne & WhatsApp",
@@ -236,7 +242,9 @@ export default function MarketplaceClient({
               <input type="hidden" name="region" value={activeRegion} />
             )}
             <div className="flex items-center rounded-shape-full border border-arctic-300/75 bg-white/90 p-1.5 shadow-elev-2 backdrop-blur-md focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/25">
-              <span className="pl-4 pr-2 text-arctic-500">🔍</span>
+              <span className="pl-4 pr-2 text-arctic-500">
+                <SaasIcon name="search" size={18} />
+              </span>
               <input
                 type="text"
                 name="q"
@@ -259,6 +267,7 @@ export default function MarketplaceClient({
           {/* Marketplace Quick Stats */}
           <div className="mx-auto mt-7 flex max-w-2xl flex-wrap items-center justify-center gap-4 text-xs text-arctic-600 sm:gap-8">
             <div className="flex items-center gap-1.5">
+              <SaasIcon name="map-pin" size={14} className="text-brand-dark" />
               <span className="font-bold text-arctic-900">{REGIONS.length}</span>
               <span>
                 {tr("villes & marchés couverts", "cities & markets covered")}
@@ -266,13 +275,15 @@ export default function MarketplaceClient({
             </div>
             <span className="hidden text-arctic-300 sm:inline">•</span>
             <div className="flex items-center gap-1.5">
+              <SaasIcon name="store" size={14} className="text-brand-dark" />
               <span className="font-bold text-arctic-900">{CATEGORIES.length}</span>
               <span>{tr("rayons spécialisés", "specialized categories")}</span>
             </div>
             <span className="hidden text-arctic-300 sm:inline">•</span>
             <div className="flex items-center gap-1.5">
+              <SaasIcon name="shield-check" size={14} className="text-emerald-700" />
               <span className="font-bold text-emerald-700">
-                {tr("✓ Paiement direct", "✓ Inline Payment")}
+                {tr("Paiement direct", "Inline Payment")}
               </span>
               <span>T-Money, Flooz, Wave &amp; Cash</span>
             </div>
@@ -294,15 +305,15 @@ export default function MarketplaceClient({
                 href={makeFilterUrl({ category: "" })}
                 className="inline-flex items-center gap-1.5 rounded-shape-full bg-white px-3 py-1 text-xs font-semibold text-arctic-900 shadow-xs hover:bg-arctic-50"
               >
+                <CategoryIcon slug={selectedCategoryObj.slug} size={13} className="text-brand-dark" />
                 <span>
-                  {selectedCategoryObj.icon}{" "}
                   {tr(
                     CATEGORY_FR[selectedCategoryObj.slug] ||
                       selectedCategoryObj.label,
                     selectedCategoryObj.label
                   )}
                 </span>
-                <span className="text-arctic-500 hover:text-arctic-900">✕</span>
+                <SaasIcon name="x" size={12} className="text-arctic-500 hover:text-arctic-900" />
               </Link>
             )}
             {selectedRegionObj && (
@@ -310,10 +321,11 @@ export default function MarketplaceClient({
                 href={makeFilterUrl({ region: "" })}
                 className="inline-flex items-center gap-1.5 rounded-shape-full bg-white px-3 py-1 text-xs font-semibold text-arctic-900 shadow-xs hover:bg-arctic-50"
               >
+                <SaasIcon name="map-pin" size={13} className="text-brand-dark" />
                 <span>
-                  📍 {selectedRegionObj.label} ({selectedRegionObj.country})
+                  {selectedRegionObj.label} ({selectedRegionObj.country})
                 </span>
-                <span className="text-arctic-500 hover:text-arctic-900">✕</span>
+                <SaasIcon name="x" size={12} className="text-arctic-500 hover:text-arctic-900" />
               </Link>
             )}
             {query && (
@@ -322,7 +334,7 @@ export default function MarketplaceClient({
                 className="inline-flex items-center gap-1.5 rounded-shape-full bg-white px-3 py-1 text-xs font-semibold text-arctic-900 shadow-xs hover:bg-arctic-50"
               >
                 <span>&ldquo;{query}&rdquo;</span>
-                <span className="text-arctic-500 hover:text-arctic-900">✕</span>
+                <SaasIcon name="x" size={12} className="text-arctic-500 hover:text-arctic-900" />
               </Link>
             )}
             <Link
@@ -358,13 +370,21 @@ export default function MarketplaceClient({
                 <Link
                   key={c.slug}
                   href={makeFilterUrl({ category: isSelected ? "" : c.slug })}
-                  className={`flex flex-col items-center justify-center gap-1.5 rounded-shape-lg border p-3 text-center transition-all duration-short hover:-translate-y-0.5 ${
+                  className={`flex flex-col items-center justify-center gap-2 rounded-shape-lg border p-3.5 text-center transition-all duration-short hover:-translate-y-0.5 ${
                     isSelected
                       ? "border-arctic-900 bg-arctic-900 text-arctic-50 shadow-elev-1"
                       : "border-arctic-300/60 bg-white/75 text-arctic-800 hover:border-brand/60 hover:bg-white"
                   }`}
                 >
-                  <span className="text-2xl">{c.icon}</span>
+                  <span
+                    className={`grid h-9 w-9 place-items-center rounded-shape-md ${
+                      isSelected
+                        ? "bg-white/15 text-white"
+                        : "bg-brand/10 text-brand-dark"
+                    }`}
+                  >
+                    <CategoryIcon slug={c.slug} size={18} />
+                  </span>
                   <span className="text-xs font-bold">
                     {tr(CATEGORY_FR[c.slug] || c.label, c.label)}
                   </span>
@@ -458,7 +478,7 @@ export default function MarketplaceClient({
                     <Link href="/marketplace" className="btn-primary">
                       {tr("Voir toutes les boutiques", "View all shops")}
                     </Link>
-                    <Link href="/start" className="btn-ghost">
+                    <Link href="/signup" className="btn-ghost">
                       {tr("Ouvrir ma boutique ici →", "Open my shop here →")}
                     </Link>
                   </div>
@@ -574,14 +594,16 @@ export default function MarketplaceClient({
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               {
-                zone: tr("🇹🇬 Togo (Marché pilote)", "🇹🇬 Togo (Launch Market)"),
+                code: "TG",
+                zone: tr("Togo (Marché pilote)", "Togo (Launch Market)"),
                 cities: REGIONS.filter((r) => r.country === "Togo"),
                 rails: "T-Money & Flooz",
               },
               {
+                code: "XOF",
                 zone: tr(
-                  "🌍 Afrique de l'Ouest Francophone",
-                  "🌍 Francophone West Africa"
+                  "Afrique de l'Ouest Francophone",
+                  "Francophone West Africa"
                 ),
                 cities: REGIONS.filter((r) =>
                   [
@@ -596,9 +618,10 @@ export default function MarketplaceClient({
                 rails: "Flooz, Wave, Orange & MoMo",
               },
               {
+                code: "GH/NG",
                 zone: tr(
-                  "🇬🇭 🇳🇬 Afrique de l'Ouest Anglophone",
-                  "🇬🇭 🇳🇬 Anglophone West Africa"
+                  "Afrique de l'Ouest Anglophone",
+                  "Anglophone West Africa"
                 ),
                 cities: REGIONS.filter((r) =>
                   ["Ghana", "Nigeria"].includes(r.country)
@@ -606,9 +629,10 @@ export default function MarketplaceClient({
                 rails: "Paystack, Flutterwave & MoMo",
               },
               {
+                code: "EA/SA",
                 zone: tr(
-                  "🇰🇪 🇷🇼 Afrique de l'Est & Australe",
-                  "🇰🇪 🇷🇼 East & Southern Africa"
+                  "Afrique de l'Est & Australe",
+                  "East & Southern Africa"
                 ),
                 cities: REGIONS.filter((r) =>
                   [
@@ -627,6 +651,12 @@ export default function MarketplaceClient({
                 className="glass flex flex-col justify-between rounded-shape-lg p-5"
               >
                 <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1.5 rounded-md border border-brand/30 bg-brand/10 px-2 py-0.5 text-[10px] font-bold text-brand-dark">
+                      <SaasIcon name="globe" size={12} />
+                      <span>{hub.code}</span>
+                    </span>
+                  </div>
                   <h3 className="font-display text-sm font-bold text-arctic-900">
                     {hub.zone}
                   </h3>
@@ -668,17 +698,18 @@ export default function MarketplaceClient({
                 </h2>
                 <p className="text-xs leading-relaxed text-arctic-200 sm:text-sm">
                   {tr(
-                    "Créez votre boutique en 90 secondes, activez l'option « Marketplace public » dans vos paramètres et laissez de nouveaux clients vous découvrir chaque jour.",
-                    "Open your shop in 90 seconds, enable the public marketplace toggle in your settings, and let new local buyers discover you every day."
+                    "Créez votre boutique en quelques instants, activez l'option « Marketplace public » dans vos paramètres et laissez de nouveaux clients vous découvrir chaque jour.",
+                    "Open your shop in moments, enable the public marketplace toggle in your settings, and let new local buyers discover you every day."
                   )}
                 </p>
               </div>
               <div className="flex shrink-0 flex-wrap gap-3">
                 <Link
-                  href="/start"
+                  href="/signup"
                   className="a-btn a-btn--cafe px-6 py-3 text-xs font-bold"
                 >
-                  {tr("Ouvrir ma boutique →", "Open my shop →")}
+                  <span>{tr("Ouvrir ma boutique", "Open my shop")}</span>
+                  <SaasIcon name="arrow-right" size={14} />
                 </Link>
                 <Link
                   href="/how-to-use"
@@ -696,4 +727,3 @@ export default function MarketplaceClient({
     </div>
   );
 }
-

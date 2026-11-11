@@ -8,12 +8,13 @@ import { isClerkConfigured } from "./ClerkAuthProvider";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import { SaasIcon } from "@/components/ui/SaasIcons";
 
 const CURRENCIES = [
-  { code: "XOF", label: "Franc CFA (XOF)", flag: "🇹🇬" },
-  { code: "USD", label: "US Dollar ($)", flag: "🇺🇸" },
-  { code: "EUR", label: "Euro (€)", flag: "🇪🇺" },
-  { code: "GHS", label: "Ghanaian Cedi (GH₵)", flag: "🇬🇭" },
+  { code: "XOF", label: "XOF — Franc CFA (FCFA)" },
+  { code: "USD", label: "USD — US Dollar ($)" },
+  { code: "EUR", label: "EUR — Euro (€)" },
+  { code: "GHS", label: "GHS — Ghanaian Cedi (GH₵)" },
 ];
 
 export default function CustomSignUp() {
@@ -266,7 +267,7 @@ export default function CustomSignUp() {
             ) : (
               <>
                 <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand/15 px-3 py-1 text-xs font-bold text-brand-dark">
-                  <span>🛍️</span>
+                  <SaasIcon name="store" size={14} />
                   <span>
                     {tr(
                       "Plateforme marchande Japora",
@@ -374,7 +375,7 @@ export default function CustomSignUp() {
                     >
                       {CURRENCIES.map((c) => (
                         <option key={c.code} value={c.code}>
-                          {c.flag} {c.label}
+                          {c.label}
                         </option>
                       ))}
                     </select>
@@ -427,16 +428,7 @@ export default function CustomSignUp() {
                   </button>
                 </form>
 
-                <div className="mt-6 space-y-2 border-t border-arctic-200/60 pt-4 text-center a-body-sm text-arctic-600">
-                  <p>
-                    {tr("Préférez-vous créer sans email ?", "Prefer signing up without email?")}{" "}
-                    <Link
-                      href="/start"
-                      className="font-semibold text-brand-dark underline hover:text-arctic-900"
-                    >
-                      {tr("Inscription par code WhatsApp", "Sign up with WhatsApp OTP")}
-                    </Link>
-                  </p>
+                <div className="mt-6 border-t border-arctic-200/60 pt-4 text-center a-body-sm text-arctic-600">
                   <p>
                     {tr("Vous avez déjà une boutique ?", "Already have a shop?")}{" "}
                     <Link
