@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentVendor } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { formatMoney } from "@/lib/utils";
+import { sendWhatsApp } from "@/lib/whatsapp";
 
 export async function GET() {
   const vendor = await getCurrentVendor();
@@ -44,7 +46,9 @@ export async function POST(req: NextRequest) {
 
   const description = String(body.description || "").trim().slice(0, 300);
   const currency = String(body.currency || vendor.currency || "XOF").toUpperCase().slice(0, 3);
-  
+  const customerPhone = String(body.customerPhone || "").trim();
+  const customerName = String(body.customerName || "").trim();
+
   let expiresAt: Date | null = null;
   if (body.expiresAt) {
     const parsed = new Date(body.expiresAt);
@@ -63,5 +67,30 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return NextResponse.json({ ok: true, link }, { status: 201 });
+  let whatsappSent = false;
+  let whatsappStatus: string | undefined;
+
+  if (customerPhone) {
+    const appBaseUrl = (process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin || "http://localhost:5174").replace(/\/$/, "");
+    const payUrl = `${appBaseUrl}/pay/link/${link.id}`;
+    const amountText = formatMoney(link.amountCents, link.currency);
+
+    const waRes = await sendWhatsApp({
+      vendorId: vendor.id,
+      to: customerPhone,
+      body:
+        `👋 Bonjour${customerName ? ` *${customerName}*` : ""} !\n\n` +
+        `*${vendor.shopName}* vous a envoyé un lien de paiement sécurisé Japora × FedaPay :\n` +
+        `💰 Montant : *${amountText}*\n` +
+        (description ? `📝 Motif : *${description}*\n` : "") +
+        `\n👉 Réglez en 1 clic par T-Money, Flooz, Mobile Money ou Carte :\n${payUrl}`,
+    }).catch(() => null);
+
+    if (waRes) {
+      whatsappSent = true;
+      whatsappStatus = waRes.status;
+    }
+  }
+
+  return NextResponse.json({ ok: true, link, whatsappSent, whatsappStatus }, { status: 201 });
 }

@@ -3,8 +3,8 @@ import { getCurrentVendor } from "@/lib/auth";
 import { parseUiPrefs, uiPrefsToCssVars } from "@/lib/uiPrefs";
 import DashboardShell from "./DashboardShell";
 import UnverifiedBanner from "./UnverifiedBanner";
-
 import LiveOrderNotifier from "@/components/LiveOrderNotifier";
+import ShopOnboardingModal from "@/components/ShopOnboardingModal";
 
 export default async function DashboardLayout({
   children,
@@ -28,6 +28,23 @@ export default async function DashboardLayout({
     <div className="min-h-screen" style={style}>
       {hasRealEmail && !vendor.emailVerifiedAt && <UnverifiedBanner email={vendor.email} />}
       <LiveOrderNotifier currency={vendor.currency || "USD"} />
+      <ShopOnboardingModal
+        initial={{
+          shopName: vendor.shopName,
+          shopSlug: vendor.shopSlug,
+          tagline: vendor.tagline || "",
+          whatsappNumber: vendor.whatsappNumber || "",
+          momoNumber: vendor.momoNumber || "",
+          currency: vendor.currency || "XOF",
+          language: vendor.language || "fr",
+          region: vendor.region || "lome",
+          category: vendor.category || "fashion",
+          bio: vendor.bio || "",
+          avatarUrl: vendor.avatarUrl || "",
+          email: vendor.email,
+          needsOnboarding: !vendor.onboardedAt,
+        }}
+      />
       <DashboardShell
         shopName={vendor.shopName}
         shopSlug={vendor.shopSlug}

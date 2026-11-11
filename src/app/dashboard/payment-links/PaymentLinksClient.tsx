@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { formatMoney, waMeLink } from "@/lib/utils";
+import Link from "next/link";
+import { formatMoney } from "@/lib/utils";
 
 export interface PaymentLinkItem {
   id: string;
@@ -32,9 +33,18 @@ export default function PaymentLinksClient({
   // Create Form states
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
   const [expiresInDays, setExpiresInDays] = useState("7");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
+  const [toast, setToast] = useState("");
+
+  // WhatsApp Cloud API modal state
+  const [waModalLink, setWaModalLink] = useState<PaymentLinkItem | null>(null);
+  const [waPhone, setWaPhone] = useState("");
+  const [waName, setWaName] = useState("");
+  const [waSending, setWaSending] = useState(false);
 
   // Notification states
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -52,6 +62,11 @@ export default function PaymentLinksClient({
     if (filter === "pending") return !l.isPaid;
     return true;
   });
+
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(""), 4000);
+  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -74,14 +89,17 @@ export default function PaymentLinksClient({
         expiresAt = d.toISOString();
       }
 
+      // All Japora amounts are stored in cents (major * 100) for all currencies
       const res = await fetch("/api/payment-links", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amountCents: Math.round(numAmount * (currency === "XOF" ? 1 : 100)),
+          amountCents: Math.round(numAmount * 100),
           description: description.trim(),
           currency,
           expiresAt,
+          customerName: customerName.trim() || undefined,
+          customerPhone: customerPhone.trim() || undefined,
         }),
       });
 
@@ -93,11 +111,50 @@ export default function PaymentLinksClient({
         setShowCreateModal(false);
         setAmount("");
         setDescription("");
+        setCustomerName("");
+        setCustomerPhone("");
+        if (data.whatsappSent) {
+          showToast("✓ Lien créé et envoyé au client via WhatsApp Cloud API !");
+        } else {
+          showToast("✓ Lien de paiement FedaPay créé avec succès !");
+        }
       }
     } catch {
       setError("Erreur réseau. Veuillez réessayer.");
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function handleSendCloudWhatsApp(e: React.FormEvent) {
+    e.preventDefault();
+    if (!waModalLink || !waPhone.trim()) return;
+    setWaSending(true);
+    try {
+      const res = await fetch(`/api/payment-links/${waModalLink.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "send_whatsapp",
+          customerPhone: waPhone.trim(),
+          customerName: waName.trim(),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setWaSending(false);
+      if (res.ok) {
+        setWaModalLink(null);
+        setWaPhone("");
+        setWaName("");
+        showToast(
+          `✓ Lien envoyé sur WhatsApp (${waPhone.trim()}) via ${data.provider === "cloud-api" ? "Meta Cloud API" : "WhatsApp Bot"} !`,
+        );
+      } else {
+        alert(data.error || "Erreur lors de l'envoi WhatsApp.");
+      }
+    } catch {
+      setWaSending(false);
+      alert("Erreur réseau lors de l'envoi WhatsApp.");
     }
   }
 
@@ -149,9 +206,9 @@ export default function PaymentLinksClient({
 
   function getWaShareUrl(l: PaymentLinkItem) {
     const url = getLinkUrl(l.id);
-    const text = `Bonjour ! Voici le lien sécurisé pour régler ${formatMoney(
+    const text = `Bonjour ! Voici le lien sécurisé FedaPay pour régler ${formatMoney(
       l.amountCents,
-      l.currency || currency
+      l.currency || currency,
     )}${l.description ? ` (${l.description})` : ""} pour ${shopName} :\n👉 ${url}`;
     return `https://wa.me/?text=${encodeURIComponent(text)}`;
   }
@@ -162,22 +219,36 @@ export default function PaymentLinksClient({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Liens de Paiement
+            Liens de Paiement × FedaPay
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Générez des liens de paiement instantanés pour vos ventes sur mesure, acomptes ou clients WhatsApp.
+            Générez des liens de paiement instantanés avec FedaPay (T-Money, Flooz, Mobile Money & Carte) et envoyez-les directement via WhatsApp Cloud API.
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShowCreateModal(true)}
-          className="btn-primary flex items-center gap-2 self-start sm:self-auto text-sm px-4 py-2.5 rounded-xl shadow-md"
-        >
-          <span>➕</span>
-          <span>Créer un lien de paiement</span>
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <Link
+            href="/dashboard/billing"
+            className="btn-ghost text-xs px-3 py-2.5 rounded-xl"
+          >
+            ⚙️ Config FedaPay Money
+          </Link>
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="btn-primary flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl shadow-md"
+          >
+            <span>➕</span>
+            <span>Créer un lien de paiement</span>
+          </button>
+        </div>
       </div>
+
+      {toast && (
+        <div className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-900 shadow-sm">
+          {toast}
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -213,7 +284,7 @@ export default function PaymentLinksClient({
             {links.length}
           </div>
           <span className="text-xs text-slate-400 mt-1 block">
-            Tous canaux confondus
+            FedaPay Sandbox & WhatsApp Cloud API
           </span>
         </div>
       </div>
@@ -243,7 +314,7 @@ export default function PaymentLinksClient({
             Aucun lien de paiement trouvé
           </h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
-            Générez un lien direct pour demander un acompte ou faire payer un client à distance via Mobile Money.
+            Générez un lien direct pour demander un acompte ou faire payer un client à distance via FedaPay (T-Money, Flooz, Mobile Money).
           </p>
           <button
             type="button"
@@ -303,12 +374,34 @@ export default function PaymentLinksClient({
 
                 {/* Actions */}
                 <div className="flex items-center flex-wrap gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800">
+                  <Link
+                    href={`/pay/link/${l.id}`}
+                    target="_blank"
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-light/40 text-brand-dark hover:bg-brand-light transition-colors"
+                  >
+                    💳 Ouvrir & Payer ↗
+                  </Link>
+
                   <button
                     type="button"
                     onClick={() => copyLink(l.id)}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 transition-colors"
                   >
-                    {copiedId === l.id ? "✓ Copié !" : "📋 Copier le lien"}
+                    {copiedId === l.id ? "✓ Copié !" : "📋 Copier"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWaModalLink(l);
+                      setWaPhone("");
+                      setWaName("");
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-1 transition-colors"
+                    title="Envoyer directement au numéro du client via Meta WhatsApp Cloud API"
+                  >
+                    <span>📲</span>
+                    <span>Cloud API WhatsApp</span>
                   </button>
 
                   <a
@@ -318,7 +411,7 @@ export default function PaymentLinksClient({
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 flex items-center gap-1 transition-colors"
                   >
                     <span>💬</span>
-                    <span>Envoyer WhatsApp</span>
+                    <span>Partager</span>
                   </a>
 
                   <button
@@ -327,7 +420,7 @@ export default function PaymentLinksClient({
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                       l.isPaid
                         ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100"
-                        : "bg-emerald-600 text-white hover:bg-emerald-700"
+                        : "bg-slate-900 text-white hover:bg-slate-800"
                     }`}
                   >
                     {l.isPaid ? "Marquer impayé" : "Marquer payé"}
@@ -354,7 +447,7 @@ export default function PaymentLinksClient({
           <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                Nouveau Lien de Paiement
+                Nouveau Lien de Paiement (FedaPay)
               </h2>
               <button
                 type="button"
@@ -382,15 +475,41 @@ export default function PaymentLinksClient({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Description / Motif
+                  Description / Motif *
                 </label>
                 <input
                   type="text"
+                  required
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Ex: Acompte commande robe de soirée"
                   className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
+              </div>
+
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 space-y-3">
+                <div className="text-xs font-bold text-emerald-900">
+                  📲 Envoi direct par WhatsApp Cloud API (Optionnel)
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Nom du client"
+                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-emerald-300 bg-white text-slate-900 focus:outline-none"
+                  />
+                  <input
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="Ex: +22890123456"
+                    className="w-full px-3 py-1.5 text-xs font-mono rounded-lg border border-emerald-300 bg-white text-slate-900 focus:outline-none"
+                  />
+                </div>
+                <p className="text-[11px] text-emerald-700">
+                  Si renseigné, Japora envoie automatiquement le lien de paiement FedaPay sur le WhatsApp du client dès la création.
+                </p>
               </div>
 
               <div>
@@ -428,6 +547,74 @@ export default function PaymentLinksClient({
                   className="btn-primary text-xs px-4 py-2 rounded-xl"
                 >
                   {creating ? "Génération..." : "Créer le lien"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Send via WhatsApp Cloud API Modal */}
+      {waModalLink && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-slate-900">
+                📲 Envoyer via WhatsApp Cloud API
+              </h3>
+              <button
+                type="button"
+                onClick={() => setWaModalLink(null)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-xs text-slate-600">
+              Envoyer le lien de paiement de{" "}
+              <strong>{formatMoney(waModalLink.amountCents, waModalLink.currency || currency)}</strong>{" "}
+              directement sur le WhatsApp de votre client via l&apos;API WhatsApp Cloud de Japora.
+            </p>
+            <form onSubmit={handleSendCloudWhatsApp} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Nom du client (optionnel)
+                </label>
+                <input
+                  type="text"
+                  className="input text-sm"
+                  placeholder="Ex: Kossi Mensah"
+                  value={waName}
+                  onChange={(e) => setWaName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Numéro WhatsApp du client *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  className="input text-sm font-mono"
+                  placeholder="Ex: +22890123456"
+                  value={waPhone}
+                  onChange={(e) => setWaPhone(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setWaModalLink(null)}
+                  className="btn-ghost text-xs"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={waSending}
+                  className="btn-primary text-xs"
+                >
+                  {waSending ? "Envoi en cours…" : "Envoyer maintenant"}
                 </button>
               </div>
             </form>

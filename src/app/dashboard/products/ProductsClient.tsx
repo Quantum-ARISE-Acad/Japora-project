@@ -19,6 +19,13 @@ type Product = {
   stock: number;
   isActive: boolean;
   condition?: string;
+  collectionId?: string | null;
+};
+
+type CollectionRef = {
+  id: string;
+  name: string;
+  slug: string;
 };
 
 type FormState = {
@@ -30,6 +37,7 @@ type FormState = {
   imageUrl: string;
   isActive: boolean;
   condition: string;
+  collectionId: string;
 };
 
 const EMPTY_FORM: FormState = {
@@ -41,14 +49,17 @@ const EMPTY_FORM: FormState = {
   imageUrl: "",
   isActive: true,
   condition: "new",
+  collectionId: "",
 };
 
 export default function ProductsClient({
   initialProducts,
+  collections = [],
   currency,
   shopSlug,
 }: {
   initialProducts: Product[];
+  collections?: CollectionRef[];
   currency: string;
   shopSlug: string;
 }) {
@@ -144,6 +155,7 @@ export default function ProductsClient({
       imageUrl: p.imageUrl,
       isActive: p.isActive,
       condition: p.condition || "new",
+      collectionId: p.collectionId || "",
     });
     setEditingId(p.id);
     setError("");
@@ -160,6 +172,7 @@ export default function ProductsClient({
       imageUrl: p.imageUrl,
       isActive: true,
       condition: p.condition || "new",
+      collectionId: p.collectionId || "",
     });
     setEditingId(null);
     setError("");
@@ -220,6 +233,7 @@ export default function ProductsClient({
       imageUrl: form.imageUrl.trim(),
       isActive: form.isActive,
       condition: form.condition,
+      collectionId: form.collectionId || null,
     };
 
     const url = editingId ? `/api/products/${editingId}` : "/api/products";
@@ -638,17 +652,35 @@ export default function ProductsClient({
                 </div>
               </div>
 
-              <div>
-                <label className="label">État du produit (Condition)</label>
-                <select
-                  className="input"
-                  value={form.condition}
-                  onChange={(e) => setForm({ ...form, condition: e.target.value })}
-                >
-                  <option value="new">Neuf (New)</option>
-                  <option value="used">Occasion (Used)</option>
-                  <option value="refurbished">Reconditionné (Refurbished)</option>
-                </select>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="label">État du produit (Condition)</label>
+                  <select
+                    className="input"
+                    value={form.condition}
+                    onChange={(e) => setForm({ ...form, condition: e.target.value })}
+                  >
+                    <option value="new">Neuf (New)</option>
+                    <option value="used">Occasion (Used)</option>
+                    <option value="refurbished">Reconditionné (Refurbished)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">Collection (optionnelle)</label>
+                  <select
+                    className="input"
+                    value={form.collectionId}
+                    onChange={(e) => setForm({ ...form, collectionId: e.target.value })}
+                  >
+                    <option value="">— Aucune collection —</option>
+                    {collections.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        📁 {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>

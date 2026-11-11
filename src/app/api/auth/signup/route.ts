@@ -28,6 +28,9 @@ export async function POST(req: NextRequest) {
   const email = String(body.email || "").trim().toLowerCase();
   const password = String(body.password || "");
   const shopName = String(body.shopName || "").trim();
+  const whatsappNumber = String(body.whatsappNumber || "").replace(/[^0-9]/g, "");
+  const currency = String(body.currency || "XOF").trim().toUpperCase().slice(0, 3) || "XOF";
+  const language = String(body.language || "fr").trim() || "fr";
 
   if (!validateEmail(email)) {
     return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
@@ -59,6 +62,10 @@ export async function POST(req: NextRequest) {
       passwordHash: await hashPassword(password),
       shopName,
       shopSlug,
+      whatsappNumber,
+      currency,
+      language,
+      onboardedAt: new Date(),
       ...newVendorTrialDates(),
     },
   });
