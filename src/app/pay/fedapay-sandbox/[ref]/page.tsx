@@ -47,7 +47,7 @@ export default async function FedaPaySandboxPage({ params }: Params) {
     }
   }
 
-  let meta: Record<string, any> = {};
+  let meta: Record<string, string> = {};
   try {
     meta = intent.metadata ? JSON.parse(intent.metadata) : {};
   } catch {
