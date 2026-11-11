@@ -1,5 +1,7 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import CopyableLink from "../CopyableLink";
@@ -127,8 +129,8 @@ export default function SettingsForm({
         setAvatarUrl(data.url);
         await persistAvatarUrl(data.url);
       }
-    } catch (err: any) {
-      setAvatarError(err.message || "Erreur de connexion lors de l'upload.");
+    } catch (err) {
+      setAvatarError(errorMessage(err, "Erreur de connexion lors de l'upload."));
     } finally {
       setUploadingAvatar(false);
       e.target.value = "";
@@ -206,9 +208,9 @@ export default function SettingsForm({
       }
       setSavedAt(Date.now());
       router.refresh();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setSaving(false);
-      setError(err.message || "Erreur réseau lors de l'enregistrement.");
+      setError(err instanceof Error ? err.message : "Erreur réseau lors de l'enregistrement.");
     }
   }
 
@@ -238,7 +240,7 @@ export default function SettingsForm({
 
       <ShopQrCard slug={shopSlug} shopName={initial.shopName} whatsappNumber={whatsappNumber} />
 
-      <form onSubmit={onSubmit} className="card space-y-4 p-5">
+      <form onSubmit={onSubmit} className="card settings-form-card space-y-4 p-5">
         <div>
           <label className="label">Shop name</label>
           <input className="input" value={shopName} onChange={(e) => setShopName(e.target.value)} required />
@@ -300,7 +302,7 @@ export default function SettingsForm({
           </div>
           <div>
             <label className="label">Currency</label>
-            <select className="input" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+            <select className="input settings-select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
               {[currency, ...CURRENCY_PRESETS.filter((c) => c !== currency)].map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
@@ -311,7 +313,7 @@ export default function SettingsForm({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="label">Region</label>
-            <select className="input" value={region} onChange={(e) => setRegion(e.target.value)}>
+            <select className="input settings-select" value={region} onChange={(e) => setRegion(e.target.value)}>
               <option value="">— None —</option>
               {Object.entries(REGIONS_BY_COUNTRY).map(([country, list]) => (
                 <optgroup key={country} label={country}>
@@ -326,7 +328,7 @@ export default function SettingsForm({
           </div>
           <div>
             <label className="label">Category</label>
-            <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
+            <select className="input settings-select" value={category} onChange={(e) => setCategory(e.target.value)}>
               <option value="">— None —</option>
               {CATEGORIES.map((c) => (
                 <option key={c.slug} value={c.slug}>
@@ -340,7 +342,7 @@ export default function SettingsForm({
         <div>
           <label className="label">Language</label>
           <select
-            className="input"
+            className="input settings-select"
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
           >
@@ -418,7 +420,7 @@ export default function SettingsForm({
                 )}
               </div>
               <p className="text-[11px] text-arctic-600">
-                Formats acceptés : PNG, JPG, WebP jusqu'à 5 Mo. Ce logo est enregistré automatiquement dès sa sélection et apparaît sur votre boutique publique et vos fiches produits.
+                Formats acceptés : PNG, JPG, WebP jusqu&apos;à 5 Mo. Ce logo est enregistré automatiquement dès sa sélection et apparaît sur votre boutique publique et vos fiches produits.
               </p>
               {avatarSavedMsg && (
                 <p className="text-xs text-emerald-700 font-semibold">{avatarSavedMsg}</p>
@@ -432,7 +434,7 @@ export default function SettingsForm({
           <div className="mt-3 pt-3 border-t border-arctic-200/60">
             <details className="text-xs text-arctic-600">
               <summary className="cursor-pointer font-medium hover:text-arctic-900">
-                Ou spécifier une URL d'image externe
+                Ou spécifier une URL d&apos;image externe
               </summary>
               <input
                 className="input mt-2 text-xs py-1.5"

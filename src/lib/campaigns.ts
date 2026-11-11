@@ -25,7 +25,6 @@ import { isValidPhone, normalizePhone } from "./otp";
 import {
   customerMarketingConsentGranted,
   customerReactivationEligibility,
-  REACTIVATION_STALE_DAYS,
 } from "./customers";
 import { sendWhatsApp } from "./whatsapp";
 
@@ -40,8 +39,6 @@ const TOUCH_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_RECOVERY_MESSAGES_PER_WEEK = 2;
 const RECOVERY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
-// A Prisma client or an interactive-transaction client both satisfy this.
-type Db = typeof prisma | Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 function generateCode(): string {
   const buf = randomBytes(CODE_LEN);
@@ -67,6 +64,8 @@ export type CreateCampaignInput = {
   body?: string;
   cta?: string;
   spendCents?: number;
+  platform?: "meta" | "tiktok" | "linkedin";
+  targetRegion?: string;
   kind?: "ctwa" | "abandoned_cart";
   status?: string;
 };
@@ -179,37 +178,42 @@ export async function createRecoveryCampaign(
   }
 
   const draftName = input.name || "Abandoned cart recovery";
-  const existing = await prisma.campaign.findFirst({
-    where: {
-      vendorId,
-      name: draftName,
-      productId: input.productId ?? null,
-      status: { in: ["draft", "approved", "sending", "sent", "stubbed", "blocked"] },
-    },
-    orderBy: { createdAt: "desc" },
+  const recoveryKey = `cart:${sessionId}`;
+  const existing = await prisma.campaign.findUnique({
+    where: { vendorId_recoveryKey: { vendorId, recoveryKey } },
   });
   if (existing) return existing;
 
   const template = (input.template || "Hi {{name}}, your {{product}} is still waiting at {{store}}.").trim();
-  const candidate = await prisma.campaign.create({
-    data: {
+  try {
+    const candidate = await prisma.campaign.create({
+      data: {
       vendorId,
       name: draftName,
+      kind: "abandoned_cart",
+      recoveryKey,
       productId: input.productId ?? null,
       headline: (input.headline || "Your cart is still waiting").slice(0, 140),
       body: template,
       cta: "Complete my order",
       status: "draft",
       refCode: await mintRefCode(),
-    },
-  });
+      },
+    });
 
   logger.info("campaign.recovery_draft_created", {
     vendorId,
     sessionId,
     campaignId: candidate.id,
   });
-  return candidate;
+    return candidate;
+  } catch (error) {
+    if ((error as { code?: string })?.code === "P2002") {
+      const concurrent = await prisma.campaign.findUnique({ where: { vendorId_recoveryKey: { vendorId, recoveryKey } } });
+      if (concurrent) return concurrent;
+    }
+    throw error;
+  }
 }
 
 export type ReactivationCustomerCandidate = {
@@ -320,37 +324,42 @@ export async function createReactivationCampaign(
   }
 
   const draftName = input.name || "Customer reactivation";
-  const existing = await prisma.campaign.findFirst({
-    where: {
-      vendorId,
-      name: draftName,
-      productId: input.productId ?? null,
-      status: { in: ["draft", "approved", "sending", "sent", "stubbed", "blocked"] },
-    },
-    orderBy: { createdAt: "desc" },
+  const recoveryKey = `customer:${customerId}`;
+  const existing = await prisma.campaign.findUnique({
+    where: { vendorId_recoveryKey: { vendorId, recoveryKey } },
   });
   if (existing) return existing;
 
   const template = (input.template || "Hi {{name}}, we miss you at {{store}}! Check out our latest arrivals.").trim();
-  const candidate = await prisma.campaign.create({
-    data: {
+  try {
+    const candidate = await prisma.campaign.create({
+      data: {
       vendorId,
       name: draftName,
+      kind: "reactivation",
+      recoveryKey,
       productId: input.productId ?? null,
       headline: (input.headline || "We miss you").slice(0, 140),
       body: template,
       cta: "Shop new arrivals",
       status: "draft",
       refCode: await mintRefCode(),
-    },
-  });
+      },
+    });
 
   logger.info("campaign.reactivation_draft_created", {
     vendorId,
     customerId,
     campaignId: candidate.id,
   });
-  return candidate;
+    return candidate;
+  } catch (error) {
+    if ((error as { code?: string })?.code === "P2002") {
+      const concurrent = await prisma.campaign.findUnique({ where: { vendorId_recoveryKey: { vendorId, recoveryKey } } });
+      if (concurrent) return concurrent;
+    }
+    throw error;
+  }
 }
 
 function makeApprovalHash(recipientPhone: string, body: string, sessionId?: string | null): string {
@@ -449,10 +458,11 @@ export async function approveRecoveryCampaign(
     where: { id: campaignId, vendorId, deletedAt: null },
   });
   if (!campaign) return null;
+  if (!["abandoned_cart", "reactivation"].includes(campaign.kind)) return null;
 
   const rawBody = typeof input.body === "string" ? input.body.trim() : campaign.body || "";
   const recipientPhone = typeof input.recipientPhone === "string" ? normalizePhone(input.recipientPhone) : campaign.approvedForPhone || null;
-  const approvalHash = recipientPhone && rawBody ? makeApprovalHash(recipientPhone, rawBody, input.sessionId ?? null) : null;
+  const approvalHash = recipientPhone && rawBody ? makeApprovalHash(recipientPhone, rawBody, input.sessionId ?? campaign.recoveryKey) : null;
 
   return prisma.campaign.update({
     where: { id: campaignId },
@@ -488,9 +498,10 @@ export async function getRecoveryApprovalPreview(
 ): Promise<RecoveryApprovalPreview | null> {
   const campaign = await prisma.campaign.findFirst({
     where: { id: campaignId, vendorId, deletedAt: null },
-    select: {
+      select: {
       id: true,
-      name: true,
+      kind: true,
+      recoveryKey: true,
       productId: true,
       body: true,
       status: true,
@@ -500,14 +511,13 @@ export async function getRecoveryApprovalPreview(
       approvalHash: true,
     },
   });
-  if (!campaign) return null;
+  if (!campaign || !["abandoned_cart", "reactivation"].includes(campaign.kind) || !campaign.recoveryKey) return null;
 
-  const isReactivation = campaign.name.toLowerCase().includes("reactivation");
+  const isReactivation = campaign.kind === "reactivation";
   if (isReactivation) {
     const candidateList = await findInactiveCustomerReactivationCandidates(vendorId);
-    const relevant = campaign.productId
-      ? candidateList.filter((c) => c.productId === campaign.productId)
-      : candidateList;
+    const customerId = campaign.recoveryKey.slice("customer:".length);
+    const relevant = candidateList.filter((c) => c.customerId === customerId);
 
     if (relevant.length === 0) return null;
 
@@ -555,9 +565,8 @@ export async function getRecoveryApprovalPreview(
   }
 
   const candidateList = await findAbandonedCartRecoveryCandidates(vendorId);
-  const relevant = campaign.productId
-    ? candidateList.filter((candidate) => candidate.productId === campaign.productId)
-    : candidateList;
+  const sessionId = campaign.recoveryKey.slice("cart:".length);
+  const relevant = candidateList.filter((candidate) => candidate.sessionId === sessionId);
 
   if (relevant.length === 0) return null;
 
@@ -624,155 +633,52 @@ export async function dispatchRecoveryCampaign(
   if (campaign.status !== "approved") {
     return { status: "approval_required", sent: 0, failed: 0, reason: "merchant_approval_required" };
   }
-
-  const isReactivation = campaign.name.toLowerCase().includes("reactivation");
-  if (isReactivation) {
-    const candidates = await findInactiveCustomerReactivationCandidates(vendorId);
-    const relevant = campaign.productId
-      ? candidates.filter((candidate) => candidate.productId === campaign.productId)
-      : candidates;
-
-    if (relevant.length === 0) {
-      await prisma.campaign.update({ where: { id: campaignId }, data: { status: "blocked" } });
-      return { status: "blocked", sent: 0, failed: 0, reason: "no_candidate_customers" };
-    }
-
-    let sent = 0;
-    let failed = 0;
-    let stubbed = 0;
-    const vendor = await prisma.vendor.findUnique({
-      where: { id: vendorId },
-      select: { shopName: true },
-    });
-
-    for (const candidate of relevant) {
-      const derivedBody = renderRecoveryTemplate(
-        campaign.body || "Hi {{name}}, we miss you at {{store}}! Check out our latest arrivals.",
-        {
-          name: candidate.customerName || "there",
-          product: "",
-          store: vendor?.shopName || "our shop",
-        },
-      );
-
-      const approvalHash = makeApprovalHash(candidate.phone, derivedBody, candidate.customerId);
-      const approvalMatches = Boolean(
-        campaign.approvedAt &&
-        campaign.approvedForPhone === candidate.phone &&
-        campaign.approvedBody === derivedBody &&
-        campaign.approvalHash === approvalHash,
-      );
-
-      if (!approvalMatches) {
-        await prisma.campaign.update({ where: { id: campaignId }, data: { status: "blocked" } });
-        return { status: "blocked", sent: 0, failed: 0, reason: "approval_mismatch" };
-      }
-
-      const weeklyMessages = await prisma.whatsAppMessage.count({
-        where: {
-          vendorId,
-          direction: "OUT",
-          contact: candidate.phone,
-          createdAt: { gte: new Date(Date.now() - RECOVERY_WINDOW_MS) },
-        },
-      });
-      if (weeklyMessages >= MAX_RECOVERY_MESSAGES_PER_WEEK) {
-        continue;
-      }
-
-      const result = await sendWhatsApp({
-        vendorId,
-        to: candidate.phone,
-        body: derivedBody,
-      });
-      if (result.status === "failed") {
-        failed += 1;
-      } else {
-        sent += 1;
-        if (result.status === "stubbed") stubbed += 1;
-      }
-    }
-
-    const finalStatus = sent > 0 ? (stubbed === sent ? "stubbed" : "sent") : (failed > 0 ? "failed" : "blocked");
-    await prisma.campaign.update({ where: { id: campaignId }, data: { status: finalStatus } });
-    return { status: finalStatus, sent, failed };
+  if (!["abandoned_cart", "reactivation"].includes(campaign.kind)) {
+    return { status: "blocked", sent: 0, failed: 0, reason: "unsupported_campaign_kind" };
   }
 
-  const candidates = await findAbandonedCartRecoveryCandidates(vendorId);
-  const relevant = campaign.productId
-    ? candidates.filter((candidate) => candidate.productId === campaign.productId)
-    : candidates;
-
-  if (relevant.length === 0) {
-    await prisma.campaign.update({ where: { id: campaignId }, data: { status: "blocked" } });
-    return { status: "blocked", sent: 0, failed: 0, reason: "no_candidate_sessions" };
+  const preview = await getRecoveryApprovalPreview(vendorId, campaignId);
+  if (!preview) {
+    await prisma.campaign.updateMany({ where: { id: campaignId, vendorId, status: "approved" }, data: { status: "blocked" } });
+    return { status: "blocked", sent: 0, failed: 0, reason: "no_candidate" };
+  }
+  if (!preview.alreadyApproved || preview.phone !== campaign.approvedForPhone || preview.renderedBody !== campaign.approvedBody) {
+    await prisma.campaign.updateMany({ where: { id: campaignId, vendorId, status: "approved" }, data: { status: "blocked" } });
+    return { status: "blocked", sent: 0, failed: 0, reason: "approval_mismatch" };
   }
 
-  let sent = 0;
-  let failed = 0;
-  let stubbed = 0;
-  const vendor = await prisma.vendor.findUnique({
-    where: { id: vendorId },
-    select: { shopName: true },
+  // Claim the one-time dispatch atomically so concurrent requests cannot send twice.
+  const claim = await prisma.campaign.updateMany({
+    where: { id: campaignId, vendorId, status: "approved" },
+    data: { status: "sending" },
   });
-
-  for (const candidate of relevant) {
-    const recipient = await resolveRecoveryRecipient(vendorId, candidate.sessionId);
-    if (!recipient?.phone) continue;
-
-    const consentGranted = customerMarketingConsentGranted({
-      marketingConsent: recipient.marketingConsent,
-      marketingConsentRevokedAt: recipient.marketingConsentRevokedAt,
-    });
-    if (!consentGranted) continue;
-
-    const derivedBody = renderRecoveryTemplate(campaign.body || "Hi {{name}}, your {{product}} is still waiting at {{store}}.", {
-      name: recipient.name || "there",
-      product: candidate.productName || "",
-      store: vendor?.shopName || "our shop",
-    });
-
-    const approvalHash = makeApprovalHash(recipient.phone, derivedBody, candidate.sessionId);
-    const approvalMatches = Boolean(
-      campaign.approvedAt &&
-      campaign.approvedForPhone === recipient.phone &&
-      campaign.approvedBody === derivedBody &&
-      campaign.approvalHash === approvalHash,
-    );
-
-    if (!approvalMatches) {
-      await prisma.campaign.update({ where: { id: campaignId }, data: { status: "blocked" } });
-      return { status: "blocked", sent: 0, failed: 0, reason: "approval_mismatch" };
-    }
-
-    const weeklyMessages = await prisma.whatsAppMessage.count({
-      where: {
-        vendorId,
-        direction: "OUT",
-        contact: recipient.phone,
-        createdAt: { gte: new Date(Date.now() - RECOVERY_WINDOW_MS) },
-      },
-    });
-    if (weeklyMessages >= MAX_RECOVERY_MESSAGES_PER_WEEK) {
-      continue;
-    }
-
-    const result = await sendWhatsApp({
-      vendorId,
-      to: recipient.phone,
-      body: derivedBody,
-    });
-    if (result.status === "failed") {
-      failed += 1;
-    } else {
-      sent += 1;
-      if (result.status === "stubbed") stubbed += 1;
-    }
+  if (claim.count !== 1) {
+    return { status: "approval_required", sent: 0, failed: 0, reason: "dispatch_already_claimed" };
   }
 
-  const finalStatus = sent > 0 ? (stubbed === sent ? "stubbed" : "sent") : (failed > 0 ? "failed" : "blocked");
-  await prisma.campaign.update({ where: { id: campaignId }, data: { status: finalStatus } });
-  return { status: finalStatus, sent, failed };
+  const weeklyMessages = await prisma.whatsAppMessage.count({
+    where: {
+      vendorId,
+      direction: "OUT",
+      contact: preview.phone,
+      createdAt: { gte: new Date(Date.now() - RECOVERY_WINDOW_MS) },
+    },
+  });
+  if (weeklyMessages >= MAX_RECOVERY_MESSAGES_PER_WEEK) {
+    await prisma.campaign.update({ where: { id: campaignId }, data: { status: "blocked" } });
+    return { status: "blocked", sent: 0, failed: 0, reason: "weekly_message_limit" };
+  }
+
+  try {
+    const result = await sendWhatsApp({ vendorId, to: preview.phone, body: preview.renderedBody });
+    const status = result.status === "stubbed" ? "stubbed" : result.status === "failed" ? "failed" : "sent";
+    await prisma.campaign.update({ where: { id: campaignId }, data: { status } });
+    return { status, sent: result.status === "failed" ? 0 : 1, failed: result.status === "failed" ? 1 : 0 };
+  } catch (error) {
+    await prisma.campaign.update({ where: { id: campaignId }, data: { status: "failed" } });
+    logger.error("campaign.recovery_dispatch_failed", { campaignId, error: String(error) });
+    return { status: "failed", sent: 0, failed: 1, reason: "send_failed" };
+  }
 }
 
 /** Create a campaign for a vendor, minting a unique trackable refCode. */
@@ -787,6 +693,8 @@ export async function createCampaign(vendorId: string, input: CreateCampaignInpu
       body: (input.body || "").trim().slice(0, 600),
       cta: (input.cta || "Shop now").trim().slice(0, 40),
       spendCents: Math.max(0, Math.round(input.spendCents || 0)),
+      platform: input.platform || "meta",
+      targetRegion: (input.targetRegion || "").trim().slice(0, 120) || null,
       refCode,
     },
   });
@@ -800,6 +708,9 @@ export type CampaignStats = {
   name: string;
   refCode: string;
   productId: string | null;
+  kind: string;
+  platform: string | null;
+  targetRegion: string | null;
   headline: string;
   body: string;
   cta: string;
@@ -814,7 +725,8 @@ export type CampaignStats = {
 };
 
 function toStats(c: {
-  id: string; name: string; refCode: string; productId: string | null;
+  id: string; name: string; refCode: string; productId: string | null; kind: string;
+  platform: string | null; targetRegion: string | null;
   headline: string; body: string; cta: string; status: string;
   clicks: number; orders: number; revenueCents: number; spendCents: number; createdAt: Date;
 }): CampaignStats {
@@ -823,6 +735,9 @@ function toStats(c: {
     name: c.name,
     refCode: c.refCode,
     productId: c.productId,
+    kind: c.kind,
+    platform: c.platform,
+    targetRegion: c.targetRegion,
     headline: c.headline,
     body: c.body,
     cta: c.cta,
@@ -895,9 +810,10 @@ export async function syncEligibleReactivationCampaigns(
 export async function rejectRecoveryCampaignApproval(vendorId: string, campaignId: string) {
   const campaign = await prisma.campaign.findFirst({
     where: { id: campaignId, vendorId, deletedAt: null },
-    select: { id: true, status: true },
+    select: { id: true, status: true, kind: true },
   });
   if (!campaign) return null;
+  if (!["abandoned_cart", "reactivation"].includes(campaign.kind)) return null;
   if (campaign.status === "sent" || campaign.status === "stubbed") return null;
 
   return prisma.campaign.update({
@@ -950,7 +866,7 @@ export function prefillText(opts: {
  * Register a click on a campaign link and return what /go needs to build the
  * WhatsApp redirect. Returns null for unknown/archived codes.
  */
-export async function recordClick(refCode: string): Promise<{
+export async function recordClick(refCode: string, opts: { countClick?: boolean } = {}): Promise<{
   vendorPhone: string;
   shopName: string;
   productName: string | null;
@@ -979,11 +895,13 @@ export async function recordClick(refCode: string): Promise<{
     productName = p?.name ?? null;
   }
 
-  await prisma.campaign.update({
-    where: { id: campaign.id },
-    data: { clicks: { increment: 1 } },
-  });
-  logger.info("campaign.click", { campaignId: campaign.id, refCode: code });
+  if (opts.countClick !== false) {
+    await prisma.campaign.update({
+      where: { id: campaign.id },
+      data: { clicks: { increment: 1 } },
+    });
+    logger.info("campaign.click", { campaignId: campaign.id, refCode: code });
+  }
 
   return {
     vendorPhone: normalizePhone(vendor.whatsappNumber || vendor.phone || ""),
@@ -1064,27 +982,33 @@ export async function attributeOrder(opts: {
   });
   if (!touch) return null;
 
-  // Guard against double-counting if attribution runs twice for one order.
-  const order = await prisma.order.findUnique({
-    where: { id: opts.orderId },
-    select: { campaignId: true },
-  });
-  if (order?.campaignId) return order.campaignId;
-
-  await prisma.$transaction([
-    prisma.order.update({ where: { id: opts.orderId }, data: { campaignId: touch.campaignId } }),
-    prisma.campaign.update({
+  const attributed = await prisma.$transaction(async (tx) => {
+    const existing = await tx.order.findFirst({ where: { id: opts.orderId, vendorId: opts.vendorId }, select: { campaignId: true } });
+    if (!existing) return null;
+    if (existing.campaignId) return existing.campaignId;
+    const claim = await tx.order.updateMany({
+      where: { id: opts.orderId, vendorId: opts.vendorId, campaignId: null },
+      data: { campaignId: touch.campaignId },
+    });
+    if (claim.count !== 1) {
+      const current = await tx.order.findFirst({ where: { id: opts.orderId, vendorId: opts.vendorId }, select: { campaignId: true } });
+      return current?.campaignId ?? null;
+    }
+    await tx.campaign.update({
       where: { id: touch.campaignId },
       data: { orders: { increment: 1 }, revenueCents: { increment: Math.max(0, opts.revenueCents) } },
-    }),
-  ]);
+    });
+    return touch.campaignId;
+  });
+  if (!attributed) return null;
+  if (attributed !== touch.campaignId) return attributed;
   logger.info("campaign.attributed", {
     vendorId: opts.vendorId,
     orderId: opts.orderId,
     campaignId: touch.campaignId,
     revenueCents: opts.revenueCents,
   });
-  return touch.campaignId;
+  return attributed;
 }
 
 export const __testing = { generateCode, REF_RE, TOUCH_WINDOW_MS };

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useSignUp } from "@clerk/nextjs";
+import { useSignUp } from "@clerk/nextjs/legacy";
+import { errorMessage } from "@/lib/errors";
 import { isClerkConfigured } from "./ClerkAuthProvider";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
@@ -18,21 +19,20 @@ const CURRENCIES = [
 ];
 
 export default function CustomSignUp() {
+  return isClerkConfigured() ? <ClerkSignUp /> : <SignUpForm />;
+}
+
+function ClerkSignUp() {
+  const clerk = useSignUp();
+  return <SignUpForm clerk={clerk} />;
+}
+
+function SignUpForm({ clerk }: { clerk?: ReturnType<typeof useSignUp> }) {
   const router = useRouter();
   const { tr } = usePublicLang();
-  const clerkActive = isClerkConfigured();
-
-  let signUpHook: any = null;
-  try {
-    if (clerkActive) {
-      signUpHook = useSignUp();
-    }
-  } catch {
-    signUpHook = null;
-  }
-
-  const signUp = signUpHook?.signUp;
-  const setActive = signUpHook?.setActive;
+  const clerkActive = Boolean(clerk);
+  const signUp = clerk?.signUp;
+  const setActive = clerk?.setActive;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -52,15 +52,15 @@ export default function CustomSignUp() {
     setGoogleLoading(true);
     setError("");
 
-    if (clerkActive && signUp) {
+    if (clerkActive && signUp && setActive) {
       try {
-        await (signUp as any).authenticateWithRedirect({
+        await signUp.authenticateWithRedirect({
           strategy: "oauth_google",
           redirectUrl: "/sso-callback",
           redirectUrlComplete: "/dashboard",
         });
         return;
-      } catch (err: any) {
+      } catch (err) {
         console.warn("Clerk Google OAuth fallback:", err);
       }
     }
@@ -85,8 +85,8 @@ export default function CustomSignUp() {
       }
       router.push(data.redirectUrl || "/dashboard");
       router.refresh();
-    } catch (err: any) {
-      setError(err.message || tr("Échec de l'inscription Google.", "Google sign-up failed."));
+    } catch (err) {
+      setError(errorMessage(err, tr("Échec de l'inscription Google.", "Google sign-up failed.")));
       setGoogleLoading(false);
     }
   }
@@ -96,7 +96,7 @@ export default function CustomSignUp() {
     setLoading(true);
     setError("");
 
-    if (clerkActive && signUp) {
+    if (clerkActive && signUp && setActive) {
       try {
         const result = await signUp.create({
           emailAddress: email.trim(),
@@ -138,11 +138,9 @@ export default function CustomSignUp() {
           router.refresh();
           return;
         }
-      } catch (err: any) {
+      } catch (err) {
         setError(
-          err.errors?.[0]?.message ||
-            err.message ||
-            tr("Erreur lors de la création du compte.", "Error creating account.")
+          errorMessage(err, tr("Erreur lors de la création du compte.", "Error creating account."))
         );
         setLoading(false);
         return;
@@ -173,8 +171,8 @@ export default function CustomSignUp() {
 
       router.push("/dashboard");
       router.refresh();
-    } catch (err: any) {
-      setError(err.message || tr("Erreur réseau", "Network error"));
+    } catch (err) {
+      setError(errorMessage(err, tr("Erreur réseau", "Network error")));
       setLoading(false);
     }
   }
@@ -209,11 +207,9 @@ export default function CustomSignUp() {
       } else {
         setError(tr("Vérification incomplète. Veuillez réessayer.", "Verification incomplete. Please try again."));
       }
-    } catch (err: any) {
+    } catch (err) {
       setError(
-        err.errors?.[0]?.message ||
-          err.message ||
-          tr("Code de validation incorrect.", "Invalid verification code.")
+        errorMessage(err, tr("Code de validation incorrect.", "Invalid verification code."))
       );
     } finally {
       setLoading(false);

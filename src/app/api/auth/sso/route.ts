@@ -1,3 +1,4 @@
+import { errorMessage } from "@/lib/errors";
 import { NextRequest, NextResponse } from "next/server";
 import {
   WATARU_SSO_COOKIE,
@@ -8,6 +9,7 @@ import {
 } from "@/lib/unified-auth";
 import { createSession } from "@/lib/session";
 import { getCurrentVendor } from "@/lib/auth";
+import { publicOrigin } from "@/lib/public-origin";
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
@@ -23,7 +25,7 @@ export async function GET(req: NextRequest) {
     if (format === "json") {
       return NextResponse.json({ error: "No ticket or unified session found" }, { status: 401 });
     }
-    return NextResponse.redirect(new URL("/login?error=no_session", req.url));
+    return NextResponse.redirect(new URL("/login?error=no_session", publicOrigin(req)));
   }
 
   const payload = await verifyUnifiedToken(tokenToVerify);
@@ -31,7 +33,7 @@ export async function GET(req: NextRequest) {
     if (format === "json") {
       return NextResponse.json({ error: "Invalid or expired SSO token" }, { status: 401 });
     }
-    return NextResponse.redirect(new URL("/login?error=invalid_sso", req.url));
+    return NextResponse.redirect(new URL("/login?error=invalid_sso", publicOrigin(req)));
   }
 
   // 2. Synchronize or provision the Vendor
@@ -59,13 +61,13 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    return NextResponse.redirect(new URL(redirectUrl, req.url));
-  } catch (err: any) {
+    return NextResponse.redirect(new URL(redirectUrl, publicOrigin(req)));
+  } catch (err) {
     console.error("[SSO Japora error]", err);
     if (format === "json") {
-      return NextResponse.json({ error: err.message || "SSO error" }, { status: 500 });
+      return NextResponse.json({ error: errorMessage(err, "SSO error") }, { status: 500 });
     }
-    return NextResponse.redirect(new URL("/login?error=sso_failed", req.url));
+    return NextResponse.redirect(new URL("/login?error=sso_failed", publicOrigin(req)));
   }
 }
 
@@ -87,7 +89,7 @@ export async function POST(_req: NextRequest) {
     });
 
     return NextResponse.json({ ok: true, ticket });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Failed to issue ticket" }, { status: 500 });
+  } catch (err) {
+    return NextResponse.json({ error: errorMessage(err, "Failed to issue ticket") }, { status: 500 });
   }
 }

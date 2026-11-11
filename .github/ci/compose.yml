@@ -1,0 +1,101 @@
+# Disposable CI environment. Uses actual deployment images/configs, but no
+# fixed container names, host data directories or external service credentials.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: japora
+      POSTGRES_PASSWORD: ci-only-postgres-password
+      POSTGRES_DB: japora
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U japora -d japora']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  wcatalog:
+    image: ${CI_APP_IMAGE:?Build the PostgreSQL application image first}
+    user: node
+    environment:
+      DATABASE_URL: postgresql://japora:ci-only-postgres-password@postgres:5432/japora
+      SESSION_SECRET: ci-only-session-secret-not-for-production
+      CRON_SECRET: ci-only-broadcast-cron-secret
+      NEXT_PUBLIC_APP_URL: https://localhost
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ''
+    volumes:
+      - uploads:/app/public/uploads
+    depends_on:
+      postgres: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, wget, -qO-, 'http://127.0.0.1:5174/api/health']
+      interval: 2s
+      timeout: 5s
+      retries: 45
+      start_period: 10s
+  caddy:
+    image: caddy:2.10-alpine
+    environment:
+      DOMAIN: localhost
+      ACME_EMAIL: ci@example.invalid
+    ports:
+      - '127.0.0.1::443'
+    volumes:
+      - ../../deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - uploads:/srv/public/uploads:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      wcatalog: {condition: service_healthy}
+  backup:
+    image: ${CI_BACKUP_IMAGE:?Build the backup image first}
+    environment:
+      PGHOST: postgres
+      PGUSER: japora
+      PGPASSWORD: ci-only-postgres-password
+      PGDATABASE: japora
+      BACKUP_INTERVAL_SECONDS: '5'
+      BACKUP_KEEP_DAYS: '7'
+    volumes:
+      - backup_data:/backups
+      - uploads:/data/uploads:ro
+      - backup_metrics:/metrics
+    depends_on:
+      postgres: {condition: service_healthy}
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    volumes:
+      - ../../deploy/prometheus:/etc/prometheus:ro
+    healthcheck:
+      test: [CMD, wget, -qO-, 'http://127.0.0.1:9090/-/healthy']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  grafana:
+    image: grafana/grafana:11.6.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ci-only-grafana-password
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_PLUGINS_PREINSTALL_DISABLED: 'true'
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
+    volumes:
+      - ../../deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../../deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+  blackbox:
+    image: prom/blackbox-exporter:v0.27.0
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.17.1
+    environment:
+      DATA_SOURCE_URI: postgres:5432/japora?sslmode=disable
+      DATA_SOURCE_USER: japora
+      DATA_SOURCE_PASS: ci-only-postgres-password
+
+volumes:
+  postgres_data:
+  uploads:
+  backup_data:
+  backup_metrics:
+  caddy_data:
+  caddy_config:

@@ -92,7 +92,7 @@ export default async function BillingPage({
   ).length;
 
   const transactions = paymentIntents.map((pi) => {
-    let meta: Record<string, any> = {};
+    let meta: Record<string, string> = {};
     try {
       meta = pi.metadata ? JSON.parse(pi.metadata) : {};
     } catch {

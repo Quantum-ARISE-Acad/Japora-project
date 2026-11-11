@@ -36,7 +36,7 @@ export default function ReferralClient({
   // picker so the sender can pick a contact / group.
   const inviteMessage = useMemo(
     () =>
-      `Hey! I'm using Japora to sell on WhatsApp — orders, payments, all sorted. ${shopName} got me hooked. Sign up with my link and we both win: ${shareUrl}`,
+      `Bonjour ! J’utilise Japora pour vendre sur WhatsApp avec ${shopName}. Inscrivez-vous avec mon lien de parrainage : ${shareUrl}`,
     [shareUrl, shopName],
   );
   const waLink = `https://wa.me/?text=${encodeURIComponent(inviteMessage)}`;

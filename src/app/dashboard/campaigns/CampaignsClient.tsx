@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoney } from "@/lib/utils";
 import { AuroraIsoscout } from "@/components/aurora";
@@ -17,6 +17,9 @@ type Campaign = {
   name: string;
   refCode: string;
   productId: string | null;
+  kind: string;
+  platform: string | null;
+  targetRegion: string | null;
   headline: string;
   body: string;
   cta: string;
@@ -48,19 +51,19 @@ type ApprovalPreview = {
 
 function humanizeStatus(status?: string | null) {
   switch (status) {
-    case "draft": return "Draft";
-    case "approved": return "Approved";
-    case "sending": return "Sending";
-    case "sent": return "Sent";
-    case "stubbed": return "Stubbed (test only)";
-    case "blocked": return "Blocked";
-    case "failed": return "Failed";
-    case "archived": return "Archived";
-    default: return status || "Draft";
+    case "draft": return "Brouillon";
+    case "approved": return "Approuvée";
+    case "sending": return "Envoi en cours";
+    case "sent": return "Envoyée";
+    case "stubbed": return "Simulation";
+    case "blocked": return "Bloquée";
+    case "failed": return "Échec";
+    case "archived": return "Archivée";
+    default: return status || "Brouillon";
   }
 }
 
-type Product = { id: string; name: string; priceCents: number };
+type Product = { id: string; name: string; priceCents: number; paidUnits: number; featured: boolean };
 
 type PlatformKey = "meta" | "tiktok" | "linkedin";
 
@@ -68,6 +71,7 @@ type FormState = {
   name: string;
   platform: PlatformKey;
   productId: string;
+  manualProductName: string;
   headline: string;
   body: string;
   cta: string;
@@ -79,6 +83,7 @@ const EMPTY: FormState = {
   name: "",
   platform: "meta",
   productId: "",
+  manualProductName: "",
   headline: "",
   body: "",
   cta: "Commander sur WhatsApp",
@@ -123,6 +128,18 @@ export default function CampaignsClient({
   const [approvalModal, setApprovalModal] = useState<{ campaign: Campaign; preview: ApprovalPreview | null } | null>(null);
   const [approvalBusy, setApprovalBusy] = useState(false);
 
+  useEffect(() => {
+    if (!approvalModal && !open) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !approvalBusy && !saving) {
+        setApprovalModal(null);
+        setOpen(false);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [approvalModal, approvalBusy, open, saving]);
+
   const flash = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
@@ -133,29 +150,35 @@ export default function CampaignsClient({
     setError("");
     try {
       const prod = products.find((p) => p.id === form.productId);
+      const productName = form.manualProductName.trim() || prod?.name || "";
       const res = await fetch("/api/ai/ad-copy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           platform: form.platform,
-          productName: prod?.name || "",
-          productPrice: prod ? formatMoney(prod.priceCents, currency) : "",
+          productId: form.manualProductName.trim() ? "" : form.productId,
+          productName,
+          targetRegion: form.targetRegion,
         }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setForm((prev) => ({
-          ...prev,
-          name: prev.name || `Campagne ${form.platform.toUpperCase()} - ${prod?.name || "Boutique"}`,
-          headline: data.headline || prev.headline,
-          body: data.body ? `${data.body} ${data.hashtags || ""}` : prev.body,
-          cta: data.cta || prev.cta,
-        }));
-        flash(`Texte publicitaire généré avec Gemini pour ${form.platform.toUpperCase()} ✓`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "La génération du texte a échoué. Réessayez.");
+        return;
       }
+      setForm((prev) => ({
+        ...prev,
+        name: prev.name || `Campagne ${form.platform.toUpperCase()} - ${productName || "Boutique"}`,
+        headline: data.headline || prev.headline,
+        body: data.body ? [data.body, data.hashtags].filter(Boolean).join("\n\n") : prev.body,
+        cta: data.cta || prev.cta,
+      }));
+      flash(data.mode === "template"
+        ? "Texte de secours préparé. Vérifiez les informations avant de l’utiliser."
+        : `Proposition générée avec Gemini pour ${form.platform.toUpperCase()} ✓`);
     } catch {
-      setError("Échec de génération IA");
+      setError("Impossible de joindre le service de génération. Réessayez.");
     } finally {
       setGeneratingCopy(false);
     }
@@ -164,33 +187,43 @@ export default function CampaignsClient({
   const base = typeof window !== "undefined" ? window.location.origin : "";
 
   async function reload() {
-    const res = await fetch("/api/campaigns");
-    if (res.ok) setCampaigns((await res.json()).campaigns);
-    router.refresh();
+    try {
+      const res = await fetch("/api/campaigns");
+      if (!res.ok) throw new Error("reload_failed");
+      setCampaigns((await res.json()).campaigns);
+      router.refresh();
+    } catch {
+      setError("La campagne a été enregistrée, mais la liste n’a pas pu être actualisée.");
+    }
   }
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     setError("");
+    try {
     const res = await fetch("/api/campaigns", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
     });
     const data = await res.json().catch(() => ({}));
-    setSaving(false);
     if (!res.ok) {
-      setError(data.error || "Could not create campaign.");
+      setError(data.error || "Impossible de créer la campagne.");
       return;
     }
     setOpen(false);
     setForm(EMPTY);
     await reload();
+    } catch {
+      setError("Impossible de joindre le service. Vérifiez la connexion puis réessayez.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function remove(c: Campaign) {
-    if (!confirm(`Archive "${c.name}"? Its link stops attributing new orders.`)) return;
+    if (!confirm(`Archiver « ${c.name} » ? Son lien ne comptabilisera plus de nouvelles commandes.`)) return;
     const res = await fetch(`/api/campaigns/${c.id}`, { method: "DELETE" });
     if (res.ok) await reload();
   }
@@ -199,7 +232,7 @@ export default function CampaignsClient({
     const res = await fetch(`/api/campaigns/${c.id}/approve`);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setError(data.error || "Unable to load approval preview.");
+      setError(data.error || "Impossible de charger l’aperçu.");
       return;
     }
     setError("");
@@ -213,16 +246,12 @@ export default function CampaignsClient({
     const res = await fetch(`/api/campaigns/${approvalModal.campaign.id}/approve`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action,
-        recipientPhone: approvalModal.preview?.phone,
-        body: approvalModal.preview?.renderedBody,
-      }),
+      body: JSON.stringify({ action }),
     });
     const data = await res.json().catch(() => ({}));
     setApprovalBusy(false);
     if (!res.ok) {
-      setError(data.error || "Could not update the campaign approval.");
+      setError(data.error || "Impossible de mettre à jour l’approbation.");
       return;
     }
     setApprovalModal(null);
@@ -233,14 +262,13 @@ export default function CampaignsClient({
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="a-headline-md text-arctic-900">Ads &amp; campaigns</h1>
+          <h1 className="a-headline-md text-arctic-900">Publicités et campagnes</h1>
           <p className="text-sm text-arctic-600">
-            One trackable link per campaign. Run it as a Click-to-WhatsApp ad, a Status post, or a
-            flyer QR — every click and order traces back here.
+            Créez un texte publicitaire et un lien mesurable à partager sur vos canaux. Japora ne publie pas l’annonce et n’achète pas d’espace publicitaire à votre place.
           </p>
         </div>
         <button onClick={() => { setForm(EMPTY); setError(""); setOpen(true); }} className="btn-primary shrink-0">
-          + New campaign
+          + Nouvelle campagne
         </button>
       </div>
 
@@ -248,11 +276,11 @@ export default function CampaignsClient({
         <div className="glass glass-edge rounded-shape-lg p-6">
           <AuroraIsoscout
             variant="broadcasts"
-            title="No campaign yet"
-            body="Eligible abandoned-cart recovery candidates appear here after a shopper leaves a cart stale for long enough to qualify. The dashboard only lists persisted campaigns for the logged-in vendor, and no recovery campaign is created for carts that do not meet the existing eligibility rules."
+            title="Aucune campagne pour le moment"
+            body="Créez une campagne pour obtenir un texte publicitaire et un lien de suivi. Les campagnes de relance éligibles apparaîtront également dans cette liste."
             action={
               <button onClick={() => { setForm(EMPTY); setOpen(true); }} className="btn-primary">
-                + New campaign
+                + Nouvelle campagne
               </button>
             }
           />
@@ -274,49 +302,50 @@ export default function CampaignsClient({
 
       {approvalModal && (
         <div className="fixed inset-0 z-30 grid place-items-center bg-arctic-900/40 p-4">
-          <div className="card w-full max-w-2xl overflow-hidden">
+          <div role="dialog" aria-modal="true" aria-labelledby="approval-title" className="card w-full max-w-2xl overflow-hidden">
             <div className="flex items-center justify-between border-b border-arctic-400/30 px-5 py-3">
-              <h2 className="font-bold text-arctic-900">Review recovery approval</h2>
-              <button onClick={() => setApprovalModal(null)} className="text-arctic-500 hover:text-arctic-800">✕</button>
+              <h2 id="approval-title" className="font-bold text-arctic-900">Vérifier une relance client</h2>
+              <button aria-label="Fermer" onClick={() => setApprovalModal(null)} className="text-arctic-500 hover:text-arctic-800">✕</button>
             </div>
             <div className="space-y-4 p-5">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-lg bg-arctic-100/55 p-3">
-                  <div className="a-label-md text-arctic-500">Campaign</div>
+                  <div className="a-label-md text-arctic-500">Campagne</div>
                   <div className="font-semibold text-arctic-900">{approvalModal.campaign.name}</div>
                 </div>
                 <div className="rounded-lg bg-arctic-100/55 p-3">
-                  <div className="a-label-md text-arctic-500">Status</div>
+                  <div className="a-label-md text-arctic-500">État</div>
                   <div className="font-semibold text-arctic-900">{humanizeStatus(approvalModal.campaign.status)}</div>
                 </div>
               </div>
 
               <div className="rounded-lg bg-arctic-100/55 p-3">
-                <div className="a-label-md text-arctic-500">Recipient</div>
+                <div className="a-label-md text-arctic-500">Destinataire</div>
                 <div className="font-semibold text-arctic-900">
-                  {approvalModal.preview?.recipientName || "Customer"} — {approvalModal.preview?.phone || "Unknown phone"}
+                  {approvalModal.preview?.recipientName || "Client"} — {approvalModal.preview?.phone || "Téléphone inconnu"}
                 </div>
               </div>
 
               <div className="rounded-lg bg-arctic-100/55 p-3">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="a-label-md text-arctic-500">Exact WhatsApp message</div>
-                  <CopyButton text={approvalModal.preview?.renderedBody || ""} label="Copy message" />
+                  <div className="a-label-md text-arctic-500">Message WhatsApp à envoyer</div>
+                  <CopyButton text={approvalModal.preview?.renderedBody || ""} label="Copier le message" />
                 </div>
-                <pre className="mt-2 whitespace-pre-wrap break-words text-sm text-arctic-700">{approvalModal.preview?.renderedBody || "No message available."}</pre>
+                <pre className="mt-2 whitespace-pre-wrap break-words text-sm text-arctic-700">{approvalModal.preview?.renderedBody || "Aucun message disponible."}</pre>
               </div>
 
               <div className="rounded-lg border border-arctic-400/30 bg-white/60 p-3 text-sm text-arctic-600">
-                {approvalModal.preview?.marketingConsent === false ? "Consent is not active for this recipient." : "Consent is present for the recipient."}
+                {approvalModal.preview?.marketingConsent === false ? "Le consentement marketing de ce client n’est pas actif." : "Le consentement marketing de ce client est actif."}
               </div>
 
               {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
+              {!approvalModal.preview && <p role="status" className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Aucun destinataire éligible actuellement. La relance ne peut pas être approuvée.</p>}
               <div className="flex flex-col-reverse justify-end gap-2 pt-1 sm:flex-row">
-                <button type="button" onClick={() => setApprovalModal(null)} className="btn-ghost">Close</button>
-                <button type="button" onClick={() => submitApproval("reject")} disabled={approvalBusy} className="btn-ghost">Reject</button>
-                <button type="button" onClick={() => submitApproval("approve")} disabled={approvalBusy} className="btn-primary">Approve</button>
-                <button type="button" onClick={() => submitApproval("approve_and_send")} disabled={approvalBusy} className="btn-primary">Approve &amp; send</button>
+                <button type="button" onClick={() => setApprovalModal(null)} className="btn-ghost">Fermer</button>
+                <button type="button" onClick={() => submitApproval("reject")} disabled={approvalBusy || !approvalModal.preview} className="btn-ghost">Refuser</button>
+                <button type="button" onClick={() => submitApproval("approve")} disabled={approvalBusy || !approvalModal.preview} className="btn-primary">Approuver</button>
+                <button type="button" onClick={() => submitApproval("approve_and_send")} disabled={approvalBusy || !approvalModal.preview} className="btn-primary">Approuver et envoyer</button>
               </div>
             </div>
           </div>
@@ -331,19 +360,20 @@ export default function CampaignsClient({
 
       {open && (
         <div className="fixed inset-0 z-30 grid place-items-center bg-arctic-900/50 p-4 backdrop-blur-sm">
-          <div className="card w-full max-w-2xl overflow-hidden shadow-2xl border border-arctic-200">
+          <div role="dialog" aria-modal="true" aria-labelledby="campaign-title" className="card w-full max-w-2xl overflow-hidden shadow-2xl border border-arctic-200">
             <div className="flex items-center justify-between border-b border-arctic-200 px-6 py-4 bg-arctic-50/50">
               <div>
-                <h2 className="font-bold text-lg text-arctic-900">Nouvelle Campagne Publicitaire Multi-Réseaux</h2>
-                <p className="text-xs text-arctic-500">Diffusez sur Meta (Facebook/Instagram), TikTok Ads et LinkedIn</p>
+                <h2 id="campaign-title" className="font-bold text-lg text-arctic-900">Préparer une campagne et son lien de suivi</h2>
+                <p className="text-xs text-arctic-500">Le texte et le lien sont préparés ici. La publication et l’achat d’espace se font sur la plateforme publicitaire.</p>
               </div>
-              <button onClick={() => setOpen(false)} className="text-arctic-500 hover:text-arctic-800 text-lg">✕</button>
+              <button aria-label="Fermer" onClick={() => setOpen(false)} className="text-arctic-500 hover:text-arctic-800 text-lg">✕</button>
             </div>
 
             <form onSubmit={create} className="max-h-[80vh] space-y-4 overflow-y-auto p-6">
               {/* Network Selector */}
               <div>
-                <label className="label mb-2">Canal publicitaire cible</label>
+                <label className="label mb-2">Canal choisi pour adapter le texte</label>
+                <p className="mb-2 text-xs text-arctic-500">Ce choix adapte le ton du texte. La publicité n’est pas publiée depuis Japora.</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   {NETWORKS.map((net) => {
                     const isSelected = form.platform === net.key;
@@ -376,9 +406,9 @@ export default function CampaignsClient({
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
                   <div>
                     <label className="text-xs font-bold uppercase tracking-wider text-emerald-800">
-                      1. Produit vedette du catalogue
+                      Produit à mettre en avant
                     </label>
-                    <p className="text-xs text-emerald-600">Sélectionnez le produit pour extraire les visuels et prix réels</p>
+                    <p className="text-xs text-emerald-600">Les suggestions en tête reposent sur les quantités vendues dans les commandes payées.</p>
                   </div>
                   <button
                     type="button"
@@ -393,15 +423,34 @@ export default function CampaignsClient({
                 <select
                   className="input bg-white text-sm"
                   value={form.productId}
-                  onChange={(e) => setForm({ ...form, productId: e.target.value })}
+                  onChange={(e) => setForm({ ...form, productId: e.target.value, manualProductName: "" })}
                 >
-                  <option value="">— Tous les produits ou Boutique générale —</option>
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({formatMoney(p.priceCents, currency)})
-                    </option>
-                  ))}
+                  <option value="">Aucun produit du catalogue lié</option>
+                  <optgroup label="Suggestions : produits les plus vendus">
+                    {products.some((p) => p.featured) ? products.filter((p) => p.featured).map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} · {p.paidUnits} vendu{p.paidUnits > 1 ? "s" : ""} · {formatMoney(p.priceCents, currency)}
+                      </option>
+                    )) : <option value="" disabled>Aucune vente payée pour le moment</option>}
+                  </optgroup>
+                  <optgroup label="Autres produits du catalogue">
+                    {products.filter((p) => !p.featured).map((p) => (
+                      <option key={p.id} value={p.id}>{p.name} ({formatMoney(p.priceCents, currency)})</option>
+                    ))}
+                  </optgroup>
                 </select>
+                <label className="label mt-3" htmlFor="manual-product-name">Produit absent du catalogue ? Saisissez son nom</label>
+                <input
+                  id="manual-product-name"
+                  className="input bg-white text-sm"
+                  list="catalog-product-name-suggestions"
+                  placeholder="Nom du produit à présenter"
+                  value={form.manualProductName}
+                  onChange={(e) => setForm({ ...form, manualProductName: e.target.value, productId: "" })}
+                />
+                <datalist id="catalog-product-name-suggestions">
+                  {products.map((p) => <option key={p.id} value={p.name} />)}
+                </datalist>
               </div>
 
               {/* Campaign Details */}
@@ -409,31 +458,43 @@ export default function CampaignsClient({
                 <label className="label">Nom interne de la campagne</label>
                 <input
                   className="input"
-                  placeholder="Ex: Promo Ankara Tabaski - TikTok"
+                  list="campaign-name-suggestions"
+                  placeholder="Ex. : Collection de rentrée"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   required
                 />
+                <datalist id="campaign-name-suggestions">
+                  <option value="Nouveautés du catalogue" />
+                  <option value="Sélection de la semaine" />
+                  <option value="Campagne WhatsApp locale" />
+                </datalist>
               </div>
 
               <div>
                 <label className="label">Titre accrocheur (Headline)</label>
                 <input
                   className="input"
-                  placeholder="Ex: -20% sur la nouvelle collection Wax à Lomé !"
+                  list="campaign-headline-suggestions"
+                  placeholder="Ex. : Découvrez les nouveautés de notre boutique"
                   value={form.headline}
                   onChange={(e) => setForm({ ...form, headline: e.target.value })}
                 />
+                <datalist id="campaign-headline-suggestions">
+                  <option value="Découvrez les nouveautés de notre boutique" />
+                  <option value="Une sélection à découvrir près de chez vous" />
+                  <option value="Consultez notre catalogue sur WhatsApp" />
+                </datalist>
               </div>
 
               <div>
                 <div className="flex justify-between items-center mb-1">
                   <label className="label mb-0">Texte publicitaire (Copywriting)</label>
-                  <span className="text-[11px] text-arctic-500">Optimisé pour {form.platform.toUpperCase()}</span>
+                  <span className="text-[11px] text-arctic-500">Ton adapté à {form.platform.toUpperCase()}</span>
                 </div>
                 <textarea
                   className="input min-h-[90px] text-sm leading-relaxed"
-                  placeholder="Texte complet avec proposition de valeur, détails de livraison et hashtags..."
+                  placeholder="Présentez les qualités connues du produit et invitez le client à consulter votre catalogue..."
                   value={form.body}
                   onChange={(e) => setForm({ ...form, body: e.target.value })}
                 />
@@ -441,7 +502,7 @@ export default function CampaignsClient({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="label">Call to action (Bouton)</label>
+                  <label className="label">Texte du bouton</label>
                   <input
                     className="input text-sm"
                     value={form.cta}
@@ -449,7 +510,7 @@ export default function CampaignsClient({
                   />
                 </div>
                 <div>
-                  <label className="label">Budget ({currency})</label>
+                  <label className="label">Budget déclaré ({currency})</label>
                   <input
                     className="input text-sm"
                     inputMode="decimal"
@@ -459,7 +520,7 @@ export default function CampaignsClient({
                   />
                 </div>
                 <div>
-                  <label className="label">Ciblage Géographique</label>
+                  <label className="label">Zone visée pour le texte (facultatif)</label>
                   <input
                     className="input text-sm"
                     placeholder="Togo, Bénin, Côte d'Ivoire"
@@ -477,7 +538,7 @@ export default function CampaignsClient({
                 </button>
                 <button className="btn-primary flex items-center gap-2" disabled={saving}>
                   <RocketIcon size={15} />
-                  <span>{saving ? "Lancement en cours…" : "Lancer sur " + form.platform.toUpperCase()}</span>
+                  <span>{saving ? "Création en cours…" : "Créer la campagne et le lien de suivi"}</span>
                 </button>
               </div>
             </form>
@@ -488,7 +549,7 @@ export default function CampaignsClient({
   );
 }
 
-function CopyButton({ text, label = "Copy", copiedLabel = "Copied ✓", className }: {
+function CopyButton({ text, label = "Copier", copiedLabel = "Copié ✓", className }: {
   text: string; label?: string; copiedLabel?: string; className?: string;
 }) {
   const [copied, setCopied] = useState(false);
@@ -510,9 +571,9 @@ function CopyButton({ text, label = "Copy", copiedLabel = "Copied ✓", classNam
 }
 
 const CREATIVES = [
-  { key: "status", label: "WhatsApp Status / Story", hint: "9:16" },
-  { key: "ig", label: "Instagram / Facebook Ads (Feed)", hint: "1:1" },
-  { key: "tiktok", label: "TikTok Vertical Video Ad", hint: "9:16" },
+  { key: "status", label: "Statut WhatsApp / Story", hint: "9:16" },
+  { key: "ig", label: "Fil Instagram / Facebook", hint: "1:1" },
+  { key: "tiktok", label: "Publicité vidéo verticale TikTok", hint: "9:16" },
 ];
 
 function CampaignCard({
@@ -536,43 +597,42 @@ function CampaignCard({
             <span className="rounded bg-arctic-200/70 px-1.5 py-0.5 text-[10px] font-semibold text-arctic-600">
               {humanizeStatus(c.status)}
             </span>
-            {archived && (
-              <span className="rounded bg-arctic-200/70 px-1.5 py-0.5 text-[10px] font-semibold text-arctic-600">
-                Archived
-              </span>
-            )}
+
           </div>
-          <code className="text-xs text-arctic-500">ref {c.refCode}</code>
+          <code className="text-xs text-arctic-500">réf. {c.refCode}</code>
         </div>
         <div className="flex items-center gap-2">
-          {!["archived", "sent"].includes(c.status) && (
-            <button type="button" onClick={onReview} className="btn-ghost !py-1 text-xs">
-              {c.status === "draft" || c.status === "approved" ? "Review approval" : "View status"}
-            </button>
+          {["abandoned_cart", "reactivation"].includes(c.kind) && ["draft", "approved", "blocked", "failed"].includes(c.status) && (
+            <button type="button" onClick={onReview} className="btn-ghost !py-1 text-xs">Vérifier la relance</button>
           )}
           {!archived && (
-            <button onClick={onDelete} className="btn-ghost !py-1 text-xs">Archive</button>
+            <button onClick={onDelete} className="btn-ghost !py-1 text-xs">Archiver</button>
           )}
         </div>
       </div>
 
       {/* Stats */}
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
-        <Stat label="Clicks" value={c.clicks.toLocaleString()} />
-        <Stat label="Orders" value={c.orders.toLocaleString()} />
-        <Stat label="Revenue" value={formatMoney(c.revenueCents, currency)} />
-        <Stat label="Click→order" value={`${(c.cvr * 100).toFixed(c.cvr > 0 ? 1 : 0)}%`} />
-        <Stat label="ROAS" value={c.roas == null ? "—" : `${c.roas.toFixed(2)}×`} />
+        <Stat label="Clics" value={c.clicks.toLocaleString()} />
+        <Stat label="Commandes" value={c.orders.toLocaleString()} />
+        <Stat label="Revenus" value={formatMoney(c.revenueCents, currency)} />
+        <Stat label="Clic → commande" value={c.clicks === 0 ? "—" : `${(c.cvr * 100).toFixed(c.cvr > 0 ? 1 : 0)}%`} />
+        <Stat label="ROAS estimé" value={c.roas == null ? "—" : `${c.roas.toFixed(2)}×`} />
+      </div>
+      <p className="mt-1 text-[11px] text-arctic-500">Le ROAS est calculé à partir du budget déclaré ici, pas des dépenses réelles de la plateforme publicitaire.</p>
+      <div className="flex flex-wrap gap-2 text-xs text-arctic-600">
+        {c.platform && <span className="rounded-full bg-arctic-100 px-2.5 py-1">Canal : {c.platform === "meta" ? "Meta Ads" : c.platform === "tiktok" ? "TikTok" : "LinkedIn"}</span>}
+        {c.targetRegion && <span className="rounded-full bg-arctic-100 px-2.5 py-1">Zone : {c.targetRegion}</span>}
       </div>
 
       {/* Trackable link */}
       <div className="mt-3">
-        <span className="a-label-md text-arctic-600">Trackable link</span>
+        <span className="a-label-md text-arctic-600">Lien de suivi</span>
         <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center">
           <code className="flex-1 truncate rounded-lg bg-arctic-200/65 px-3 py-2 text-sm text-arctic-800">{link}</code>
           <div className="flex gap-2">
-            <CopyButton text={link} label="Copy link" className="btn-primary whitespace-nowrap !py-2" />
-            <a href={link} target="_blank" rel="noreferrer" className="btn-ghost whitespace-nowrap">Test ↗</a>
+            <CopyButton text={link} label="Copier le lien" className="btn-primary whitespace-nowrap !py-2" />
+            <a href={link} target="_blank" rel="noreferrer" className="btn-ghost whitespace-nowrap">Tester ↗</a>
           </div>
         </div>
       </div>
@@ -581,8 +641,8 @@ function CampaignCard({
       {(c.headline || c.body) && (
         <div className="mt-3">
           <div className="flex items-center justify-between">
-            <span className="a-label-md text-arctic-600">Ad copy</span>
-            <CopyButton text={adCopy} label="Copy ad copy" />
+            <span className="a-label-md text-arctic-600">Texte publicitaire</span>
+            <CopyButton text={adCopy} label="Copier le texte" />
           </div>
           <pre className="mt-1 whitespace-pre-wrap rounded-lg bg-arctic-100/55 px-3 py-2 text-sm text-arctic-700">{adCopy}</pre>
         </div>
@@ -590,7 +650,7 @@ function CampaignCard({
 
       {/* Creatives */}
       <div className="mt-3">
-        <span className="a-label-md text-arctic-600">Auto-built ad creative</span>
+        <span className="a-label-md text-arctic-600">Visuels à télécharger</span>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           {CREATIVES.map((f) => (
             <a
@@ -605,8 +665,7 @@ function CampaignCard({
           ))}
         </div>
         <p className="mt-1 a-label-md text-arctic-500">
-          Download → set up a Facebook/Instagram “Ads that Click to WhatsApp” campaign → use this
-          image and paste the trackable link as the destination.
+          Téléchargez un visuel, créez la publicité dans la plateforme choisie, puis utilisez le lien de suivi comme destination. Japora ne publie pas la publicité.
         </p>
       </div>
     </div>

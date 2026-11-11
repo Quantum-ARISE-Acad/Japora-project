@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useSignIn } from "@clerk/nextjs";
+import { useSignIn } from "@clerk/nextjs/legacy";
+import { errorMessage } from "@/lib/errors";
 import { isClerkConfigured } from "./ClerkAuthProvider";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
@@ -11,24 +12,23 @@ import { usePublicLang } from "@/components/PublicLanguageProvider";
 import { SaasIcon } from "@/components/ui/SaasIcons";
 
 export default function CustomSignIn() {
+  return isClerkConfigured() ? <ClerkSignIn /> : <SignInForm />;
+}
+
+function ClerkSignIn() {
+  const clerk = useSignIn();
+  return <SignInForm clerk={clerk} />;
+}
+
+function SignInForm({ clerk }: { clerk?: ReturnType<typeof useSignIn> }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirect") || "/dashboard";
   const { tr } = usePublicLang();
 
-  const clerkActive = isClerkConfigured();
-
-  let signInHook: any = null;
-  try {
-    if (clerkActive) {
-      signInHook = useSignIn();
-    }
-  } catch {
-    signInHook = null;
-  }
-
-  const signIn = signInHook?.signIn;
-  const setActive = signInHook?.setActive;
+  const clerkActive = Boolean(clerk);
+  const signIn = clerk?.signIn;
+  const setActive = clerk?.setActive;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -40,15 +40,15 @@ export default function CustomSignIn() {
     setGoogleLoading(true);
     setError("");
 
-    if (clerkActive && signIn) {
+    if (clerkActive && signIn && setActive) {
       try {
-        await (signIn as any).authenticateWithRedirect({
+        await signIn.authenticateWithRedirect({
           strategy: "oauth_google",
           redirectUrl: "/sso-callback",
           redirectUrlComplete: redirectUrl,
         });
         return;
-      } catch (err: any) {
+      } catch (err) {
         console.warn("Clerk Google OAuth fallback:", err);
       }
     }
@@ -71,8 +71,8 @@ export default function CustomSignIn() {
       }
       router.push(data.redirectUrl || redirectUrl);
       router.refresh();
-    } catch (err: any) {
-      setError(err.message || tr("Erreur de connexion avec Google.", "Google sign-in error."));
+    } catch (err) {
+      setError(errorMessage(err, tr("Erreur de connexion avec Google.", "Google sign-in error.")));
       setGoogleLoading(false);
     }
   }
@@ -82,7 +82,7 @@ export default function CustomSignIn() {
     setLoading(true);
     setError("");
 
-    if (clerkActive && signIn) {
+    if (clerkActive && signIn && setActive) {
       try {
         const result = await signIn.create({
           identifier: email.trim(),
@@ -96,7 +96,6 @@ export default function CustomSignIn() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              clerkId: result.createdUserId,
               email: email.trim(),
             }),
           }).catch(() => {});
@@ -114,7 +113,7 @@ export default function CustomSignIn() {
           setLoading(false);
           return;
         }
-      } catch (err: any) {
+      } catch (err) {
         console.warn("Clerk sign-in was not completed, trying local credentials:", err);
       }
     }
@@ -137,8 +136,8 @@ export default function CustomSignIn() {
 
       router.push(redirectUrl);
       router.refresh();
-    } catch (err: any) {
-      setError(err.message || tr("Erreur de connexion", "Sign-in error"));
+    } catch (err) {
+      setError(errorMessage(err, tr("Erreur de connexion", "Sign-in error")));
       setLoading(false);
     }
   }
