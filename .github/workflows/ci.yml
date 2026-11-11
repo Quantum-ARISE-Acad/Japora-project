@@ -33,7 +33,7 @@ jobs:
         run: |
           docker run --rm -v "$PWD:/repo:ro" \
             -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/repo \
-            zricethezav/gitleaks:v8.24.3 git /repo --redact --no-banner --log-opts=--all \
+            zricethezav/gitleaks:v8.24.3 git /repo --redact --verbose --no-banner --log-opts=--all \
             --gitleaks-ignore-path=/repo/.gitleaksignore
       - name: Validate GitHub Actions workflow
         run: docker run --rm -v "$PWD:/repo:ro" -w /repo rhysd/actionlint:1.7.7 .github/workflows/ci.yml
