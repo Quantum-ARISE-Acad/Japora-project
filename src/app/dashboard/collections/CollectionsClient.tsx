@@ -188,7 +188,7 @@ export default function CollectionsClient({
   }
 
   function copyLink(c: Collection) {
-    const url = `${appBaseUrl}/c/${shopSlug}/collection/${c.slug}`;
+    const url = `${window.location.origin}/c/${shopSlug}/collection/${c.slug}`;
     navigator.clipboard.writeText(url);
     setCopiedId(c.id);
     setTimeout(() => setCopiedId(null), 2000);
