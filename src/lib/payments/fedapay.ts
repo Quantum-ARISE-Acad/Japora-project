@@ -20,6 +20,15 @@ import type {
   VerifyResult,
 } from "./index";
 
+type FedaPayTransaction = { id?: string | number; status?: string; amount?: number };
+type FedaPayResponse = {
+  "v1/transaction"?: FedaPayTransaction;
+  transaction?: FedaPayTransaction;
+  data?: FedaPayTransaction;
+  url?: string;
+  "v1/token"?: { url?: string };
+};
+
 export type FedaPayConfig = {
   environment: "sandbox" | "live";
   publicKey: string;
@@ -58,14 +67,14 @@ export async function getVendorFedaPayConfig(vendorId?: string): Promise<FedaPay
       const prefs =
         typeof vendor.uiPrefs === "string"
           ? JSON.parse(vendor.uiPrefs)
-          : (vendor.uiPrefs as Record<string, any>);
+          : (vendor.uiPrefs as Record<string, unknown>);
       if (prefs?.fedapayConfig && typeof prefs.fedapayConfig === "object") {
-        const fc = prefs.fedapayConfig;
+        const fc = prefs.fedapayConfig as Record<string, unknown>;
         return {
           environment: fc.environment === "live" ? "live" : "sandbox",
-          publicKey: fc.publicKey || defaultConfig.publicKey,
-          secretKey: fc.secretKey || defaultConfig.secretKey,
-          webhookSecret: fc.webhookSecret || defaultConfig.webhookSecret,
+          publicKey: typeof fc.publicKey === "string" ? fc.publicKey : defaultConfig.publicKey,
+          secretKey: typeof fc.secretKey === "string" ? fc.secretKey : defaultConfig.secretKey,
+          webhookSecret: typeof fc.webhookSecret === "string" ? fc.webhookSecret : defaultConfig.webhookSecret,
           enabled: fc.enabled !== false,
         };
       }
@@ -149,7 +158,7 @@ export const fedapayProvider: PaymentProvider = {
           body: JSON.stringify(txBody),
         });
 
-        const createJson = (await createRes.json().catch(() => ({}))) as Record<string, any>;
+        const createJson = (await createRes.json().catch(() => ({}))) as FedaPayResponse;
         const txObj = createJson["v1/transaction"] || createJson.transaction || createJson.data;
 
         if (createRes.ok && txObj?.id) {
@@ -161,7 +170,7 @@ export const fedapayProvider: PaymentProvider = {
               Accept: "application/json",
             },
           });
-          const tokenJson = (await tokenRes.json().catch(() => ({}))) as Record<string, any>;
+          const tokenJson = (await tokenRes.json().catch(() => ({}))) as FedaPayResponse;
           const checkoutUrl = tokenJson.url || tokenJson["v1/token"]?.url;
 
           if (tokenRes.ok && checkoutUrl) {
@@ -224,7 +233,7 @@ export const fedapayProvider: PaymentProvider = {
             Accept: "application/json",
           },
         });
-        const json = (await res.json().catch(() => ({}))) as Record<string, any>;
+        const json = (await res.json().catch(() => ({}))) as FedaPayResponse;
         const tx = json["v1/transaction"] || json.transaction || json.data;
         const st = String(tx?.status || "").toLowerCase();
         const mapped: VerifyResult["status"] =
