@@ -122,6 +122,9 @@ jobs:
     name: Stage 1 · Typecheck & Prisma Schema
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      # Prisma lit cette variable pour valider le schéma ; aucune base n'est ouverte.
+      DATABASE_URL: file:./prisma/dev.db
     steps:
       - uses: actions/checkout@v4
         with:
