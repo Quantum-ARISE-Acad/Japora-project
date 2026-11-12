@@ -9,7 +9,18 @@ const isConfigured = Boolean(
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("pk_")
 );
 
-const clerkHandler = isConfigured ? clerkMiddleware() : null;
+// Clerk session JWTs live ~60s and are verified against this machine's clock
+// (default tolerance: 5s). If the host clock drifts (e.g. NTP unavailable),
+// every token looks expired, auth() returns no userId and /api/auth/clerk-sync
+// answers 401. Allow a configurable tolerance; generous by default in dev only.
+const clockSkewEnv = Number(process.env.CLERK_CLOCK_SKEW_MS);
+const clockSkewInMs = Number.isFinite(clockSkewEnv) && clockSkewEnv > 0
+  ? clockSkewEnv
+  : process.env.NODE_ENV === "production"
+    ? undefined
+    : 10 * 60 * 1000;
+
+const clerkHandler = isConfigured ? clerkMiddleware({ clockSkewInMs }) : null;
 
 function withVisitorCookie(req: NextRequest, res: NextResponse | Response | undefined) {
   const out = (res ?? NextResponse.next()) as NextResponse;
