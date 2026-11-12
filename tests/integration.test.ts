@@ -30,6 +30,15 @@ import {
   rejectRecoveryCampaignApproval,
   listCampaigns,
 } from "../src/lib/campaigns";
+import { listShops, getShop } from "../src/lib/directory";
+import { isStoreSetupComplete, validateStoreSetupInput } from "../src/lib/onboarding";
+import { digitsOnly, waMeLink } from "../src/lib/utils";
+import { findTrackedOrdersForVendor, trackCustomerOrders } from "../src/lib/bot";
+import {
+  createProductForVendor,
+  updateProductForVendor,
+  verifyVendorCollectionOwnership,
+} from "../src/lib/products";
 
 /**
  * DB-backed integration tests for campaigns, cooperative, trust, and customer
@@ -624,5 +633,276 @@ describe("reactivation: Japora customer rules", () => {
     assert.equal(persisted?.marketingConsent, true);
     assert.equal(persisted?.marketingConsentRevokedAt, null);
     assert.ok(persisted?.marketingConsentAt);
+  });
+});
+
+describe("marketplace store setup onboarding → directory discovery & WhatsApp checkout", () => {
+  test("incomplete provisioned Vendor becomes discoverable by region/category and ready for WhatsApp checkout after completing setup", async () => {
+    const id = randomUUID().slice(0, 8);
+    const incompleteVendor = await prisma.vendor.create({
+      data: {
+        email: `onboard_${id}@japora.test`,
+        passwordHash: "clerk_managed_auth",
+        shopName: "My Shop",
+        shopSlug: `my-shop-${id}`,
+        whatsappNumber: "",
+        region: "",
+        category: "",
+        currency: "XOF",
+        isPublic: true,
+      },
+    });
+    created.push(incompleteVendor.id);
+
+    // 1. Newly provisioned fallback vendor requires onboarding
+    assert.equal(isStoreSetupComplete(incompleteVendor), false);
+
+    // 2. Filtered marketplace directory cannot find the unconfigured store
+    const beforeRegion = await listShops({ region: "lome", category: "fashion" });
+    assert.equal(
+      beforeRegion.some((s) => s.id === incompleteVendor.id),
+      false,
+    );
+
+    // 3. Validate and apply Store Setup submission (same transform as PATCH /api/settings)
+    const validation = validateStoreSetupInput({
+      shopName: `Maison Kente ${id}`,
+      whatsappNumber: "+228 90 55 66 77",
+      region: "lome",
+      category: "fashion",
+    });
+    assert.equal(validation.ok, true);
+    if (!validation.ok) return;
+
+    const updatedVendor = await prisma.vendor.update({
+      where: { id: incompleteVendor.id },
+      data: {
+        shopName: validation.payload.shopName,
+        whatsappNumber: digitsOnly(validation.payload.whatsappNumber),
+        region: validation.payload.region,
+        category: validation.payload.category,
+        isPublic: true,
+      },
+    });
+
+    // 4. Onboarding is now complete — dashboard no longer prompts
+    assert.equal(isStoreSetupComplete(updatedVendor), true);
+
+    // 5. /marketplace filtered by region + category discovers the completed store
+    const afterFiltered = await listShops({ region: "lome", category: "fashion" });
+    const discovered = afterFiltered.find((s) => s.id === updatedVendor.id);
+    assert.ok(discovered, "completed store should appear in filtered /marketplace results");
+    assert.equal(discovered.shopName, `Maison Kente ${id}`);
+    assert.equal(discovered.region, "lome");
+    assert.equal(discovered.category, "fashion");
+
+    // 6. Storefront (/shop/[slug] & /c/[slug]) has valid WhatsApp number for checkout
+    const publicShop = await getShop(updatedVendor.shopSlug);
+    assert.ok(publicShop);
+    assert.equal(publicShop.whatsappNumber, "22890556677");
+    assert.equal(
+      waMeLink(publicShop.whatsappNumber, "Bonjour"),
+      "https://wa.me/22890556677?text=Bonjour",
+    );
+  });
+});
+
+describe("tenant isolation: order tracking (/api/orders/track & trackCustomerOrders)", () => {
+  test("Vendor A cannot retrieve or reassign Vendor B's catalog or WhatsApp orders, empty queries return nothing, and Vendor A can track its own orders", async () => {
+    const vendorA = await makeVendor();
+    const vendorB = await makeVendor();
+    const sharedBuyerPhone = "22890887766";
+
+    // Create a catalog order for Vendor A
+    const orderA = await prisma.order.create({
+      data: {
+        vendorId: vendorA.id,
+        customerName: "Buyer A",
+        customerPhone: sharedBuyerPhone,
+        status: "CONFIRMED",
+        totalCents: 150000,
+        source: "catalog",
+      },
+    });
+
+    // Create a WhatsApp-sourced order and a WhatsApp deal order for Vendor B with the same buyer phone
+    const whatsappOrderB = await prisma.order.create({
+      data: {
+        vendorId: vendorB.id,
+        customerName: "Buyer B WhatsApp",
+        customerPhone: sharedBuyerPhone,
+        status: "NEW",
+        totalCents: 250000,
+        source: "whatsapp",
+      },
+    });
+    const dealOrderB = await prisma.order.create({
+      data: {
+        vendorId: vendorB.id,
+        customerName: "Buyer B Deal",
+        customerPhone: sharedBuyerPhone,
+        status: "NEW",
+        totalCents: 180000,
+        source: "whatsapp_deal",
+      },
+    });
+
+    // 1. Empty tracking query must NOT return arbitrary recent orders
+    const emptyMatches = await findTrackedOrdersForVendor(vendorA.id, {
+      orderRef: "",
+      phone: "",
+    });
+    assert.deepEqual(emptyMatches, []);
+
+    const emptyBotReply = await trackCustomerOrders(
+      vendorA.id,
+      "",
+      vendorA.shopName,
+      vendorA.currency,
+      "",
+    );
+    assert.match(emptyBotReply.reply, /Aucune commande/i);
+
+    // 2. Querying Vendor A with Vendor B's WhatsApp order reference returns 0 results
+    const crossRefMatches = await findTrackedOrdersForVendor(vendorA.id, {
+      orderRef: whatsappOrderB.id.slice(-6),
+    });
+    assert.deepEqual(crossRefMatches, []);
+
+    const crossDealRefMatches = await findTrackedOrdersForVendor(vendorA.id, {
+      orderRef: dealOrderB.id.slice(-6),
+    });
+    assert.deepEqual(crossDealRefMatches, []);
+
+    // 3. Querying Vendor A via bot or tracking helper with shared phone ONLY returns Vendor A's order
+    const phoneMatchesForA = await findTrackedOrdersForVendor(vendorA.id, {
+      phone: sharedBuyerPhone,
+    });
+    assert.equal(phoneMatchesForA.length, 1);
+    assert.equal(phoneMatchesForA[0].id, orderA.id);
+    assert.equal(phoneMatchesForA[0].vendorId, vendorA.id);
+
+    const botReplyForAWithRefB = await trackCustomerOrders(
+      vendorA.id,
+      sharedBuyerPhone,
+      vendorA.shopName,
+      vendorA.currency,
+      whatsappOrderB.id.slice(-6),
+    );
+    assert.match(botReplyForAWithRefB.reply, /Aucune commande/i);
+
+    // 4. Verify Vendor B's WhatsApp orders were NOT reassigned to Vendor A in the database
+    const reloadedWhatsappB = await prisma.order.findUnique({ where: { id: whatsappOrderB.id } });
+    const reloadedDealB = await prisma.order.findUnique({ where: { id: dealOrderB.id } });
+    assert.equal(reloadedWhatsappB?.vendorId, vendorB.id);
+    assert.equal(reloadedDealB?.vendorId, vendorB.id);
+
+    // 5. Vendor A can still track its own valid order by reference and by phone
+    const ownRefMatches = await findTrackedOrdersForVendor(vendorA.id, {
+      orderRef: `#${orderA.id.slice(-6).toUpperCase()}`,
+    });
+    assert.equal(ownRefMatches.length, 1);
+    assert.equal(ownRefMatches[0].id, orderA.id);
+
+    const ownBotReply = await trackCustomerOrders(
+      vendorA.id,
+      sharedBuyerPhone,
+      vendorA.shopName,
+      vendorA.currency,
+      orderA.id.slice(-6),
+    );
+    assert.match(ownBotReply.reply, new RegExp(orderA.id.slice(-6).toUpperCase()));
+  });
+});
+
+describe("tenant isolation: product & collection ownership", () => {
+  test("enforces collection ownership on product create/update and prevents cross-vendor product modification", async () => {
+    const vendorA = await makeVendor();
+    const vendorB = await makeVendor();
+
+    const collectionA = await prisma.collection.create({
+      data: {
+        vendorId: vendorA.id,
+        name: "Vendor A Summer",
+        slug: "vendor-a-summer",
+      },
+    });
+    const collectionB = await prisma.collection.create({
+      data: {
+        vendorId: vendorB.id,
+        name: "Vendor B Exclusive",
+        slug: "vendor-b-exclusive",
+      },
+    });
+
+    // 1. Vendor A can create a product attached to Vendor A's collection
+    const createdValid = await createProductForVendor(vendorA, {
+      name: "Kente Shirt",
+      price: "45.00",
+      stock: 5,
+      collectionId: collectionA.id,
+    });
+    assert.equal(createdValid.ok, true);
+    if (!createdValid.ok) return;
+    assert.equal(createdValid.product.vendorId, vendorA.id);
+    assert.equal(createdValid.product.collectionId, collectionA.id);
+
+    // 2. Vendor A CANNOT create a product attached to Vendor B's collection
+    const createdCrossTenant = await createProductForVendor(vendorA, {
+      name: "Stolen Collection Item",
+      price: "30.00",
+      stock: 3,
+      collectionId: collectionB.id,
+    });
+    assert.equal(createdCrossTenant.ok, false);
+    if (!createdCrossTenant.ok) {
+      assert.equal(createdCrossTenant.status, 403);
+    }
+
+    // 3. Missing / nonexistent collectionId is rejected safely with 404
+    const createdMissingColl = await createProductForVendor(vendorA, {
+      name: "Ghost Collection Item",
+      price: "20.00",
+      stock: 2,
+      collectionId: "non-existent-collection-id",
+    });
+    assert.equal(createdMissingColl.ok, false);
+    if (!createdMissingColl.ok) {
+      assert.equal(createdMissingColl.status, 404);
+    }
+    const checkNull = await verifyVendorCollectionOwnership(vendorA.id, "");
+    assert.deepEqual(checkNull, { ok: true, collectionId: null });
+
+    // 4. Vendor A CANNOT update its product to attach to Vendor B's collection
+    const patchCrossCollection = await updateProductForVendor(vendorA, createdValid.product.id, {
+      collectionId: collectionB.id,
+    });
+    assert.equal(patchCrossCollection.ok, false);
+    if (!patchCrossCollection.ok) {
+      assert.equal(patchCrossCollection.status, 403);
+    }
+    const afterFailedPatch = await prisma.product.findUnique({
+      where: { id: createdValid.product.id },
+    });
+    assert.equal(afterFailedPatch?.collectionId, collectionA.id);
+
+    // 5. Vendor A CANNOT update Vendor B's product
+    const productB = await makeProduct(vendorB.id, 9900);
+    const crossProductUpdate = await updateProductForVendor(vendorA, productB.id, {
+      name: "Hacked Name",
+      priceCents: 100,
+      collectionId: collectionA.id,
+    });
+    assert.equal(crossProductUpdate.ok, false);
+    if (!crossProductUpdate.ok) {
+      assert.equal(crossProductUpdate.status, 404);
+    }
+    const verifyProductBUnchanged = await prisma.product.findUnique({
+      where: { id: productB.id },
+    });
+    assert.equal(verifyProductBUnchanged?.name, "Test item");
+    assert.equal(verifyProductBUnchanged?.priceCents, 9900);
+    assert.equal(verifyProductBUnchanged?.vendorId, vendorB.id);
+    assert.equal(verifyProductBUnchanged?.collectionId, null);
   });
 });

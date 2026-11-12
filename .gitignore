@@ -27,6 +27,8 @@ prisma/prisma/
 .env
 .env.*
 !.env.example
+env
+env.*
 *.key
 *.pem
 *.p12

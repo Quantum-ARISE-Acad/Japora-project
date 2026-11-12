@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useClerk } from "@clerk/nextjs";
+import { isClerkConfigured } from "@/components/auth/ClerkAuthProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 import EcosystemSwitcher from "@/components/EcosystemSwitcher";
 
@@ -72,6 +74,17 @@ export default function DashboardShell({
   const [drawer, setDrawer] = useState(false);
   const [palette, setPalette] = useState(false);
 
+  const clerkActive = isClerkConfigured();
+  let clerk: any = null;
+  try {
+    if (clerkActive) {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      clerk = useClerk();
+    }
+  } catch {
+    clerk = null;
+  }
+
   // ⌘K / Ctrl-K opens the command palette anywhere.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -95,7 +108,16 @@ export default function DashboardShell({
   );
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    if (clerk?.signOut) {
+      try {
+        const origin = typeof window !== "undefined" ? window.location.origin : "";
+        await clerk.signOut({ redirectUrl: `${origin}/login` });
+        return;
+      } catch {
+        // Fall through to client router redirect if Clerk signOut fails
+      }
+    }
     router.push("/login");
     router.refresh();
   }

@@ -6,6 +6,17 @@ import { slugify } from "@/lib/utils";
 import { hashPassword } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
+  const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  if (
+    process.env.NODE_ENV === "production" ||
+    (clerkKey && clerkKey.trim().length > 0 && !clerkKey.includes("your_clerk") && !clerkKey.includes("pk_test_placeholder"))
+  ) {
+    return NextResponse.json(
+      { error: "Demo Google login is disabled when Clerk authentication is configured." },
+      { status: 403 },
+    );
+  }
+
   try {
     const body = await req.json().catch(() => null);
     const email = String(body?.email || "google.vendor@wataru.app").trim().toLowerCase();
