@@ -26,15 +26,17 @@ const MONTH_NAMES = [
 ];
 
 function formatMoney(cents: number, currency: string): string {
+  const code = (currency || "USD").toUpperCase();
   try {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: currency || "USD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      currency: code,
+      currencyDisplay: code === "XOF" ? "code" : "symbol",
+      minimumFractionDigits: code === "XOF" ? 0 : 2,
+      maximumFractionDigits: code === "XOF" ? 0 : 2,
     }).format(cents / 100);
   } catch {
-    return `${currency} ${(cents / 100).toFixed(2)}`;
+    return `${code} ${(cents / 100).toFixed(code === "XOF" ? 0 : 2)}`;
   }
 }
 
@@ -256,7 +258,7 @@ export default function BookkeepingClient({ currency, currentSummary, lastSummar
           <button
             type="button"
             onClick={() => openReport(pickedYear, pickedMonth)}
-            className="rounded-lg bg-arctic-800 px-4 py-2 text-sm font-semibold text-white hover:bg-arctic-900"
+            className="rounded-lg bg-arctic-800 px-4 py-2 text-sm font-semibold text-white hover:bg-arctic-900 dark:bg-brand dark:text-[#1a1714] dark:hover:bg-brand-bright"
           >
             Ouvrir le rapport du mois
           </button>

@@ -359,9 +359,9 @@ export default function CampaignsClient({
       )}
 
       {open && (
-        <div className="fixed inset-0 z-30 grid place-items-center bg-arctic-900/50 p-4 backdrop-blur-sm">
-          <div role="dialog" aria-modal="true" aria-labelledby="campaign-title" className="card w-full max-w-2xl overflow-hidden shadow-2xl border border-arctic-200">
-            <div className="flex items-center justify-between border-b border-arctic-200 px-6 py-4 bg-arctic-50/50">
+        <div className="fixed inset-0 z-30 grid place-items-center overflow-y-auto bg-arctic-900/50 p-4 backdrop-blur-sm">
+          <div role="dialog" aria-modal="true" aria-labelledby="campaign-title" className="card flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden border border-arctic-200 shadow-2xl">
+            <div className="flex shrink-0 items-center justify-between border-b border-arctic-200 bg-arctic-50/50 px-6 py-4">
               <div>
                 <h2 id="campaign-title" className="font-bold text-lg text-arctic-900">Préparer une campagne et son lien de suivi</h2>
                 <p className="text-xs text-arctic-500">Le texte et le lien sont préparés ici. La publication et l’achat d’espace se font sur la plateforme publicitaire.</p>
@@ -369,7 +369,7 @@ export default function CampaignsClient({
               <button aria-label="Fermer" onClick={() => setOpen(false)} className="text-arctic-500 hover:text-arctic-800 text-lg">✕</button>
             </div>
 
-            <form onSubmit={create} className="max-h-[80vh] space-y-4 overflow-y-auto p-6">
+            <form onSubmit={create} className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-6">
               {/* Network Selector */}
               <div>
                 <label className="label mb-2">Canal choisi pour adapter le texte</label>
