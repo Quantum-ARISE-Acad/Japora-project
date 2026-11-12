@@ -1,0 +1,33 @@
+# Mises à jour automatiques proposées en pull request vers develop.
+# Les failles de sécurité sont proposées dès qu'elles sont connues ;
+# les autres mises à jour sont regroupées une fois par semaine pour limiter le bruit.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: develop
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Changements majeurs prévus après la foire (voir .github/ci/audit-allowlist.json).
+      - dependency-name: next
+        update-types: [version-update:semver-major]
+      - dependency-name: prisma
+        update-types: [version-update:semver-major]
+      - dependency-name: "@prisma/client"
+        update-types: [version-update:semver-major]
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule: { interval: weekly, day: monday }
+  - package-ecosystem: docker
+    directory: /
+    target-branch: develop
+    schedule: { interval: weekly, day: monday }
+  - package-ecosystem: docker
+    directory: /deploy/backup
+    target-branch: develop
+    schedule: { interval: weekly, day: monday }

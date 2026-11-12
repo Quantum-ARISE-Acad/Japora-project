@@ -3,6 +3,7 @@ import { issueOtp, isValidPhone, normalizePhone } from "@/lib/otp";
 import { getProvider } from "@/lib/whatsapp";
 import { getClientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
 import { logger } from "@/lib/logger";
+import { phoneSignupEnabled } from "@/lib/otp";
 
 /**
  * POST /api/auth/otp/request  { phone }
@@ -12,6 +13,12 @@ import { logger } from "@/lib/logger";
  * returned as `devCode` so the flow is testable without live credentials.
  */
 export async function POST(req: NextRequest) {
+  if (!phoneSignupEnabled()) {
+    return NextResponse.json(
+      { error: "Phone sign-up is not available yet. Please sign up with your email." },
+      { status: 503 },
+    );
+  }
   const ip = getClientIp(req);
   const ipRl = rateLimit({ key: `otp.req.ip:${ip}`, limit: 10, windowMs: 15 * 60_000 });
   if (!ipRl.allowed) return tooManyRequests(ipRl, "Too many code requests. Try again later.");

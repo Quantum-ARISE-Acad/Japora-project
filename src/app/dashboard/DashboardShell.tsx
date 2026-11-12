@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
-import EcosystemSwitcher from "@/components/EcosystemSwitcher";
 
 /**
  * Lumière dashboard shell — the "orchestrator".
@@ -104,7 +104,7 @@ export default function DashboardShell({
     <nav aria-label="Primary" className="flex h-full flex-col gap-1 px-3 py-4">
       <Link href="/dashboard" className="mb-4 flex items-center gap-2.5 px-2">
         <span className="grid h-9 w-9 place-items-center rounded-shape-md bg-brand font-black text-white shadow-elev-1">
-          {avatarUrl ? <img src={avatarUrl} alt={shopName} className="h-9 w-9 rounded-shape-md object-cover" /> : (shopName.charAt(0).toUpperCase() || "S")}
+          {avatarUrl ? <Image src={avatarUrl} alt={shopName} width={36} height={36} unoptimized className="h-9 w-9 rounded-shape-md object-cover" /> : (shopName.charAt(0).toUpperCase() || "S")}
         </span>
         <span className="min-w-0 truncate font-display text-[17px] font-semibold text-arctic-900">
           {shopName}
@@ -213,7 +213,6 @@ export default function DashboardShell({
             </kbd>
           </button>
 
-          <EcosystemSwitcher current="japora" />
           <ThemeToggle />
         </header>
 
@@ -239,12 +238,12 @@ export default function DashboardShell({
 
 function CommandPalette({
   items,
-  shopSlug, avatarUrl,
+  shopSlug,
   onClose,
   onNavigate,
 }: {
   items: Item[];
-  shopSlug: string; avatarUrl?: string;
+  shopSlug: string;
   onClose: () => void;
   onNavigate: (href: string) => void;
 }) {
@@ -283,7 +282,6 @@ function CommandPalette({
       <div className="glass-strong glass-edge relative w-full max-w-lg overflow-hidden rounded-shape-lg a-rise-in">
         <div className="flex items-center gap-3 border-b border-arctic-300/50 px-4">
           <Icon name="search" className="text-arctic-500" />
-          {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
           <input
             autoFocus
             value={q}

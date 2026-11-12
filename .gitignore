@@ -45,3 +45,10 @@ next-env.d.ts
 
 # local preview tooling
 .claude/
+
+# sauvegardes du déploiement (deploy/mvp.sh)
+/backups/
+
+# disposable CI diagnostics
+/ci-results/
+deploy/.deployed

@@ -1,5 +1,7 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import CopyableLink from "../CopyableLink";
@@ -68,7 +70,9 @@ export default function SettingsForm({
   const [isPublic, setIsPublic] = useState(initial.isPublic);
   const [wholesaleEnabled, setWholesaleEnabled] = useState(initial.wholesaleEnabled);
   const [deliveryEnabled, setDeliveryEnabled] = useState(initial.deliveryEnabled ?? false);
-  const [deliveryFeeCents, setDeliveryFeeCents] = useState(initial.deliveryFeeCents ?? 0);
+  const [deliveryFeeMajor, setDeliveryFeeMajor] = useState(
+    initial.deliveryFeeCents ? Math.round(initial.deliveryFeeCents / 100) : 0,
+  );
   const [deliveryZones, setDeliveryZones] = useState(initial.deliveryZones ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -125,8 +129,8 @@ export default function SettingsForm({
         setAvatarUrl(data.url);
         await persistAvatarUrl(data.url);
       }
-    } catch (err: any) {
-      setAvatarError(err.message || "Erreur de connexion lors de l'upload.");
+    } catch (err) {
+      setAvatarError(errorMessage(err, "Erreur de connexion lors de l'upload."));
     } finally {
       setUploadingAvatar(false);
       e.target.value = "";
@@ -159,44 +163,71 @@ export default function SettingsForm({
     e.preventDefault();
     setSaving(true);
     setError("");
-    const res = await fetch("/api/settings", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        shopName,
-        shopSlug,
-        tagline,
-        whatsappNumber,
-        momoNumber,
-        currency,
-        region,
-        category,
-        language,
-        bio,
-        avatarUrl,
-        isPublic,
-        wholesaleEnabled,
-        deliveryEnabled,
-        deliveryFeeCents: Number(deliveryFeeCents) || 0,
-        deliveryZones,
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setSaving(false);
-    if (!res.ok) {
-      setError(data.error || "Could not save settings.");
-      return;
+    setSavedAt(null);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          shopName,
+          shopSlug,
+          tagline,
+          whatsappNumber,
+          momoNumber,
+          currency,
+          region,
+          category,
+          language,
+          bio,
+          avatarUrl,
+          isPublic,
+          wholesaleEnabled,
+          deliveryEnabled,
+          deliveryFeeCents: Math.max(0, Math.round((Number(deliveryFeeMajor) || 0) * 100)),
+          deliveryZones,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setSaving(false);
+      if (!res.ok) {
+        setError(data.error || "Impossible d'enregistrer les paramètres.");
+        return;
+      }
+      if (data.vendor) {
+        if (data.vendor.shopName) setShopName(data.vendor.shopName);
+        if (data.vendor.shopSlug) setShopSlug(data.vendor.shopSlug);
+        if (typeof data.vendor.tagline === "string") setTagline(data.vendor.tagline);
+        if (typeof data.vendor.whatsappNumber === "string") setWhatsappNumber(data.vendor.whatsappNumber);
+        if (typeof data.vendor.momoNumber === "string") setMomoNumber(data.vendor.momoNumber);
+        if (data.vendor.currency) setCurrency(data.vendor.currency);
+        if (typeof data.vendor.region === "string") setRegion(data.vendor.region);
+        if (typeof data.vendor.category === "string") setCategory(data.vendor.category);
+        if (data.vendor.language) setLanguage(data.vendor.language);
+        if (typeof data.vendor.bio === "string") setBio(data.vendor.bio);
+        if (typeof data.vendor.avatarUrl === "string") setAvatarUrl(data.vendor.avatarUrl);
+      }
+      setSavedAt(Date.now());
+      router.refresh();
+    } catch (err: unknown) {
+      setSaving(false);
+      setError(err instanceof Error ? err.message : "Erreur réseau lors de l'enregistrement.");
     }
-    if (data.vendor?.shopSlug) setShopSlug(data.vendor.shopSlug);
-    setSavedAt(Date.now());
-    router.refresh();
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="a-headline-md text-arctic-900">Shop settings</h1>
-        <p className="text-sm text-arctic-600">Signed in as {initial.email}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="a-headline-md text-arctic-900">Shop settings</h1>
+          <p className="text-sm text-arctic-600">Signed in as {initial.email}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new Event("japora:open-onboarding"))}
+          className="btn-ghost text-xs border border-brand/30 text-brand-dark font-semibold self-start sm:self-auto"
+        >
+          ✨ Assistant de configuration rapide
+        </button>
       </div>
 
       <div className="card p-5">
@@ -209,7 +240,7 @@ export default function SettingsForm({
 
       <ShopQrCard slug={shopSlug} shopName={initial.shopName} whatsappNumber={whatsappNumber} />
 
-      <form onSubmit={onSubmit} className="card space-y-4 p-5">
+      <form onSubmit={onSubmit} className="card settings-form-card space-y-4 p-5">
         <div>
           <label className="label">Shop name</label>
           <input className="input" value={shopName} onChange={(e) => setShopName(e.target.value)} required />
@@ -271,7 +302,7 @@ export default function SettingsForm({
           </div>
           <div>
             <label className="label">Currency</label>
-            <select className="input" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+            <select className="input settings-select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
               {[currency, ...CURRENCY_PRESETS.filter((c) => c !== currency)].map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
@@ -282,7 +313,7 @@ export default function SettingsForm({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="label">Region</label>
-            <select className="input" value={region} onChange={(e) => setRegion(e.target.value)}>
+            <select className="input settings-select" value={region} onChange={(e) => setRegion(e.target.value)}>
               <option value="">— None —</option>
               {Object.entries(REGIONS_BY_COUNTRY).map(([country, list]) => (
                 <optgroup key={country} label={country}>
@@ -297,7 +328,7 @@ export default function SettingsForm({
           </div>
           <div>
             <label className="label">Category</label>
-            <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
+            <select className="input settings-select" value={category} onChange={(e) => setCategory(e.target.value)}>
               <option value="">— None —</option>
               {CATEGORIES.map((c) => (
                 <option key={c.slug} value={c.slug}>
@@ -311,7 +342,7 @@ export default function SettingsForm({
         <div>
           <label className="label">Language</label>
           <select
-            className="input"
+            className="input settings-select"
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
           >
@@ -389,7 +420,7 @@ export default function SettingsForm({
                 )}
               </div>
               <p className="text-[11px] text-arctic-600">
-                Formats acceptés : PNG, JPG, WebP jusqu'à 5 Mo. Ce logo est enregistré automatiquement dès sa sélection et apparaît sur votre boutique publique et vos fiches produits.
+                Formats acceptés : PNG, JPG, WebP jusqu&apos;à 5 Mo. Ce logo est enregistré automatiquement dès sa sélection et apparaît sur votre boutique publique et vos fiches produits.
               </p>
               {avatarSavedMsg && (
                 <p className="text-xs text-emerald-700 font-semibold">{avatarSavedMsg}</p>
@@ -403,12 +434,12 @@ export default function SettingsForm({
           <div className="mt-3 pt-3 border-t border-arctic-200/60">
             <details className="text-xs text-arctic-600">
               <summary className="cursor-pointer font-medium hover:text-arctic-900">
-                Ou spécifier une URL d'image externe
+                Ou spécifier une URL d&apos;image externe
               </summary>
               <input
                 className="input mt-2 text-xs py-1.5"
-                type="url"
-                placeholder="https://images.unsplash.com/..."
+                type="text"
+                placeholder="https://images.unsplash.com/... ou /uploads/..."
                 value={avatarUrl}
                 onChange={(e) => setAvatarUrl(e.target.value)}
               />
@@ -472,8 +503,8 @@ export default function SettingsForm({
                 <input
                   type="number"
                   min="0"
-                  value={deliveryFeeCents}
-                  onChange={(e) => setDeliveryFeeCents(Number(e.target.value) || 0)}
+                  value={deliveryFeeMajor}
+                  onChange={(e) => setDeliveryFeeMajor(Number(e.target.value) || 0)}
                   placeholder="Ex: 1000"
                   className="input mt-1 w-full max-w-xs text-sm"
                 />
@@ -481,7 +512,7 @@ export default function SettingsForm({
 
               <div>
                 <label className="block text-xs font-semibold text-arctic-700">
-                  Zones spécifiques et tarifs (optionnel)
+                  Zones spécifiques et tarifs ({currency}, optionnel)
                 </label>
                 <textarea
                   rows={2}
@@ -500,10 +531,24 @@ export default function SettingsForm({
 
         {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
+        {savedAt && (
+          <div className="rounded-xl border border-emerald-500/40 bg-emerald-50/90 px-4 py-3 text-sm font-semibold text-emerald-800 flex items-center justify-between">
+            <span>✅ Vos informations de boutique ont été mises à jour avec succès !</span>
+            <a
+              href={`/c/${shopSlug}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs underline hover:text-emerald-950"
+            >
+              Voir ma boutique ↗
+            </a>
+          </div>
+        )}
+
         <div className="flex items-center justify-end gap-3">
-          {savedAt && <span className="text-xs text-arctic-600">Saved ✓</span>}
-          <button className="btn-primary" disabled={saving}>
-            {saving ? "Saving…" : "Save settings"}
+          {savedAt && <span className="text-xs font-semibold text-emerald-700">Enregistré ✓</span>}
+          <button type="submit" className="btn-primary" disabled={saving}>
+            {saving ? "Enregistrement…" : "Enregistrer les modifications"}
           </button>
         </div>
       </form>

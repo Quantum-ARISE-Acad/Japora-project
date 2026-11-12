@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { evaluateAndGrant } from "@/lib/trust";
+import { notifyOrderPaid } from "@/lib/order-notifications";
 
 /**
  * Dev-only payment simulator. The stub providers (momo/orange/wave/chipper/
@@ -86,6 +87,7 @@ export async function POST(req: NextRequest) {
           });
         }
         await evaluateAndGrant(order.vendorId).catch(() => {});
+        await notifyOrderPaid(order.id, "mode démo");
       }
       logger.info("payments.dev_simulate", {
         provider: intent.provider,

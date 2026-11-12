@@ -956,7 +956,7 @@ export async function respondTo(
       uiPrefs: true,
     },
   });
-  const currency = vendor?.currency || "NGN";
+  const currency = vendor?.currency || "XOF";
   const shopName = vendor?.shopName || "our shop";
   const waConfig = parseWhatsAppAssistantConfig(vendor?.uiPrefs);
 

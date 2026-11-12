@@ -37,12 +37,12 @@ function render(format: AssetFormat, opts: AssetOpts): string {
   }
 }
 
-function baseHost(): string {
-  const url = process.env.NEXT_PUBLIC_APP_URL || "https://japora.market";
+function baseHost(req: NextRequest): string {
+  const url = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
   return url.replace(/^https?:\/\//, "").replace(/\/$/, "");
 }
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
   const vendor = await getCurrentVendor();
   if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -58,7 +58,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
 
     let productName = campaign.name;
-    let priceLabel = campaign.cta || "Shop now";
+    let priceLabel = "";
     let imageUrl: string | undefined;
     if (campaign.productId) {
       const product = await prisma.product.findFirst({
@@ -76,7 +76,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       productName: campaign.headline || productName,
       priceLabel,
       shopName: vendor.shopName,
-      shopUrl: `${baseHost()}${goPath(campaign.refCode)}`,
+      shopUrl: `${baseHost(req)}${goPath(campaign.refCode)}`,
       imageUrl,
       tagline: campaign.cta || "Order on WhatsApp",
     };

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 interface ReviewItem {
   id: string;
@@ -30,11 +30,7 @@ export function ProductReviews({ productId, productName }: ProductReviewsProps) 
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  useEffect(() => {
-    fetchReviews();
-  }, [productId]);
-
-  async function fetchReviews() {
+  const fetchReviews = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch(`/api/reviews?productId=${encodeURIComponent(productId)}`);
@@ -49,7 +45,11 @@ export function ProductReviews({ productId, productName }: ProductReviewsProps) 
     } finally {
       setLoading(false);
     }
-  }
+  }, [productId]);
+
+  useEffect(() => {
+    void fetchReviews();
+  }, [fetchReviews]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -207,7 +207,7 @@ export function ProductReviews({ productId, productName }: ProductReviewsProps) 
       {loading ? (
         <div className="py-4 text-center text-xs text-slate-400">Chargement des avis...</div>
       ) : reviews.length === 0 ? (
-        <p className="text-xs text-slate-400 italic py-2">Aucun avis pour l'instant.</p>
+        <p className="text-xs text-slate-400 italic py-2">Aucun avis pour l&apos;instant.</p>
       ) : (
         <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
           {reviews.map((rev) => (

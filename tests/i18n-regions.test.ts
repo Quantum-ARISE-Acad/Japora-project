@@ -39,11 +39,15 @@ describe("i18n — translation & language detection", () => {
 });
 
 describe("regions & categories", () => {
-  test("leads with Togo launch market (Lomé, Sokodé, Kara)", () => {
+  test("keeps the Togo launch market first and includes the fair location", () => {
     assert.equal(REGIONS[0].slug, "lome");
-    assert.equal(REGIONS[0].country, "Togo");
-    assert.equal(REGIONS[1].slug, "sokode");
-    assert.equal(REGIONS[2].slug, "kara");
+    const firstOtherCountry = REGIONS.findIndex((region) => region.country !== "Togo");
+    assert.ok(firstOtherCountry > 0);
+    for (const slug of ["lome", "sokode", "kara", "foire-lome-cetef"]) {
+      const index = REGIONS.findIndex((region) => region.slug === slug);
+      assert.ok(index >= 0 && index < firstOtherCountry, slug);
+    }
+    assert.equal(new Set(REGIONS.map((region) => region.slug)).size, REGIONS.length);
   });
 
   test("findRegion and findCategory resolve known slugs and return undefined for unknown", () => {

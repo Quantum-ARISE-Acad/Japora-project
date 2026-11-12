@@ -10,6 +10,7 @@ import { ensureReferralCode, recordSignupReferral } from "@/lib/referral";
 import { joinByCode } from "@/lib/cooperative";
 import { getClientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
 import { logger } from "@/lib/logger";
+import { phoneSignupEnabled } from "@/lib/otp";
 
 /**
  * POST /api/auth/otp/verify  { phone, code, shopName?, ref? }
@@ -22,6 +23,12 @@ import { logger } from "@/lib/logger";
  *   - XOF default currency (Togo-first) + a 30-day trial + a referral code
  */
 export async function POST(req: NextRequest) {
+  if (!phoneSignupEnabled()) {
+    return NextResponse.json(
+      { error: "Phone sign-up is not available yet. Please sign up with your email." },
+      { status: 503 },
+    );
+  }
   const ip = getClientIp(req);
   const rl = rateLimit({ key: `otp.verify:${ip}`, limit: 20, windowMs: 15 * 60_000 });
   if (!rl.allowed) return tooManyRequests(rl);

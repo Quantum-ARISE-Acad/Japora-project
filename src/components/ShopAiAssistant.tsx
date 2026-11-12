@@ -43,6 +43,8 @@ interface ShopAiAssistantProps {
   welcomeMessage?: string;
   whatsappPrefillMessage?: string;
   externalOpenRequest?: number;
+  cartBarVisible?: boolean;
+  modalOpen?: boolean;
   onAddProductById?: (productId: string) => void;
   onBuyNowProductById?: (productId: string) => void;
   onViewProductById?: (productId: string) => void;
@@ -57,6 +59,8 @@ export default function ShopAiAssistant({
   welcomeMessage,
   whatsappPrefillMessage,
   externalOpenRequest,
+  cartBarVisible = false,
+  modalOpen = false,
   onAddProductById,
   onBuyNowProductById,
   onViewProductById,
@@ -427,10 +431,18 @@ export default function ShopAiAssistant({
 
   const selectedDealProduct = catalogList.find((p) => p.id === dealProductId);
 
+  if (modalOpen && !isOpen) {
+    return null;
+  }
+
   return (
     <>
-      {/* Floating Button */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+      {/* Floating Button — automatically lifts up when sticky bottom cart bar is visible */}
+      <div
+        className={`fixed right-4 sm:right-6 z-30 flex flex-col items-end gap-2 transition-all duration-300 ${
+          cartBarVisible ? "bottom-24" : "bottom-6"
+        }`}
+      >
         {!isOpen && (
           <div
             onClick={() => setIsOpen(true)}

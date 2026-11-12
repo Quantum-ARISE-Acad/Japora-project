@@ -18,7 +18,7 @@ export default async function CollectionsPage() {
     prisma.product.findMany({
       where: { vendorId: vendor.id },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, priceCents: true, collectionId: true },
+      select: { id: true, name: true, priceCents: true, imageUrl: true, stock: true, collectionId: true },
     }),
   ]);
 
@@ -42,7 +42,7 @@ export default async function CollectionsPage() {
         }))}
         allProducts={allProducts}
         shopSlug={vendor.shopSlug}
-        currency={vendor.currency || "USD"}
+        currency={vendor.currency || "XOF"}
       />
     </div>
   );

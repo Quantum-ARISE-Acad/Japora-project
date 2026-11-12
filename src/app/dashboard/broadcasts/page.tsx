@@ -1,5 +1,6 @@
 import { requireVendor } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { isLiveMode } from "@/lib/whatsapp";
 import BroadcastComposer from "./BroadcastComposer";
 
 export const dynamic = "force-dynamic";
@@ -19,9 +20,14 @@ export default async function BroadcastsPage() {
     status: b.status,
     targetCount: b.targetCount,
     sentCount: b.sentCount,
+    failedCount: b.failedCount,
+    skippedCount: b.skippedCount,
+    uncertainCount: b.uncertainCount,
+    messageMode: b.messageMode,
+    templateName: b.templateName,
     createdAt: b.createdAt.toISOString(),
     sentAt: b.sentAt?.toISOString() ?? null,
   }));
 
-  return <BroadcastComposer initialBroadcasts={dto} />;
+  return <BroadcastComposer initialBroadcasts={dto} whatsappLive={isLiveMode()} shopName={vendor.shopName} />;
 }
