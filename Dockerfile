@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Japora (WCatalog) — Next.js + Prisma. Build de production reproductible.
-FROM node:20-bookworm-slim
+FROM node:25-bookworm-slim
 WORKDIR /app
 # Correctifs de sécurité Debian, puis npm récent : celui livré avec l'image Node
 # contient des failles connues (tar, pacote, sigstore…) signalées par Trivy en CI.
