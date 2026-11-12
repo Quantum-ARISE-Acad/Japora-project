@@ -6,7 +6,7 @@ name: CI — Quality & Build
 #   Stage 3 · Docker, sécurité de l'image et infrastructure (4 jobs)
 #   Stage 4 · CI result (verdict unique, exigé par le CD)
 #   Stage 5 · déploiement : workflow séparé .github/workflows/cd.yml
-# Le tableau des contrôles est dans docs/ci.md.
+# Le tableau des contrôles est dans docs/ci.docx.
 
 on:
   push:
