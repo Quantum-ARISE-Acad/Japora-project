@@ -1,6 +1,6 @@
 name: CD — Deploy
 
-# Déploie automatiquement une version dont la CI est verte :
+# Stage 5 du pipeline : déploie automatiquement une version dont la CI est verte :
 #   develop → environnement GitHub « staging »
 #   main    → environnement GitHub « production » (ajouter une approbation obligatoire
 #             dans Settings → Environments → production)
@@ -35,7 +35,7 @@ defaults:
 
 jobs:
   plan:
-    name: Choose version and environment
+    name: Stage 5 · Choose version and environment
     # Uniquement après une CI réussie sur un vrai push (pas une pull request).
     if: >-
       github.event_name == 'workflow_dispatch' ||
@@ -84,13 +84,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ steps.plan.outputs.sha }}
         run: |
-          result="$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/check-runs?check_name=CI%20result" \
+          result="$(gh api --method GET "repos/$GITHUB_REPOSITORY/commits/$SHA/check-runs" \
+            -f check_name="Stage 4 · CI result" \
             --jq '[.check_runs[] | select(.conclusion == "success")] | length')"
           [ "${result:-0}" -ge 1 ] || { echo "::error::La CI n'est pas verte pour ${SHA:0:7} : déploiement refusé."; exit 1; }
           echo "CI verte pour ${SHA:0:7}."
 
   deploy:
-    name: Deploy to ${{ needs.plan.outputs.environment }}
+    name: Stage 5 · Deploy to ${{ needs.plan.outputs.environment }}
     needs: plan
     runs-on: ubuntu-latest
     timeout-minutes: 45
