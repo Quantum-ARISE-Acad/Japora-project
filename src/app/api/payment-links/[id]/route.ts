@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentVendor } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { formatMoney } from "@/lib/utils";
+import { sendWhatsApp } from "@/lib/whatsapp";
 
 export async function GET(
   _req: NextRequest,
@@ -57,8 +59,46 @@ export async function PATCH(
 
   const body = await req.json().catch(() => ({}));
 
-  // Vendor actions: toggle paid
   if (vendor && vendor.id === link.vendorId) {
+    // Action: Send payment link directly via WhatsApp Cloud API
+    if (body.action === "send_whatsapp") {
+      const customerPhone = String(body.customerPhone || "").trim();
+      const customerName = String(body.customerName || "").trim();
+      if (!customerPhone) {
+        return NextResponse.json(
+          { error: "Veuillez saisir le numéro WhatsApp du client." },
+          { status: 400 },
+        );
+      }
+
+      const appBaseUrl = (
+        process.env.NEXT_PUBLIC_APP_URL ||
+        req.nextUrl.origin ||
+        "http://localhost:5174"
+      ).replace(/\/$/, "");
+      const payUrl = `${appBaseUrl}/pay/link/${link.id}`;
+      const amountText = formatMoney(link.amountCents, link.currency || vendor.currency);
+
+      const waRes = await sendWhatsApp({
+        vendorId: vendor.id,
+        to: customerPhone,
+        body:
+          `👋 Bonjour${customerName ? ` *${customerName}*` : ""} !\n\n` +
+          `*${vendor.shopName}* vous invite à régler votre commande via ce lien sécurisé Japora × FedaPay :\n` +
+          `💰 Montant : *${amountText}*\n` +
+          (link.description ? `📝 Motif : *${link.description}*\n` : "") +
+          `\n👉 Payez en ligne (T-Money, Flooz, Mobile Money ou Carte) :\n${payUrl}`,
+      });
+
+      return NextResponse.json({
+        ok: true,
+        whatsappStatus: waRes.status,
+        provider: waRes.provider,
+        error: waRes.error,
+      });
+    }
+
+    // Vendor action: toggle paid
     const isPaid = typeof body.isPaid === "boolean" ? body.isPaid : !link.isPaid;
     const updated = await prisma.paymentLink.update({
       where: { id },

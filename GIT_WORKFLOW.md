@@ -89,10 +89,12 @@ git push -u origin feat/ma-fonctionnalite
 
 ---
 
-## 5. Sécurité & Fichiers Sensibles
+## 5. Sécurité & Fichiers Sensibles (`.env`)
 
+- **Récupération du fichier `.env` pour l'équipe** : Le fichier `.env` est partagé en privé pour les membres de l'équipe sur Google Drive :
+  👉 **[Télécharger le `.env` sur Google Drive](https://drive.google.com/drive/folders/1XXs6psLdMgQMPkFWJYSFxkbAbfPUt4YR?usp=sharing)**
 - **Ne jamais commiter** de fichiers `.env`, `.env.local`, `.env.production`, clés privées (`*.pem`, `*.key`), ni de bases SQLite locales (`*.db`).
-- Si une nouvelle variable d'environnement est nécessaire, l'ajouter **sans valeur secrète** dans `.env.example` et prévenir l'équipe.
+- Si une nouvelle variable d'environnement est nécessaire, l'ajouter **sans valeur secrète** dans `.env.example`, mettre à jour le `.env` sur le Drive de l'équipe et prévenir l'équipe.
 - La pipeline CI (`.github/workflows/ci.yml`) vérifie automatiquement à chaque push et Pull Request qu'aucun fichier `.env` ou `.db` n'est versionné.
 
 ---
@@ -101,5 +103,5 @@ git push -u origin feat/ma-fonctionnalite
 
 Dans **Settings ➔ Branches** sur le dépôt GitHub `Quantum-ARISE-Acad/Japora-project`, activer une règle de protection pour **`main`**, **`staging`** et **`develop`** :
 - [x] **Require a pull request before merging** (avec au moins 1 approbation pour `main` et `staging`)
-- [x] **Require status checks to pass before merging** (cocher le job CI `Typecheck, Tests & Build`)
+- [x] **Require status checks to pass before merging** (cocher le job CI `CI result`, qui regroupe les contrôles de code, sécurité et infrastructure ; voir `docs/ci.md`)
 - [x] **Block force pushes**

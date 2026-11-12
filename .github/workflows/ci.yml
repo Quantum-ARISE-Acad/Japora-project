@@ -2,69 +2,161 @@ name: CI — Quality & Build
 
 on:
   push:
-    branches:
-      - main
-      - staging
-      - develop
+    branches: ['**']
   pull_request:
-    branches:
-      - main
-      - staging
-      - develop
+    branches: [main, staging, develop]
+  workflow_dispatch:
+  merge_group:
+
+permissions:
+  contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
-  verify:
-    name: Typecheck, Tests & Build
+  security:
+    name: Secrets & Workflow Validation
     runs-on: ubuntu-latest
-
-    env:
-      DATABASE_URL: "file:./prisma/dev.db"
-      SESSION_SECRET: "ci-test-session-secret-minimum-32-characters-long"
-      NEXT_PUBLIC_APP_URL: "http://localhost:5174"
-
+    timeout-minutes: 10
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v4
         with:
-          version: 9
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Scan Git history for secrets (redacted)
+        run: |
+          docker run --rm -v "$PWD:/repo:ro" \
+            -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/repo \
+            zricethezav/gitleaks:v8.24.3 git /repo --redact --verbose --no-banner --log-opts=--all \
+            --gitleaks-ignore-path=/repo/.gitleaksignore
+      - name: Validate GitHub Actions workflow
+        run: docker run --rm -v "$PWD:/repo:ro" -w /repo rhysd/actionlint:1.7.7 .github/workflows/ci.yml
+      - name: Analyze deployment and CI shell scripts
+        run: |
+          docker run --rm -v "$PWD:/repo:ro" -w /repo koalaman/shellcheck:v0.10.0 --severity=warning \
+            deploy/mvp.sh deploy/backup/backup.sh deploy/scheduler/run.sh scripts/ci/infrastructure.sh
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+  verify:
+    name: Lint, Typecheck, Tests & Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: file:./prisma/dev.db
+      SESSION_SECRET: ci-only-session-secret-not-for-production
+      NEXT_PUBLIC_APP_URL: http://localhost:5174
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
         with:
-          node-version: "20"
-          cache: "pnpm"
-
-      - name: Security check — ensure no .env or DB files are tracked
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Reject tracked secrets and database files
+        run: node scripts/ci/check-tracked-files.cjs
+      # Docker also uses npm ci: both jobs resolve package-lock.json.
+      - name: Install exact dependency versions
+        run: npm ci --no-audit --no-fund
+      - name: Validate Prisma schema
+        run: npx --no-install prisma validate
+      - name: Lint React and TypeScript (no warnings)
         run: |
-          if git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v '\.env\.example$'; then
-            echo "❌ ERREUR : Un fichier .env sensible est suivi par Git !"
-            exit 1
-          fi
-          if git ls-files | grep -E '\.(db|sqlite|pem|key)$'; then
-            echo "❌ ERREUR : Un fichier de base de données ou clé privée est suivi par Git !"
-            exit 1
-          fi
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Generate Prisma Client & Apply Migrations
-        run: |
-          pnpm exec prisma generate
-          pnpm exec prisma migrate deploy
-
+          mkdir -p ci-results
+          npm run lint 2>&1 | tee ci-results/lint.log
       - name: TypeScript check
-        run: pnpm exec tsc --noEmit
+        run: npx --no-install tsc --noEmit
+      - name: Run isolated SQLite test suites
+        run: |
+          mkdir -p ci-results
+          npm test 2>&1 | tee ci-results/tests.log
+      - name: Build application with SQLite
+        run: |
+          npx --no-install prisma db push --skip-generate
+          npm run build
+      - name: Save test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: ci-results/
+          if-no-files-found: ignore
+          retention-days: 7
 
-      - name: Run test suite
-        run: pnpm test
+  infrastructure:
+    name: Docker, PostgreSQL, HTTPS & Backups
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI_APP_IMAGE: japora-ci-app:${{ github.sha }}
+      CI_BACKUP_IMAGE: japora-ci-backup:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: docker/setup-buildx-action@v3
+      - name: Check shell syntax
+        run: |
+          bash -n deploy/mvp.sh scripts/ci/infrastructure.sh
+          sh -n deploy/backup/backup.sh deploy/scheduler/run.sh
+      - name: Validate deployment configuration without real secrets
+        run: |
+          bash deploy/mvp.sh init localhost ci@example.invalid
+          docker compose --env-file .env.mvp --env-file .env.keys -f docker-compose.mvp.yml config --quiet
+      - name: Build production PostgreSQL image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          push: false
+          tags: ${{ env.CI_APP_IMAGE }}
+          build-args: |
+            PRISMA_PROVIDER=postgresql
+            NEXT_PUBLIC_APP_URL=https://localhost
+          cache-from: type=gha,scope=japora-postgresql
+          cache-to: type=gha,mode=max,scope=japora-postgresql
+      - name: Build real backup image
+        uses: docker/build-push-action@v6
+        with:
+          context: deploy/backup
+          load: true
+          push: false
+          tags: ${{ env.CI_BACKUP_IMAGE }}
+          cache-from: type=gha,scope=japora-backup
+          cache-to: type=gha,mode=max,scope=japora-backup
+      - name: Test migrations, HTTP, persistence, backup and restore
+        run: bash scripts/ci/infrastructure.sh
+      - name: Save infrastructure diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: infrastructure-results
+          path: ci-results/
+          if-no-files-found: ignore
+          retention-days: 7
 
-      - name: Build production bundle
-        run: pnpm build
+  ci:
+    name: CI result
+    if: always()
+    needs: [security, verify, infrastructure]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      SECURITY_RESULT: ${{ needs.security.result }}
+      VERIFY_RESULT: ${{ needs.verify.result }}
+      INFRASTRUCTURE_RESULT: ${{ needs.infrastructure.result }}
+    steps:
+      - name: Require every check to succeed
+        run: |
+          test "$SECURITY_RESULT" = success
+          test "$VERIFY_RESULT" = success
+          test "$INFRASTRUCTURE_RESULT" = success

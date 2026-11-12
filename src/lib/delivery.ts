@@ -1,3 +1,5 @@
+import { majorToCents } from "./currency";
+
 /**
  * Delivery configuration and fee calculation utilities.
  * Supports default base fees and zone-specific pricing.
@@ -10,6 +12,8 @@ export interface DeliveryZone {
 
 /**
  * Parses a delivery zones string into structured zones.
+ * Explicit prices are entered in major currency units (e.g. 1000 XOF).
+ * Returned fees and defaultFeeCents use the app's internal hundredths.
  * Format examples:
  * - "Lomé Centre: 1000, Agoè: 1500, Baguida: 2000"
  * - "Lomé, Kpalimé, Kara" (uses defaultFeeCents)
@@ -32,11 +36,11 @@ export function parseDeliveryZones(
       const rawPrice = match[2];
 
       if (rawPrice !== undefined) {
-        // Price specified in the string
+        // Convert the entered amount once; the fallback is already in stored units.
         const parsed = parseFloat(rawPrice);
         return {
           name,
-          feeCents: isNaN(parsed) ? defaultFeeCents : Math.round(parsed),
+          feeCents: isNaN(parsed) ? defaultFeeCents : majorToCents(parsed),
         };
       }
 

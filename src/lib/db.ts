@@ -2,31 +2,26 @@ import path from "node:path";
 import os from "node:os";
 import { PrismaClient } from "@prisma/client";
 
-const DEFAULT_DATABASE_URL = "file:./prisma/dev.db";
+// Single definition shared with the Prisma CLI wrapper and the seed script, so the
+// site, `db:push` and `db:seed` always open the very same SQLite file.
+import { DEFAULT_DATABASE_URL, resolveDatabaseUrl } from "./db-url";
+export { resolveDatabaseUrl };
 
-export function resolveDatabaseUrl(
-  rawUrl: string | undefined = process.env.DATABASE_URL ?? DEFAULT_DATABASE_URL,
-  workingDirectory = process.cwd(),
-): string {
-  const configuredUrl = rawUrl?.trim() || DEFAULT_DATABASE_URL;
-  if (!configuredUrl.startsWith("file:")) return configuredUrl;
-
-  const relativePath = configuredUrl.slice("file:".length);
-  if (!relativePath || relativePath.startsWith("//") || relativePath.startsWith("/")) {
-    return configuredUrl;
-  }
-
-  const normalized = relativePath.replace(/^\.\/+/u, "");
-  return `file:${path.resolve(workingDirectory, normalized)}`;
-}
-
+void DEFAULT_DATABASE_URL;
 const resolvedDatabaseUrl = resolveDatabaseUrl(process.env.DATABASE_URL);
 
 export function assertIsolatedTestDatabase(databaseUrl: string): void {
   if (process.env.NODE_ENV !== "test" && process.env.WATURU_TEST_MODE !== "1") return;
 
   const testRoot = process.env.WATURU_TEST_DB_ROOT;
-  if (!testRoot || !databaseUrl.startsWith("file:/") || databaseUrl.includes("?")) {
+  const rawDbPath = databaseUrl.startsWith("file:") ? databaseUrl.slice("file:".length) : "";
+  if (
+    !testRoot ||
+    !rawDbPath ||
+    rawDbPath.startsWith("//") ||
+    !path.isAbsolute(rawDbPath) ||
+    databaseUrl.includes("?")
+  ) {
     throw new Error("WCatalog tests require an absolute SQLite database under WATURU_TEST_DB_ROOT.");
   }
 

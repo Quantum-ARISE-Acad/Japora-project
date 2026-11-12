@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoney, parseSizes, waMeLink, type OrderStatus } from "@/lib/utils";
 import Glyph from "@/components/Glyph";
@@ -129,13 +129,40 @@ export default function OrdersBoard({
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
 
+  const reload = useCallback(async (silent = false) => {
+    if (!silent) setRefreshing(true);
+    try {
+      const res = await fetch("/api/orders", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        const dto: Order[] = data.orders.map((o: {
+          id: string; customerName: string; customerPhone: string; status: string;
+          totalCents: number; note: string; source: string; createdAt: string;
+          items: Item[];
+        }) => ({
+          id: o.id, customerName: o.customerName, customerPhone: o.customerPhone,
+          status: o.status, totalCents: o.totalCents, note: o.note, source: o.source,
+          createdAt: o.createdAt,
+          items: o.items.map((i) => ({
+            id: i.id, productName: i.productName, size: i.size,
+            quantity: i.quantity, unitPriceCents: i.unitPriceCents,
+          })),
+        }));
+        setOrders(dto);
+      }
+      if (!silent) router.refresh();
+    } finally {
+      if (!silent) setRefreshing(false);
+    }
+  }, [router]);
+
   // Live poll every 4 seconds so WhatsApp orders & deal proposals appear in real-time
   useEffect(() => {
     const interval = setInterval(() => {
       void reload(true);
     }, 4000);
     return () => clearInterval(interval);
-  }, []);
+  }, [reload]);
 
   const pendingDeals = useMemo(
     () =>
@@ -202,32 +229,6 @@ export default function OrdersBoard({
     document.body.removeChild(link);
   }
 
-  async function reload(silent = false) {
-    if (!silent) setRefreshing(true);
-    try {
-      const res = await fetch("/api/orders", { cache: "no-store" });
-      if (res.ok) {
-        const data = await res.json();
-        const dto: Order[] = data.orders.map((o: {
-          id: string; customerName: string; customerPhone: string; status: string;
-          totalCents: number; note: string; source: string; createdAt: string;
-          items: Item[];
-        }) => ({
-          id: o.id, customerName: o.customerName, customerPhone: o.customerPhone,
-          status: o.status, totalCents: o.totalCents, note: o.note, source: o.source,
-          createdAt: o.createdAt,
-          items: o.items.map((i) => ({
-            id: i.id, productName: i.productName, size: i.size,
-            quantity: i.quantity, unitPriceCents: i.unitPriceCents,
-          })),
-        }));
-        setOrders(dto);
-      }
-      if (!silent) router.refresh();
-    } finally {
-      if (!silent) setRefreshing(false);
-    }
-  }
 
   async function move(order: Order, to: OrderStatus) {
     setOrders((curr) => curr.map((o) => (o.id === order.id ? { ...o, status: to } : o)));

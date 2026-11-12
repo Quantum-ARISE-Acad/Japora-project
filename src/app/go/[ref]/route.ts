@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { recordClick, prefillText } from "@/lib/campaigns";
 import { logger } from "@/lib/logger";
+import { publicOrigin } from "@/lib/public-origin";
 
 /**
  * GET /go/<refCode> — the trackable CTWA link.
@@ -13,11 +14,14 @@ import { logger } from "@/lib/logger";
  */
 export async function GET(req: NextRequest, ctx: { params: Promise<{ ref: string }> }) {
   const { ref } = await ctx.params;
-  const hit = await recordClick(ref);
+  const code = ref.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const cookieName = `jp_campaign_seen_${code}`;
+  const alreadyCounted = Boolean(req.cookies.get(cookieName)?.value);
+  const hit = await recordClick(ref, { countClick: !alreadyCounted });
 
   if (!hit || !hit.vendorPhone) {
     logger.warn("go.unknown_ref", { ref });
-    return NextResponse.redirect(new URL("/", req.url));
+    return NextResponse.redirect(new URL("/", publicOrigin(req)));
   }
 
   const text = prefillText({
@@ -26,5 +30,15 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ ref: string
     refCode: hit.refCode,
   });
   const waUrl = `https://wa.me/${hit.vendorPhone}?text=${encodeURIComponent(text)}`;
-  return NextResponse.redirect(waUrl, { status: 302 });
+  const response = NextResponse.redirect(waUrl, { status: 302 });
+  if (!alreadyCounted) {
+    response.cookies.set(cookieName, "1", {
+      httpOnly: true,
+      secure: req.nextUrl.protocol === "https:",
+      sameSite: "lax",
+      path: `/go/${code}`,
+      maxAge: 30 * 24 * 60 * 60,
+    });
+  }
+  return response;
 }

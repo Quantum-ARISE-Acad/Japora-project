@@ -13,7 +13,13 @@ export default async function CooperativePage() {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://japora.app";
     const joinUrl = `${appUrl}/join/${coop.joinCode}`;
     try {
-      qrSvg = await renderQrSvg(joinUrl);
+      qrSvg = await renderQrSvg(joinUrl, {
+        dark: "#111827",
+        light: "#ffffff",
+        margin: 4,
+        width: 256,
+        ecc: "M",
+      });
     } catch {
       qrSvg = "";
     }

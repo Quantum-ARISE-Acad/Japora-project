@@ -1,88 +1,114 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentVendor } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { formatMoney } from "@/lib/utils";
+import { getClientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
+import {
+  buildAdCopyPrompt,
+  fallbackAdCopy,
+  normalizeAdPlatform,
+  parseAdCopyResponse,
+} from "@/lib/ad-copy";
+import { findCategory, findRegion } from "@/lib/regions";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
-  try {
-    const { platform = "meta", productName = "", productPrice = "", storeName = "Japora Store" } = await req.json();
-
-    const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-
-    const platformGuidelines: Record<string, string> = {
-      meta: "Crée une accroche dynamique pour Facebook & Instagram axée sur la commande directe via WhatsApp. Utilise 2-3 emojis, un texte percutant, et un appel à l'action clair.",
-      tiktok: "Crée un texte court, branché et captivant pour TikTok Ads (For You Page). Utilise un hook puissant dès le premier mot, un ton jeune et direct, et des hashtags tendance (#TikTokMadeMeBuyIt #BoutiqueAfrique).",
-      linkedin: "Crée un texte professionnel orienté B2B et opportunité de marché pour LinkedIn Ads. Met en avant la qualité, le partenariat, la fiabilité et le sérieux du fournisseur.",
-    };
-
-    const prompt = `Tu es un expert mondial en copywriting de publicités digitales (Meta Ads, TikTok Ads, LinkedIn Ads).
-Boutique : ${storeName}
-Produit vedette : ${productName || "Sélection exclusive du catalogue"}
-Prix : ${productPrice || "Prix direct atelier"}
-Réseau publicitaire cible : ${platform.toUpperCase()}
-
-Instructions spécifiques :
-${platformGuidelines[platform] || platformGuidelines.meta}
-
-Formatte ta réponse STRICTEMENT sous format JSON valide avec les champs suivants :
-{
-  "headline": "Titre d'accroche court (max 60 caractères)",
-  "body": "Texte principal de la publicité (2 à 4 phrases percutantes avec emojis et appel à l'action)",
-  "cta": "Texte du bouton (ex: Commander sur WhatsApp, Acheter, Découvrir)",
-  "hashtags": "3 à 5 hashtags pertinents"
-}
-Ne renvoie rien d'autre que l'objet JSON.`;
-
-    if (apiKey) {
-      const candidateModels = ["gemini-flash-latest", "gemini-2.5-flash-lite", "gemini-1.5-flash"];
-      for (const model of candidateModels) {
-        try {
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: {
-                temperature: 0.8,
-                maxOutputTokens: 500,
-                responseMimeType: "application/json",
-              },
-            }),
-          });
-
-          if (res.ok) {
-            const data = await res.json();
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text) {
-              const parsed = JSON.parse(text);
-              return NextResponse.json({ ...parsed, model });
-            }
-          }
-        } catch {}
-      }
-    }
-
-    // Smart fallback if API is unreachable
-    const fallbacks: Record<string, any> = {
-      meta: {
-        headline: `🔥 Offre Spéciale : ${productName || "Nouveautés en stock"}`,
-        body: `Découvrez la nouvelle collection chez ${storeName} ! ${productName ? `${productName} disponible immédiatement.` : "Qualité premium certifiée."} Cliquez pour commander directement sur WhatsApp avec paiement sécurisé Flooz/T-Money.`,
-        cta: "Commander sur WhatsApp",
-        hashtags: "#BoutiqueWhatsApp #ModeLomé #Promo",
-      },
-      tiktok: {
-        headline: `POV: Tu as trouvé ${productName || "la pépite"} ✨`,
-        body: `Ne cherchez plus, c'est disponible chez ${storeName} ! Stocks limités, livraison rapide à domicile. Tapote sur le lien pour sécuriser ta commande !`,
-        cta: "Acheter maintenant",
-        hashtags: "#TikTokMadeMeBuyIt #TendanceAfrique #Shoppez",
-      },
-      linkedin: {
-        headline: `Fourniture & Qualité Pro : ${productName || "Catalogue B2B"}`,
-        body: `${storeName} accompagne les professionnels et particuliers exigeants. Approvisionnement direct, conformité et transactions garanties sous séquestre. Contactez-nous pour votre devis.`,
-        cta: "Contacter le fournisseur",
-        hashtags: "#CommerceAfrique #FournisseurCertifie #Wataru",
-      },
-    };
-
-    return NextResponse.json(fallbacks[platform] || fallbacks.meta);
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  const vendor = await getCurrentVendor();
+  if (!vendor) {
+    return NextResponse.json({ error: "Veuillez vous connecter pour générer un texte." }, { status: 401 });
   }
+
+  const ip = getClientIp(req);
+  const limit = rateLimit({ key: `ad-copy:${vendor.id}:${ip}`, limit: 10, windowMs: 60 * 60_000 });
+  if (!limit.allowed) {
+    return tooManyRequests(limit, "Limite de générations atteinte. Réessayez plus tard.");
+  }
+
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "La demande est invalide." }, { status: 400 });
+  }
+
+  const platform = normalizeAdPlatform(body.platform);
+  const productId = typeof body.productId === "string" ? body.productId.trim() : "";
+  const manualProductName = typeof body.productName === "string"
+    ? body.productName.replace(/[\u0000-\u001F\u007F]/g, " ").trim().slice(0, 120)
+    : "";
+
+  let product: { name: string; priceCents: number; stock: number } | null = null;
+  if (productId) {
+    product = await prisma.product.findFirst({
+      where: { id: productId, vendorId: vendor.id, isActive: true },
+      select: { name: true, priceCents: true, stock: true },
+    });
+    if (!product) {
+      return NextResponse.json({ error: "Ce produit est introuvable dans votre catalogue actif." }, { status: 400 });
+    }
+  }
+
+  const context = {
+    platform,
+    storeName: vendor.shopName,
+    tagline: vendor.tagline,
+    category: findCategory(vendor.category)?.label || vendor.category,
+    region: findRegion(vendor.region)?.label || vendor.region,
+    bio: vendor.bio,
+    language: vendor.language,
+    targetRegion: typeof body.targetRegion === "string" ? body.targetRegion.slice(0, 120) : "",
+    productName: product?.name || manualProductName,
+    productPrice: product ? formatMoney(product.priceCents, vendor.currency) : "",
+    productStock: product?.stock,
+  };
+
+  const fallback = fallbackAdCopy(context);
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return NextResponse.json(fallback);
+
+  const prompt = buildAdCopyPrompt(context);
+  const preferredModel = process.env.GEMINI_AD_COPY_MODEL || "gemini-3.8-flash";
+  const models = [...new Set([preferredModel, "gemini-3.5-flash-lite"])];
+  for (const model of models) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey,
+          },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              maxOutputTokens: 500,
+              responseMimeType: "application/json",
+            },
+          }),
+          signal: AbortSignal.timeout(15_000),
+        },
+      );
+
+      if (!response.ok) {
+        logger.warn("ad_copy.model_unavailable", { model, status: response.status, vendorId: vendor.id });
+        continue;
+      }
+      const data = await response.json();
+      const generated = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (typeof generated !== "string") continue;
+
+      try {
+        return NextResponse.json({ ...parseAdCopyResponse(generated), model, mode: "ai" });
+      } catch {
+        logger.warn("ad_copy.invalid_model_output", { model, vendorId: vendor.id });
+      }
+    } catch (error) {
+      logger.warn("ad_copy.model_request_failed", {
+        model,
+        vendorId: vendor.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  return NextResponse.json(fallback);
 }

@@ -142,6 +142,12 @@ export default async function PayPage({ params }: { params: Promise<{ order: str
                 </span>
               </li>
             ))}
+            {order.deliveryFeeCents > 0 && (
+              <li className="flex justify-between text-sm">
+                <span>Livraison</span>
+                <span>{formatMoney(order.deliveryFeeCents, currency)}</span>
+              </li>
+            )}
           </ul>
           <div className="mt-2 flex items-baseline justify-between border-t border-arctic-400/30 pt-2 text-sm font-bold">
             <span className="text-arctic-900">Total</span>

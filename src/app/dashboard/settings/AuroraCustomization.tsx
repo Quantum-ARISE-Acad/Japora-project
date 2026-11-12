@@ -25,9 +25,10 @@ import {
 
 type Props = {
   initial: unknown; // raw vendor.uiPrefs from Prisma
+  currency: string;
 };
 
-export default function AuroraCustomization({ initial }: Props) {
+export default function AuroraCustomization({ initial, currency }: Props) {
   const initialPrefs = useMemo(() => parseUiPrefs(initial), [initial]);
   const [prefs, setPrefs] = useState(initialPrefs);
   const [saving, setSaving] = useState(false);
@@ -82,15 +83,14 @@ export default function AuroraCustomization({ initial }: Props) {
     <div className="glass glass-edge rounded-shape-lg p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="a-title-lg text-arctic-900">Customize the feel</h2>
+          <h2 className="a-title-lg text-arctic-900">Personnaliser l’apparence</h2>
           <p className="a-body-md mt-1 text-arctic-700">
-            Tune the motion, density, and accent of your dashboard. The preview
-            below reacts as you drag.
+            Réglez l’animation, la densité et la couleur du tableau de bord. L’aperçu réagit pendant le réglage.
           </p>
         </div>
         {savedAt && (
           <span className="rounded-shape-full border border-arctic-400/45 bg-arctic-200/70 px-2 py-0.5 a-label-md text-arctic-900 backdrop-blur-glass-thin">
-            ✓ Saved
+            ✓ Enregistré
           </span>
         )}
       </div>
@@ -99,30 +99,30 @@ export default function AuroraCustomization({ initial }: Props) {
         {/* Sliders */}
         <div className="space-y-5">
           <AuroraSlider
-            label="Motion intensity"
+            label="Intensité des animations"
             value={prefs.motion}
             onChange={(e) => update("motion", Number(e.currentTarget.value))}
             formatValue={(v) =>
-              v < 25 ? "Calm" : v < 75 ? "Balanced" : "Expressive"
+              v < 25 ? "Calme" : v < 75 ? "Équilibrée" : "Dynamique"
             }
           />
           <AuroraSlider
-            label="Density"
+            label="Densité"
             value={prefs.density}
             onChange={(e) => update("density", Number(e.currentTarget.value))}
             formatValue={(v) =>
-              v < 35 ? "Compact" : v < 65 ? "Comfortable" : "Spacious"
+              v < 35 ? "Compacte" : v < 65 ? "Confortable" : "Aérée"
             }
           />
           <AuroraSlider
-            label="Accent shift"
+            label="Teinte d’accent"
             value={prefs.accentShift}
             onChange={(e) => update("accentShift", Number(e.currentTarget.value))}
             formatValue={(v) => {
               const shift = (v - 50) / 50;
-              if (shift < -0.5) return "Cooler";
-              if (shift > 0.5) return "Warmer";
-              return "Base";
+              if (shift < -0.5) return "Plus froide";
+              if (shift > 0.5) return "Plus chaude";
+              return "Neutre";
             }}
           />
 
@@ -138,17 +138,17 @@ export default function AuroraCustomization({ initial }: Props) {
               disabled={saving || !dirty}
               className="btn-primary"
             >
-              {saving ? "Saving…" : "Save preferences"}
+              {saving ? "Enregistrement…" : "Enregistrer les préférences"}
             </button>
             <button onClick={reset} disabled={saving} className="btn-ghost">
-              Reset to default
+              Rétablir les valeurs par défaut
             </button>
           </div>
         </div>
 
-        {/* Live preview */}
+        {/* Aperçu en direct — exemple fictif */}
         <aside className="glass glass-edge rounded-shape-lg p-4" style={previewStyle}>
-          <div className="a-label-md mb-3 text-arctic-700">Live preview</div>
+          <div className="a-label-md mb-3 text-arctic-700">Aperçu en direct — exemple fictif</div>
           <div
             className="space-y-3"
             style={{
@@ -157,13 +157,13 @@ export default function AuroraCustomization({ initial }: Props) {
             }}
           >
             <div
-              className="rounded-shape-md border border-arctic-400/40 bg-arctic-200/55 backdrop-blur-glass-thin"
+              className="rounded-shape-md border border-arctic-400/40 bg-arctic-200/75 backdrop-blur-glass-thin"
               style={{
                 padding: `calc(0.9rem * var(--aurora-density, 1))`,
               }}
             >
-              <div className="a-label-md text-arctic-700">Today</div>
-              <div className="a-display-sm text-arctic-900">₦42,000</div>
+              <div className="a-label-md text-arctic-800">Aujourd’hui — exemple</div>
+              <div className="a-display-sm text-arctic-900">{currency} 42 000</div>
             </div>
             <button
               className="btn-primary w-full"
@@ -173,10 +173,10 @@ export default function AuroraCustomization({ initial }: Props) {
               }}
               onClick={(e) => e.preventDefault()}
             >
-              Sample action
+              Action d’exemple
             </button>
             <div className="grid grid-cols-3 gap-2">
-              {["New", "Paid", "Sent"].map((k, i) => (
+              {["Nouveau", "Payé", "Envoyé"].map((k, i) => (
                 <span
                   key={k}
                   className={

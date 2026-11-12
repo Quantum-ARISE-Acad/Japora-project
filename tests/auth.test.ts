@@ -26,19 +26,19 @@ describe("validatePassword", () => {
   test("requires 8+ chars", () => {
     const r = validatePassword("ab1");
     assert.equal(r.ok, false);
-    if (!r.ok) assert.match(r.reason, /8 characters/);
+    if (!r.ok) assert.match(r.reason, /8 caractères/);
   });
 
   test("requires a letter", () => {
     const r = validatePassword("12345678");
     assert.equal(r.ok, false);
-    if (!r.ok) assert.match(r.reason, /letter/);
+    if (!r.ok) assert.match(r.reason, /lettre/);
   });
 
   test("requires a digit", () => {
     const r = validatePassword("abcdefgh");
     assert.equal(r.ok, false);
-    if (!r.ok) assert.match(r.reason, /number/);
+    if (!r.ok) assert.match(r.reason, /chiffre/);
   });
 
   test("accepts compliant passwords", () => {

@@ -34,6 +34,7 @@ async function retryFailedSends(): Promise<{ retried: number; failedAgain: numbe
     where: {
       direction: "OUT",
       status: "failed",
+      broadcastId: null,
       createdAt: { gte: since },
       NOT: { body: { startsWith: "[" } }, // skip [interactive]/[template:…]
     },

@@ -8,6 +8,7 @@ export type OutboundMessage = {
   to: string;
   body: string;
   orderId?: string | null;
+  broadcastId?: string | null;
 };
 
 export interface WhatsAppProvider {
@@ -155,6 +156,7 @@ export type OutboundInteractive = {
   footer?: string;
   buttons: InteractiveButton[] | InteractiveListSection[];
   orderId?: string | null;
+  broadcastId?: string | null;
 };
 
 export type OutboundTemplate = {
@@ -165,7 +167,10 @@ export type OutboundTemplate = {
   // Meta template components — left as `unknown[]` to avoid coupling to one
   // provider's shape. Stub provider just logs the count.
   components?: unknown[];
+  // Optional shorthand for body text parameters (converted into a body component).
+  parameters?: string[];
   orderId?: string | null;
+  broadcastId?: string | null;
 };
 
 function isSectionList(
@@ -274,6 +279,16 @@ class CloudApiInteractive implements InteractiveCapable {
   }
 
   async sendTemplate(msg: OutboundTemplate) {
+    const components =
+      msg.components ??
+      (msg.parameters && msg.parameters.length > 0
+        ? [
+            {
+              type: "body",
+              parameters: msg.parameters.map((text) => ({ type: "text", text })),
+            },
+          ]
+        : undefined);
     return this.post({
       messaging_product: "whatsapp",
       recipient_type: "individual",
@@ -282,7 +297,7 @@ class CloudApiInteractive implements InteractiveCapable {
       template: {
         name: msg.templateName,
         language: { code: msg.languageCode },
-        ...(msg.components ? { components: msg.components } : {}),
+        ...(components ? { components } : {}),
       },
     });
   }
@@ -331,6 +346,7 @@ export async function sendWhatsAppInteractive(msg: OutboundInteractive) {
       status,
       messageId: providerId ?? null,
       orderId: msg.orderId ?? null,
+      broadcastId: msg.broadcastId ?? null,
     },
   });
   return { record, provider: provider.name, status, providerId, error };
@@ -360,6 +376,7 @@ export async function sendWhatsAppTemplate(msg: OutboundTemplate) {
       status,
       messageId: providerId ?? null,
       orderId: msg.orderId ?? null,
+      broadcastId: msg.broadcastId ?? null,
     },
   });
   return { record, provider: provider.name, status, providerId, error };
@@ -391,6 +408,7 @@ export async function sendWhatsApp(msg: OutboundMessage) {
       status,
       messageId: providerId ?? null,
       orderId: msg.orderId ?? null,
+      broadcastId: msg.broadcastId ?? null,
     },
   });
 

@@ -30,10 +30,8 @@ function emit(level: Level, msg: string, ctx?: Context) {
   };
   const line = JSON.stringify(payload);
   if (level === "error" || level === "warn") {
-    // eslint-disable-next-line no-console
     console.error(line);
   } else {
-    // eslint-disable-next-line no-console
     console.log(line);
   }
 }

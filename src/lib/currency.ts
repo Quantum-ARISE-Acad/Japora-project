@@ -80,8 +80,8 @@ export interface CurrencyInfo {
 export const SUPPORTED_CURRENCIES: Record<CurrencyCode, CurrencyInfo> = {
   XOF: {
     code: "XOF",
-    label: "Franc CFA (XOF)",
-    symbol: "FCFA",
+    label: "XOF",
+    symbol: "XOF",
     flag: "🇹🇬",
     rateToXof: 1.0,
     decimals: 0,

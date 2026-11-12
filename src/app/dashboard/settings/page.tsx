@@ -62,7 +62,7 @@ export default async function SettingsPage() {
         }}
       />
       <ShopThemeCard shopSlug={vendor.shopSlug} />
-      <AuroraCustomization initial={vendor.uiPrefs} />
+      <AuroraCustomization initial={vendor.uiPrefs} currency={vendor.currency} />
       <SettingsForm
       initial={{
         shopName: vendor.shopName,
