@@ -51,3 +51,4 @@ next-env.d.ts
 
 # disposable CI diagnostics
 /ci-results/
+docs/.~lock.*#
