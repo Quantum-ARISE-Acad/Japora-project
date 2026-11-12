@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { digitsOnly } from "@/lib/utils";
-import { parseDealNote } from "@/lib/bot";
+import { findTrackedOrdersForVendor, parseDealNote } from "@/lib/bot";
 import { publicOrigin } from "@/lib/public-origin";
 
 const STATUS_LABELS: Record<string, { label: string; progress: number }> = {
@@ -16,6 +16,9 @@ const STATUS_LABELS: Record<string, { label: string; progress: number }> = {
  * Public order & deal tracking lookup for a specific shop.
  * Customers can search by Order Reference (`orderRef` / `query`, e.g. #AB12CD)
  * or by WhatsApp phone number (`phone` / `query`).
+ *
+ * Strictly enforces tenant isolation (`vendorId = vendor.id`) and requires a
+ * non-empty reference or phone query.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -31,8 +34,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const vendor = await prisma.vendor.findUnique({
-      where: { shopSlug },
+    const vendor = await prisma.vendor.findFirst({
+      where: { shopSlug, deletedAt: null },
       select: { id: true, shopName: true, currency: true, whatsappNumber: true, whatsappPhoneNumberId: true },
     });
 
@@ -43,67 +46,30 @@ export async function POST(req: NextRequest) {
     const cleanQuery = rawRef.replace(/^#/, "").trim().toLowerCase();
     const cleanDigits = digitsOnly(rawPhone);
 
-    // Query both the shop's orders and any recent WhatsApp/deal orders that match the phone/ref
-    const recentOrders = await prisma.order.findMany({
-      where: {
-        deletedAt: null,
-        OR: [
-          { vendorId: vendor.id },
-          { source: { in: ["whatsapp", "whatsapp_deal"] } },
-        ],
-      },
-      include: { items: true },
-      orderBy: { createdAt: "desc" },
-      take: 200,
-    });
-
-    const matches =
-      !cleanQuery && !cleanDigits
-        ? recentOrders.filter((o) => o.vendorId === vendor.id || o.source === "whatsapp" || o.source === "whatsapp_deal")
-        : recentOrders.filter((o) => {
-            const idLower = o.id.toLowerCase();
-            const refEnd = idLower.slice(-6);
-            const refStart = idLower.slice(0, 8);
-            if (
-              cleanQuery.length >= 3 &&
-              (idLower === cleanQuery ||
-                refEnd === cleanQuery ||
-                refStart === cleanQuery ||
-                idLower.endsWith(cleanQuery) ||
-                idLower.startsWith(cleanQuery) ||
-                idLower.includes(cleanQuery))
-            ) {
-              return true;
-            }
-            if (cleanDigits.length >= 6 && o.customerPhone) {
-              const orderDigits = digitsOnly(o.customerPhone);
-              if (
-                orderDigits === cleanDigits ||
-                orderDigits.endsWith(cleanDigits.slice(-8)) ||
-                cleanDigits.endsWith(orderDigits.slice(-8)) ||
-                orderDigits.includes(cleanDigits)
-              ) {
-                return true;
-              }
-            }
-            return false;
-          });
-
-    // Auto-adopt any matched WhatsApp orders into this shop's vendorId so the Dashboard stays 100% in sync
-    for (const m of matches.slice(0, 10)) {
-      if (m.vendorId !== vendor.id && (m.source === "whatsapp" || m.source === "whatsapp_deal")) {
-        await prisma.order.update({ where: { id: m.id }, data: { vendorId: vendor.id } }).catch(() => {});
-      }
+    // An empty tracking query must never return arbitrary recent orders.
+    if (cleanQuery.length < 3 && cleanDigits.length < 6) {
+      return NextResponse.json({
+        ok: true,
+        shopName: vendor.shopName,
+        currency: vendor.currency,
+        orders: [],
+        message: "Veuillez saisir une référence de commande (ex: #AB12CD) ou votre numéro WhatsApp.",
+      });
     }
 
-    const origin =
-      publicOrigin(req);
+    const matches = await findTrackedOrdersForVendor(vendor.id, {
+      orderRef: rawRef,
+      phone: rawPhone,
+      limit: 5,
+    });
+
+    const origin = publicOrigin(req);
 
     return NextResponse.json({
       ok: true,
       shopName: vendor.shopName,
       currency: vendor.currency,
-      orders: matches.slice(0, 5).map((o) => {
+      orders: matches.map((o) => {
         const dealMeta = parseDealNote(o.note);
         const isDeal = dealMeta.isDeal || o.source === "whatsapp_deal";
         const baseInfo = STATUS_LABELS[o.status] || { label: o.status, progress: 50 };
