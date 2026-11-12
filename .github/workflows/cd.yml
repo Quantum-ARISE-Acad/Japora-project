@@ -49,7 +49,7 @@ jobs:
       environment: ${{ steps.plan.outputs.environment }}
       sha: ${{ steps.plan.outputs.sha }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: github.event_name == 'workflow_dispatch'
         with:
           fetch-depth: 0
