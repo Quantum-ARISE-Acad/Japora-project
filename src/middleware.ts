@@ -39,7 +39,8 @@ function handle(req: NextRequest, event: NextFetchEvent) {
     pathname.startsWith("/api/whatsapp/webhook") ||
     pathname.startsWith("/api/ai/shop-chat") ||
     pathname.startsWith("/api/orders/track") ||
-    pathname.startsWith("/api/orders/deal")
+    pathname.startsWith("/api/orders/deal") ||
+    pathname === "/api/metrics"
   ) {
     return NextResponse.next();
   }

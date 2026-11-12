@@ -21,7 +21,7 @@ defaults:
 
 jobs:
   security:
-    name: Secrets & Workflow Validation
+    name: Security — secrets, dependencies, code & workflows
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -35,12 +35,26 @@ jobs:
             -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/repo \
             zricethezav/gitleaks:v8.24.3 git /repo --redact --verbose --no-banner --log-opts=--all \
             --gitleaks-ignore-path=/repo/.gitleaksignore
-      - name: Validate GitHub Actions workflow
-        run: docker run --rm -v "$PWD:/repo:ro" -w /repo rhysd/actionlint:1.7.7 .github/workflows/ci.yml
+      - name: Validate GitHub Actions workflows (CI and CD)
+        run: docker run --rm -v "$PWD:/repo:ro" -w /repo rhysd/actionlint:1.7.7
       - name: Analyze deployment and CI shell scripts
         run: |
           docker run --rm -v "$PWD:/repo:ro" -w /repo koalaman/shellcheck:v0.10.0 --severity=warning \
             deploy/mvp.sh deploy/backup/backup.sh deploy/scheduler/run.sh scripts/ci/infrastructure.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # Bloque toute faille élevée ou critique des dépendances de production,
+      # sauf exception datée et justifiée dans .github/ci/audit-allowlist.json.
+      - name: Audit production dependencies (npm audit)
+        run: node scripts/ci/audit.cjs
+      # Analyse statique du code (injections, XSS, secrets, mauvaises pratiques).
+      # CodeQL demande GitHub Advanced Security sur un dépôt privé ; Semgrep CE est gratuit.
+      - name: Static analysis of the source code (Semgrep)
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src semgrep/semgrep:1.99.0 semgrep scan \
+            --config p/javascript --config p/typescript --config p/react --config p/nextjs --config p/secrets \
+            --severity ERROR --error --metrics off --exclude tests --exclude node_modules
 
   verify:
     name: Lint, Typecheck, Tests & Build
@@ -133,7 +147,25 @@ jobs:
           tags: ${{ env.CI_BACKUP_IMAGE }}
           cache-from: type=gha,scope=japora-backup
           cache-to: type=gha,mode=max,scope=japora-backup
-      - name: Test migrations, HTTP, persistence, backup and restore
+      - name: Validate Caddy, Prometheus and Grafana configuration
+        run: |
+          docker run --rm -e DOMAIN=localhost -e ACME_EMAIL=ci@example.invalid \
+            -v "$PWD/deploy/caddy:/etc/caddy:ro" caddy:2.10-alpine \
+            caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          docker run --rm --entrypoint promtool -v "$PWD/deploy/prometheus:/etc/prometheus:ro" \
+            prom/prometheus:v2.55.1 check config /etc/prometheus/prometheus.yml
+          for f in deploy/grafana/dashboards/*.json; do node -e 'JSON.parse(require("fs").readFileSync(process.argv[1]))' "$f"; done
+      # Bloque une image qui contient une faille critique déjà corrigée en amont.
+      - name: Scan the production image for known vulnerabilities (Trivy)
+        run: |
+          mkdir -p ci-results
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/ci-results:/out" \
+            aquasec/trivy:0.58.1 image --quiet --scanners vuln --ignore-unfixed \
+            --severity HIGH,CRITICAL --format table --output /out/trivy-app.txt "$CI_APP_IMAGE"
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.58.1 image --quiet --scanners vuln --ignore-unfixed \
+            --severity CRITICAL --exit-code 1 "$CI_APP_IMAGE"
+      - name: Test migrations, HTTP, metrics, persistence, backup and restore
         run: bash scripts/ci/infrastructure.sh
       - name: Save infrastructure diagnostics
         if: always()

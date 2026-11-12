@@ -66,7 +66,7 @@ function formatMoney(cents: number, currency: string): string {
   try {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: currency || "USD",
+      currency: currency || "XOF",
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount);
@@ -199,7 +199,7 @@ export async function computeMonth(
     vendorSnapshot: {
       shopName: vendor?.shopName ?? "",
       region: vendor?.region ?? "",
-      currency: vendor?.currency ?? "USD",
+      currency: vendor?.currency ?? "XOF",
       bio: vendor?.bio ?? "",
     },
   };
@@ -211,7 +211,7 @@ export async function computeMonth(
  * and survives being emailed around as a single .html file.
  */
 export function renderHtml(summary: MonthlySummary, vendor: Vendor): string {
-  const currency = summary.vendorSnapshot.currency || vendor.currency || "USD";
+  const currency = summary.vendorSnapshot.currency || vendor.currency || "XOF";
   const money = (c: number) => escapeHtml(formatMoney(c, currency));
 
   const topProductRows = summary.topProducts.length

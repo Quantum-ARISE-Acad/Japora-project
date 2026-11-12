@@ -65,8 +65,8 @@ export async function POST(req: NextRequest) {
   if (!apiKey) return NextResponse.json(fallback);
 
   const prompt = buildAdCopyPrompt(context);
-  const preferredModel = process.env.GEMINI_AD_COPY_MODEL || "gemini-3.8-flash";
-  const models = [...new Set([preferredModel, "gemini-3.5-flash-lite"])];
+  const preferredModel = process.env.GEMINI_AD_COPY_MODEL || "gemini-2.5-flash";
+  const models = [...new Set([preferredModel, "gemini-flash-latest"])];
   for (const model of models) {
     try {
       const response = await fetch(

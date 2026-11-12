@@ -27,7 +27,7 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen" style={style}>
       {hasRealEmail && !vendor.emailVerifiedAt && <UnverifiedBanner email={vendor.email} />}
-      <LiveOrderNotifier currency={vendor.currency || "USD"} />
+      <LiveOrderNotifier currency={vendor.currency || "XOF"} />
       <ShopOnboardingModal
         initial={{
           shopName: vendor.shopName,

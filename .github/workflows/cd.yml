@@ -1,0 +1,183 @@
+name: CD — Deploy
+
+# Déploie automatiquement une version dont la CI est verte :
+#   develop → environnement GitHub « staging »
+#   main    → environnement GitHub « production » (ajouter une approbation obligatoire
+#             dans Settings → Environments → production)
+# Déploiement manuel possible depuis l'onglet Actions (choisir l'environnement et la version).
+#
+# Tant que les secrets du serveur ne sont pas configurés, le déploiement est ignoré
+# avec un message clair : le workflow ne casse rien. Voir deploy/README.md, partie CD.
+
+on:
+  workflow_run:
+    workflows: ["CI — Quality & Build"]
+    types: [completed]
+    branches: [develop, main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environnement cible
+        type: choice
+        options: [staging, production]
+        required: true
+      ref:
+        description: Branche, tag ou commit à déployer (vide = branche sélectionnée)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  plan:
+    name: Choose version and environment
+    # Uniquement après une CI réussie sur un vrai push (pas une pull request).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      checks: read
+    outputs:
+      environment: ${{ steps.plan.outputs.environment }}
+      sha: ${{ steps.plan.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Resolve target
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          INPUT_ENVIRONMENT: ${{ inputs.environment }}
+          INPUT_REF: ${{ inputs.ref }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ]; then
+            environment="$INPUT_ENVIRONMENT"
+            sha="$(git rev-parse --verify "${INPUT_REF:-HEAD}^{commit}")"
+          else
+            case "$RUN_BRANCH" in
+              main) environment=production ;;
+              develop) environment=staging ;;
+              *) echo "Branche $RUN_BRANCH non déployée."; exit 1 ;;
+            esac
+            sha="$RUN_SHA"
+          fi
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || { echo "Version invalide : $sha"; exit 1; }
+          case "$environment" in staging|production) ;; *) echo "Environnement invalide"; exit 1 ;; esac
+          echo "environment=$environment" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Cible : $environment, version ${sha:0:7}"
+      - name: Require a green CI for this exact commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.plan.outputs.sha }}
+        run: |
+          result="$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/check-runs?check_name=CI%20result" \
+            --jq '[.check_runs[] | select(.conclusion == "success")] | length')"
+          [ "${result:-0}" -ge 1 ] || { echo "::error::La CI n'est pas verte pour ${SHA:0:7} : déploiement refusé."; exit 1; }
+          echo "CI verte pour ${SHA:0:7}."
+
+  deploy:
+    name: Deploy to ${{ needs.plan.outputs.environment }}
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: ${{ needs.plan.outputs.environment }}
+      url: ${{ vars.DEPLOY_URL }}
+    # Jamais deux déploiements en même temps sur le même environnement.
+    concurrency:
+      group: cd-${{ needs.plan.outputs.environment }}
+      cancel-in-progress: false
+    env:
+      SHA: ${{ needs.plan.outputs.sha }}
+      TARGET: ${{ needs.plan.outputs.environment }}
+      DEPLOY_URL: ${{ vars.DEPLOY_URL }}
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+    steps:
+      - name: Check server configuration
+        id: config
+        run: |
+          missing=()
+          for name in DEPLOY_HOST DEPLOY_USER DEPLOY_PATH DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS DEPLOY_URL; do
+            [ -n "${!name}" ] || missing+=("$name")
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::notice title=Déploiement ignoré::Serveur $TARGET pas encore configuré. Manque : ${missing[*]} (voir deploy/README.md)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Prepare SSH (host key checked, never trusted blindly)
+        if: steps.config.outputs.ready == 'true'
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Deploy (build, schema check, backup, replace, health check, auto-rollback)
+        if: steps.config.outputs.ready == 'true'
+        run: |
+          remote_path="$(printf '%q' "$DEPLOY_PATH")"
+          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" \
+            -o StrictHostKeyChecking=yes -o BatchMode=yes -o ServerAliveInterval=30 \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "cd $remote_path && deploy/mvp.sh deploy $SHA"
+
+      - name: Smoke test from the Internet
+        if: steps.config.outputs.ready == 'true'
+        run: |
+          base="${DEPLOY_URL%/}"
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent --show-error --max-time 10 "$base/api/health" -o health.json \
+              && node -e 'const h=require("./health.json"); if (h.status !== "ok" || h.db !== "ok") process.exit(1)'; then
+              break
+            fi
+            [ "$attempt" = 20 ] && { echo "::error::$base/api/health ne répond pas correctement."; exit 1; }
+            sleep 6
+          done
+          curl --fail --silent --show-error --max-time 15 -o /dev/null "$base/"
+          # Les compteurs internes ne doivent jamais être visibles depuis Internet.
+          test "$(curl --silent --max-time 10 -o /dev/null -w '%{http_code}' "$base/api/metrics")" = 404
+          echo "Site en ligne et en bonne santé."
+
+      - name: Summary
+        if: always()
+        env:
+          READY: ${{ steps.config.outputs.ready }}
+          STATUS: ${{ job.status }}
+        run: |
+          {
+            echo "### Déploiement $TARGET"
+            echo "- Version : \`${SHA:0:7}\`"
+            if [ "$READY" = true ]; then
+              echo "- Résultat : $STATUS"
+              echo "- Adresse : $DEPLOY_URL"
+            else
+              echo "- Ignoré : serveur pas encore configuré (secrets manquants)."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

@@ -4,8 +4,10 @@ import { logger } from "@/lib/logger";
 import {
   getPaymentProvider,
   isValidProviderName,
+  PROVIDER_META,
   type PaymentProviderName,
 } from "@/lib/payments";
+import { notifyOrderPaid } from "@/lib/order-notifications";
 import { evaluateAndGrant } from "@/lib/trust";
 import { recordConfirmedOrder } from "@/lib/funnel";
 
@@ -148,6 +150,7 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
         }
         // Re-check verified-shop criteria now that another order is paid.
         await evaluateAndGrant(order.vendorId).catch(() => {});
+        await notifyOrderPaid(order.id, PROVIDER_META[providerName]?.label);
         const v = await prisma.vendor.findUnique({ where: { id: order.vendorId }, select: { shopSlug: true } });
         if (v) {
           await recordConfirmedOrder({

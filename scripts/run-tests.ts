@@ -28,6 +28,7 @@ const databaseSuites = new Set([
   "campaign-safety.test.ts",
   "flow.test.ts",
   "orders-delivery.test.ts",
+  "stand-readiness.test.ts",
   "integration.test.ts",
   "telemetry.test.ts",
 ]);

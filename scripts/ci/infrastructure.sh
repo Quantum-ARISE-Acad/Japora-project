@@ -66,6 +66,11 @@ curl --fail --silent --show-error --insecure --max-time 15 "$BASE/c/ci-shop" > "
 grep -q 'CI Product' "$RESULTS/catalog.html"
 test "$(curl --silent --insecure --max-time 15 -o "$RESULTS/unauthorized.json" -w '%{http_code}' "$BASE/api/products")" = 401
 test "$(curl --silent --insecure --max-time 15 -o /dev/null -w '%{http_code}' "$BASE/api/ecosystem/shops")" = 404
+# Business counters are for Prometheus on the internal network only.
+test "$(curl --silent --insecure --max-time 15 -o /dev/null -w '%{http_code}' "$BASE/api/metrics")" = 404
+dc exec -T wcatalog sh -ec 'wget -qO- http://127.0.0.1:5174/api/metrics' > "$RESULTS/metrics.txt"
+grep -q '^japora_metrics_up 1$' "$RESULTS/metrics.txt"
+grep -q '^japora_orders_paid_total ' "$RESULTS/metrics.txt"
 curl --silent --show-error --insecure --max-time 15 --dump-header "$RESULTS/headers.txt" -o /dev/null "$BASE/api/health"
 grep -qi '^strict-transport-security:' "$RESULTS/headers.txt"
 dc exec -T wcatalog sh -ec 'printf "ci-upload-persistence\n" > public/uploads/ci-proof.txt'
@@ -137,7 +142,7 @@ async function json(url, options) {
   return r.json();
 }
 (async () => {
-  for (const query of ['pg_up', 'probe_success{job="japora-health"}', 'up{job="caddy"}']) {
+  for (const query of ['pg_up', 'probe_success{job="japora-health"}', 'up{job="caddy"}', 'up{job="japora"}', 'japora_metrics_up']) {
     const result = await json('http://prometheus:9090/api/v1/query?query=' + encodeURIComponent(query));
     assert.equal(result.status, 'success');
     assert.ok(result.data.result.length > 0, query);
