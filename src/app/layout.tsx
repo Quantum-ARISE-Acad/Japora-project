@@ -1,23 +1,25 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import InstallPrompt from "@/components/InstallPrompt";
 import ThemeSync from "@/components/ThemeSync";
 import ClerkAuthProvider from "@/components/auth/ClerkAuthProvider";
+import { PublicLanguageProvider } from "@/components/PublicLanguageProvider";
 
 
 // Body / UI face — Inter, with the tabular-figure feature used by the ledger.
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+// Bundled from google/fonts (SIL OFL licenses in ./fonts): no network at build time.
+const inter = localFont({
+  src: "./fonts/Inter.ttf",
+  weight: "300 700",
   variable: "--font-sans",
   display: "swap",
 });
 
 // Modern display face — Plus Jakarta Sans for crisp, contemporary headings.
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
+const jakarta = localFont({
+  src: "./fonts/PlusJakartaSans.ttf",
+  weight: "500 800",
   variable: "--font-display",
   display: "swap",
 });
@@ -59,9 +61,11 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen font-sans antialiased">
         <ClerkAuthProvider>
-          <ThemeSync />
-          {children}
-          <InstallPrompt />
+          <PublicLanguageProvider>
+            <ThemeSync />
+            {children}
+            <InstallPrompt />
+          </PublicLanguageProvider>
         </ClerkAuthProvider>
       </body>
 

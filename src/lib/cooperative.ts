@@ -102,10 +102,56 @@ export async function joinByCode(vendorId: string, code: string) {
   return coop;
 }
 
-/** Remove a vendor from its cooperative. No-op if not in one. */
-export async function leaveCooperative(vendorId: string) {
-  await prisma.vendor.update({ where: { id: vendorId }, data: { cooperativeId: null } });
-  logger.info("coop.left", { vendorId });
+export type LeaveCooperativeOutcome = "not_member" | "left" | "admin_transferred" | "dissolved";
+
+/**
+ * Remove a vendor safely. If the administrator leaves, transfer ownership to
+ * the oldest active member; dissolve the cooperative when its last member leaves.
+ */
+export async function leaveCooperative(vendorId: string): Promise<LeaveCooperativeOutcome> {
+  const outcome = await prisma.$transaction(async (tx) => {
+    const vendor = await tx.vendor.findUnique({ where: { id: vendorId }, select: { cooperativeId: true } });
+    if (!vendor) throw new Error("vendor_not_found");
+    if (!vendor.cooperativeId) return "not_member" as const;
+
+    const cooperative = await tx.cooperative.findUnique({
+      where: { id: vendor.cooperativeId },
+      select: { id: true, adminVendorId: true },
+    });
+    if (!cooperative) {
+      await tx.vendor.update({ where: { id: vendorId }, data: { cooperativeId: null } });
+      return "left" as const;
+    }
+
+    if (cooperative.adminVendorId !== vendorId) {
+      await tx.vendor.updateMany({
+        where: { id: vendorId, cooperativeId: cooperative.id },
+        data: { cooperativeId: null },
+      });
+      return "left" as const;
+    }
+
+    const successor = await tx.vendor.findFirst({
+      where: { cooperativeId: cooperative.id, deletedAt: null, id: { not: vendorId } },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      select: { id: true },
+    });
+
+    if (successor) {
+      await tx.cooperative.update({
+        where: { id: cooperative.id },
+        data: { adminVendorId: successor.id },
+      });
+      await tx.vendor.update({ where: { id: vendorId }, data: { cooperativeId: null } });
+      return "admin_transferred" as const;
+    }
+
+    await tx.cooperative.delete({ where: { id: cooperative.id } });
+    return "dissolved" as const;
+  });
+
+  logger.info("coop.left", { vendorId, outcome });
+  return outcome;
 }
 
 export type CooperativeView = {
@@ -131,7 +177,7 @@ export async function getCooperativeForVendor(vendorId: string): Promise<Coopera
     include: {
       members: {
         where: { deletedAt: null },
-        orderBy: { createdAt: "asc" },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
         select: { id: true, shopName: true, shopSlug: true, createdAt: true },
       },
     },
@@ -183,34 +229,68 @@ export function parsePhoneList(blob: string): string[] {
   return out;
 }
 
-/**
- * Blast a join invite to a list of phones over WhatsApp. Stub-first: in dev the
- * WhatsApp layer logs each message; in prod it sends via the Cloud API (subject
- * to the 24h window / template rules). Returns how many were queued.
- */
+/** Send invitations and report API acceptance separately from demo simulation. */
+export type CooperativeInviteSummary = {
+  acceptedByApi: number;
+  simulated: number;
+  failed: number;
+  attempted: number;
+  notAttempted: number;
+  failedPhones: string[];
+  notAttemptedPhones: string[];
+};
+
 export async function inviteByPhones(opts: {
   vendorId: string;
   cooperative: { id: string; name: string; joinCode: string };
   phones: string[];
   appBaseUrl: string;
-}): Promise<{ sent: number; phones: string[] }> {
+  send?: typeof sendWhatsApp;
+}): Promise<CooperativeInviteSummary> {
   const joinUrl = `${opts.appBaseUrl.replace(/\/$/, "")}/join/${opts.cooperative.joinCode}`;
-  const phones = opts.phones.slice(0, 200); // sane cap per blast
-  let sent = 0;
+  const phones = opts.phones.slice(0, 200);
+  const send = opts.send ?? sendWhatsApp;
+  let acceptedByApi = 0;
+  let simulated = 0;
+  const failedPhones: string[] = [];
+
   for (const to of phones) {
     const body =
       `You're invited to join *${opts.cooperative.name}* on Japora — sell on WhatsApp with the rest of the market.\n\n` +
       `Tap to set up your shop (free, no app to install):\n${joinUrl}\n\n` +
       `Join code: ${opts.cooperative.joinCode}`;
     try {
-      await sendWhatsApp({ vendorId: opts.vendorId, to, body });
-      sent++;
+      const result = await send({ vendorId: opts.vendorId, to, body });
+      if (result.status === "sent") acceptedByApi++;
+      else if (result.status === "stubbed") simulated++;
+      else {
+        failedPhones.push(to);
+        logger.warn("coop.invite_send_failed", { status: result.status });
+      }
     } catch (e) {
-      logger.warn("coop.invite_send_failed", { to, error: String(e) });
+      failedPhones.push(to);
+      logger.warn("coop.invite_send_failed", { error: String(e) });
     }
   }
-  logger.info("coop.invites_sent", { coopId: opts.cooperative.id, count: sent });
-  return { sent, phones };
+
+  const summary = {
+    acceptedByApi,
+    simulated,
+    failed: failedPhones.length,
+    attempted: phones.length,
+    notAttempted: opts.phones.length - phones.length,
+    failedPhones,
+    notAttemptedPhones: opts.phones.slice(phones.length),
+  };
+  logger.info("coop.invites_processed", {
+    coopId: opts.cooperative.id,
+    acceptedByApi,
+    simulated,
+    failed: failedPhones.length,
+    attempted: phones.length,
+    notAttempted: summary.notAttempted,
+  });
+  return summary;
 }
 
 export const __testing = { generateCode, parsePhoneList };

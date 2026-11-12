@@ -18,6 +18,7 @@ import { flutterwaveProvider, flutterwaveConfigured } from "./flutterwave";
 import { mpesaProvider, mpesaConfigured } from "./mpesa";
 import { cinetpayProvider, cinetpayConfigured } from "./cinetpay";
 import { paygateProvider, paygateConfigured } from "./paygate";
+import { fedapayProvider, fedapayConfigured } from "./fedapay";
 import { momoProvider } from "./momo";
 import { orangeProvider } from "./orange";
 import { waveProvider } from "./wave";
@@ -26,6 +27,7 @@ import { cashProvider } from "./cash";
 import { ussdProvider } from "./ussd";
 
 export type PaymentProviderName =
+  | "fedapay"
   | "ussd"
   | "cinetpay"
   | "paygate"
@@ -80,6 +82,7 @@ export interface PaymentProvider {
 }
 
 const ALL: Record<PaymentProviderName, PaymentProvider> = {
+  fedapay: fedapayProvider,
   ussd: ussdProvider,
   cinetpay: cinetpayProvider,
   paygate: paygateProvider,
@@ -100,6 +103,7 @@ export const PROVIDER_META: Record<
   PaymentProviderName,
   { label: string; wallets: string[] }
 > = {
+  fedapay: { label: "FedaPay (T-Money, Flooz, Mobile Money & Carte)", wallets: ["T-Money", "Flooz Moov", "MTN MoMo", "Celtiis", "Visa / Mastercard"] },
   ussd: { label: "Mobile Money — dial code", wallets: ["T-Money", "Flooz", "Orange Money", "MTN MoMo"] },
   cinetpay: { label: "Mobile Money (CinetPay)", wallets: ["T-Money", "Flooz", "Orange Money", "MTN MoMo", "Moov", "Wave", "Card"] },
   paygate: { label: "T-Money / Flooz (PayGate)", wallets: ["T-Money", "Flooz"] },
@@ -118,6 +122,7 @@ export const PROVIDER_META: Record<
  * buyers only the rails that fit their shop's currency.
  */
 const PROVIDER_CURRENCIES: Record<PaymentProviderName, string[]> = {
+  fedapay: ["*"],
   ussd: ["XOF", "XAF", "GNF", "GHS", "UGX", "RWF"],
   cinetpay: ["XOF", "XAF", "GNF", "CDF", "USD"],
   paygate: ["XOF"],
@@ -137,6 +142,7 @@ export function getPaymentProvider(name: PaymentProviderName): PaymentProvider {
 
 export function isProviderConfigured(name: PaymentProviderName): boolean {
   switch (name) {
+    case "fedapay": return fedapayConfigured();
     case "cinetpay": return cinetpayConfigured();
     case "paygate": return paygateConfigured();
     case "paystack": return paystackConfigured();
@@ -154,14 +160,12 @@ export function isProviderConfigured(name: PaymentProviderName): boolean {
 export function providersForCurrency(currency: string): PaymentProviderName[] {
   const cur = (currency || "").toUpperCase();
   const PRIORITY: PaymentProviderName[] = [
-    "ussd", "paygate", "cinetpay", "flutterwave", "orange", "wave", "momo",
+    "fedapay", "ussd", "paygate", "cinetpay", "flutterwave", "orange", "wave", "momo",
     "paystack", "mpesa", "chipper", "cash",
   ];
   const fits = (p: PaymentProviderName) =>
     PROVIDER_CURRENCIES[p].includes("*") || PROVIDER_CURRENCIES[p].includes(cur);
   return PRIORITY.filter(fits).sort((a, b) => {
-    // USSD (dial-code) is the default quick method — it needs no smartphone,
-    // data, card, or provider account, so it always leads. Cash always closes.
     if (a === "ussd") return -1;
     if (b === "ussd") return 1;
     if (a === "cash") return 1;
@@ -177,14 +181,15 @@ export function providersForCurrency(currency: string): PaymentProviderName[] {
  */
 export function apiFallbackForCurrency(currency: string): PaymentProviderName | null {
   const cur = (currency || "").toUpperCase();
-  const fits = (p: PaymentProviderName) => PROVIDER_CURRENCIES[p].includes(cur);
-  const apiRails: PaymentProviderName[] = ["paygate", "cinetpay", "flutterwave", "paystack", "mpesa"];
+  const fits = (p: PaymentProviderName) =>
+    PROVIDER_CURRENCIES[p].includes("*") || PROVIDER_CURRENCIES[p].includes(cur);
+  const apiRails: PaymentProviderName[] = ["fedapay", "paygate", "cinetpay", "flutterwave", "paystack", "mpesa"];
   return apiRails.find((p) => fits(p) && isProviderConfigured(p)) ?? null;
 }
 
 /** Providers whose required envs are currently configured (real, not stub). */
 export function listConfiguredProviders(): PaymentProviderName[] {
-  const real: PaymentProviderName[] = ["cinetpay", "paygate", "paystack", "flutterwave", "mpesa"];
+  const real: PaymentProviderName[] = ["fedapay", "cinetpay", "paygate", "paystack", "flutterwave", "mpesa"];
   const out: PaymentProviderName[] = ["ussd", ...real.filter(isProviderConfigured)];
   out.push("momo", "orange", "wave", "chipper", "cash");
   return out;

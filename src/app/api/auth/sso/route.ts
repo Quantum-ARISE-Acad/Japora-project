@@ -1,3 +1,4 @@
+import { errorMessage } from "@/lib/errors";
 import { NextRequest, NextResponse } from "next/server";
 import {
   WATARU_SSO_COOKIE,
@@ -61,10 +62,10 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.redirect(new URL(redirectUrl, publicOrigin(req)));
-  } catch (err: any) {
+  } catch (err) {
     console.error("[SSO Japora error]", err);
     if (format === "json") {
-      return NextResponse.json({ error: err.message || "SSO error" }, { status: 500 });
+      return NextResponse.json({ error: errorMessage(err, "SSO error") }, { status: 500 });
     }
     return NextResponse.redirect(new URL("/login?error=sso_failed", publicOrigin(req)));
   }
@@ -88,7 +89,7 @@ export async function POST(_req: NextRequest) {
     });
 
     return NextResponse.json({ ok: true, ticket });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Failed to issue ticket" }, { status: 500 });
+  } catch (err) {
+    return NextResponse.json({ error: errorMessage(err, "Failed to issue ticket") }, { status: 500 });
   }
 }

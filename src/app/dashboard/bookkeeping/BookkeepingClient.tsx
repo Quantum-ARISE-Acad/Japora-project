@@ -29,7 +29,7 @@ function formatMoney(cents: number, currency: string): string {
   try {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: currency || "USD",
+      currency: currency || "XOF",
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(cents / 100);

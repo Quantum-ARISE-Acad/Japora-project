@@ -8,6 +8,7 @@ services:
         # Inscrites dans le code au build : changer de domaine impose un rebuild.
         NEXT_PUBLIC_APP_URL: ${PUBLIC_URL:?lancez deploy/mvp.sh init}
         NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}
+        NEXT_PUBLIC_WHATSAPP_BOT_NUMBER: ${NEXT_PUBLIC_WHATSAPP_BOT_NUMBER:-}
     container_name: wataru-wcatalog
     restart: unless-stopped
     user: node

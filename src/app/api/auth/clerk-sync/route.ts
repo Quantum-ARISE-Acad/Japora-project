@@ -1,3 +1,4 @@
+import { errorMessage } from "@/lib/errors";
 import { NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { createSession } from "@/lib/session";
@@ -44,8 +45,8 @@ export async function POST(req: Request) {
       vendorId: vendor.id,
       shopSlug: vendor.shopSlug,
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error("[clerk-sync error]", err);
-    return NextResponse.json({ error: err.message || "Sync failed" }, { status: 500 });
+    return NextResponse.json({ error: errorMessage(err, "Sync failed") }, { status: 500 });
   }
 }

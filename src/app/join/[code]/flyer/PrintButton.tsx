@@ -1,13 +1,13 @@
 "use client";
 
-/** Screen-only print trigger — hidden on the printed page itself. */
+/** Bouton d’impression visible à l’écran et masqué sur la page imprimée. */
 export default function PrintButton() {
   return (
     <button
       onClick={() => window.print()}
       className="btn-primary no-print"
     >
-      Print this flyer
+      Imprimer le flyer
     </button>
   );
 }

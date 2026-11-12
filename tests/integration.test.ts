@@ -1,4 +1,4 @@
-import { describe, test, before, after } from "node:test";
+import { describe, test, after } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "../src/lib/db";
@@ -13,7 +13,6 @@ import { meetsCriteria, evaluateAndGrant, VERIFY_MIN_PAID_ORDERS } from "../src/
 import {
   isCustomerEligibleForReactivation,
   customerReactivationEligibility,
-  isReactivationEligible,
   isCustomerVip,
   linkCartSessionToCustomer,
   resolveCustomerForCartSession,

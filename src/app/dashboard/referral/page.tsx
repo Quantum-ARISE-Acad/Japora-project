@@ -11,7 +11,7 @@ export default async function ReferralPage() {
 
   const referralCode = await ensureReferralCode(vendor.id);
   const base = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
-  const shareUrl = `${base}/signup?ref=${referralCode}`;
+  const shareUrl = `${base}/signup?ref=${encodeURIComponent(referralCode)}`;
 
   const [referrals, qualified] = await Promise.all([
     listReferrals(vendor.id),
