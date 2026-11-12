@@ -1,7 +1,13 @@
-# Reviewed false positives from the initial import only. No whole file/rule is
-# excluded: future credentials in these files will still fail the scan.
+# Reviewed false positives from the initial import and its duplicate snapshot.
+# No whole file/rule is excluded: future credentials will still fail the scan.
 # Public password for the disposable synthetic demo, not a service credential.
 af72ba7fcde3f87c291d5a72919a2a503e25b424:docs/dev-synthetic-recovery-data.md:generic-api-key:44
 af72ba7fcde3f87c291d5a72919a2a503e25b424:scripts/synthetic-recovery-demo.ts:generic-api-key:6
 # Empty M-Pesa example variables: the detector spans two adjacent lines.
 af72ba7fcde3f87c291d5a72919a2a503e25b424:.env.example:generic-api-key:86
+
+# Duplicate historical snapshot on desire (4ae3465). The flagged lines were
+# compared with af72ba7 and are byte-for-byte identical to the examples above.
+4ae34656c3863c4312042db21e134e3362df2b4c:docs/dev-synthetic-recovery-data.md:generic-api-key:44
+4ae34656c3863c4312042db21e134e3362df2b4c:scripts/synthetic-recovery-demo.ts:generic-api-key:6
+4ae34656c3863c4312042db21e134e3362df2b4c:.env.example:generic-api-key:86

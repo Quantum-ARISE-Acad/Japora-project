@@ -66,6 +66,11 @@ curl --fail --silent --show-error --insecure --max-time 15 "$BASE/c/ci-shop" > "
 grep -q 'CI Product' "$RESULTS/catalog.html"
 test "$(curl --silent --insecure --max-time 15 -o "$RESULTS/unauthorized.json" -w '%{http_code}' "$BASE/api/products")" = 401
 test "$(curl --silent --insecure --max-time 15 -o /dev/null -w '%{http_code}' "$BASE/api/ecosystem/shops")" = 404
+# Business counters are for Prometheus on the internal network only.
+test "$(curl --silent --insecure --max-time 15 -o /dev/null -w '%{http_code}' "$BASE/api/metrics")" = 404
+dc exec -T wcatalog sh -ec 'wget -qO- http://127.0.0.1:5174/api/metrics' > "$RESULTS/metrics.txt"
+grep -q '^japora_metrics_up 1$' "$RESULTS/metrics.txt"
+grep -q '^japora_orders_paid_total ' "$RESULTS/metrics.txt"
 curl --silent --show-error --insecure --max-time 15 --dump-header "$RESULTS/headers.txt" -o /dev/null "$BASE/api/health"
 grep -qi '^strict-transport-security:' "$RESULTS/headers.txt"
 dc exec -T wcatalog sh -ec 'printf "ci-upload-persistence\n" > public/uploads/ci-proof.txt'
@@ -89,6 +94,11 @@ const path = require('node:path');
 JS
 curl --fail --silent --show-error --insecure --max-time 10 "$BASE/uploads/ci-photo.png" > "$RESULTS/ci-photo.png"
 node -e 'const assert=require("node:assert/strict"),fs=require("node:fs");assert.equal(fs.readFileSync(process.argv[1]).toString("base64"),"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl1sAAAAASUVORK5CYII=");' "$RESULTS/ci-photo.png"
+
+echo 'Checking broadcast scheduler endpoint authentication and queue processing...'
+test "$(curl --silent --insecure --max-time 15 -o /dev/null -w '%{http_code}' "$BASE/api/cron/broadcasts")" = 401
+curl --fail --silent --show-error --insecure --max-time 15 -H 'X-Cron-Key: ci-only-broadcast-cron-secret' "$BASE/api/cron/broadcasts" > "$RESULTS/broadcast-cron.json"
+node -e 'const a=require("node:assert/strict"),fs=require("node:fs");const r=JSON.parse(fs.readFileSync(process.argv[1]));a.equal(r.ok,true);a.equal(r.processed,0);a.equal(r.uncertain,0);' "$RESULTS/broadcast-cron.json"
 
 echo 'Checking scheduled backup, manual backup and restore into a separate database...'
 # Stop the scheduler after proving two automatic runs; manual backup then has
@@ -132,7 +142,7 @@ async function json(url, options) {
   return r.json();
 }
 (async () => {
-  for (const query of ['pg_up', 'probe_success{job="japora-health"}', 'up{job="caddy"}']) {
+  for (const query of ['pg_up', 'probe_success{job="japora-health"}', 'up{job="caddy"}', 'up{job="japora"}', 'japora_metrics_up']) {
     const result = await json('http://prometheus:9090/api/v1/query?query=' + encodeURIComponent(query));
     assert.equal(result.status, 'success');
     assert.ok(result.data.result.length > 0, query);

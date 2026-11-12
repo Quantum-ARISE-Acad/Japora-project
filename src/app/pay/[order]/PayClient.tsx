@@ -99,6 +99,47 @@ export default function PayClient({
 
   return (
     <div className="space-y-5 p-5">
+      {/* FedaPay Online Checkout — Top Priority */}
+      {apiProvider && (
+        <section className="rounded-shape-lg border-2 border-emerald-500/80 bg-emerald-50/60 p-4 shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-emerald-600 text-white text-sm font-bold shadow-xs">
+                💳
+              </span>
+              <div>
+                <h3 className="text-sm font-extrabold text-arctic-900">
+                  Paiement en ligne sécurisé FedaPay
+                </h3>
+                <p className="text-[11px] text-arctic-600">
+                  T-Money, Flooz Moov, MTN Mobile Money, Celtiis & Carte Visa/Mastercard
+                </p>
+              </div>
+            </div>
+            <span className="rounded-full bg-emerald-600 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+              ⚡ Instantané
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={payAutomatically}
+            disabled={apiBusy}
+            className="btn-primary w-full justify-center gap-2 !bg-emerald-600 hover:!bg-emerald-700 !text-white py-3 text-sm font-bold shadow-md"
+          >
+            {apiBusy
+              ? "Ouverture de FedaPay en cours…"
+              : `💳 Payer ${amountLabel} avec ${apiLabel || "FedaPay"}`}
+          </button>
+
+          {apiError && (
+            <p className="rounded-shape-sm bg-red-500/10 px-3 py-2 text-center a-body-sm text-red-600">
+              {apiError}
+            </p>
+          )}
+        </section>
+      )}
+
       {hasUssd ? (
         <section>
           <div className="flex items-center justify-between">
@@ -269,64 +310,6 @@ export default function PayClient({
           </a>
         </section>
       )}
-
-      {/* API fallback — only where a provider is configured */}
-      {apiProvider && (
-        <section>
-          <div className="my-1 flex items-center gap-3">
-            <span className="h-px flex-1 bg-arctic-400/30" />
-            <span className="a-label-md text-arctic-500">ou</span>
-            <span className="h-px flex-1 bg-arctic-400/30" />
-          </div>
-          <button
-            type="button"
-            onClick={payAutomatically}
-            disabled={apiBusy}
-            className="btn-ghost w-full justify-center"
-          >
-            {apiBusy ? "Démarrage en cours…" : `Payer automatiquement avec ${apiLabel}`}
-          </button>
-          <p className="mt-1 text-center a-label-md text-arctic-500">
-            Validez la notification push reçue sur votre mobile.
-          </p>
-          {apiError && (
-            <p className="mt-2 rounded-shape-sm bg-red-500/10 px-3 py-2 text-center a-body-sm text-red-600">
-              {apiError}
-            </p>
-          )}
-        </section>
-      )}
-
-      {/* WEscrow Escrow Option */}
-      <section className="rounded-shape-lg border border-indigo-200/80 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-indigo-500/10 p-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="grid h-7 w-7 place-items-center rounded-lg bg-indigo-600 text-white text-xs font-bold shadow-sm">
-              🛡️
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-arctic-900">Paiement Garanti WEscrow</p>
-              <p className="text-[11px] text-arctic-600">Fonds sous séquestre jusqu&apos;à livraison confirmée</p>
-            </div>
-          </div>
-          <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-700">
-            Safe Hands
-          </span>
-        </div>
-
-        <p className="mt-2 text-xs text-arctic-600 leading-relaxed">
-          Vous préférez être livré avant de payer le vendeur ? Bloquez votre paiement sur WEscrow. Le vendeur n&apos;est crédité que lorsque vous confirmez la bonne réception.
-        </p>
-
-        <a
-          href={`http://localhost:3000/deals/new?title=${encodeURIComponent(`Commande #${orderId.slice(0, 8)} chez ${shopName}`)}&amount=${encodeURIComponent(amountLabel.replace(/[^0-9.]/g, ""))}&sellerName=${encodeURIComponent(shopName)}&sellerPhone=${encodeURIComponent(vendorWhatsApp)}&ref=${encodeURIComponent(orderId.slice(0, 8))}&source=japora`}
-          target="_blank"
-          rel="noreferrer"
-          className="btn-primary mt-3 w-full justify-center gap-2 !bg-indigo-600 hover:!bg-indigo-700 !text-white shadow-md shadow-indigo-600/20"
-        >
-          🛡️ Payer sous séquestre avec WEscrow
-        </a>
-      </section>
 
       {/* Vendor-direct settle nudge */}
       {hasUssd && (

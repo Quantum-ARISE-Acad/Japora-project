@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireVendor } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { formatMoney, waMeLink } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
 import * as receivables from "@/lib/receivables";
 import { buildSummary } from "@/lib/hustle";
 import CopyableLink from "./CopyableLink";

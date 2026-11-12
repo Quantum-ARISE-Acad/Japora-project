@@ -52,7 +52,7 @@ git switch main
 ### 4. Configurer et lancer
 
 ```bash
-deploy/mvp.sh init japora.mondomaine.com wataru.japora@gmail.com
+deploy/mvp.sh init japora.mondomaine.com info@quantum-arise.com
 ```
 
 Cette commande crée `.env.mvp` avec des secrets générés. Rangez-en une copie dans
@@ -82,7 +82,7 @@ Le premier lancement prend plusieurs minutes.
 |---|---|
 | Voir l'état | `deploy/mvp.sh ps` |
 | Lire les journaux | `deploy/mvp.sh logs wcatalog` |
-| Déployer le nouveau code | `deploy/mvp.sh update` |
+| Déployer le nouveau code | automatique (CD, voir plus bas) ou `deploy/mvp.sh update` |
 | Sauvegarder maintenant | `deploy/mvp.sh backup` |
 | Restaurer | `deploy/mvp.sh restore backups/japora-AAAAMMJJ-HHMMSS` |
 | Tout arrêter, sans effacer les données | `deploy/mvp.sh down` |
@@ -90,6 +90,51 @@ Le premier lancement prend plusieurs minutes.
 Ne lancez jamais `docker compose down -v` : le `-v` efface la base et les photos.
 
 `update` s'arrête sans rien remplacer si `schema.prisma` a changé sans migration.
+
+## Déploiement automatique (CD)
+
+Le workflow `.github/workflows/cd.yml` déploie tout seul quand la CI est verte :
+
+| Branche | Environnement GitHub | Quand |
+|---|---|---|
+| `develop` | `staging` | à chaque push dont la CI est verte |
+| `main` | `production` | à chaque push dont la CI est verte, après approbation |
+
+Il se connecte au serveur en SSH et lance `deploy/mvp.sh deploy <commit>`, qui :
+construit la nouvelle version, vérifie que le schéma a ses migrations, fait une
+sauvegarde, remplace les conteneurs, puis attend que `/api/health` réponde.
+**Si une étape échoue, il revient seul à la version précédente.** Ensuite GitHub
+vérifie le site depuis Internet (`/api/health` répond, `/api/metrics` reste caché).
+On peut aussi déployer à la main : onglet *Actions* → *CD — Deploy* → *Run workflow*.
+
+Tant que le serveur n'est pas configuré, le CD s'arrête avec le message
+« Déploiement ignoré » : il ne casse rien.
+
+### Mise en place (une seule fois, par un administrateur du dépôt)
+
+1. Sur le serveur, faire le premier déploiement à la main (parties ci-dessus), avec
+   le dépôt cloné dans un dossier, par exemple `/opt/japora`.
+2. Créer une clé SSH réservée au déploiement : `ssh-keygen -t ed25519 -f japora-deploy -N ""`.
+   Ajouter `japora-deploy.pub` dans `~/.ssh/authorized_keys` de l'utilisateur du serveur
+   (membre du groupe `docker`).
+3. Pour que le serveur puisse lire le dépôt privé : *Settings → Deploy keys* (lecture seule).
+4. Dans GitHub : *Settings → Environments* → créer `staging` et `production`.
+   Pour `production`, cocher **Required reviewers** (personne n'envoie en production sans accord).
+5. Dans chaque environnement, ajouter :
+
+| Nom | Type | Valeur |
+|---|---|---|
+| `DEPLOY_HOST` | secret | adresse IP ou nom du serveur |
+| `DEPLOY_USER` | secret | utilisateur SSH |
+| `DEPLOY_PORT` | secret (facultatif) | port SSH, 22 par défaut |
+| `DEPLOY_PATH` | secret | dossier du dépôt sur le serveur, ex. `/opt/japora` |
+| `DEPLOY_SSH_KEY` | secret | contenu de la clé privée `japora-deploy` |
+| `DEPLOY_KNOWN_HOSTS` | secret | résultat de `ssh-keyscan -t ed25519 <serveur>` (vérifié à la main) |
+| `DEPLOY_URL` | variable | adresse publique, ex. `https://japora.market` |
+
+Règle importante : une migration doit rester compatible avec la version précédente
+du code (ajouter une colonne, pas en supprimer). Sinon le retour arrière automatique
+ne pourrait pas fonctionner. Le journal des versions déployées est dans `deploy/.deployed`.
 
 ## Si vous changez le schéma de la base
 
@@ -100,7 +145,7 @@ PostgreSQL dans `prisma/migrations/`.
 ## Sauvegardes
 
 Toutes les 6 heures, un dossier `backups/japora-<date>` reçoit la base et les photos.
-Les dossiers de plus de 7 jours sont supprimés.
+Les dossiers de plus de 30 jours sont supprimés (réglable avec BACKUP_KEEP_DAYS).
 
 **Elles restent sur le serveur : si son disque est perdu, elles le sont aussi.**
 Copiez-les régulièrement ailleurs, depuis votre ordinateur :

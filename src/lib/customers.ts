@@ -13,7 +13,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import { isValidPhone, normalizePhone } from "./otp";
-import { isCustomerVip, VIP_QUALIFYING_ORDER_COUNT } from "./customer-segments";
 export { isCustomerVip, VIP_QUALIFYING_ORDER_COUNT } from "./customer-segments";
 
 /** Subset of PrismaClient/Tx that exposes the calls we use. */

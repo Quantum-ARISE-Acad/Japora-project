@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getCurrentVendor } from "@/lib/auth";
 import { slugify, digitsOnly } from "@/lib/utils";
-import { REGIONS, CATEGORIES } from "@/lib/regions";
 import { LANG_NAMES, type Lang } from "@/lib/i18n";
 import { validateUiPrefsPatch } from "@/lib/uiPrefs";
 import {
@@ -10,13 +10,16 @@ import {
   sanitizeWhatsAppAssistantPatch,
 } from "@/lib/whatsapp-config";
 
-const REGION_SLUGS = new Set(REGIONS.map((r) => r.slug));
-const CATEGORY_SLUGS = new Set(CATEGORIES.map((c) => c.slug));
 const LANG_KEYS = new Set(Object.keys(LANG_NAMES) as Lang[]);
 
 export async function GET() {
   const vendor = await getCurrentVendor();
   if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const prefs =
+    vendor.uiPrefs && typeof vendor.uiPrefs === "object" && !Array.isArray(vendor.uiPrefs)
+      ? (vendor.uiPrefs as Record<string, unknown>)
+      : {};
 
   return NextResponse.json({
     ok: true,
@@ -24,9 +27,23 @@ export async function GET() {
       shopName: vendor.shopName,
       shopSlug: vendor.shopSlug,
       whatsappNumber: vendor.whatsappNumber,
+      momoNumber: vendor.momoNumber,
       whatsappPhoneNumberId: vendor.whatsappPhoneNumberId || "",
       currency: vendor.currency,
       tagline: vendor.tagline,
+      region: vendor.region,
+      category: vendor.category,
+      language: vendor.language,
+      bio: vendor.bio,
+      avatarUrl: vendor.avatarUrl,
+      isPublic: vendor.isPublic,
+      wholesaleEnabled: vendor.wholesaleEnabled,
+      deliveryEnabled: vendor.deliveryEnabled,
+      deliveryFeeCents: vendor.deliveryFeeCents,
+      deliveryZones: vendor.deliveryZones,
+      onboardedAt: vendor.onboardedAt,
+      shopTheme: typeof prefs.shopTheme === "string" ? prefs.shopTheme : "arctic",
+      fedapayConfig: prefs.fedapayConfig ?? null,
       whatsappAssistant: parseWhatsAppAssistantConfig(vendor.uiPrefs),
     },
   });
@@ -40,9 +57,11 @@ export async function PATCH(req: NextRequest) {
   const data: Record<string, unknown> = {};
 
   if (typeof b.shopName === "string" && b.shopName.trim()) {
-    data.shopName = b.shopName.trim();
+    data.shopName = b.shopName.trim().slice(0, 120);
   }
-  if (typeof b.tagline === "string") data.tagline = b.tagline.trim();
+  if (typeof b.tagline === "string") {
+    data.tagline = b.tagline.trim().slice(0, 450);
+  }
   if (typeof b.whatsappNumber === "string") {
     data.whatsappNumber = digitsOnly(b.whatsappNumber);
   }
@@ -77,42 +96,29 @@ export async function PATCH(req: NextRequest) {
       where: { shopSlug: slug, NOT: { id: vendor.id } },
     });
     if (taken) {
-      return NextResponse.json({ error: "That catalog link is already taken." }, { status: 409 });
+      return NextResponse.json({ error: "Ce lien de boutique (/c/" + slug + ") est déjà utilisé." }, { status: 409 });
     }
     data.shopSlug = slug;
   }
 
-  // Japora profile fields — region/category/language are slug-validated against
-  // the in-app taxonomy; bio is capped to 200 chars; avatarUrl must be empty
-  // or a parseable URL; booleans are passed through.
   if (typeof b.region === "string") {
-    const r = b.region.trim();
-    if (r === "" || REGION_SLUGS.has(r)) {
-      data.region = r;
-    } else {
-      return NextResponse.json({ error: "Unknown region." }, { status: 400 });
-    }
+    data.region = b.region.trim().slice(0, 100);
   }
   if (typeof b.category === "string") {
-    const c = b.category.trim();
-    if (c === "" || CATEGORY_SLUGS.has(c)) {
-      data.category = c;
-    } else {
-      return NextResponse.json({ error: "Unknown category." }, { status: 400 });
-    }
+    data.category = b.category.trim().slice(0, 100);
   }
   if (typeof b.language === "string") {
     const l = b.language.trim();
     if (l === "" || LANG_KEYS.has(l as Lang)) {
-      data.language = l || "en";
+      data.language = l || "fr";
     } else {
-      return NextResponse.json({ error: "Unsupported language." }, { status: 400 });
+      data.language = "fr";
     }
   }
   if (typeof b.bio === "string") {
     const bio = b.bio.trim();
-    if (bio.length > 200) {
-      return NextResponse.json({ error: "Bio is too long (200 char max)." }, { status: 400 });
+    if (bio.length > 1000) {
+      return NextResponse.json({ error: "La biographie est trop longue (1000 caractères max)." }, { status: 400 });
     }
     data.bio = bio;
   }
@@ -120,7 +126,7 @@ export async function PATCH(req: NextRequest) {
     const url = b.avatarUrl.trim();
     if (url) {
       const isRelativeUpload = url.startsWith("/");
-      const isDataImage = /^data:image\/(png|jpe?g|webp|gif);base64,/i.test(url);
+      const isDataImage = /^data:image\//i.test(url);
       if (!isRelativeUpload && !isDataImage) {
         try {
           const parsed = new URL(url);
@@ -142,11 +148,19 @@ export async function PATCH(req: NextRequest) {
     data.deliveryFeeCents = Math.max(0, Math.round(b.deliveryFeeCents));
   }
   if (typeof b.deliveryZones === "string") {
-    data.deliveryZones = b.deliveryZones.trim().slice(0, 500);
+    data.deliveryZones = b.deliveryZones.trim().slice(0, 900);
+  }
+
+  // Mark vendor as onboarded when completing onboarding or saving main profile settings
+  if (b.completeOnboarding === true || (typeof b.shopName === "string" && !vendor.onboardedAt)) {
+    data.onboardedAt = new Date();
+  }
+  if (b.resetOnboarding === true) {
+    data.onboardedAt = null;
   }
 
   // Away message + business hours (the bot reads these).
-  if (typeof b.awayMessage === "string") data.awayMessage = b.awayMessage.slice(0, 300);
+  if (typeof b.awayMessage === "string") data.awayMessage = b.awayMessage.slice(0, 500);
   if (b.businessHours && typeof b.businessHours === "object" && !Array.isArray(b.businessHours)) {
     const h = b.businessHours as Record<string, unknown>;
     data.businessHours = {
@@ -179,6 +193,32 @@ export async function PATCH(req: NextRequest) {
     uiPrefsChanged = true;
   }
 
+  if (typeof b.shopTheme === "string" && b.shopTheme.trim()) {
+    currentUiPrefs.shopTheme = b.shopTheme.trim();
+    uiPrefsChanged = true;
+  }
+
+  if (b.fedapayConfig && typeof b.fedapayConfig === "object" && !Array.isArray(b.fedapayConfig)) {
+    const fc = b.fedapayConfig as Record<string, unknown>;
+    const existingFc =
+      currentUiPrefs.fedapayConfig && typeof currentUiPrefs.fedapayConfig === "object"
+        ? (currentUiPrefs.fedapayConfig as Record<string, unknown>)
+        : {};
+    currentUiPrefs.fedapayConfig = {
+      environment: fc.environment === "live" ? "live" : "sandbox",
+      publicKey:
+        typeof fc.publicKey === "string"
+          ? fc.publicKey.trim()
+          : (existingFc.publicKey ?? ""),
+      secretKey:
+        typeof fc.secretKey === "string" && !fc.secretKey.includes("••••")
+          ? fc.secretKey.trim()
+          : (existingFc.secretKey ?? ""),
+      enabled: typeof fc.enabled === "boolean" ? fc.enabled : true,
+    };
+    uiPrefsChanged = true;
+  }
+
   // WhatsApp & Gemini AI assistant settings — merged into uiPrefs.whatsappAssistant
   if (b.whatsappAssistant !== undefined) {
     const waPatch = sanitizeWhatsAppAssistantPatch(b.whatsappAssistant, currentUiPrefs);
@@ -201,12 +241,25 @@ export async function PATCH(req: NextRequest) {
   }
 
   const updated = await prisma.vendor.update({ where: { id: vendor.id }, data });
+
+  try {
+    revalidatePath("/dashboard", "layout");
+    revalidatePath("/dashboard/settings");
+    revalidatePath(`/c/${updated.shopSlug}`);
+    if (vendor.shopSlug !== updated.shopSlug) {
+      revalidatePath(`/c/${vendor.shopSlug}`);
+    }
+  } catch {
+    // ignore revalidation errors in non-request contexts
+  }
+
   return NextResponse.json({
     ok: true,
     vendor: {
       shopName: updated.shopName,
       shopSlug: updated.shopSlug,
       whatsappNumber: updated.whatsappNumber,
+      momoNumber: updated.momoNumber,
       whatsappPhoneNumberId: updated.whatsappPhoneNumberId || "",
       currency: updated.currency,
       tagline: updated.tagline,
@@ -217,6 +270,10 @@ export async function PATCH(req: NextRequest) {
       avatarUrl: updated.avatarUrl,
       isPublic: updated.isPublic,
       wholesaleEnabled: updated.wholesaleEnabled,
+      deliveryEnabled: updated.deliveryEnabled,
+      deliveryFeeCents: updated.deliveryFeeCents,
+      deliveryZones: updated.deliveryZones,
+      onboardedAt: updated.onboardedAt,
       whatsappAssistant: parseWhatsAppAssistantConfig(updated.uiPrefs),
     },
   });

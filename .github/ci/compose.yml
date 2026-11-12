@@ -20,6 +20,7 @@ services:
     environment:
       DATABASE_URL: postgresql://japora:ci-only-postgres-password@postgres:5432/japora
       SESSION_SECRET: ci-only-session-secret-not-for-production
+      CRON_SECRET: ci-only-broadcast-cron-secret
       NEXT_PUBLIC_APP_URL: https://localhost
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ''
     volumes:

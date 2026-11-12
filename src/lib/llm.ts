@@ -149,10 +149,8 @@ async function callGemini(
 
   const candidateModels = [
     process.env.JAPORA_LLM_MODEL,
-    "gemini-3.8-flash",
-    "gemini-3.5-flash",
-    "gemini-flash-latest",
     "gemini-2.5-flash",
+    "gemini-flash-latest",
   ].filter((m): m is string => Boolean(m && m.trim()));
 
   for (const modelName of candidateModels) {

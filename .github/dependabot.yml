@@ -1,0 +1,36 @@
+# Mises à jour automatiques de Dependabot : DÉSACTIVÉES à la demande de l'équipe.
+# « open-pull-requests-limit: 0 » empêche Dependabot d'ouvrir des pull requests de
+# mise à jour. Pour les réactiver plus tard, remettre une valeur (par ex. 5).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: develop
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 0
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Changements majeurs prévus après la foire (voir .github/ci/audit-allowlist.json).
+      - dependency-name: next
+        update-types: [version-update:semver-major]
+      - dependency-name: prisma
+        update-types: [version-update:semver-major]
+      - dependency-name: "@prisma/client"
+        update-types: [version-update:semver-major]
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 0
+  - package-ecosystem: docker
+    directory: /
+    target-branch: develop
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 0
+  - package-ecosystem: docker
+    directory: /deploy/backup
+    target-branch: develop
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 0

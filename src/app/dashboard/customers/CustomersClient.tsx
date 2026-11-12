@@ -234,7 +234,7 @@ export default function CustomersClient({
 
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
             className="input !w-auto text-xs font-medium"
           >
             <option value="spent">Tri : Total dépensé</option>

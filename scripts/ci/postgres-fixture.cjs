@@ -24,6 +24,12 @@ async function main() {
       await tx.review.create({data: {vendorId: vendor.id, productId: product.id, customerName: customer.name, comment: 'CI review'}});
       await tx.paymentLink.create({data: {vendorId: vendor.id, amountCents: 1500}});
       await tx.funnelEvent.create({data: {vendorId: vendor.id, customerId: customer.id, shopSlug: vendor.shopSlug, stage: 'visit', sessionId: 'ci-session'}});
+      await tx.campaign.create({data: {id: 'ci-campaign', vendorId: vendor.id, name: 'CI Campaign', kind: 'ctwa', platform: 'meta', targetRegion: 'lome', refCode: 'ci-campaign-ref', recoveryKey: 'ci-fixture-key'}});
+      await tx.broadcast.create({data: {
+        id: 'ci-broadcast', vendorId: vendor.id, segment: 'all', body: 'CI message',
+        status: 'stubbed', targetCount: 1, sentCount: 1,
+        recipients: {create: {vendorId: vendor.id, customerId: customer.id, name: customer.name, phone: customer.phone, status: 'stubbed'}},
+      }});
       await tx.busEvent.create({data: {vendorId: vendor.id, type: 'ci.fixture', subjectType: 'product', subjectId: product.id, data: {ci: true}}});
     });
   }
@@ -36,9 +42,18 @@ async function main() {
   assert.equal(vendor.products[0].collectionId, 'ci-collection');
   assert.equal(vendor.products[0].stock, 3);
   assert.equal(vendor.orders[0].items[0].productId, 'ci-product');
+  assert.equal(vendor.orders[0].deliveryFeeCents, 0, 'Existing checkout callers retain a zero delivery fee');
   assert.equal(vendor.customers[0].marketingConsent, true);
   for (const relation of ['products', 'orders', 'customers', 'collections', 'reviews', 'paymentLinks', 'funnelEvents']) assert.equal(vendor[relation].length, 1, relation);
   assert.deepEqual((await prisma.busEvent.findFirstOrThrow()).data, {ci: true});
+  const campaign = await prisma.campaign.findUniqueOrThrow({where: {id: 'ci-campaign'}});
+  assert.equal(campaign.platform, 'meta');
+  assert.equal(campaign.recoveryKey, 'ci-fixture-key');
+  const broadcast = await prisma.broadcast.findUniqueOrThrow({where: {id: 'ci-broadcast'}, include: {recipients: true}});
+  assert.equal(broadcast.messageMode, 'text');
+  assert.equal(broadcast.recipients.length, 1);
+  assert.equal(broadcast.recipients[0].customerId, 'ci-customer');
+  assert.equal(broadcast.recipients[0].status, 'stubbed');
   console.log('PostgreSQL fixture verified: relations, JSON, consent, collection, review, payment link and outbox.');
 }
 

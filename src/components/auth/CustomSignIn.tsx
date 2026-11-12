@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import PublicHeader from "@/components/PublicHeader";
+import PublicFooter from "@/components/PublicFooter";
 import { useAuth } from "@clerk/nextjs";
 // @clerk/nextjs v7: the root `useSignIn` is the new Signal API (no isLoaded/setActive).
 // This custom flow uses the classic SignIn resource API, exposed under /legacy.
@@ -14,6 +16,7 @@ import {
   isSessionExistsError,
   normalizeE164Phone,
   verifySignInOtpAndAdvance,
+  type ClerkResource,
 } from "@/lib/clerk-signup-flow";
 import PhoneNumberInput from "./PhoneNumberInput";
 import { useClerkFinalization } from "./useClerkFinalization";
@@ -31,7 +34,7 @@ export default function CustomSignIn() {
   const clerkActive = isClerkConfigured();
   const { finalize, error: finalizationError } = useClerkFinalization("/dashboard");
 
-  let signInHook: any = null;
+  let signInHook: ClerkResource = null;
   let authHook: { isLoaded?: boolean; isSignedIn?: boolean; userId?: string | null } | null = null;
   try {
     if (clerkActive) {
@@ -171,7 +174,7 @@ export default function CustomSignIn() {
 
     try {
       const created = await signIn.create({ identifier });
-      const factors: any[] = Array.isArray(created.supportedFirstFactors)
+      const factors: ClerkResource[] = Array.isArray(created.supportedFirstFactors)
         ? created.supportedFirstFactors
         : [];
 
@@ -305,14 +308,10 @@ export default function CustomSignIn() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-10">
+    <div className="flex min-h-screen flex-col">
+      <PublicHeader />
+      <main className="flex w-full flex-1 items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm a-fade-in">
-        <Link href="/" className="group mb-8 flex items-center justify-center gap-2.5">
-          <span className="grid h-10 w-10 place-items-center rounded-shape-md bg-arctic-800 text-lg font-black text-arctic-50 transition-transform duration-short ease-spring group-hover:rotate-6 group-hover:scale-105">
-            J
-          </span>
-          <span className="a-title-md tracking-[-0.01em] text-arctic-900">Japora</span>
-        </Link>
 
         {/* Wataru Unified Account SSO Banner */}
         {unifiedSession ? (
@@ -527,7 +526,7 @@ export default function CustomSignIn() {
           <div id="clerk-captcha" className="mt-3" />
 
           <p className="a-body-sm mt-6 text-center text-arctic-600">
-            Vous n'avez pas encore de boutique ?{" "}
+            Vous n&apos;avez pas encore de boutique ?{" "}
             <Link
               href="/signup"
               className="font-semibold text-arctic-900 underline hover:text-black"
@@ -537,6 +536,8 @@ export default function CustomSignIn() {
           </p>
         </div>
       </div>
+      </main>
+      <PublicFooter />
     </div>
   );
 }

@@ -11,8 +11,16 @@
 // Use the `core` entry with explicit metadata: the default entry's bundled
 // metadata resolves to `undefined` under CJS/tsx interop, which made every
 // phone number normalize to "" (and silently broke phone OTP payloads).
-import { parsePhoneNumberFromString, type CountryCode } from "libphonenumber-js/core";
+import { parsePhoneNumberFromString, type CountryCode, type MetadataJson } from "libphonenumber-js/core";
 import phoneMetadata from "libphonenumber-js/metadata.min.json";
+
+/**
+ * Clerk SignUp/SignIn/User resources, read duck-typed: Clerk's resource classes
+ * differ between the legacy and Signal APIs, and the tests drive these helpers
+ * with plain objects. Kept as one documented escape hatch instead of scattered `any`.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ClerkResource = any;
 
 export type SignUpMethod = "email" | "phone";
 export type VerificationStep = "email" | "phone" | null;
@@ -24,7 +32,7 @@ export function normalizeE164Phone(
   const input = (raw ?? "").trim();
   if (!input) return "";
   try {
-    const parsed = parsePhoneNumberFromString(input, defaultCountry, phoneMetadata as any);
+    const parsed = parsePhoneNumberFromString(input, defaultCountry, phoneMetadata as unknown as MetadataJson);
     return parsed?.isValid() ? parsed.number : "";
   } catch {
     return "";
@@ -94,7 +102,7 @@ export function isSessionExistsError(err: unknown): boolean {
  * external OAuth provider (`externalAccount` verified or transferable).
  * Never returns true for standard email/phone signups.
  */
-export function isOAuthContinuation(signUp: any): boolean {
+export function isOAuthContinuation(signUp: ClerkResource): boolean {
   if (!signUp || signUp.status !== "missing_requirements") return false;
   const extStatus = signUp.verifications?.externalAccount?.status;
   return extStatus === "verified" || extStatus === "transferable";
@@ -164,7 +172,7 @@ export function buildSignUpCreatePayload(input: SignUpFormInput): Record<string,
  * `last_name`, `username`, `password`, `email_address`, `phone_number`).
  */
 export function buildAutoFillMissingFieldsPayload(
-  signUp: any,
+  signUp: ClerkResource,
   input: Partial<SignUpFormInput>,
 ): Record<string, unknown> | null {
   const missing: string[] = Array.isArray(signUp?.missingFields) ? signUp.missingFields : [];
@@ -232,7 +240,7 @@ export type NextSignUpAction =
 /**
  * Determines the exact next step for a Clerk `SignUp` resource.
  */
-export function determineNextSignUpStep(signUp: any): NextSignUpAction {
+export function determineNextSignUpStep(signUp: ClerkResource): NextSignUpAction {
   if (!signUp) {
     return { type: "incomplete", unverifiedFields: [], missingFields: [] };
   }
@@ -288,7 +296,7 @@ export function determineNextSignUpStep(signUp: any): NextSignUpAction {
 }
 
 export interface VerifyOtpTransitionResult {
-  signUp: any;
+  signUp: ClerkResource;
   action: NextSignUpAction;
   prepareError?: string;
 }
@@ -302,7 +310,7 @@ export interface VerifyOtpTransitionResult {
  * - Prepares the next verification factor if another factor is still required.
  */
 export async function verifySignUpOtpAndAdvance(
-  signUp: any,
+  signUp: ClerkResource,
   step: "email" | "phone",
   code: string,
   formInput?: Partial<SignUpFormInput>,
@@ -391,11 +399,11 @@ export type SignInOtpAction =
   | { type: "incomplete"; status: string };
 
 export async function verifySignInOtpAndAdvance(
-  signIn: any,
+  signIn: ClerkResource,
   strategy: "email_code" | "phone_code",
   code: string,
   options: { secondFactor?: boolean } = {},
-): Promise<{ signIn: any; action: SignInOtpAction }> {
+): Promise<{ signIn: ClerkResource; action: SignInOtpAction }> {
   let current = signIn;
 
   if (current?.status === "complete" && current?.createdSessionId) {
@@ -422,7 +430,7 @@ export async function verifySignInOtpAndAdvance(
   }
 
   if (!options.secondFactor && current?.status === "needs_second_factor") {
-    const factors: any[] = Array.isArray(current.supportedSecondFactors)
+    const factors: ClerkResource[] = Array.isArray(current.supportedSecondFactors)
       ? current.supportedSecondFactors
       : [];
     const factor = factors.find(

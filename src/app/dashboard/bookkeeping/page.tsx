@@ -32,7 +32,7 @@ export default async function BookkeepingPage() {
         </p>
       </div>
       <BookkeepingClient
-        currency={vendor.currency || "USD"}
+        currency={vendor.currency || "XOF"}
         currentSummary={{
           year: currentSummary.period.year,
           month: currentSummary.period.month,

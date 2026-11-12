@@ -51,7 +51,7 @@ export async function verifyUnifiedToken(token: string): Promise<WataruUnifiedPa
       name: typeof payload.name === "string" ? payload.name : undefined,
       phone: typeof payload.phone === "string" ? payload.phone : undefined,
       role: typeof payload.role === "string" ? payload.role : undefined,
-      originApp: payload.originApp as any,
+      originApp: payload.originApp === "japora" || payload.originApp === "wescrow" || payload.originApp === "soko" ? payload.originApp : undefined,
       avatarUrl: typeof payload.avatarUrl === "string" ? payload.avatarUrl : undefined,
     };
   } catch {
@@ -131,7 +131,7 @@ export async function syncUnifiedVendor(payload: WataruUnifiedPayload): Promise<
 
   // Create new vendor account for this unified Wataru user
   const baseName = payload.name || cleanEmail.split("@")[0] || "Boutique Wataru";
-  let slug = baseName
+  const slug = baseName
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "") || "boutique";

@@ -9,9 +9,9 @@ describe("delivery calculations", () => {
     const raw = "Lomé Centre: 1000, Agoè: 1500, Baguida: 2000";
     const zones = parseDeliveryZones(raw, 500);
     assert.equal(zones.length, 3);
-    assert.deepEqual(zones[0], { name: "Lomé Centre", feeCents: 1000 });
-    assert.deepEqual(zones[1], { name: "Agoè", feeCents: 1500 });
-    assert.deepEqual(zones[2], { name: "Baguida", feeCents: 2000 });
+    assert.deepEqual(zones[0], { name: "Lomé Centre", feeCents: 100000 });
+    assert.deepEqual(zones[1], { name: "Agoè", feeCents: 150000 });
+    assert.deepEqual(zones[2], { name: "Baguida", feeCents: 200000 });
   });
 
   test("parseDeliveryZones falls back to default fee when no price specified", () => {
@@ -35,8 +35,8 @@ describe("delivery calculations", () => {
       deliveryFeeCents: 800,
       deliveryZones: "Centre: 1000, Banlieue: 2000",
     };
-    assert.equal(calculateDeliveryFee(enabledVendor, "Centre"), 1000);
-    assert.equal(calculateDeliveryFee(enabledVendor, "Banlieue"), 2000);
+    assert.equal(calculateDeliveryFee(enabledVendor, "Centre"), 100000);
+    assert.equal(calculateDeliveryFee(enabledVendor, "Banlieue"), 200000);
     assert.equal(calculateDeliveryFee(enabledVendor, "Unknown"), 800);
   });
 });

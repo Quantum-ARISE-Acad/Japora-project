@@ -3,6 +3,11 @@ import { redirect } from "next/navigation";
 import type { Vendor } from "@prisma/client";
 import { prisma } from "./db";
 import { getSession } from "./session";
+import type { ClerkResource } from "./clerk-signup-flow";
+
+/** Prisma client, or an in-memory double in tests. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type VendorStore = any;
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
@@ -57,9 +62,9 @@ export interface ClerkProvisionHints {
  */
 export async function resolveOrProvisionClerkVendor(
   clerkUserId: string,
-  clerkUser: any,
+  clerkUser: ClerkResource,
   hints?: ClerkProvisionHints,
-  database: any = prisma,
+  database: VendorStore = prisma,
 ): Promise<Vendor | null> {
   if (!clerkUserId) return null;
 
@@ -74,14 +79,14 @@ export async function resolveOrProvisionClerkVendor(
 
   const verifiedEmailObj =
     clerkUser?.emailAddresses?.find(
-      (e: any) => e.id === clerkUser.primaryEmailAddressId && e.verification?.status === "verified",
-    ) ?? clerkUser?.emailAddresses?.find((e: any) => e.verification?.status === "verified");
+      (e: ClerkResource) => e.id === clerkUser.primaryEmailAddressId && e.verification?.status === "verified",
+    ) ?? clerkUser?.emailAddresses?.find((e: ClerkResource) => e.verification?.status === "verified");
   const clerkEmail = verifiedEmailObj?.emailAddress?.trim().toLowerCase() || "";
 
   const verifiedPhoneObj =
     clerkUser?.phoneNumbers?.find(
-      (p: any) => p.id === clerkUser.primaryPhoneNumberId && p.verification?.status === "verified",
-    ) ?? clerkUser?.phoneNumbers?.find((p: any) => p.verification?.status === "verified");
+      (p: ClerkResource) => p.id === clerkUser.primaryPhoneNumberId && p.verification?.status === "verified",
+    ) ?? clerkUser?.phoneNumbers?.find((p: ClerkResource) => p.verification?.status === "verified");
   const clerkPhone = verifiedPhoneObj?.phoneNumber?.trim() || "";
   const clerkPhoneDigits = clerkPhone.replace(/\D/g, "");
   const isPhoneVerified = Boolean(clerkPhoneDigits && verifiedPhoneObj?.verification?.status === "verified");
@@ -123,7 +128,7 @@ export async function resolveOrProvisionClerkVendor(
     if (Object.keys(updates).length > 0) {
       vendor = await database.vendor.update({
         where: { id: vendor.id },
-        data: updates as any,
+        data: updates,
       });
     }
     return vendor;
@@ -242,7 +247,7 @@ export async function resolveOrProvisionClerkVendor(
         subscriptionStatus: "trialing",
         trialEndsAt: trialEnd,
         emailVerifiedAt: clerkEmail ? now : null,
-      } as any,
+      },
     });
   } catch (error) {
     if ((error as { code?: string })?.code !== "P2002") throw error;
@@ -257,7 +262,7 @@ export async function resolveOrProvisionClerkVendor(
  * Bind WHATSAPP_PHONE_NUMBER_ID to the vendor only when no vendor has claimed
  * it yet, without overwriting another vendor's binding or reassigning orders.
  */
-async function syncActiveVendorWhatsAppBinding(vendor: Vendor): Promise<Vendor> {
+export async function syncActiveVendorWhatsAppBinding(vendor: Vendor): Promise<Vendor> {
   const envPhoneId = (process.env.WHATSAPP_PHONE_NUMBER_ID || "").trim();
   if (!envPhoneId || vendor.whatsappPhoneNumberId) return vendor;
 
@@ -288,7 +293,7 @@ export async function getCurrentVendor(): Promise<Vendor | null> {
       const { auth, currentUser } = await import("@clerk/nextjs/server");
       const clerkAuth = await auth();
       if (clerkAuth?.userId) {
-        let vendor = await (prisma.vendor as any).findFirst({
+        let vendor = await prisma.vendor.findFirst({
           where: { clerkId: clerkAuth.userId },
         });
         if (vendor && !vendor.deletedAt) {

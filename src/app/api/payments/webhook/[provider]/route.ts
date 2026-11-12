@@ -4,8 +4,10 @@ import { logger } from "@/lib/logger";
 import {
   getPaymentProvider,
   isValidProviderName,
+  PROVIDER_META,
   type PaymentProviderName,
 } from "@/lib/payments";
+import { notifyOrderPaid } from "@/lib/order-notifications";
 import { evaluateAndGrant } from "@/lib/trust";
 import { recordConfirmedOrder } from "@/lib/funnel";
 
@@ -148,6 +150,7 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
         }
         // Re-check verified-shop criteria now that another order is paid.
         await evaluateAndGrant(order.vendorId).catch(() => {});
+        await notifyOrderPaid(order.id, PROVIDER_META[providerName]?.label);
         const v = await prisma.vendor.findUnique({ where: { id: order.vendorId }, select: { shopSlug: true } });
         if (v) {
           await recordConfirmedOrder({
@@ -174,6 +177,39 @@ function extractEvent(
   provider: PaymentProviderName,
   payload: Record<string, unknown>,
 ): { providerRef?: string; status: "pending" | "succeeded" | "failed"; amountCents?: number } {
+  // FedaPay webhook: { entity: "event", name: "transaction.approved", object: { id, status, amount, custom_metadata } }
+  if (provider === "fedapay") {
+    const obj = (payload.object ?? payload.transaction ?? payload.data ?? {}) as Record<string, unknown>;
+    const customMeta = (obj.custom_metadata ?? {}) as Record<string, unknown>;
+    const ref =
+      typeof customMeta.reference === "string"
+        ? customMeta.reference
+        : obj.id !== undefined
+          ? String(obj.id)
+          : typeof payload.providerRef === "string"
+            ? payload.providerRef
+            : undefined;
+    const eventName = String(payload.name ?? "");
+    const status = String(obj.status ?? payload.status ?? "").toLowerCase();
+    const mapped =
+      eventName.includes("approved") ||
+      eventName.includes("transferred") ||
+      status === "approved" ||
+      status === "succeeded"
+        ? "succeeded"
+        : eventName.includes("declined") ||
+            eventName.includes("canceled") ||
+            status === "declined" ||
+            status === "failed"
+          ? "failed"
+          : "pending";
+    const amountMajor = typeof obj.amount === "number" ? obj.amount : undefined;
+    return {
+      providerRef: ref,
+      status: mapped,
+      amountCents: typeof amountMajor === "number" ? Math.round(amountMajor * 100) : undefined,
+    };
+  }
   // Paystack: { event: "charge.success", data: { reference, status, amount } }
   if (provider === "paystack") {
     const event = String(payload.event ?? "");
