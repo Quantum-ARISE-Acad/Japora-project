@@ -1,6 +1,6 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { formatCatalogForPrompt, buildSystemPrompt, isLlmConfigured, llmProviderName } from "../src/lib/llm";
+import { formatCatalogForPrompt, formatShopProfileForPrompt, buildSystemPrompt, isLlmConfigured, llmProviderName } from "../src/lib/llm";
 
 describe("llm grounding helpers", () => {
   test("formatCatalogForPrompt renders price + stock per line", () => {
@@ -14,6 +14,18 @@ describe("llm grounding helpers", () => {
 
   test("formatCatalogForPrompt handles an empty catalog", () => {
     assert.match(formatCatalogForPrompt([]), /no products listed/);
+  });
+
+  test("shop profile context reflects each merchant's own activity and location", () => {
+    const profile = formatShopProfileForPrompt({
+      category: "Electronics",
+      tagline: "Repair and sales",
+      region: "Lomé",
+      bio: "Phones, laptops, and repair service",
+    });
+    assert.match(profile, /Activity: Electronics/);
+    assert.match(profile, /Region: Lomé/);
+    assert.match(profile, /Repair and sales/);
   });
 
   test("buildSystemPrompt names the shop and forbids inventing prices", () => {

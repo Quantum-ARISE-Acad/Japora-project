@@ -62,16 +62,19 @@ function monthRange(year: number, month: number): { start: Date; end: Date } {
 
 function formatMoney(cents: number, currency: string): string {
   const amount = cents / 100;
+  const code = (currency || "USD").toUpperCase();
+  const fractionDigits = code === "XOF" ? 0 : 2;
   // toLocaleString with currency falls back gracefully for unknown codes.
   try {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: currency || "USD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      currency: code,
+      currencyDisplay: code === "XOF" ? "code" : "symbol",
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
     }).format(amount);
   } catch {
-    return `${currency || ""} ${amount.toFixed(2)}`.trim();
+    return `${code} ${amount.toFixed(fractionDigits)}`.trim();
   }
 }
 

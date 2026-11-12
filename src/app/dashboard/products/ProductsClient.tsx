@@ -344,7 +344,7 @@ export default function ProductsClient({
             type="button"
             onClick={() => setViewMode("grid")}
             className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
-              viewMode === "grid" ? "bg-arctic-800 text-white" : "text-arctic-600 hover:text-arctic-900"
+              viewMode === "grid" ? "bg-arctic-800 text-white" : "products-view-toggle-inactive text-arctic-600 hover:text-arctic-900"
             }`}
             title="Vue Grille"
           >
@@ -354,7 +354,7 @@ export default function ProductsClient({
             type="button"
             onClick={() => setViewMode("list")}
             className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
-              viewMode === "list" ? "bg-arctic-800 text-white" : "text-arctic-600 hover:text-arctic-900"
+              viewMode === "list" ? "bg-arctic-800 text-white" : "products-view-toggle-inactive text-arctic-600 hover:text-arctic-900"
             }`}
             title="Vue Liste"
           >
