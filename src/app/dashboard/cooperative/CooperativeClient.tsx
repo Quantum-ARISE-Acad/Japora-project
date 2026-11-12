@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Glyph from "@/components/Glyph";
+import { COOPERATIVE_NAME_SUGGESTIONS, regionLabel } from "@/lib/regions";
+import { cooperativeJoinPayload } from "@/lib/cooperative-client";
 
 type Member = {
   id: string;
@@ -51,7 +53,7 @@ export default function CooperativeClient({
   // Invite state for members
   const [invitePhones, setInvitePhones] = useState("");
   const [inviteBusy, setInviteBusy] = useState(false);
-  const [inviteMsg, setInviteMsg] = useState("");
+  const [inviteMsg, setInviteMsg] = useState<{ tone: "success" | "info" | "error"; text: string } | null>(null);
 
   const appBaseUrl = typeof window !== "undefined" ? window.location.origin : "https://japora.app";
   const joinUrl = cooperative ? `${appBaseUrl}/join/${cooperative.joinCode}` : "";
@@ -64,7 +66,7 @@ export default function CooperativeClient({
     const res = await fetch("/api/cooperative/join", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ joinCode: joinCodeInput.trim() }),
+      body: JSON.stringify(cooperativeJoinPayload(joinCodeInput)),
     });
     const data = await res.json().catch(() => ({}));
     setBusy(false);
@@ -97,7 +99,11 @@ export default function CooperativeClient({
   }
 
   async function handleLeave() {
-    if (!confirm("Êtes-vous sûr de vouloir quitter cette coopérative ?")) return;
+    if (!cooperative) return;
+    const confirmation = cooperative.isAdmin
+      ? "En quittant, l’administration sera transférée au membre actif le plus ancien. Si vous êtes le dernier membre actif, la coopérative sera supprimée. Continuer ?"
+      : "Êtes-vous sûr de vouloir quitter cette coopérative ?";
+    if (!confirm(confirmation)) return;
     setBusy(true);
 
     const res = await fetch("/api/cooperative/leave", { method: "POST" });
@@ -112,7 +118,7 @@ export default function CooperativeClient({
     if (!invitePhones.trim()) return;
 
     setInviteBusy(true);
-    setInviteMsg("");
+    setInviteMsg(null);
 
     const res = await fetch("/api/cooperative/invite", {
       method: "POST",
@@ -123,11 +129,26 @@ export default function CooperativeClient({
     setInviteBusy(false);
 
     if (!res.ok) {
-      setInviteMsg(data.error || "Échec de l'envoi des invitations.");
+      setInviteMsg({ tone: "error", text: data.error || "Échec du traitement des invitations." });
       return;
     }
-    setInviteMsg(`✅ ${data.sent || 0} invitation(s) envoyée(s) sur WhatsApp !`);
-    setInvitePhones("");
+
+    const accepted = Number(data.acceptedByApi || 0);
+    const simulated = Number(data.simulated || 0);
+    const failed = Number(data.failed || 0);
+    const notAttempted = Number(data.notAttempted || 0);
+    const parts: string[] = [];
+    if (accepted) parts.push(`WhatsApp a accepté ${accepted} invitation(s) par l’API`);
+    if (simulated) parts.push(`${simulated} invitation(s) simulée(s), non envoyée(s)`);
+    if (failed) parts.push(`${failed} échec(s)`);
+    if (notAttempted) parts.push(`${notAttempted} numéro(s) non traité(s) (limite de 200)`);
+
+    const tone = failed && !accepted && !simulated ? "error" : failed || simulated || notAttempted ? "info" : "success";
+    const deliveryNote = accepted ? ". L’acceptation par l’API ne confirme pas la remise au téléphone." : "";
+    setInviteMsg({ tone, text: `${parts.join(" · ") || "Aucune invitation traitée"}${deliveryNote}` });
+    const numbersToRetry = [...(data.failedPhones || []), ...(data.notAttemptedPhones || [])];
+    if (numbersToRetry.length) setInvitePhones(numbersToRetry.join("\n"));
+    else if (accepted && !simulated) setInvitePhones("");
   }
 
   function copyJoinLink() {
@@ -148,8 +169,8 @@ export default function CooperativeClient({
               setTab("join");
               setError("");
             }}
-            className={`flex-1 rounded-shape-md py-2.5 text-xs font-semibold transition ${
-              tab === "join" ? "bg-arctic-800 text-white shadow-sm" : "text-arctic-700 hover:text-arctic-900"
+            className={`flex-1 rounded-shape-md py-2.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${
+              tab === "join" ? "bg-arctic-800 text-arctic-50 shadow-sm" : "text-arctic-700 hover:bg-arctic-800 hover:text-arctic-50"
             }`}
           >
             Rejoindre avec un code
@@ -160,8 +181,8 @@ export default function CooperativeClient({
               setTab("create");
               setError("");
             }}
-            className={`flex-1 rounded-shape-md py-2.5 text-xs font-semibold transition ${
-              tab === "create" ? "bg-arctic-800 text-white shadow-sm" : "text-arctic-700 hover:text-arctic-900"
+            className={`flex-1 rounded-shape-md py-2.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${
+              tab === "create" ? "bg-arctic-800 text-arctic-50 shadow-sm" : "text-arctic-700 hover:bg-arctic-800 hover:text-arctic-50"
             }`}
           >
             Créer une coopérative
@@ -205,14 +226,19 @@ export default function CooperativeClient({
             </div>
 
             <div>
-              <label className="label">Nom de l&apos;association ou coopérative *</label>
+              <label className="label" htmlFor="cooperative-name">Nom de l&apos;association ou coopérative *</label>
               <input
+                id="cooperative-name"
                 className="input"
-                placeholder="Ex: Marché de Hanoukopé, Artisans de Lomé..."
+                list="cooperative-name-suggestions"
+                placeholder="Choisissez une suggestion ou saisissez un nom"
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
                 required
               />
+              <datalist id="cooperative-name-suggestions">
+                {COOPERATIVE_NAME_SUGGESTIONS.map((name) => <option key={name} value={name} />)}
+              </datalist>
             </div>
 
             <div>
@@ -260,7 +286,7 @@ export default function CooperativeClient({
               )}
             </div>
             <p className="mt-1 text-sm text-arctic-600">
-              Région : <strong>{cooperative.region || "Non spécifiée"}</strong> · {cooperative.memberCount} boutique{cooperative.memberCount > 1 ? "s" : ""} membre{cooperative.memberCount > 1 ? "s" : ""}
+              Région : <strong>{cooperative.region ? regionLabel(cooperative.region) : "Non spécifiée"}</strong> · {cooperative.memberCount} boutique{cooperative.memberCount > 1 ? "s" : ""} membre{cooperative.memberCount > 1 ? "s" : ""}
             </p>
           </div>
 
@@ -317,15 +343,16 @@ export default function CooperativeClient({
           </div>
 
           {/* QR Code */}
-          <div className="flex flex-col items-center justify-center rounded-shape-lg border border-arctic-300/50 bg-white p-4 text-center">
+          <div className="flex flex-col items-center justify-center rounded-shape-lg border border-arctic-300/50 p-4 text-center">
             {qrSvg ? (
               <div
-                className="h-28 w-28"
+                className="grid h-48 w-48 place-items-center rounded-md p-3 [&>svg]:h-full [&>svg]:w-full"
+                style={{ backgroundColor: "#ffffff" }}
                 dangerouslySetInnerHTML={{ __html: qrSvg }}
               />
             ) : (
-              <div className="h-28 w-28 grid place-items-center bg-arctic-100 text-xs text-arctic-500">
-                QR Code
+              <div className="grid h-48 w-48 place-items-center rounded-md bg-arctic-100 text-xs text-arctic-500">
+                QR indisponible
               </div>
             )}
             <span className="mt-2 text-[11px] font-medium text-arctic-500">Scanner pour rejoindre</span>
@@ -346,7 +373,11 @@ export default function CooperativeClient({
             value={invitePhones}
             onChange={(e) => setInvitePhones(e.target.value)}
           />
-          {inviteMsg && <p className="text-xs font-semibold text-emerald-700">{inviteMsg}</p>}
+          {inviteMsg && (
+            <p className={`text-xs font-semibold ${inviteMsg.tone === "success" ? "text-emerald-700 dark:text-emerald-300" : inviteMsg.tone === "error" ? "text-red-700 dark:text-red-300" : "text-amber-800 dark:text-amber-300"}`} role="status" aria-live="polite">
+              {inviteMsg.text}
+            </p>
+          )}
           <button
             type="submit"
             disabled={inviteBusy || !invitePhones.trim()}
@@ -367,7 +398,7 @@ export default function CooperativeClient({
         </div>
 
         <div className="divide-y divide-arctic-300/30">
-          {cooperative.members.map((m, idx) => (
+          {cooperative.members.map((m) => (
             <div key={m.id} className="flex items-center justify-between p-4 hover:bg-arctic-50/50">
               <div className="flex items-center gap-3">
                 <div className="grid h-9 w-9 place-items-center rounded-full bg-arctic-200 text-xs font-bold text-arctic-800">

@@ -1,8 +1,9 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
+
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 export default function EmailVerificationBanner({
   email,
@@ -11,7 +12,6 @@ export default function EmailVerificationBanner({
   email: string;
   verified: boolean;
 }) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [verifyUrl, setVerifyUrl] = useState<string | null>(null);
@@ -35,8 +35,8 @@ export default function EmailVerificationBanner({
           setVerifyUrl(data.verifyUrl);
         }
       }
-    } catch (err: any) {
-      setError(err.message || "Erreur réseau.");
+    } catch (err) {
+      setError(errorMessage(err, "Erreur réseau."));
     } finally {
       setLoading(false);
     }
@@ -49,7 +49,7 @@ export default function EmailVerificationBanner({
           <span className="text-xl">⚠️</span>
           <div>
             <h3 className="text-sm font-semibold">
-              Votre adresse email n'est pas encore vérifiée ({email})
+              Votre adresse email n&apos;est pas encore vérifiée ({email})
             </h3>
             <p className="mt-0.5 text-xs opacity-90">
               La vérification protège votre boutique et vous permet de recevoir les notifications de commandes.

@@ -25,43 +25,38 @@ export function validateEmail(email: boolean | string): boolean {
 export type PasswordCheck = { ok: true } | { ok: false; reason: string };
 
 export function validatePassword(password: string): PasswordCheck {
-  if (password.length < 8) return { ok: false, reason: "Password must be at least 8 characters." };
-  if (password.length > 200) return { ok: false, reason: "Password is too long (max 200 chars)." };
-  if (!/[a-zA-Z]/.test(password)) return { ok: false, reason: "Password must include at least one letter." };
-  if (!/\d/.test(password)) return { ok: false, reason: "Password must include at least one number." };
+  if (password.length < 8) return { ok: false, reason: "Le mot de passe doit contenir au moins 8 caractères." };
+  if (password.length > 200) return { ok: false, reason: "Le mot de passe est trop long (200 caractères max)." };
+  if (!/[a-zA-Z]/.test(password)) return { ok: false, reason: "Le mot de passe doit contenir au moins une lettre." };
+  if (!/\d/.test(password)) return { ok: false, reason: "Le mot de passe doit contenir au moins un chiffre." };
   return { ok: true };
 }
 
 /**
- * Ensure the currently logged-in dashboard vendor owns the configured
- * WHATSAPP_PHONE_NUMBER_ID so that all incoming WhatsApp webhook orders, deals,
- * and tracking requests route directly to the active vendor's dashboard.
+ * Bind the configured WHATSAPP_PHONE_NUMBER_ID to the logged-in vendor when no
+ * shop owns it yet (single-number demo setup). It never reassigns the number or
+ * orders from another shop: that used to leak one shop's orders to another.
  */
-async function syncActiveVendorWhatsAppBinding(vendor: Vendor): Promise<Vendor> {
+export async function syncActiveVendorWhatsAppBinding(vendor: Vendor): Promise<Vendor> {
   const envPhoneId = (process.env.WHATSAPP_PHONE_NUMBER_ID || "").trim();
   if (!envPhoneId) return vendor;
 
   try {
-    if (vendor.whatsappPhoneNumberId !== envPhoneId) {
-      await prisma.vendor.updateMany({
-        where: { whatsappPhoneNumberId: envPhoneId, id: { not: vendor.id } },
-        data: { whatsappPhoneNumberId: null },
-      });
-      vendor = await prisma.vendor.update({
-        where: { id: vendor.id },
-        data: {
-          whatsappPhoneNumberId: envPhoneId,
-          ...(vendor.whatsappNumber ? {} : { whatsappNumber: "15556449932" }),
-        },
-      });
-    }
-    // Also adopt any WhatsApp / Deal orders so they always appear in the active vendor's dashboard
-    await prisma.order.updateMany({
-      where: {
-        vendorId: { not: vendor.id },
-        source: { in: ["whatsapp", "whatsapp_deal"] },
+    if (vendor.whatsappPhoneNumberId === envPhoneId) return vendor;
+    // Claim the shared number only while no other shop owns it. Logging in must
+    // never take the number — or any order — away from another shop: inbound
+    // messages for other shops are routed by the shop slug in the QR prefill.
+    const owner = await prisma.vendor.findFirst({
+      where: { whatsappPhoneNumberId: envPhoneId, id: { not: vendor.id } },
+      select: { id: true },
+    });
+    if (owner) return vendor;
+    vendor = await prisma.vendor.update({
+      where: { id: vendor.id },
+      data: {
+        whatsappPhoneNumberId: envPhoneId,
+        ...(vendor.whatsappNumber ? {} : { whatsappNumber: "15556449932" }),
       },
-      data: { vendorId: vendor.id },
     });
   } catch {
     // Ignore race conditions on concurrent requests
@@ -77,7 +72,7 @@ export async function getCurrentVendor(): Promise<Vendor | null> {
       const { auth, currentUser } = await import("@clerk/nextjs/server");
       const clerkAuth = await auth();
       if (clerkAuth?.userId) {
-        let vendor = await (prisma.vendor as any).findFirst({
+        let vendor = await prisma.vendor.findFirst({
           where: { clerkId: clerkAuth.userId },
         });
         if (vendor && !vendor.deletedAt) {
@@ -91,7 +86,7 @@ export async function getCurrentVendor(): Promise<Vendor | null> {
           if (email) {
             vendor = await prisma.vendor.findUnique({ where: { email } });
             if (vendor) {
-              vendor = await (prisma.vendor as any).update({
+              vendor = await prisma.vendor.update({
                 where: { id: vendor.id },
                 data: { clerkId: clerkAuth.userId },
               });
@@ -124,7 +119,7 @@ export async function getCurrentVendor(): Promise<Vendor | null> {
                   subscriptionStatus: "trialing",
                   trialEndsAt: trialEnd,
                   emailVerifiedAt: now,
-                } as any,
+                },
               });
             }
             if (vendor && !vendor.deletedAt) {

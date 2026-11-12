@@ -21,6 +21,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     where: { id, vendorId: vendor.id, deletedAt: null },
     select: {
       id: true,
+      kind: true,
       name: true,
       productId: true,
       body: true,
@@ -32,6 +33,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     },
   });
   if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!["abandoned_cart", "reactivation"].includes(campaign.kind)) {
+    return NextResponse.json({ error: "Cette action concerne uniquement une relance client." }, { status: 409 });
+  }
 
   const preview = await getRecoveryApprovalPreview(vendor.id, id);
   if (!preview) {
@@ -63,6 +67,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     where: { id, vendorId: vendor.id, deletedAt: null },
     select: {
       id: true,
+      kind: true,
       name: true,
       productId: true,
       body: true,
@@ -70,6 +75,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     },
   });
   if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!["abandoned_cart", "reactivation"].includes(campaign.kind)) {
+    return NextResponse.json({ error: "Cette action concerne uniquement une relance client." }, { status: 409 });
+  }
 
   const body = await req.json().catch(() => ({}));
   const action = String(body.action || "approve").trim();
@@ -85,7 +93,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Unsupported action" }, { status: 400 });
   }
 
-  if (["sent", "stubbed", "archived"].includes(campaign.status)) {
+  if (["sent", "stubbed", "sending", "archived"].includes(campaign.status)) {
     return NextResponse.json({ error: "Campaign is already in a terminal state." }, { status: 409 });
   }
 
@@ -94,16 +102,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "No pending recovery candidate matches this campaign." }, { status: 409 });
   }
 
-  const recipientPhone = String(body.recipientPhone || preview.phone || "").trim();
-  const renderedBody = String(body.body || preview.renderedBody || "").trim();
-  if (!recipientPhone || !renderedBody) {
-    return NextResponse.json({ error: "A recipient and message body are required." }, { status: 400 });
-  }
-
   const approved = await approveRecoveryCampaign(vendor.id, id, {
     sessionId: preview.sessionId || undefined,
-    recipientPhone,
-    body: renderedBody,
+    recipientPhone: preview.phone,
+    body: preview.renderedBody,
   });
   if (!approved) {
     return NextResponse.json({ error: "Campaign could not be approved." }, { status: 500 });

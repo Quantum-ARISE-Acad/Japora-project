@@ -6,18 +6,19 @@
     "dev": "next dev -p 5174",
     "build": "next build",
     "start": "next start",
-    "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy",
-    "db:push": "prisma db push",
+    "db:migrate": "tsx scripts/prisma-cli.ts migrate dev",
+    "db:deploy": "tsx scripts/prisma-cli.ts migrate deploy",
+    "db:push": "tsx scripts/prisma-cli.ts db push",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio",
-    "db:reset": "prisma migrate reset --force",
+    "db:studio": "tsx scripts/prisma-cli.ts studio",
+    "db:reset": "tsx scripts/prisma-cli.ts migrate reset --force",
     "db:synthetic-recovery": "tsx scripts/synthetic-recovery-demo.ts",
-    "setup": "prisma db push && tsx prisma/seed.ts",
+    "setup": "tsx scripts/prisma-cli.ts db push && tsx prisma/seed.ts",
     "test": "node --import tsx scripts/run-tests.ts",
     "lh:mobile": "pnpm dlx lighthouse@latest http://localhost:5174/ --quiet --chrome-flags='--headless=new --no-sandbox' --only-categories=performance --view",
-
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix --max-warnings=0"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -34,12 +35,15 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.10.5",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.0.6",
     "@types/react-dom": "^19.0.3",
     "autoprefixer": "^10.4.20",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "^15.5.24",
     "postcss": "^8.4.49",
     "prisma": "^6.2.1",
     "tailwindcss": "^3.4.17",
@@ -48,7 +52,7 @@
   },
   "optionalDependencies": {
     "@aws-sdk/client-s3": "^3.700.0",
-    "sharp": "^0.34.0",
+    "sharp": "^0.35.5",
     "stripe": "^17.5.0"
   },
   "pnpm": {

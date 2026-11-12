@@ -6,6 +6,7 @@ import {
   minorUnits,
   providerMajorAmount,
   majorToCents,
+  formatCurrencyAmount,
 } from "../src/lib/currency";
 import { formatMoney } from "../src/lib/utils";
 
@@ -64,6 +65,9 @@ describe("formatMoney respects XOF zero decimals", () => {
     const out = formatMoney(500000, "XOF");
     // Should show 5,000 / 5 000 and NOT 5,000.00
     assert.match(out, /5[\s,.]?000/);
+    assert.match(out, /XOF/);
+    assert.doesNotMatch(out, /FCFA/);
+    assert.match(formatCurrencyAmount(500000, "XOF"), /XOF/);
     assert.doesNotMatch(out, /5[\s,.]?000\.00/);
   });
   test("NGN still renders normally", () => {

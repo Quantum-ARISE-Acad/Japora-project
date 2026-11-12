@@ -1,3 +1,4 @@
+import { errorMessage } from "@/lib/errors";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createSession } from "@/lib/session";
@@ -17,13 +18,11 @@ export async function POST(req: Request) {
     const {
       clerkId,
       email,
-      role = "seller",
       name = "",
       shopName = "",
       whatsappNumber = "",
       currency = "XOF",
       category = "",
-      phone = "",
     } = body;
 
     if (!email) {
@@ -35,7 +34,7 @@ export async function POST(req: Request) {
     // Japora is dedicated to vendors: always resolve or create a Vendor account
     let vendor = null;
     if (clerkId) {
-      vendor = await (prisma.vendor as any).findFirst({
+      vendor = await prisma.vendor.findFirst({
         where: {
           OR: [
             { clerkId: clerkId },
@@ -52,7 +51,7 @@ export async function POST(req: Request) {
     if (!vendor) {
       // Create new seller / vendor
       const baseName = shopName.trim() || name.trim() || cleanEmail.split("@")[0];
-      let baseSlug = slugify(baseName) || "shop";
+      const baseSlug = slugify(baseName) || "shop";
       
       // Ensure slug uniqueness
       let slug = baseSlug;
@@ -72,17 +71,17 @@ export async function POST(req: Request) {
           passwordHash: "clerk_managed_auth",
           shopName: baseName,
           shopSlug: slug,
-          whatsappNumber: whatsappNumber.trim(),
+          whatsappNumber: String(whatsappNumber).replace(/[^0-9]/g, ""),
           currency: currency || "XOF",
           category: category || "",
           subscriptionStatus: "trialing",
           trialEndsAt: trialEnd,
           emailVerifiedAt: now,
-        } as any,
+        },
       });
-    } else if (clerkId && !(vendor as any).clerkId) {
+    } else if (clerkId && !vendor.clerkId) {
       // Link existing vendor with clerkId
-      vendor = await (prisma.vendor as any).update({
+      vendor = await prisma.vendor.update({
         where: { id: vendor.id },
         data: { clerkId },
       });
@@ -100,8 +99,8 @@ export async function POST(req: Request) {
       vendorId: vendor.id,
       shopSlug: vendor.shopSlug,
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error("[clerk-sync error]", err);
-    return NextResponse.json({ error: err.message || "Sync failed" }, { status: 500 });
+    return NextResponse.json({ error: errorMessage(err, "Sync failed") }, { status: 500 });
   }
 }

@@ -1,0 +1,69 @@
+# Module application : Japora et le déclencheur des tâches planifiées.
+services:
+  wcatalog:
+    build:
+      context: .
+      args:
+        PRISMA_PROVIDER: postgresql
+        # Inscrites dans le code au build : changer de domaine impose un rebuild.
+        NEXT_PUBLIC_APP_URL: ${PUBLIC_URL:?lancez deploy/mvp.sh init}
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}
+        NEXT_PUBLIC_WHATSAPP_BOT_NUMBER: ${NEXT_PUBLIC_WHATSAPP_BOT_NUMBER:-}
+    container_name: wataru-wcatalog
+    restart: unless-stopped
+    user: node
+    env_file:
+      - { path: .env.keys, required: false }
+    environment:
+      DATABASE_URL: postgresql://japora:${POSTGRES_PASSWORD:?}@postgres:5432/japora
+      # Same volume as Caddy and backup: never let .env.keys redirect photos elsewhere.
+      UPLOADS_DIR: /app/public/uploads
+      NEXT_PUBLIC_APP_URL: ${PUBLIC_URL:?}
+      # Fixe l'adresse des liens du bot : sinon le webhook la déduit de la requête reçue.
+      NEXT_PUBLIC_PUBLIC_TUNNEL_URL: ${PUBLIC_URL:?}
+      SESSION_SECRET: ${SESSION_SECRET:?lancez deploy/mvp.sh init}
+      WATARU_UNIFIED_AUTH_SECRET: ${WATARU_UNIFIED_AUTH_SECRET:?lancez deploy/mvp.sh init}
+      CRON_SECRET: ${CRON_SECRET:?lancez deploy/mvp.sh init}
+      # Paiement simulé : décision de Seth pour le stand. "1" = n'importe qui peut
+      # marquer une commande payée, à ne jamais laisser avec de vrais paiements.
+      JAPORA_ENABLE_DEV_PAY_STUB: ${JAPORA_ENABLE_DEV_PAY_STUB:-}
+    volumes:
+      - japora_uploads:/app/public/uploads
+    networks: [edge, internal, monitoring]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 2g
+    logging: &logging
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5174/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 60s
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  scheduler:
+    image: alpine:3.20
+    container_name: wataru-scheduler
+    restart: unless-stopped
+    command: ["sh", "/scheduler/run.sh"]
+    environment:
+      CRON_SECRET: ${CRON_SECRET:?}
+    volumes:
+      - ./deploy/scheduler/run.sh:/scheduler/run.sh:ro
+    networks: [internal]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 32m
+    logging: *logging
+    depends_on:
+      wcatalog: { condition: service_healthy }
+
+networks:
+  edge: {}
+  internal: { internal: true }
+  monitoring: { internal: true }
+
+volumes:
+  japora_uploads: {}

@@ -23,10 +23,22 @@ export default async function CatalogPage({ params, searchParams }: Params) {
   const vendor = await prisma.vendor.findUnique({ where: { shopSlug: slug } });
   if (!vendor) notFound();
 
-  const products = await prisma.product.findMany({
-    where: { vendorId: vendor.id, isActive: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const [products, collections] = await Promise.all([
+    prisma.product.findMany({
+      where: { vendorId: vendor.id, isActive: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.collection.findMany({
+      where: { vendorId: vendor.id },
+      orderBy: { createdAt: "desc" },
+      include: {
+        products: {
+          where: { isActive: true },
+          select: { id: true, imageUrl: true },
+        },
+      },
+    }),
+  ]);
 
   const waAssistant = parseWhatsAppAssistantConfig(vendor.uiPrefs);
 
@@ -52,6 +64,14 @@ export default async function CatalogPage({ params, searchParams }: Params) {
         whatsappPrefillMessage: waAssistant.whatsappPrefillMessage,
         showQrOnShop: waAssistant.showQrOnShop,
       }}
+      collections={collections.map((c) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        description: c.description,
+        productCount: c.products.length,
+        coverImageUrl: c.products.find((p) => p.imageUrl)?.imageUrl || "",
+      }))}
       products={products.map((p) => ({
         id: p.id,
         name: p.name,
@@ -61,6 +81,7 @@ export default async function CatalogPage({ params, searchParams }: Params) {
         sizes: p.sizes,
         stock: p.stock,
         condition: p.condition || "new",
+        collectionId: p.collectionId || null,
         createdAt: p.createdAt.toISOString(),
         wholesalePriceCents: p.wholesalePriceCents,
         wholesaleMinQty: p.wholesaleMinQty,

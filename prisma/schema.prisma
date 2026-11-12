@@ -28,7 +28,7 @@ model Vendor {
   // webhook maps an incoming phone_number_id → vendor via this (multi-tenant
   // routing); unique so two vendors can't claim the same line.
   whatsappPhoneNumberId String? @unique
-  currency        String    @default("USD")
+  currency        String    @default("XOF")
   tagline         String    @default("")
   emailVerifiedAt DateTime?
   onboardedAt     DateTime?
@@ -125,7 +125,12 @@ model Campaign {
   vendorId          String
   vendor            Vendor          @relation("VendorCampaigns", fields: [vendorId], references: [id], onDelete: Cascade)
   name              String
+  // ctwa | abandoned_cart | reactivation | legacy_recovery
+  kind              String          @default("ctwa")
+  recoveryKey       String?
   productId         String?
+  platform          String?
+  targetRegion      String?
   headline          String          @default("")
   body              String          @default("")
   cta               String          @default("Shop now")
@@ -143,6 +148,7 @@ model Campaign {
   deletedAt         DateTime?
   touches           CampaignTouch[]
 
+  @@unique([vendorId, recoveryKey])
   @@index([vendorId])
 }
 
@@ -225,6 +231,7 @@ model Order {
   customerPhone String      @default("")
   status        String      @default("NEW") // NEW | CONFIRMED | PAID | DELIVERED | CANCELLED
   totalCents    Int         @default(0)
+  deliveryFeeCents Int      @default(0)
   note          String      @default("")
   source        String      @default("catalog") // catalog | whatsapp | manual
   // Soko: optional CRM customer link + affiliate attribution + wholesale /
@@ -397,10 +404,41 @@ model Broadcast {
   sentCount     Int       @default(0)
   status        String    @default("draft") // draft | scheduled | sending | sent | failed
   scheduledFor  DateTime?
-  sentAt        DateTime?
-  createdAt     DateTime  @default(now())
+  sentAt           DateTime?
+  messageMode      String               @default("text") // text | template
+  templateName     String?
+  templateLanguage String?
+  templateParams   String               @default("[]") // ordered list: name | store
+  failedCount      Int                  @default(0)
+  skippedCount     Int                  @default(0)
+  uncertainCount   Int                  @default(0)
+  createdAt        DateTime             @default(now())
+  recipients       BroadcastRecipient[]
 
   @@index([vendorId])
+  @@index([status, createdAt])
+}
+
+// Durable per-recipient queue. Stale sends are uncertain rather than blindly retried.
+model BroadcastRecipient {
+  id          String    @id @default(cuid())
+  broadcastId String
+  broadcast   Broadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+  vendorId    String
+  customerId  String
+  name        String
+  phone       String
+  status      String    @default("pending") // pending | sending | sent | failed | skipped | uncertain
+  attempts    Int       @default(0)
+  startedAt   DateTime?
+  sentAt      DateTime?
+  error       String    @default("")
+  createdAt   DateTime  @default(now())
+
+  @@unique([broadcastId, customerId])
+  @@index([status, createdAt])
+  @@index([broadcastId, status])
+  @@index([vendorId, customerId])
 }
 
 // Soko affiliate program — vendors mint codes for resellers; attribution
@@ -460,7 +498,7 @@ model PaymentIntent {
   provider     String
   providerRef  String?
   amountCents  Int
-  currency     String    @default("NGN")
+  currency     String    @default("XOF")
   status       String    @default("created") // created | pending | succeeded | failed | refunded
   method       String?
   metadata     String    @default("")
@@ -515,12 +553,14 @@ model WhatsAppMessage {
   status    String   @default("stubbed") // stubbed | sent | delivered | read | received | failed
   // Provider message id (Meta wamid) for OUT messages — lets the status webhook
   // match delivery/read receipts back to the row.
-  messageId String?
-  orderId   String?
-  createdAt DateTime @default(now())
+  messageId   String?
+  orderId     String?
+  broadcastId String?
+  createdAt   DateTime @default(now())
 
   @@index([vendorId])
   @@index([messageId])
+  @@index([broadcastId])
 }
 
 /**

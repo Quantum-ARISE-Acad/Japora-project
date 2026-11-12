@@ -77,7 +77,7 @@ export function detectLang(acceptLanguage?: string | null, vendorLang?: string |
     .sort((a, b) => b.q - a.q);
 
   for (const { tag } of candidates) {
-    // Nigerian Pidgin tags (check before primary 'en' match so 'en-ng' resolves to 'pcm')
+    // Resolve the regional alias before the generic English language match.
     if (tag === "pcm" || tag.startsWith("pcm-") || tag === "en-ng") return "pcm";
     const primary = tag.split("-")[0];
     // Direct match on primary subtag

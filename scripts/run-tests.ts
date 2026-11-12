@@ -27,10 +27,22 @@ const databaseSuites = new Set([
   "bus.test.ts",
   "campaign-safety.test.ts",
   "flow.test.ts",
+  "orders-delivery.test.ts",
+  "stand-readiness.test.ts",
   "integration.test.ts",
   "telemetry.test.ts",
 ]);
-const testFiles = readdirSync(testsDir).filter((name) => name.endsWith(".test.ts")).sort();
+// TEST_GROUP=unit runs suites without a database, TEST_GROUP=database the others
+// (lets CI run both groups as separate parallel jobs). Unset: every suite.
+const testGroup = process.env.TEST_GROUP || "all";
+if (!["all", "unit", "database"].includes(testGroup)) {
+  console.error(`Unknown TEST_GROUP "${testGroup}" (expected unit, database or all).`);
+  process.exit(2);
+}
+const testFiles = readdirSync(testsDir)
+  .filter((name) => name.endsWith(".test.ts"))
+  .filter((name) => testGroup === "all" || (testGroup === "database") === databaseSuites.has(name))
+  .sort();
 
 let passed = 0;
 let failed = 0;

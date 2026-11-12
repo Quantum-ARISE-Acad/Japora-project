@@ -18,7 +18,8 @@ export function formatMoney(cents: number, currency = "USD"): string {
     return new Intl.NumberFormat(undefined, {
       style: "currency",
       currency,
-      maximumFractionDigits: 2,
+      ...(currency === "XOF" ? { currencyDisplay: "code" as const } : {}),
+      maximumFractionDigits: currency === "XOF" ? 0 : 2,
     }).format(amount);
   } catch {
     return `${amount.toFixed(2)} ${currency}`;

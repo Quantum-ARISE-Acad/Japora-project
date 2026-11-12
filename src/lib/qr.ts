@@ -16,8 +16,10 @@ export type QrOptions = {
   dark?: string;
   /** Background. Defaults to transparent. */
   light?: string;
-  /** Quiet-zone margin in modules. Default 2. */
+  /** Quiet-zone margin in modules. Defaults to the QR standard of 4 modules. */
   margin?: number;
+  /** Explicit SVG dimensions so renderers do not fall back to 300×150. */
+  width?: number;
   /** Error-correction level. "M" balances density vs. scan-resilience. */
   ecc?: "L" | "M" | "Q" | "H";
 };
@@ -40,10 +42,11 @@ export async function renderQrSvg(data: string, opts: QrOptions = {}): Promise<s
   return QR.toString(value, {
     type: "svg",
     errorCorrectionLevel: opts.ecc ?? "M",
-    margin: opts.margin ?? 2,
+    margin: opts.margin ?? 4,
+    width: opts.width ?? 256,
     color: {
-      dark: opts.dark ?? "#2f4f4f",
-      light: opts.light ?? "#0000", // transparent
+      dark: opts.dark ?? "#111827",
+      light: opts.light ?? "#ffffff",
     },
   });
 }

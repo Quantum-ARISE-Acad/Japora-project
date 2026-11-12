@@ -11,10 +11,10 @@ describe("parseDeliveryZones", () => {
   test("parses comma, semicolon, and newline separated zones with explicit prices", () => {
     const zones = parseDeliveryZones("Lomé Centre: 1000, Agoè: 1500; Baguida: 2000\nAdidogomé: 1200");
     assert.deepEqual(zones, [
-      { name: "Lomé Centre", feeCents: 1000 },
-      { name: "Agoè", feeCents: 1500 },
-      { name: "Baguida", feeCents: 2000 },
-      { name: "Adidogomé", feeCents: 1200 },
+      { name: "Lomé Centre", feeCents: 100000 },
+      { name: "Agoè", feeCents: 150000 },
+      { name: "Baguida", feeCents: 200000 },
+      { name: "Adidogomé", feeCents: 120000 },
     ]);
   });
 
@@ -23,13 +23,13 @@ describe("parseDeliveryZones", () => {
     assert.deepEqual(zones, [
       { name: "Lomé", feeCents: 1000 },
       { name: "Kpalimé", feeCents: 1000 },
-      { name: "Kara", feeCents: 2500 },
+      { name: "Kara", feeCents: 250000 },
     ]);
   });
 
-  test("rounds fractional fee values to nearest integer", () => {
+  test("converts fractional major-unit prices to internal hundredths", () => {
     const zones = parseDeliveryZones("Plateau: 1499.6");
-    assert.deepEqual(zones, [{ name: "Plateau", feeCents: 1500 }]);
+    assert.deepEqual(zones, [{ name: "Plateau", feeCents: 149960 }]);
   });
 });
 
@@ -51,9 +51,9 @@ describe("calculateDeliveryFee", () => {
       deliveryFeeCents: 1000,
       deliveryZones: "Lomé Centre: 800, Agoè: 1500, Baguida: 2000",
     };
-    assert.equal(calculateDeliveryFee(vendor, "agoè"), 1500);
-    assert.equal(calculateDeliveryFee(vendor, "BAGUIDA"), 2000);
-    assert.equal(calculateDeliveryFee(vendor, "lomé centre"), 800);
+    assert.equal(calculateDeliveryFee(vendor, "agoè"), 150000);
+    assert.equal(calculateDeliveryFee(vendor, "BAGUIDA"), 200000);
+    assert.equal(calculateDeliveryFee(vendor, "lomé centre"), 80000);
   });
 
   test("falls back to deliveryFeeCents when zone is not selected or unknown", () => {
@@ -67,3 +67,16 @@ describe("calculateDeliveryFee", () => {
   });
 });
 
+describe("XOF delivery amounts", () => {
+  test("the same 1000 XOF fee gives the same amount by default and by zone", () => {
+    const vendor = {
+      deliveryEnabled: true,
+      deliveryFeeCents: 100000,
+      deliveryZones: "Lomé: 1000, Zone sans tarif",
+    };
+    assert.equal(calculateDeliveryFee(vendor), 100000);
+    assert.equal(calculateDeliveryFee(vendor, "Lomé"), 100000);
+    assert.equal(calculateDeliveryFee(vendor, "Zone sans tarif"), 100000);
+    assert.equal(calculateDeliveryFee(vendor, "Lomé") / 100, 1000);
+  });
+});
