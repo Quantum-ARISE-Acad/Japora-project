@@ -58,6 +58,30 @@
 .dark .text-sky-700,
 .dark .text-blue-700    { color: #7dd3fc !important; }
 
+/* Keep WhatsApp preview content readable over its dark transcript surface. */
+.dark .bot-chat-transcript { background-color: #111916 !important; color: #f5f3ef !important; }
+.dark .bot-chat-system,
+.dark .bot-chat-message-bot,
+.dark .bot-chat-action,
+.dark .bot-chat-example {
+  background-color: #293330 !important;
+  border-color: #66736d !important;
+  color: #f5f3ef !important;
+}
+.dark .bot-chat-message-customer {
+  background-color: #174b3a !important;
+  border-color: #4a9b78 !important;
+  color: #ffffff !important;
+}
+.dark .bot-chat-message-meta,
+.dark .bot-chat-help,
+.dark .bot-chat-status-text,
+.dark .bot-chat-delivery-status { color: #f0eee9 !important; }
+.dark .bot-chat-status-pill,
+.dark .bot-chat-ai-pill { color: #f5f3ef !important; }
+.dark .bot-chat-input-bar { background-color: #221f1a !important; }
+.dark .bot-chat-control { color: #e9e6e0 !important; }
+
 /* The Aurora gradient mesh background lives on <html> (see aurora.css).
    Body inherits, but we lift content above the mesh with a subtle veil so
    text contrast stays AAA on the lightest spots of the gradient. */
@@ -116,6 +140,29 @@ html, body {
     background: var(--aurora-surface);
   }
   .input:focus { background: var(--aurora-surface-strong); }
+
+  /* Stable, opaque native dropdowns (avoids Chromium flicker on glass layers). */
+  .settings-select {
+    appearance: auto;
+    color: rgb(var(--c-900));
+    background-color: rgb(var(--c-100));
+    background-image: none;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+  .settings-select:focus { background: rgb(var(--c-100)); }
+  .settings-select option,
+  .settings-select optgroup {
+    color: rgb(var(--c-900));
+    background-color: rgb(var(--c-100));
+  }
+  .dark .settings-select,
+  .dark .settings-select option,
+  .dark .settings-select optgroup {
+    color: rgb(var(--c-900));
+    background-color: rgb(var(--c-200));
+  }
   .label {
     @apply mb-1 block text-[12px] font-semibold tracking-[0.04em] uppercase
            text-arctic-600;
@@ -129,6 +176,11 @@ html, body {
     border: 1px solid var(--glass-border);
   }
   .card:hover { box-shadow: var(--aurora-elev-2); }
+  .settings-form-card {
+    background: var(--aurora-surface-strong);
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
 }
 
 /* =====================================================================

@@ -12,7 +12,7 @@
  */
 import { prisma } from "./db";
 import { logger } from "./logger";
-import { sendWhatsApp } from "./whatsapp";
+import { sendWhatsApp, sendWhatsAppTemplate } from "./whatsapp";
 import { freeBroadcastRecipientsPerMonth } from "./billing";
 import {
   isCustomerVip,
@@ -40,11 +40,14 @@ function monthStart(now = new Date()): Date {
 
 /** Marketing recipients this vendor has already blasted this calendar month. */
 export async function broadcastRecipientsUsedThisMonth(vendorId: string): Promise<number> {
-  const agg = await prisma.broadcast.aggregate({
+  const [completed, active] = await Promise.all([prisma.broadcast.aggregate({
     _sum: { sentCount: true },
-    where: { vendorId, status: "sent", createdAt: { gte: monthStart() } },
-  });
-  return agg._sum.sentCount ?? 0;
+    where: { vendorId, status: { in: ["sent", "partial"] }, createdAt: { gte: monthStart() } },
+  }), prisma.broadcast.aggregate({
+    _sum: { targetCount: true },
+    where: { vendorId, status: { in: ["queued", "sending", "attention"] }, createdAt: { gte: monthStart() } },
+  })]);
+  return (completed._sum.sentCount ?? 0) + (active._sum.targetCount ?? 0);
 }
 
 export type BroadcastQuota = {
@@ -105,15 +108,23 @@ export async function segmentRecipients(
 ): Promise<Recipient[]> {
   if (segment === "all") {
     const rows = await prisma.customer.findMany({
-      where: { vendorId, deletedAt: null, phone: { not: "" } },
+      where: {
+        vendorId, deletedAt: null, phone: { not: "" },
+        marketingConsent: true, marketingConsentRevokedAt: null,
+      },
       select: { id: true, name: true, phone: true },
     });
-    return rows;
+    return rows
+      .filter((c) => isValidPhone(c.phone))
+      .map((c) => ({ ...c, phone: normalizePhone(c.phone) }));
   }
 
   if (segment === "vip") {
     const customers = await prisma.customer.findMany({
-      where: { vendorId, deletedAt: null, phone: { not: "" } },
+      where: {
+        vendorId, deletedAt: null, phone: { not: "" },
+        marketingConsent: true, marketingConsentRevokedAt: null,
+      },
       select: {
         id: true, name: true, phone: true, orderCount: true,
         orders: {
@@ -138,13 +149,23 @@ export async function segmentRecipients(
     });
     const now = Date.now();
     return customers
-      .filter((c) => isValidPhone(c.phone) && customerReactivationEligibility({
+      .filter((c) => {
+        if (!isValidPhone(c.phone)) return false;
+        const candidate = {
         marketingConsent: c.marketingConsent,
         marketingConsentRevokedAt: c.marketingConsentRevokedAt,
         deletedAt: c.deletedAt,
         lastOrderAt: c.lastOrderAt,
         lastCartAt: c.funnelEvents[0]?.createdAt ?? null,
-      }, now))
+        };
+        if (!customerReactivationEligibility(candidate, now)) return false;
+        const lastActivity = Math.max(
+          c.lastOrderAt?.getTime() ?? 0,
+          c.funnelEvents[0]?.createdAt.getTime() ?? 0,
+        );
+        const age = now - lastActivity;
+        return segment === "inactive" ? age < 90 * 24 * 60 * 60 * 1000 : age >= 90 * 24 * 60 * 60 * 1000;
+      })
       .map((c) => ({ id: c.id, name: c.name, phone: normalizePhone(c.phone) }));
   }
 
@@ -155,11 +176,15 @@ export async function segmentRecipients(
         vendorId,
         deletedAt: null,
         phone: { not: "" },
+        marketingConsent: true,
+        marketingConsentRevokedAt: null,
         lastOrderAt: { gte: thirtyDaysAgo },
       },
       select: { id: true, name: true, phone: true },
     });
-    return rows;
+    return rows
+      .filter((c) => isValidPhone(c.phone))
+      .map((c) => ({ ...c, phone: normalizePhone(c.phone) }));
   }
 
   if (segment === "unpaid") {
@@ -173,10 +198,15 @@ export async function segmentRecipients(
       .filter((v): v is string => Boolean(v));
     if (ids.length === 0) return [];
     const rows = await prisma.customer.findMany({
-      where: { id: { in: ids }, deletedAt: null, phone: { not: "" } },
+      where: {
+        id: { in: ids }, vendorId, deletedAt: null, phone: { not: "" },
+        marketingConsent: true, marketingConsentRevokedAt: null,
+      },
       select: { id: true, name: true, phone: true },
     });
-    return rows;
+    return rows
+      .filter((c) => isValidPhone(c.phone))
+      .map((c) => ({ ...c, phone: normalizePhone(c.phone) }));
   }
 
   // wholesale
@@ -195,158 +225,196 @@ export async function segmentRecipients(
     .filter((v): v is string => Boolean(v));
   if (ids.length === 0) return [];
   const rows = await prisma.customer.findMany({
-    where: { id: { in: ids }, deletedAt: null, phone: { not: "" } },
+    where: {
+      id: { in: ids }, vendorId, deletedAt: null, phone: { not: "" },
+      marketingConsent: true, marketingConsentRevokedAt: null,
+    },
     select: { id: true, name: true, phone: true },
   });
-  return rows;
+  return rows
+    .filter((c) => isValidPhone(c.phone))
+    .map((c) => ({ ...c, phone: normalizePhone(c.phone) }));
 }
 
 function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
-/**
- * Resolve recipients, fan out one WhatsApp per recipient, and update the
- * Broadcast row as we go (`sentCount` ticks up for every successful send so
- * the dashboard's poll-while-sending can show a live progress count).
- *
- * Designed to be called fire-and-forget from the send API route. We capture
- * and log any per-recipient failures rather than throwing them up — the
- * broadcast as a whole is considered "sent" unless *every* send failed.
- */
-export async function dispatchBroadcast(broadcastId: string): Promise<void> {
-  const broadcast = await prisma.broadcast.findUnique({
-    where: { id: broadcastId },
-  });
-  if (!broadcast) {
-    logger.warn("broadcast.dispatch_missing", { broadcastId });
-    return;
-  }
-  if (broadcast.status === "sending" || broadcast.status === "sent" || broadcast.status === "stubbed") {
-    logger.info("broadcast.dispatch_skipped", {
-      broadcastId,
-      status: broadcast.status,
-    });
-    return;
-  }
+const CLAIM_STALE_MS = 15 * 60_000;
+const QUEUE_BATCH_SIZE = 20;
 
+export type QueueBroadcastResult =
+  | { ok: true; targetCount: number }
+  | { ok: false; reason: "not_found" | "already_started" | "no_recipients" | "quota_exceeded" | "invalid_template" };
+
+/** Snapshot the audience and atomically turn a draft into durable queue rows. */
+export async function queueBroadcast(vendorId: string, broadcastId: string): Promise<QueueBroadcastResult> {
+  const broadcast = await prisma.broadcast.findFirst({ where: { id: broadcastId, vendorId } });
+  if (!broadcast) return { ok: false, reason: "not_found" };
+  if (broadcast.status !== "draft") return { ok: false, reason: "already_started" };
   if (!isSegment(broadcast.segment)) {
-    logger.warn("broadcast.invalid_segment", {
-      broadcastId,
-      segment: broadcast.segment,
-    });
-    await prisma.broadcast.update({
-      where: { id: broadcastId },
-      data: { status: "failed" },
-    });
-    return;
+    await prisma.broadcast.updateMany({ where: { id: broadcastId, vendorId, status: "draft" }, data: { status: "failed" } });
+    return { ok: false, reason: "invalid_template" };
+  }
+  if (broadcast.messageMode === "template" && (!broadcast.templateName || !broadcast.templateLanguage)) {
+    return { ok: false, reason: "invalid_template" };
   }
 
-  const recipients = await segmentRecipients(broadcast.vendorId, broadcast.segment);
+  const recipients = await segmentRecipients(vendorId, broadcast.segment);
+  if (!recipients.length) return { ok: false, reason: "no_recipients" };
+  const vendor = await prisma.vendor.findUnique({ where: { id: vendorId }, select: { subscriptionStatus: true } });
 
-  // Monthly free-broadcast quota — block the blast if it would exceed the
-  // vendor's remaining allowance (active subscribers bypass).
-  const vendor = await prisma.vendor.findUnique({
-    where: { id: broadcast.vendorId },
-    select: { subscriptionStatus: true, shopName: true },
+  return prisma.$transaction(async (tx) => {
+    const activeSubscriber = vendor?.subscriptionStatus === "active";
+    if (!activeSubscriber) {
+      const start = monthStart();
+      const [completed, reserved] = await Promise.all([
+        tx.broadcast.aggregate({ _sum: { sentCount: true }, where: { vendorId, status: { in: ["sent", "partial"] }, createdAt: { gte: start } } }),
+        tx.broadcast.aggregate({ _sum: { targetCount: true }, where: { vendorId, status: { in: ["queued", "sending", "attention"] }, createdAt: { gte: start } } }),
+      ]);
+      const requested = recipients.length;
+      const used = (completed._sum.sentCount ?? 0) + (reserved._sum.targetCount ?? 0);
+      if (requested > Math.max(0, freeBroadcastRecipientsPerMonth() - used)) {
+        return { ok: false as const, reason: "quota_exceeded" as const };
+      }
+    }
+    const claimed = await tx.broadcast.updateMany({
+      where: { id: broadcastId, vendorId, status: "draft" },
+      data: { status: "queued", targetCount: recipients.length, sentCount: 0, failedCount: 0, skippedCount: 0, sentAt: null },
+    });
+    if (claimed.count !== 1) return { ok: false as const, reason: "already_started" as const };
+    await tx.broadcastRecipient.createMany({
+      data: recipients.map((recipient) => ({
+        broadcastId,
+        vendorId,
+        customerId: recipient.id,
+        name: recipient.name,
+        phone: recipient.phone,
+      })),
+    });
+    return { ok: true as const, targetCount: recipients.length };
   });
-  const quota = await checkBroadcastQuota(
-    broadcast.vendorId,
-    recipients.length,
-    vendor?.subscriptionStatus === "active",
-  );
-  if (!quota.allowed) {
-    logger.warn("broadcast.quota_exceeded", {
-      broadcastId,
-      vendorId: broadcast.vendorId,
-      requested: recipients.length,
-      used: quota.used,
-      cap: quota.cap,
-    });
-    await prisma.broadcast.update({ where: { id: broadcastId }, data: { status: "failed" } });
-    return;
-  }
+}
 
+async function refreshBroadcastStatus(broadcastId: string) {
+  const [broadcast, counts] = await Promise.all([
+    prisma.broadcast.findUnique({ where: { id: broadcastId }, select: { id: true, status: true } }),
+    prisma.broadcastRecipient.groupBy({ by: ["status"], where: { broadcastId }, _count: { _all: true } }),
+  ]);
+  if (!broadcast || ["sent", "stubbed", "failed", "partial", "skipped", "attention"].includes(broadcast.status)) return;
+  const count = (status: string) => counts.find((entry) => entry.status === status)?._count._all ?? 0;
+  const sent = count("sent");
+  const stubbed = count("stubbed");
+  const failed = count("failed");
+  const skipped = count("skipped");
+  const uncertain = count("uncertain");
+  const pending = count("pending") + count("sending");
+  const total = counts.reduce((sum, entry) => sum + entry._count._all, 0);
+  let status: string;
+  if (pending > 0) status = "sending";
+  else if (uncertain > 0) status = "attention";
+  else if (total === 0 || (sent + stubbed === 0 && failed > 0 && skipped === 0)) status = "failed";
+  else if (sent + stubbed === 0 && skipped > 0 && failed === 0) status = "skipped";
+  else if (failed > 0 || skipped > 0) status = "partial";
+  else if (stubbed === total) status = "stubbed";
+  else status = "sent";
   await prisma.broadcast.update({
     where: { id: broadcastId },
-    data: { status: "sending", sentCount: 0 },
+      data: { status, sentCount: sent + stubbed, failedCount: failed, skippedCount: skipped, uncertainCount: uncertain, sentAt: pending === 0 && uncertain === 0 ? new Date() : null },
   });
+}
 
-  logger.info("broadcast.dispatch_start", {
-    broadcastId,
-    vendorId: broadcast.vendorId,
-    segment: broadcast.segment,
-    recipientCount: recipients.length,
+/** Process a bounded batch of durable recipients; call from the protected cron. */
+export async function processBroadcastQueue(limit = QUEUE_BATCH_SIZE): Promise<{ processed: number; uncertain: number }> {
+  const staleBefore = new Date(Date.now() - CLAIM_STALE_MS);
+  const staleRows = await prisma.broadcastRecipient.findMany({
+    where: { status: "sending", startedAt: { lt: staleBefore } },
+    select: { broadcastId: true },
   });
+  const stale = await prisma.broadcastRecipient.updateMany({
+    where: { status: "sending", startedAt: { lt: staleBefore } },
+    data: { status: "uncertain", error: "Le worker s’est interrompu après le début de l’envoi. Vérifiez WhatsApp avant toute nouvelle tentative." },
+  });
+  const candidates = await prisma.broadcastRecipient.findMany({
+    where: { status: "pending", broadcast: { status: { in: ["queued", "sending"] } } },
+    orderBy: { createdAt: "asc" }, take: Math.max(limit * 2, limit),
+    include: { broadcast: { select: { body: true, messageMode: true, templateName: true, templateLanguage: true, templateParams: true } } },
+  });
+  const due: Array<{ id: string; broadcastId: string; vendorId: string; customerId: string; name: string; phone: string; broadcast: { body: string; messageMode: string; templateName: string | null; templateLanguage: string | null; templateParams: string } }> = [];
+  for (const candidate of candidates) {
+    if (due.length >= limit) break;
+    const claimed = await prisma.broadcastRecipient.updateMany({
+      where: { id: candidate.id, status: "pending" },
+      data: { status: "sending", startedAt: new Date(), attempts: { increment: 1 }, error: "" },
+    });
+    if (claimed.count !== 1) continue;
+    await prisma.broadcast.update({ where: { id: candidate.broadcastId }, data: { status: "sending" } });
+    due.push(candidate);
+  }
 
-  let sent = 0;
-  let failed = 0;
-  let stubbed = 0;
-
-  for (const recipient of recipients) {
-    try {
-      const result = await sendWhatsApp({
-        vendorId: broadcast.vendorId,
-        to: recipient.phone,
-        body: personalizeBroadcastMessage(broadcast.body, {
-          name: recipient.name,
-          store: vendor?.shopName,
-          // Broadcast has no selected product field. Don't guess from a
-          // multi-recipient audience's order history; missing product tokens
-          // intentionally render as empty until the vendor defines one.
-        }),
-      });
-      if (result.status === "failed") {
-        failed++;
-        logger.warn("broadcast.recipient_failed", {
-          broadcastId,
-          customerId: recipient.id,
-          error: result.error,
-        });
-      } else {
-        sent++;
-        if (result.status === "stubbed") stubbed++;
-        await prisma.broadcast.update({
-          where: { id: broadcastId },
-          data: { sentCount: sent },
-        });
-      }
-    } catch (e) {
-      failed++;
-      logger.error("broadcast.recipient_error", {
-        broadcastId,
-        customerId: recipient.id,
-        error: e instanceof Error ? e.message : String(e),
-      });
+  let processed = 0;
+  const shopNames = new Map<string, string>();
+  for (const recipient of due) {
+    const customer = await prisma.customer.findFirst({
+      where: { id: recipient.customerId, vendorId: recipient.vendorId, deletedAt: null, marketingConsent: true, marketingConsentRevokedAt: null },
+      select: { name: true, phone: true },
+    });
+    if (!customer || !isValidPhone(customer.phone)) {
+      await prisma.broadcastRecipient.update({ where: { id: recipient.id }, data: { status: "skipped", error: "Consentement retiré, client supprimé ou numéro invalide avant l’envoi." } });
+      processed++;
+      continue;
     }
+    try {
+      const templateParams = JSON.parse(recipient.broadcast.templateParams || "[]") as string[];
+      let shopName = shopNames.get(recipient.vendorId);
+      if (shopName === undefined) {
+        shopName = (await prisma.vendor.findUnique({ where: { id: recipient.vendorId }, select: { shopName: true } }))?.shopName ?? "";
+        shopNames.set(recipient.vendorId, shopName);
+      }
+      const values = { name: customer.name, store: shopName };
+      const result = recipient.broadcast.messageMode === "template"
+        ? await sendWhatsAppTemplate({
+            vendorId: recipient.vendorId,
+            to: normalizePhone(customer.phone),
+            templateName: recipient.broadcast.templateName!,
+            languageCode: recipient.broadcast.templateLanguage!,
+            components: templateParams.length ? [{ type: "body", parameters: templateParams.map((key) => ({ type: "text", text: values[key as keyof typeof values] ?? "" })) }] : undefined,
+            broadcastId: recipient.broadcastId,
+          })
+        : await sendWhatsApp({
+            vendorId: recipient.vendorId,
+            to: normalizePhone(customer.phone),
+            body: personalizeBroadcastMessage(recipient.broadcast.body, values),
+            broadcastId: recipient.broadcastId,
+          });
+      await prisma.broadcastRecipient.update({
+        where: { id: recipient.id },
+        data: result.status === "failed"
+          ? { status: "failed", error: result.error || "WhatsApp a refusé l’envoi." }
+          : { status: result.status === "stubbed" ? "stubbed" : "sent", sentAt: new Date() },
+      });
+      if (result.status === "failed") logger.warn("broadcast.recipient_failed", { broadcastId: recipient.broadcastId, customerId: recipient.customerId, error: result.error });
+    } catch (error) {
+      await prisma.broadcastRecipient.update({ where: { id: recipient.id }, data: { status: "failed", error: (error instanceof Error ? error.message : String(error)).slice(0, 500) } });
+      logger.error("broadcast.recipient_error", { broadcastId: recipient.broadcastId, customerId: recipient.customerId, error: String(error) });
+    }
+    processed++;
     await sleep(THROTTLE_MS);
   }
 
-  const finalStatus =
-    recipients.length === 0
-      ? "sent"
-      : failed === recipients.length
-        ? "failed"
-        : stubbed === sent
-          ? "stubbed"
-          : "sent";
+  const affectedBroadcasts = new Set([...due.map((recipient) => recipient.broadcastId), ...staleRows.map((row) => row.broadcastId)]);
+  for (const broadcastId of affectedBroadcasts) await refreshBroadcastStatus(broadcastId);
+  logger.info("broadcast.queue_batch", { processed, uncertain: stale.count });
+  return { processed, uncertain: stale.count };
+}
 
-  await prisma.broadcast.update({
-    where: { id: broadcastId },
-    data: {
-      status: finalStatus,
-      sentCount: sent,
-      targetCount: recipients.length,
-      sentAt: new Date(),
-    },
-  });
-
-  logger.info("broadcast.dispatch_complete", {
-    broadcastId,
-    status: finalStatus,
-    sent,
-    failed,
-    stubbed,
-    total: recipients.length,
-  });
+/** Compatibility helper for tests and local callers; production uses cron batches. */
+export async function dispatchBroadcast(broadcastId: string): Promise<void> {
+  const broadcast = await prisma.broadcast.findUnique({ where: { id: broadcastId }, select: { vendorId: true, status: true } });
+  if (!broadcast) return;
+  if (broadcast.status === "draft") await queueBroadcast(broadcast.vendorId, broadcastId);
+  // Prisma take is a signed 32-bit integer; drain bounded batches instead.
+  while ((await processBroadcastQueue()).processed > 0) {
+    // Each completed batch leaves any remaining recipients in the durable queue.
+  }
 }

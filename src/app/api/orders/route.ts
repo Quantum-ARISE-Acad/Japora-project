@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Vendor } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getCurrentVendor } from "@/lib/auth";
-import { getClientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
+import { getClientIp, rateLimit, tooManyRequests, envLimit } from "@/lib/ratelimit";
 import { logger } from "@/lib/logger";
 import { linkCartSessionToCustomer, upsertFromOrder } from "@/lib/customers";
 import { createForUnpaidOrder } from "@/lib/receivables";
@@ -14,6 +14,10 @@ import { crossedToZero, stockDepleted } from "@/lib/catalog-events";
 import { normalizePhone, isValidPhone } from "@/lib/otp";
 import { sendEmail } from "@/lib/email";
 import { buyerOrderConfirmationEmail } from "@/lib/email-templates";
+import { publicOrigin } from "@/lib/public-origin";
+import { sendWhatsApp } from "@/lib/whatsapp";
+import { formatMoney } from "@/lib/utils";
+import { calculateDeliveryFee, parseDeliveryZones } from "@/lib/delivery";
 
 export async function GET(req: NextRequest) {
   const vendor = await getCurrentVendor();
@@ -62,12 +66,12 @@ export async function POST(req: NextRequest) {
     const slug = String(b.shopSlug || "");
     const rl = rateLimit({
       key: `order:${ip}:${slug}`,
-      limit: 10,
+      limit: envLimit("ORDER_RATE_LIMIT", 10),
       windowMs: 5 * 60_000,
     });
     if (!rl.allowed) {
       logger.warn("order.rate_limited", { ip, slug });
-      return tooManyRequests(rl, "Too many orders. Please try again in a few minutes.");
+      return tooManyRequests(rl, "Trop de commandes. Réessayez dans quelques minutes.");
     }
   }
 
@@ -104,6 +108,28 @@ export async function POST(req: NextRequest) {
   let note = String(b.note || "").trim();
   if (paymentMethod && !note.includes("[PAIEMENT:")) {
     note = `[PAIEMENT: ${paymentMethod}]\n${note}`.trim();
+  }
+
+  // Fees come from the vendor configuration, never from a client-supplied amount.
+  // Legacy/manual callers that omit fulfillment continue to create pickup orders.
+  const fulfillment = b.fulfillment ?? "pickup";
+  if (fulfillment !== "pickup" && fulfillment !== "delivery") {
+    return NextResponse.json({ error: "Mode de réception invalide." }, { status: 400 });
+  }
+  let deliveryFeeCents = 0;
+  if (fulfillment === "delivery") {
+    if (!vendor.deliveryEnabled) {
+      return NextResponse.json({ error: "Cette boutique ne propose pas la livraison." }, { status: 400 });
+    }
+    const zones = parseDeliveryZones(vendor.deliveryZones, vendor.deliveryFeeCents);
+    const requestedZone = typeof b.deliveryZone === "string" ? b.deliveryZone.trim() : "";
+    const zone = requestedZone
+      ? zones.find((z) => z.name.toLowerCase() === requestedZone.toLowerCase())
+      : zones[0];
+    if (requestedZone && !zone) {
+      return NextResponse.json({ error: "Zone de livraison inconnue." }, { status: 400 });
+    }
+    deliveryFeeCents = calculateDeliveryFee(vendor, zone?.name);
   }
 
   const rawItems = Array.isArray(b.items) ? b.items : [];
@@ -146,7 +172,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const totalCents = lineItems.reduce((s, li) => s + li.unitPriceCents * li.quantity, 0);
+  const totalCents = lineItems.reduce((s, li) => s + li.unitPriceCents * li.quantity, 0) + deliveryFeeCents;
   const vendorId = vendor.id;
   const isPreOrder = Boolean(b.isPreOrder);
 
@@ -173,6 +199,7 @@ export async function POST(req: NextRequest) {
         source,
         status: "NEW",
         totalCents,
+        deliveryFeeCents,
         isPreOrder,
         depositCents,
         balanceDueAt,
@@ -231,7 +258,7 @@ export async function POST(req: NextRequest) {
   // Buyer email confirmation (if email provided)
   if (customerEmail && customerEmail.includes("@")) {
     try {
-      const origin = req.nextUrl.origin || "http://localhost:5174";
+      const origin = publicOrigin(req);
       const payUrl = `${origin}/pay/${order.id}`;
       const emailTemplate = buyerOrderConfirmationEmail({
         orderId: order.id,
@@ -258,6 +285,32 @@ export async function POST(req: NextRequest) {
       });
     } catch (e) {
       logger.error("order.buyer_email_failed", { orderId: order.id, error: String(e) });
+    }
+  }
+
+  // Send order summary + FedaPay payment link via WhatsApp Cloud API if customerPhone provided
+  if (customerPhone) {
+    try {
+      const origin = (process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin || "http://localhost:5174").replace(/\/$/, "");
+      const payUrl = `${origin}/pay/${order.id}`;
+      const amountFormatted = formatMoney(totalCents, vendor.currency || "XOF");
+      const itemsText = lineItems
+        .map((li) => `• ${li.quantity}× ${li.productName}${li.size ? ` (${li.size})` : ""}`)
+        .join("\n");
+
+      await sendWhatsApp({
+        vendorId: vendor.id,
+        to: customerPhone,
+        orderId: order.id,
+        body:
+          `🛍️ *Commande enregistrée chez ${vendor.shopName} !*\n\n` +
+          `Réf : *#${order.id.slice(-6).toUpperCase()}*\n` +
+          `${itemsText}\n\n` +
+          `💰 Total : *${amountFormatted}*\n\n` +
+          `👉 *Lien de paiement sécurisé FedaPay (T-Money, Flooz, Mobile Money & Carte) :*\n${payUrl}`,
+      });
+    } catch (e) {
+      logger.error("order.buyer_whatsapp_failed", { orderId: order.id, error: String(e) });
     }
   }
 
@@ -344,5 +397,5 @@ export async function POST(req: NextRequest) {
   }
 
   kickDrain();
-  return NextResponse.json({ ok: true, orderId: order.id, totalCents });
+  return NextResponse.json({ ok: true, orderId: order.id, totalCents, deliveryFeeCents });
 }

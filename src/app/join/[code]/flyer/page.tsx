@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getCooperativeByCode } from "@/lib/cooperative";
 import { appUrl } from "@/lib/token";
+import { regionLabel } from "@/lib/regions";
 import PrintButton from "./PrintButton";
 
 /**
@@ -64,9 +65,9 @@ export default async function FlyerPage({ params }: { params: Promise<{ code: st
       <div className="min-h-screen px-4 py-8" style={{ background: "#EFEDE8" }}>
         {/* Screen-only toolbar */}
         <div className="no-print mx-auto mb-5 flex max-w-[210mm] items-center justify-between gap-3">
-          <Link href="/dashboard/settings" className="btn-ghost">← Back to settings</Link>
+          <Link href="/dashboard/settings" className="btn-ghost">← Retour aux paramètres</Link>
           <div className="flex items-center gap-2">
-            <span className="hidden text-sm text-arctic-600 sm:inline">Print A4, or “Save as PDF”.</span>
+            <span className="hidden text-sm text-arctic-600 sm:inline">Imprimer au format A4 ou enregistrer en PDF.</span>
             <PrintButton />
           </div>
         </div>
@@ -95,7 +96,7 @@ export default async function FlyerPage({ params }: { params: Promise<{ code: st
             </span>
             <span className="font-display" style={{ fontSize: 22, fontWeight: 600 }}>Japora</span>
             <span className="ml-auto" style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: GOLD, fontWeight: 700 }}>
-              {coop.region ? `${coop.region} · ` : ""}Coopérative
+              {coop.region ? `${regionLabel(coop.region)} · ` : ""}Coopérative
             </span>
           </div>
 

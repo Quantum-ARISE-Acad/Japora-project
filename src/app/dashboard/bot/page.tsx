@@ -13,8 +13,16 @@ export default async function BotPage() {
   const outbound = await prisma.whatsAppMessage.findMany({
     where: { vendorId: vendor.id, direction: "OUT" },
     orderBy: { createdAt: "desc" },
-    take: 10,
-    select: { id: true, contact: true, body: true, status: true, createdAt: true },
+    take: 100,
+    select: {
+      id: true,
+      contact: true,
+      body: true,
+      status: true,
+      messageId: true,
+      orderId: true,
+      createdAt: true,
+    },
   });
 
   const waConfig = parseWhatsAppAssistantConfig(vendor.uiPrefs);
@@ -94,7 +102,13 @@ export default async function BotPage() {
         <BotChatClient shopName={vendor.shopName} />
       </div>
 
-      <DeliveryLog messages={outbound} />
+      <DeliveryLog
+        messages={outbound.map((message) => ({
+          ...message,
+          createdAt: message.createdAt.toISOString(),
+        }))}
+        liveMode={cloudLive}
+      />
     </div>
   );
 }

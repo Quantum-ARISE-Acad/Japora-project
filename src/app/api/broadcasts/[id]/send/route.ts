@@ -1,46 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
 import { getCurrentVendor } from "@/lib/auth";
-import { dispatchBroadcast } from "@/lib/broadcast";
+import { processBroadcastQueue, queueBroadcast } from "@/lib/broadcast";
 import { logger } from "@/lib/logger";
 
 type Params = { params: Promise<{ id: string }> };
 
-/**
- * Fire-and-forget dispatch. We respond 200 immediately so the dashboard can
- * start polling for status changes; the dispatch itself runs on the server's
- * task queue. Any thrown error is logged but doesn't bubble back to the user.
- */
+/** Validate vendor ownership and persist a recipient snapshot for the cron worker. */
 export async function POST(_req: NextRequest, { params }: Params) {
   const vendor = await getCurrentVendor();
   if (!vendor) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Veuillez vous connecter pour continuer." }, { status: 401 });
   }
 
   const { id } = await params;
-  const broadcast = await prisma.broadcast.findFirst({
-    where: { id, vendorId: vendor.id },
-    select: { id: true, status: true },
-  });
-  if (!broadcast) {
-    return NextResponse.json({ error: "Broadcast not found." }, { status: 404 });
+  const result = await queueBroadcast(vendor.id, id);
+  if (!result.ok) {
+    const status = result.reason === "not_found" ? 404 : result.reason === "already_started" ? 409 : 422;
+    const message = {
+      not_found: "Cet envoi est introuvable.",
+      already_started: "Cet envoi a déjà été mis en file ou terminé.",
+      no_recipients: "Aucun destinataire consentant ne correspond à ce segment.",
+      quota_exceeded: "Le quota mensuel de messages marketing est dépassé.",
+      invalid_template: "Le modèle WhatsApp doit être valide et approuvé avant l’envoi.",
+    }[result.reason];
+    return NextResponse.json({ error: message }, { status });
   }
-  if (broadcast.status === "sending" || broadcast.status === "sent") {
-    return NextResponse.json(
-      { error: `Broadcast is already ${broadcast.status}.` },
-      { status: 409 },
-    );
+  // Run one bounded item in the request so local development has visible
+  // progress without a scheduler. Remaining rows stay durable for the cron.
+  try {
+    await processBroadcastQueue(1);
+  } catch (error) {
+    logger.error("broadcast.initial_batch_failed", { broadcastId: id, error: String(error) });
   }
-
-  // Fire-and-forget. Errors are logged inside dispatchBroadcast; this catch
-  // is just to prevent an unhandled rejection if something throws before the
-  // function's own try/catch is reached.
-  void dispatchBroadcast(id).catch((e) => {
-    logger.error("broadcast.dispatch_unhandled", {
-      broadcastId: id,
-      error: e instanceof Error ? e.message : String(e),
-    });
-  });
-
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, status: "queued", targetCount: result.targetCount });
 }

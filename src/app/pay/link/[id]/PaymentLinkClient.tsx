@@ -26,6 +26,7 @@ interface PaymentLinkClientProps {
 }
 
 export default function PaymentLinkClient({
+  id,
   amountCents,
   currency,
   description,
@@ -34,6 +35,12 @@ export default function PaymentLinkClient({
   vendor,
 }: PaymentLinkClientProps) {
   const [copied, setCopied] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [selectedNetwork, setSelectedNetwork] = useState("T-Money Togo");
+  const [fedaLoading, setFedaLoading] = useState(false);
+  const [fedaError, setFedaError] = useState("");
+
   const payeePhone = vendor.momoNumber || vendor.whatsappNumber;
 
   async function copyNumber() {
@@ -44,6 +51,34 @@ export default function PaymentLinkClient({
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // ignore
+    }
+  }
+
+  async function startFedaPayCheckout() {
+    setFedaLoading(true);
+    setFedaError("");
+    try {
+      const res = await fetch("/api/payments/fedapay/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "initiate_link",
+          paymentLinkId: id,
+          customerName: customerName.trim() || "Client",
+          customerPhone: customerPhone.trim(),
+          network: selectedNetwork,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.checkoutUrl) {
+        setFedaLoading(false);
+        setFedaError(data.error || "Impossible d'initialiser le paiement FedaPay.");
+        return;
+      }
+      window.location.href = data.checkoutUrl;
+    } catch {
+      setFedaLoading(false);
+      setFedaError("Erreur réseau lors de la connexion à FedaPay.");
     }
   }
 
@@ -80,20 +115,28 @@ export default function PaymentLinkClient({
               <span className="font-bold text-lg">{vendor.shopName}</span>
               {vendor.verifiedAt && <VerifiedBadge />}
             </Link>
-            <p className="text-xs text-emerald-100">Lien de paiement sécurisé</p>
+            <p className="text-xs text-emerald-100">Lien de paiement sécurisé Japora × FedaPay</p>
           </div>
 
-          <div className="p-6 space-y-6">
+          <div className="p-6 space-y-5">
             {/* Status badges */}
             {isPaid ? (
-              <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-center space-y-1">
-                <span className="text-3xl">✅</span>
+              <div className="p-5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-center space-y-2">
+                <span className="text-4xl block">✅</span>
                 <h2 className="text-base font-bold text-emerald-800 dark:text-emerald-200">
-                  Paiement Déjà Confirmé
+                  Paiement Confirmé !
                 </h2>
                 <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                  Ce montant de {formattedAmount} a bien été réglé. Merci pour votre confiance !
+                  Ce montant de <strong>{formattedAmount}</strong> a bien été réglé. Merci pour votre confiance !
                 </p>
+                <div className="pt-2">
+                  <Link
+                    href={`/c/${vendor.shopSlug}`}
+                    className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700"
+                  >
+                    Retourner sur la boutique {vendor.shopName} →
+                  </Link>
+                </div>
               </div>
             ) : isExpired ? (
               <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-center space-y-1">
@@ -116,18 +159,89 @@ export default function PaymentLinkClient({
                     {formattedAmount}
                   </div>
                   {description && (
-                    <div className="mt-2 inline-block px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs text-slate-600 dark:text-slate-300">
+                    <div className="mt-2 inline-block px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300">
                       {description}
                     </div>
                   )}
                 </div>
 
-                {/* Mobile Money Payee Info */}
+                {/* Primary Online Payment: FedaPay Checkout */}
+                <div className="rounded-2xl border-2 border-emerald-500/80 bg-emerald-50/50 p-4 space-y-3 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
+                      <span>⚡</span> Payer en ligne avec FedaPay
+                    </span>
+                    <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                      Sandbox Actif
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-slate-600">
+                    Réglez instantanément par <strong>T-Money</strong>, <strong>Flooz Moov</strong>,{" "}
+                    <strong>MTN MoMo</strong> ou <strong>Carte Bancaire</strong> et recevez votre reçu sur WhatsApp.
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Votre nom"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs focus:border-emerald-600 focus:outline-none"
+                    />
+                    <input
+                      type="tel"
+                      placeholder="WhatsApp (+228...)"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-mono focus:border-emerald-600 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {["T-Money Togo", "Flooz Moov", "MTN Mobile Money", "Carte Visa / Mastercard"].map(
+                      (net) => (
+                        <button
+                          key={net}
+                          type="button"
+                          onClick={() => setSelectedNetwork(net)}
+                          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+                            selectedNetwork === net
+                              ? "bg-emerald-700 text-white"
+                              : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-100"
+                          }`}
+                        >
+                          {net}
+                        </button>
+                      ),
+                    )}
+                  </div>
+
+                  {fedaError && (
+                    <p className="text-xs text-rose-600 font-medium">{fedaError}</p>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={fedaLoading}
+                    onClick={startFedaPayCheckout}
+                    className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all disabled:opacity-50"
+                  >
+                    <span>💳</span>
+                    <span>
+                      {fedaLoading
+                        ? "Ouverture de FedaPay…"
+                        : `Payer ${formattedAmount} avec FedaPay`}
+                    </span>
+                  </button>
+                </div>
+
+                {/* Direct Mobile Money Payee Info */}
                 {payeePhone && (
-                  <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-4 border border-slate-200 dark:border-slate-700 space-y-3">
+                  <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-4 border border-slate-200 dark:border-slate-700 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                        Numéro Mobile Money (T-Money / Flooz)
+                        Ou transfert Mobile Money direct
                       </span>
                       <button
                         type="button"
@@ -142,47 +256,22 @@ export default function PaymentLinkClient({
                       <span>{payeePhone}</span>
                       <span className="text-xs font-sans text-slate-400">Direct</span>
                     </div>
-
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                      Effectuez le transfert Mobile Money vers ce numéro, puis cliquez ci-dessous pour confirmer au vendeur.
-                    </p>
                   </div>
                 )}
 
-                {/* WEscrow Escrow Guarantee */}
-                <div className="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/20 p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
-                      <span>🛡️</span> Paiement Protégé WEscrow
-                    </span>
-                    <span className="text-[10px] font-semibold bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full">
-                      Safe Hands
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                    Vos fonds restent sous séquestre jusqu&apos;à réception de votre commande.
-                  </p>
-                  <a
-                    href={`http://localhost:3000/deals/new?title=${encodeURIComponent(description || `Paiement pour ${vendor.shopName}`)}&amount=${encodeURIComponent((amountCents / 100).toFixed(0))}&sellerName=${encodeURIComponent(vendor.shopName)}&sellerPhone=${encodeURIComponent(payeePhone || '')}&source=japora`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-2.5 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs flex items-center justify-center gap-1.5 shadow-sm transition-colors"
-                  >
-                    <span>🛡️ Payer sous Séquestre avec WEscrow</span>
-                  </a>
-                </div>
-
                 {/* Action: WhatsApp confirmation */}
-                <div className="space-y-2 pt-2">
-                  <a
-                    href={waConfirmUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all hover:shadow-xl"
-                  >
-                    <span>💬</span>
-                    <span>J&apos;ai payé — Confirmer sur WhatsApp</span>
-                  </a>
+                <div className="space-y-2 pt-1">
+                  {payeePhone && (
+                    <a
+                      href={waConfirmUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-2.5 px-4 rounded-xl border border-emerald-600 text-emerald-700 hover:bg-emerald-50 font-semibold text-xs flex items-center justify-center gap-2 transition-all"
+                    >
+                      <span>💬</span>
+                      <span>J&apos;ai fait un transfert direct — Confirmer sur WhatsApp</span>
+                    </a>
+                  )}
 
                   <Link
                     href={`/c/${vendor.shopSlug}`}
@@ -198,7 +287,7 @@ export default function PaymentLinkClient({
       </div>
 
       <footer className="text-center text-xs text-slate-400 py-4">
-        Propulsé en toute sécurité par Japora · Commerce sans friction
+        Propulsé en toute sécurité par Japora × FedaPay
       </footer>
     </div>
   );

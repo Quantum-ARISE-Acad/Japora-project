@@ -77,6 +77,8 @@ export function detectLang(acceptLanguage?: string | null, vendorLang?: string |
     .sort((a, b) => b.q - a.q);
 
   for (const { tag } of candidates) {
+    // Resolve the regional alias before the generic English language match.
+    if (tag === "pcm" || tag.startsWith("pcm-") || tag === "en-ng") return "pcm";
     const primary = tag.split("-")[0];
     // Direct match on primary subtag
     if ((SUPPORTED as string[]).includes(primary)) {
@@ -88,8 +90,6 @@ export function detectLang(acceptLanguage?: string | null, vendorLang?: string |
     if (primary === "am" || tag.startsWith("am-")) return "am";
     if (primary === "ha" || tag.startsWith("ha-")) return "ha";
     if (primary === "wo" || tag.startsWith("wo-")) return "wo";
-    // Nigerian Pidgin tags
-    if (tag === "pcm" || tag.startsWith("pcm-") || tag === "en-ng") return "pcm";
   }
 
   return DEFAULT_LANG;

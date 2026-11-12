@@ -238,7 +238,7 @@ async function publishOne(row: OutboxRow, tenantId: string, cfg: SpineConfig): P
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${syncSecret}`, "Idempotency-Key": row.id },
         body: JSON.stringify({ eventId: row.id, type: row.type, subjectId: row.subjectId, vendorId: row.vendorId, data: row.data, occurredAt: row.occurredAt.toISOString() }),
         signal: AbortSignal.timeout(PUBLISH_TIMEOUT_MS),
-      }).catch((err) => null);
+      }).catch(() => null);
       if (!forwarded?.ok) {
         const body = forwarded ? await forwarded.text().catch(() => "") : "Soko unavailable";
         return { delivered: false, detail: `Soko sync failed${forwarded ? ` HTTP ${forwarded.status}` : ""}: ${body.slice(0, 250)}` };

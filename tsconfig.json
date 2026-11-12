@@ -22,10 +22,7 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next-synthetic/types/**/*.ts",
-    "/home/student25/next-synthetic-dist/types/**/*.ts",
-    "/tmp/next-synthetic-dist/types/**/*.ts"
+    ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", ".next-synthetic"]
 }

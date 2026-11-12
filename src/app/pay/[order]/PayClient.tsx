@@ -99,6 +99,47 @@ export default function PayClient({
 
   return (
     <div className="space-y-5 p-5">
+      {/* FedaPay Online Checkout — Top Priority */}
+      {apiProvider && (
+        <section className="rounded-shape-lg border-2 border-emerald-500/80 bg-emerald-50/60 p-4 shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-emerald-600 text-white text-sm font-bold shadow-xs">
+                💳
+              </span>
+              <div>
+                <h3 className="text-sm font-extrabold text-arctic-900">
+                  Paiement en ligne sécurisé FedaPay
+                </h3>
+                <p className="text-[11px] text-arctic-600">
+                  T-Money, Flooz Moov, MTN Mobile Money, Celtiis & Carte Visa/Mastercard
+                </p>
+              </div>
+            </div>
+            <span className="rounded-full bg-emerald-600 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+              ⚡ Instantané
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={payAutomatically}
+            disabled={apiBusy}
+            className="btn-primary w-full justify-center gap-2 !bg-emerald-600 hover:!bg-emerald-700 !text-white py-3 text-sm font-bold shadow-md"
+          >
+            {apiBusy
+              ? "Ouverture de FedaPay en cours…"
+              : `💳 Payer ${amountLabel} avec ${apiLabel || "FedaPay"}`}
+          </button>
+
+          {apiError && (
+            <p className="rounded-shape-sm bg-red-500/10 px-3 py-2 text-center a-body-sm text-red-600">
+              {apiError}
+            </p>
+          )}
+        </section>
+      )}
+
       {hasUssd ? (
         <section>
           <div className="flex items-center justify-between">
@@ -267,33 +308,6 @@ export default function PayClient({
           >
             <Glyph name="chat" size={16} /> Envoyer le reçu sur WhatsApp
           </a>
-        </section>
-      )}
-
-      {/* API fallback — only where a provider is configured */}
-      {apiProvider && (
-        <section>
-          <div className="my-1 flex items-center gap-3">
-            <span className="h-px flex-1 bg-arctic-400/30" />
-            <span className="a-label-md text-arctic-500">ou</span>
-            <span className="h-px flex-1 bg-arctic-400/30" />
-          </div>
-          <button
-            type="button"
-            onClick={payAutomatically}
-            disabled={apiBusy}
-            className="btn-ghost w-full justify-center"
-          >
-            {apiBusy ? "Démarrage en cours…" : `Payer automatiquement avec ${apiLabel}`}
-          </button>
-          <p className="mt-1 text-center a-label-md text-arctic-500">
-            Validez la notification push reçue sur votre mobile.
-          </p>
-          {apiError && (
-            <p className="mt-2 rounded-shape-sm bg-red-500/10 px-3 py-2 text-center a-body-sm text-red-600">
-              {apiError}
-            </p>
-          )}
         </section>
       )}
 

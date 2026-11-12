@@ -8,11 +8,10 @@ import Glyph from "@/components/Glyph";
 import ProductPlaceholder from "@/components/ProductPlaceholder";
 import { ProductReviews } from "@/components/ProductReviews";
 import { parseDeliveryZones, calculateDeliveryFee } from "@/lib/delivery";
-import ShopThemeSelector from "@/components/ShopThemeSelector";
 import ShopCurrencySelector from "@/components/ShopCurrencySelector";
 import ShopAiAssistant from "@/components/ShopAiAssistant";
 import ShopWhatsAppQrBanner from "@/components/ShopWhatsAppQrBanner";
-import { formatConvertedPrice, convertCurrency, formatCurrencyAmount } from "@/lib/currency";
+import { formatConvertedPrice } from "@/lib/currency";
 import { telHref, directUssdCode } from "@/lib/payments/ussd";
 import {
   trackVisit,
@@ -22,7 +21,16 @@ import {
   getSessionId,
 } from "@/lib/telemetry";
 
-export type PaymentMethod = "tmoney" | "flooz" | "online" | "wescrow" | "cash";
+export type PaymentMethod = "fedapay" | "tmoney" | "flooz" | "online" | "wescrow" | "cash";
+
+export type StorefrontCollection = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  productCount: number;
+  coverImageUrl?: string;
+};
 
 export type Product = {
   id: string;
@@ -33,6 +41,7 @@ export type Product = {
   sizes: string;
   stock: number;
   condition?: string;
+  collectionId?: string | null;
   createdAt?: string;
   wholesalePriceCents?: number | null;
   wholesaleMinQty?: number;
@@ -68,6 +77,8 @@ export default function CatalogClient({
   deliveryFeeCents = 0,
   deliveryZones = "",
   products,
+  collections = [],
+  initialCollectionId = null,
   directProductId = null,
   assistantConfig,
 }: {
@@ -84,6 +95,8 @@ export default function CatalogClient({
   deliveryFeeCents?: number;
   deliveryZones?: string;
   products: Product[];
+  collections?: StorefrontCollection[];
+  initialCollectionId?: string | null;
   directProductId?: string | null;
   assistantConfig?: {
     aiEnabled?: boolean;
@@ -101,7 +114,9 @@ export default function CatalogClient({
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [note, setNote] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("tmoney");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("fedapay");
+  const [launchingFeda, setLaunchingFeda] = useState(false);
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(initialCollectionId);
   const [copiedMomo, setCopiedMomo] = useState(false);
   const [copiedAmount, setCopiedAmount] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -148,6 +163,11 @@ export default function CatalogClient({
   const filteredProducts = useMemo(() => {
     let list = [...products];
 
+    // Collection filter
+    if (selectedCollectionId) {
+      list = list.filter((p) => p.collectionId === selectedCollectionId);
+    }
+
     // Search query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -177,7 +197,7 @@ export default function CatalogClient({
     }
 
     return list;
-  }, [products, searchQuery, stockFilter, sortBy]);
+  }, [products, selectedCollectionId, searchQuery, stockFilter, sortBy]);
 
   useEffect(() => {
     if (!directProductId) return;
@@ -217,6 +237,7 @@ export default function CatalogClient({
   }, [deliveryEnabled, fulfillment, deliveryFeeCents, deliveryZones, selectedZone, zonesList]);
 
   const grandTotal = total + deliveryFee;
+  const checkoutZone = selectedZone || zonesList[0]?.name || "";
 
   function addToCart(p: Product, size: string, qty: number) {
     trackCart(shopSlug, p.priceCents * qty);
@@ -283,7 +304,9 @@ export default function CatalogClient({
     setError("");
 
     const paymentLabel =
-      paymentMethod === "tmoney"
+      paymentMethod === "fedapay"
+        ? "FedaPay (T-Money, Flooz, Mobile Money & Carte)"
+        : paymentMethod === "tmoney"
         ? "USSD T-Money (*145#)"
         : paymentMethod === "flooz"
         ? "USSD Flooz (*155#)"
@@ -296,7 +319,7 @@ export default function CatalogClient({
     const fullNote = [
       `[PAIEMENT: ${paymentLabel}]`,
       deliveryEnabled && fulfillment === "delivery"
-        ? `[LIVRAISON - ${selectedZone || "Standard"}${deliveryAddress ? ` : ${deliveryAddress}` : ""}]`
+        ? `[LIVRAISON - ${checkoutZone || "Standard"}${deliveryAddress ? ` : ${deliveryAddress}` : ""}]`
         : deliveryEnabled
         ? "[RETRAIT EN BOUTIQUE]"
         : "",
@@ -315,6 +338,8 @@ export default function CatalogClient({
         customerEmail: customerEmail.trim() || undefined,
         note: fullNote,
         paymentMethod,
+        fulfillment: deliveryEnabled ? fulfillment : "pickup",
+        deliveryZone: fulfillment === "delivery" ? checkoutZone : "",
         sessionId: getSessionId(),
         items: cart.map((l) => ({ productId: l.productId, size: l.size, qty: l.qty })),
       }),
@@ -327,7 +352,7 @@ export default function CatalogClient({
     }
 
     if (paymentMethod === "tmoney" || paymentMethod === "flooz") {
-      trackPaymentIntent(shopSlug, data.orderId, paymentMethod, grandTotal);
+      trackPaymentIntent(shopSlug, data.orderId, paymentMethod, data.totalCents);
     }
 
     const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -335,9 +360,9 @@ export default function CatalogClient({
     const summary = `Bonjour ${shopName},\n\n` +
       `Je viens de valider ma commande (Réf : #${data.orderId.slice(0, 8)}).\n\n` +
       `📦 *Articles commandés :*\n${cart.map((l) => `• ${l.qty}× ${l.name}${l.size ? ` (${l.size})` : ""} — ${formatMoney(l.priceCents * l.qty, currency)}`).join("\n")}\n\n` +
-      `💰 *Sous-total :* ${formatMoney(total, currency)}\n` +
-      (deliveryFee > 0 ? `🛵 *Frais de livraison :* +${formatMoney(deliveryFee, currency)} (${selectedZone || "Standard"})\n` : "") +
-      `💳 *Total à régler :* ${formatMoney(grandTotal, currency)}\n` +
+      `💰 *Sous-total :* ${formatMoney(data.totalCents - data.deliveryFeeCents, currency)}\n` +
+      (data.deliveryFeeCents > 0 ? `🛵 *Frais de livraison :* +${formatMoney(data.deliveryFeeCents, currency)} (${checkoutZone || "Standard"})\n` : "") +
+      `💳 *Total à régler :* ${formatMoney(data.totalCents, currency)}\n` +
       `📍 *Récupération :* ${fulfillment === "delivery" ? `Livraison à domicile (${deliveryAddress || "Voir adresse"})` : "Retrait en boutique"}\n` +
       `📱 *Mode de paiement :* ${paymentLabel}\n` +
       `👤 *Client :* ${customerName}${customerPhone ? ` (${customerPhone})` : ""}\n` +
@@ -348,7 +373,7 @@ export default function CatalogClient({
       orderId: data.orderId,
       waLink: waMeLink(whatsappNumber, summary),
       paymentMethod,
-      totalCents: grandTotal,
+      totalCents: data.totalCents,
     });
     setStep("success");
     setCart([]);
@@ -391,6 +416,29 @@ export default function CatalogClient({
                 onCurrencyChange={setDisplayCurrency}
                 baseCurrency={currency}
               />
+              <button
+                type="button"
+                onClick={() => {
+                  if (cart.length > 0) {
+                    openCart();
+                  }
+                }}
+                className={`relative inline-flex items-center gap-2 rounded-shape-full px-3.5 py-2 text-xs font-bold transition shadow-xs ${
+                  itemCount > 0
+                    ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                    : "border border-arctic-300 bg-white text-arctic-700 hover:bg-arctic-100"
+                }`}
+                title="Ouvrir mon panier"
+              >
+                <span>🛒 Panier</span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${
+                    itemCount > 0 ? "bg-white text-emerald-800" : "bg-arctic-200 text-arctic-700"
+                  }`}
+                >
+                  {itemCount}
+                </span>
+              </button>
               <FollowButton shopSlug={shopSlug} shopName={shopName} />
               {hasWhatsApp && (
                 <a
@@ -519,20 +567,156 @@ export default function CatalogClient({
             onOpenShopAi={() => setAiOpenTrigger((n) => n + 1)}
           />
         )}
+
+        {/* Storefront Collections Showcase */}
+        {collections.length > 0 && (
+          <section className="mb-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-extrabold uppercase tracking-wider text-arctic-600 flex items-center gap-1.5">
+                <span>📁</span> Collections de la boutique
+              </h2>
+              {selectedCollectionId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCollectionId(null);
+                    setVisibleCount(PAGE_SIZE);
+                  }}
+                  className="text-xs font-semibold text-brand-dark hover:underline"
+                >
+                  Voir tout le catalogue ({products.length})
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-stretch gap-3 overflow-x-auto pb-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCollectionId(null);
+                  setVisibleCount(PAGE_SIZE);
+                }}
+                className={`group flex shrink-0 items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
+                  selectedCollectionId === null
+                    ? "border-brand bg-brand text-white shadow-md"
+                    : "border-arctic-300/60 bg-white text-arctic-800 hover:border-brand/50"
+                }`}
+              >
+                <div
+                  className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl text-base font-bold ${
+                    selectedCollectionId === null
+                      ? "bg-white/20 text-white"
+                      : "bg-arctic-100 text-arctic-700"
+                  }`}
+                >
+                  🛍️
+                </div>
+                <div>
+                  <div className="text-sm font-bold leading-tight">Tout le catalogue</div>
+                  <div
+                    className={`text-[11px] ${
+                      selectedCollectionId === null ? "text-white/80" : "text-arctic-500"
+                    }`}
+                  >
+                    {products.length} article{products.length > 1 ? "s" : ""}
+                  </div>
+                </div>
+              </button>
+
+              {collections.map((col) => {
+                const active = selectedCollectionId === col.id;
+                return (
+                  <button
+                    key={col.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCollectionId(active ? null : col.id);
+                      setVisibleCount(PAGE_SIZE);
+                    }}
+                    className={`group flex shrink-0 items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
+                      active
+                        ? "border-emerald-600 bg-gradient-to-r from-brand-dark to-emerald-700 text-white shadow-md"
+                        : "border-arctic-300/60 bg-white text-arctic-800 hover:border-emerald-500/60"
+                    }`}
+                  >
+                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-white/20 bg-arctic-100">
+                      {col.coverImageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={col.coverImageUrl}
+                          alt={col.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <ProductPlaceholder name={col.name} size="sm" />
+                      )}
+                    </div>
+                    <div className="max-w-[180px]">
+                      <div className="truncate text-sm font-bold leading-tight">{col.name}</div>
+                      <div
+                        className={`text-[11px] ${
+                          active ? "text-emerald-100" : "text-arctic-500"
+                        }`}
+                      >
+                        {col.productCount} produit{col.productCount > 1 ? "s" : ""}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Active Collection Banner */}
+            {selectedCollectionId && (() => {
+              const activeCol = collections.find((c) => c.id === selectedCollectionId);
+              if (!activeCol) return null;
+              return (
+                <div className="rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-emerald-700 p-4 text-white shadow-sm flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-200">
+                      📁 Collection sélectionnée
+                    </div>
+                    <h3 className="text-lg font-extrabold">{activeCol.name}</h3>
+                    {activeCol.description && (
+                      <p className="text-xs text-white/90 mt-0.5 max-w-xl">{activeCol.description}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={`/c/${shopSlug}/collection/${activeCol.slug}`}
+                      className="rounded-xl bg-white/15 hover:bg-white/25 px-3 py-1.5 text-xs font-semibold text-white transition"
+                    >
+                      Lien dédié de la collection ↗
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCollectionId(null)}
+                      className="rounded-xl bg-white text-brand-dark px-3 py-1.5 text-xs font-bold hover:bg-emerald-50 transition"
+                    >
+                      ✕ Tout afficher
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+          </section>
+        )}
+
         {/* Results summary if searching */}
-        {(searchQuery || stockFilter !== "all") && (
+        {(searchQuery || stockFilter !== "all" || selectedCollectionId) && (
           <div className="mb-4 flex items-center justify-between text-xs text-arctic-600">
             <span>
-              Showing <strong>{filteredProducts.length}</strong> matching product{filteredProducts.length === 1 ? "" : "s"}
+              Affichage de <strong>{filteredProducts.length}</strong> article{filteredProducts.length === 1 ? "" : "s"}
             </span>
             <button
               onClick={() => {
                 setSearchQuery("");
                 setStockFilter("all");
+                setSelectedCollectionId(null);
               }}
               className="text-arctic-800 underline hover:text-black"
             >
-              Reset filters
+              Réinitialiser les filtres
             </button>
           </div>
         )}
@@ -556,17 +740,23 @@ export default function CatalogClient({
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {displayedProducts.map((p) => (
-              <ProductCard
-                key={p.id}
-                p={p}
-                currency={currency}
-                displayCurrency={displayCurrency}
-                onAdd={addToCart}
-                onClickPreview={() => setSelectedProduct(p)}
-                waMeOrderLink={hasWhatsApp ? (size: string) => waMeLink(whatsappNumber, quickOrderText(p, size)) : null}
-              />
-            ))}
+            {displayedProducts.map((p) => {
+              const colName = p.collectionId
+                ? collections.find((c) => c.id === p.collectionId)?.name
+                : undefined;
+              return (
+                <ProductCard
+                  key={p.id}
+                  p={p}
+                  collectionName={colName}
+                  currency={currency}
+                  displayCurrency={displayCurrency}
+                  onAdd={addToCart}
+                  onClickPreview={() => setSelectedProduct(p)}
+                  waMeOrderLink={hasWhatsApp ? (size: string) => waMeLink(whatsappNumber, quickOrderText(p, size)) : null}
+                />
+              );
+            })}
           </div>
         )}
 
@@ -586,16 +776,23 @@ export default function CatalogClient({
 
       {/* Sticky Bottom Cart Bar */}
       {cart.length > 0 && !open && (
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-arctic-400/30 bg-white/95 px-4 py-3 shadow-elev-2 backdrop-blur">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-emerald-500/40 bg-white/95 px-4 py-3.5 shadow-2xl backdrop-blur">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
-            <div>
-              <div className="text-xs uppercase tracking-wide text-arctic-600">Your cart</div>
-              <div className="font-bold text-arctic-900">
-                {itemCount} item{itemCount === 1 ? "" : "s"} · {formatConvertedPrice(total, currency, displayCurrency).primary}
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-100 text-lg">
+                🛒
+              </span>
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-700">
+                  Votre panier ({itemCount} article{itemCount === 1 ? "" : "s"})
+                </div>
+                <div className="font-extrabold text-arctic-900 text-base">
+                  {formatConvertedPrice(total, currency, displayCurrency).primary}
+                </div>
               </div>
             </div>
-            <button onClick={openCart} className="btn-primary animate-pulse">
-              Review & checkout
+            <button onClick={openCart} className="btn-primary !bg-emerald-600 hover:!bg-emerald-700 px-5 py-2.5 text-sm font-bold shadow-lg">
+              Ouvrir le panier & Commander →
             </button>
           </div>
         </div>
@@ -603,7 +800,7 @@ export default function CatalogClient({
 
       {/* Product Detail Modal */}
       {selectedProduct && (
-        <div className="fixed inset-0 z-40 grid place-items-center bg-arctic-900/60 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-arctic-900/60 p-4 backdrop-blur-sm">
           <div className="relative w-full max-w-lg overflow-hidden rounded-shape-xl bg-white shadow-elev-3 dark:bg-arctic-900">
             <button
               onClick={() => setSelectedProduct(null)}
@@ -690,7 +887,7 @@ export default function CatalogClient({
 
       {/* Checkout Drawer / Modal */}
       {open && (
-        <div className="fixed inset-0 z-40 grid place-items-end bg-arctic-900/40 sm:place-items-center">
+        <div className="fixed inset-0 z-[60] grid place-items-end bg-arctic-900/50 sm:place-items-center p-0 sm:p-4">
           <div className="card w-full max-w-md overflow-hidden rounded-b-none sm:rounded-b-xl">
             {/* Progress Indicator */}
             <div className="border-b border-arctic-400/30 bg-arctic-100/50 px-5 py-3">
@@ -938,6 +1135,42 @@ export default function CatalogClient({
                   </div>
 
                   <div className="space-y-1.5 pt-1">
+                    {/* FedaPay Sandbox / Live — Recommandé */}
+                    <label
+                      className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
+                        paymentMethod === "fedapay"
+                          ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 ring-2 ring-emerald-500/30"
+                          : "border-arctic-200 dark:border-arctic-700 bg-white dark:bg-arctic-800 hover:bg-arctic-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="fedapay"
+                          checked={paymentMethod === "fedapay"}
+                          onChange={() => setPaymentMethod("fedapay")}
+                          className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-bold text-arctic-900 dark:text-white">
+                              💳 FedaPay (Mobile Money & Carte)
+                            </span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-600 text-white">
+                              Sandbox Actif
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-arctic-500">
+                            T-Money, Flooz Moov, MTN MoMo, Celtiis & Visa/Mastercard
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                        Recommandé
+                      </span>
+                    </label>
+
                     {/* USSD T-Money */}
                     <label
                       className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
@@ -1282,15 +1515,61 @@ export default function CatalogClient({
                     </div>
                   )}
 
+                  {/* Bouton Paiement direct FedaPay Sandbox */}
+                  <div className="rounded-xl border-2 border-emerald-500/80 bg-emerald-50/70 p-3.5 text-left space-y-2.5 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
+                        <span>💳</span> Règlement instantané FedaPay
+                      </span>
+                      <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                        Sandbox
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-arctic-700">
+                      Payez votre commande de <strong>{formatMoney(placedSummary.totalCents, currency)}</strong> maintenant par T-Money, Flooz, Mobile Money ou Carte et recevez votre reçu sur WhatsApp.
+                    </p>
+                    <button
+                      type="button"
+                      disabled={launchingFeda}
+                      onClick={async () => {
+                        setLaunchingFeda(true);
+                        try {
+                          const res = await fetch("/api/payments/checkout", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              orderId: placedSummary.orderId,
+                              provider: "fedapay",
+                              returnUrl: `${window.location.origin}/pay/${placedSummary.orderId}?paid=1`,
+                            }),
+                          });
+                          const d = await res.json().catch(() => ({}));
+                          if (res.ok && d.checkoutUrl) {
+                            window.location.href = d.checkoutUrl;
+                            return;
+                          }
+                          setLaunchingFeda(false);
+                        } catch {
+                          setLaunchingFeda(false);
+                        }
+                      }}
+                      className="btn-primary w-full justify-center gap-2 py-3 !bg-emerald-600 hover:!bg-emerald-700 !text-white text-sm font-bold shadow-md"
+                    >
+                      {launchingFeda
+                        ? "Ouverture de FedaPay Sandbox…"
+                        : `💳 Payer ${formatMoney(placedSummary.totalCents, currency)} avec FedaPay →`}
+                    </button>
+                  </div>
+
                   {/* Bouton Envoi WhatsApp de la commande */}
                   {hasWhatsApp && (
                     <a
                       href={placedSummary.waLink}
                       target="_blank"
                       rel="noreferrer"
-                      className="btn-primary w-full justify-center gap-2 py-3 !bg-emerald-600 hover:!bg-emerald-700 !text-white text-sm font-bold shadow-md shadow-emerald-600/20"
+                      className="btn-ghost w-full justify-center gap-2 py-2.5 border border-emerald-600 text-emerald-800 hover:bg-emerald-50 text-xs font-bold"
                     >
-                      <Glyph name="chat" size={18} /> Envoyer la commande sur WhatsApp 💬
+                      <Glyph name="chat" size={16} /> Confirmer aussi sur WhatsApp 💬
                     </a>
                   )}
 
@@ -1329,6 +1608,8 @@ export default function CatalogClient({
           welcomeMessage={assistantConfig?.welcomeMessage}
           whatsappPrefillMessage={assistantConfig?.whatsappPrefillMessage}
           externalOpenRequest={aiOpenTrigger}
+          cartBarVisible={cart.length > 0 && !open}
+          modalOpen={open || Boolean(selectedProduct)}
           onAddProductById={(productId) => {
             const prod = products.find((item) => item.id === productId);
             if (prod && prod.stock > 0) {
@@ -1362,6 +1643,7 @@ export default function CatalogClient({
 
 function ProductCard({
   p,
+  collectionName,
   currency,
   displayCurrency = "XOF",
   onAdd,
@@ -1369,6 +1651,7 @@ function ProductCard({
   waMeOrderLink,
 }: {
   p: Product;
+  collectionName?: string;
   currency: string;
   displayCurrency?: string;
   onAdd: (p: Product, size: string, qty: number) => void;
@@ -1405,6 +1688,11 @@ function ProductCard({
 
         {/* Badges */}
         <div className="absolute left-2 top-2 flex flex-col gap-1">
+          {collectionName && (
+            <span className="rounded-full bg-brand-dark/90 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-xs backdrop-blur-xs">
+              📁 {collectionName}
+            </span>
+          )}
           {isNew && (
             <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-bold text-white shadow-xs">
               Nouveau

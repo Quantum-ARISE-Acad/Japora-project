@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { getClientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
+import { getClientIp, rateLimit, tooManyRequests, envLimit } from "@/lib/ratelimit";
 import {
   getPaymentProvider,
   isValidProviderName,
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
   const rl = rateLimit({
     key: `payments.checkout:${ip}:${orderId}`,
-    limit: 10,
+    limit: envLimit("CHECKOUT_RATE_LIMIT", 10),
     windowMs: 60_000,
   });
   if (!rl.allowed) return tooManyRequests(rl);

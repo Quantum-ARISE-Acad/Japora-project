@@ -13,7 +13,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import { isValidPhone, normalizePhone } from "./otp";
-import { isCustomerVip, VIP_QUALIFYING_ORDER_COUNT } from "./customer-segments";
 export { isCustomerVip, VIP_QUALIFYING_ORDER_COUNT } from "./customer-segments";
 
 /** Subset of PrismaClient/Tx that exposes the calls we use. */
@@ -346,15 +345,20 @@ export async function listForVendor(
   const safeSize = Math.min(200, Math.max(1, pageSize));
   const term = (q || "").trim();
 
+  // PostgreSQL distingue les majuscules, SQLite non ; `mode` n'existe que sur PostgreSQL.
+  const caseInsensitive = process.env.DATABASE_URL?.startsWith("postgres")
+    ? { mode: "insensitive" as const }
+    : {};
+
   const where: Prisma.CustomerWhereInput = {
     vendorId,
     deletedAt: null,
     ...(term
       ? {
           OR: [
-            { name: { contains: term } },
-            { phone: { contains: term } },
-            { email: { contains: term } },
+            { name: { contains: term, ...caseInsensitive } },
+            { phone: { contains: term, ...caseInsensitive } },
+            { email: { contains: term, ...caseInsensitive } },
           ],
         }
 
