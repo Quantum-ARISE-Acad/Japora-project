@@ -1,0 +1,23 @@
+{
+  "_comment": "Exceptions temporaires au contrôle des dépendances (scripts/ci/audit.cjs). Chaque ligne doit avoir une raison et une date limite ; après cette date la CI échoue de nouveau.",
+  "advisories": [
+    {
+      "id": "GHSA-6g55-p6wh-862q",
+      "package": "postcss (copie intégrée à next)",
+      "reason": "Seul Next.js 16 corrige sa copie de PostCSS. PostCSS n'y traite que nos propres fichiers CSS au build, jamais des données de visiteurs. Migration vers Next.js 16 prévue après la foire.",
+      "expires": "2027-01-31"
+    },
+    {
+      "id": "GHSA-r28c-9q8g-f849",
+      "package": "postcss (copie intégrée à next)",
+      "reason": "Même cause que GHSA-6g55-p6wh-862q : corrigé seulement par Next.js 16 ; aucun CSS ni source map venant d'un visiteur.",
+      "expires": "2027-01-31"
+    },
+    {
+      "id": "GHSA-ggr8-5vv4-36mx",
+      "package": "deepmerge-ts (via prisma / @prisma/config)",
+      "reason": "Utilisé seulement par l'outil Prisma pour lire sa configuration (migrations), jamais avec des données de visiteurs. Corrigé par Prisma 7 (changement majeur), prévu après la foire.",
+      "expires": "2027-01-31"
+    }
+  ]
+}
