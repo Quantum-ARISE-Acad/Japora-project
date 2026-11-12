@@ -29,6 +29,7 @@
     "animejs": "^4.4.1",
     "bcryptjs": "^2.4.3",
     "jose": "^5.9.6",
+    "libphonenumber-js": "^1.13.16",
     "next": "^15.1.4",
     "qrcode": "^1.5.4",
     "react": "^19.0.0",

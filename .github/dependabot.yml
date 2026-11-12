@@ -1,13 +1,13 @@
-# Mises à jour automatiques proposées en pull request vers develop.
-# Les failles de sécurité sont proposées dès qu'elles sont connues ;
-# les autres mises à jour sont regroupées une fois par semaine pour limiter le bruit.
+# Mises à jour automatiques de Dependabot : DÉSACTIVÉES à la demande de l'équipe.
+# « open-pull-requests-limit: 0 » empêche Dependabot d'ouvrir des pull requests de
+# mise à jour. Pour les réactiver plus tard, remettre une valeur (par ex. 5).
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
     target-branch: develop
     schedule: { interval: weekly, day: monday }
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     groups:
       minor-and-patch:
         update-types: [minor, patch]
@@ -23,11 +23,14 @@ updates:
     directory: /
     target-branch: develop
     schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 0
   - package-ecosystem: docker
     directory: /
     target-branch: develop
     schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 0
   - package-ecosystem: docker
     directory: /deploy/backup
     target-branch: develop
     schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 0

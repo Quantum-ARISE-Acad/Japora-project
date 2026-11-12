@@ -1,90 +1,36 @@
 import { errorMessage } from "@/lib/errors";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { createSession } from "@/lib/session";
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)+/g, "");
-}
+import { resolveOrProvisionClerkVendor } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const {
-      clerkId,
-      email,
-      name = "",
-      shopName = "",
-      whatsappNumber = "",
-      currency = "XOF",
-      category = "",
-    } = body;
-
-    if (!email) {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    const clerkAuth = await auth();
+    if (!clerkAuth?.userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const cleanEmail = email.trim().toLowerCase();
-
-    // Japora is dedicated to vendors: always resolve or create a Vendor account
-    let vendor = null;
-    if (clerkId) {
-      vendor = await prisma.vendor.findFirst({
-        where: {
-          OR: [
-            { clerkId: clerkId },
-            { email: cleanEmail },
-          ],
-        },
-      });
-    } else {
-      vendor = await prisma.vendor.findUnique({
-        where: { email: cleanEmail },
-      });
+    const clerkUser = await currentUser();
+    if (!clerkUser || clerkUser.id !== clerkAuth.userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const body = await req.json().catch(() => ({}));
+    const hints = {
+      name: typeof body?.name === "string" ? body.name : "",
+      shopName: typeof body?.shopName === "string" ? body.shopName : "",
+      whatsappNumber: typeof body?.whatsappNumber === "string" ? body.whatsappNumber : "",
+      currency: typeof body?.currency === "string" ? body.currency : "",
+      category: typeof body?.category === "string" ? body.category : "",
+    };
+
+    const vendor = await resolveOrProvisionClerkVendor(clerkAuth.userId, clerkUser, hints);
     if (!vendor) {
-      // Create new seller / vendor
-      const baseName = shopName.trim() || name.trim() || cleanEmail.split("@")[0];
-      const baseSlug = slugify(baseName) || "shop";
-      
-      // Ensure slug uniqueness
-      let slug = baseSlug;
-      let counter = 1;
-      while (await prisma.vendor.findUnique({ where: { shopSlug: slug } })) {
-        slug = `${baseSlug}-${counter}`;
-        counter++;
-      }
-
-      const now = new Date();
-      const trialEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-      vendor = await prisma.vendor.create({
-        data: {
-          ...(clerkId ? { clerkId } : {}),
-          email: cleanEmail,
-          passwordHash: "clerk_managed_auth",
-          shopName: baseName,
-          shopSlug: slug,
-          whatsappNumber: String(whatsappNumber).replace(/[^0-9]/g, ""),
-          currency: currency || "XOF",
-          category: category || "",
-          subscriptionStatus: "trialing",
-          trialEndsAt: trialEnd,
-          emailVerifiedAt: now,
-        },
-      });
-    } else if (clerkId && !vendor.clerkId) {
-      // Link existing vendor with clerkId
-      vendor = await prisma.vendor.update({
-        where: { id: vendor.id },
-        data: { clerkId },
-      });
+      return NextResponse.json(
+        { error: "Unable to resolve a verified email or phone identity for this Clerk user." },
+        { status: 400 },
+      );
     }
 
     // Establish session cookie so dashboard and all existing APIs work seamlessly

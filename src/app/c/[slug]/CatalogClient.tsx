@@ -357,17 +357,27 @@ export default function CatalogClient({
 
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     const payUrl = `${origin}/pay/${data.orderId}`;
-    const summary = `Bonjour ${shopName},\n\n` +
-      `Je viens de valider ma commande (Réf : #${data.orderId.slice(0, 8)}).\n\n` +
-      `📦 *Articles commandés :*\n${cart.map((l) => `• ${l.qty}× ${l.name}${l.size ? ` (${l.size})` : ""} — ${formatMoney(l.priceCents * l.qty, currency)}`).join("\n")}\n\n` +
-      `💰 *Sous-total :* ${formatMoney(data.totalCents - data.deliveryFeeCents, currency)}\n` +
-      (data.deliveryFeeCents > 0 ? `🛵 *Frais de livraison :* +${formatMoney(data.deliveryFeeCents, currency)} (${checkoutZone || "Standard"})\n` : "") +
-      `💳 *Total à régler :* ${formatMoney(data.totalCents, currency)}\n` +
-      `📍 *Récupération :* ${fulfillment === "delivery" ? `Livraison à domicile (${deliveryAddress || "Voir adresse"})` : "Retrait en boutique"}\n` +
-      `📱 *Mode de paiement :* ${paymentLabel}\n` +
-      `👤 *Client :* ${customerName}${customerPhone ? ` (${customerPhone})` : ""}\n` +
-      (note ? `📝 *Note :* ${note}\n` : "") +
-      `\n🔗 *Lien suivi & paiement :*\n${payUrl}\n\nMerci de bien vouloir confirmer ma commande !`;
+    const itemsList = cart
+      .map((l) => `  - ${l.qty}x ${l.name}${l.size ? ` (${l.size})` : ""} : ${formatMoney(l.priceCents * l.qty, currency)}`)
+      .join("\n");
+
+    const summary =
+      `Bonjour ${shopName} !\n\n` +
+      `J'ai validé ma commande sur votre boutique Japora.\n` +
+      `Référence : #${data.orderId.slice(0, 8)}\n\n` +
+      `DÉTAILS DES ARTICLES :\n` +
+      `${itemsList}\n\n` +
+      `Sous-total : ${formatMoney(data.totalCents - data.deliveryFeeCents, currency)}\n` +
+      (data.deliveryFeeCents > 0 ? `Frais de livraison : +${formatMoney(data.deliveryFeeCents, currency)} (${checkoutZone || "Standard"})\n` : "") +
+      `Total à régler : ${formatMoney(data.totalCents, currency)}\n` +
+      `Mode de paiement : ${paymentLabel}\n` +
+      `Récupération : ${fulfillment === "delivery" ? `Livraison à domicile (${deliveryAddress || "Voir adresse"})` : "Retrait en boutique"}\n\n` +
+      `INFORMATIONS CLIENT :\n` +
+      `- Nom : ${customerName}\n` +
+      (customerPhone ? `- Téléphone : ${customerPhone}\n` : "") +
+      (note ? `- Note spéciale : ${note}\n` : "") +
+      `\nLien suivi & facture :\n${payUrl}\n\n` +
+      `Merci de bien vouloir me confirmer ma commande !`;
 
     setPlacedSummary({
       orderId: data.orderId,
