@@ -9,9 +9,13 @@ import NotifyFollowers from "./NotifyFollowers";
 import Glyph from "@/components/Glyph";
 import EmailVerificationBanner from "@/components/EmailVerificationBanner";
 import { emailMode } from "@/lib/email";
+import { cookies } from "next/headers";
 
 export default async function OverviewPage() {
   const vendor = await requireVendor();
+  const cookieStore = await cookies();
+  const locale = cookieStore.get("japora-lang")?.value === "en" ? "en" : "fr";
+  const t = (fr: string, en: string) => (locale === "fr" ? fr : en);
 
   const [productCount, lowStock, orders, receivablesOpenCents, customerCount, followerCount, hustle] =
     await Promise.all([
@@ -46,7 +50,7 @@ export default async function OverviewPage() {
     );
     const dayRev = dayOrders.reduce((acc, o) => acc + o.totalCents, 0);
     return {
-      date: d.toLocaleDateString("en-US", { weekday: "short" }),
+      date: d.toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", { weekday: "short" }),
       rev: dayRev,
     };
   });
@@ -83,12 +87,12 @@ export default async function OverviewPage() {
   ).length;
 
   const stats = [
-    { label: "New orders", value: count("NEW"), href: "/dashboard/orders" },
-    { label: "Open (unpaid)", value: openOrders, href: "/dashboard/orders" },
-    { label: "Revenue (paid)", value: formatMoney(revenue, vendor.currency), href: "/dashboard/orders" },
-    { label: "Receivables open", value: formatMoney(receivablesOpenCents, vendor.currency), href: "/dashboard/receivables" },
-    { label: "Customers", value: customerCount, href: "/dashboard/customers" },
-    { label: "Products", value: productCount, href: "/dashboard/products" },
+    { label: t("Nouvelles commandes", "New orders"), value: count("NEW"), href: "/dashboard/orders" },
+    { label: t("En cours (impayées)", "Open (unpaid)"), value: openOrders, href: "/dashboard/orders" },
+    { label: t("Chiffre d’affaires (encaissé)", "Revenue (paid)"), value: formatMoney(revenue, vendor.currency), href: "/dashboard/orders" },
+    { label: t("Créances en cours", "Receivables open"), value: formatMoney(receivablesOpenCents, vendor.currency), href: "/dashboard/receivables" },
+    { label: t("Clients", "Customers"), value: customerCount, href: "/dashboard/customers" },
+    { label: t("Produits", "Products"), value: productCount, href: "/dashboard/products" },
   ];
 
   const hustlePreviewLines = hustle.lines.slice(0, 3);
@@ -105,9 +109,9 @@ export default async function OverviewPage() {
 
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="a-headline-md text-arctic-900">Welcome back.</h1>
+          <h1 className="a-headline-md text-arctic-900">{t("Bon retour.", "Welcome back.")}</h1>
           <p className="a-body-md mt-1 text-arctic-600">
-            The state of {vendor.shopName}, right now.
+            {t("L’activité de", "The state of")} {vendor.shopName}, {t("en ce moment.", "right now.")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -117,7 +121,7 @@ export default async function OverviewPage() {
             rel="noreferrer"
             className="inline-flex items-center gap-2 rounded-shape-md bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-emerald-700"
           >
-            <Glyph name="chat" size={14} /> Partager sur WhatsApp Status
+            <Glyph name="chat" size={14} /> {t("Partager sur le statut WhatsApp", "Share on WhatsApp Status")}
           </a>
         </div>
       </header>
@@ -128,21 +132,26 @@ export default async function OverviewPage() {
           <div className="flex items-center gap-2 text-sm">
             <span className="text-base">⚠️</span>
             <span>
-              <strong>{unconfirmedOlderThan24h}</strong> commande{unconfirmedOlderThan24h > 1 ? "s non confirmées" : " non confirmée"} depuis plus de 24 heures.
+              <strong>{unconfirmedOlderThan24h}</strong>{" "}
+              {locale === "fr"
+                ? `commande${unconfirmedOlderThan24h > 1 ? "s non confirmées" : " non confirmée"} depuis plus de 24 heures.`
+                : `unconfirmed order${unconfirmedOlderThan24h > 1 ? "s" : ""} for over 24 hours.`}
             </span>
           </div>
           <Link href="/dashboard/orders" className="text-xs font-bold underline hover:no-underline">
-            Voir les commandes
+            {t("Voir les commandes", "View orders")}
           </Link>
         </div>
       )}
 
       {/* Shareable Link Bar */}
       <section className="glass glass-edge rounded-shape-lg p-6">
-        <h2 className="a-label-md text-arctic-700">Your shareable catalog link</h2>
+        <h2 className="a-label-md text-arctic-700">{t("Le lien de votre catalogue", "Your shareable catalog link")}</h2>
         <p className="a-body-md mb-3 mt-1 text-arctic-700">
-          Drop this in your WhatsApp status, bio, or groups. Customers browse and order —
-          orders land right here.
+          {t(
+            "Partagez ce lien dans votre statut WhatsApp, votre bio ou vos groupes. Vos clients découvrent vos produits et commandent ici.",
+            "Drop this in your WhatsApp status, bio, or groups. Customers browse and order — orders land right here.",
+          )}
         </p>
         <CopyableLink slug={vendor.shopSlug} />
       </section>
@@ -171,10 +180,10 @@ export default async function OverviewPage() {
       <section className="glass glass-edge rounded-shape-lg p-6">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <div>
-            <h2 className="a-label-md text-arctic-700">Revenus des 7 derniers jours</h2>
+            <h2 className="a-label-md text-arctic-700">{t("Revenus des 7 derniers jours", "Revenue over the last 7 days")}</h2>
             <div className="mt-1 flex items-baseline gap-2">
               <span className="text-xl font-bold text-arctic-900">
-                Aujourd&apos;hui : {formatMoney(todayRev, vendor.currency)}
+                {t("Aujourd’hui", "Today")}: {formatMoney(todayRev, vendor.currency)}
               </span>
               {growthPct !== 0 && (
                 <span
@@ -182,12 +191,12 @@ export default async function OverviewPage() {
                     growthPct > 0 ? "text-emerald-600" : "text-red-500"
                   }`}
                 >
-                  {growthPct > 0 ? `+${growthPct}%` : `${growthPct}%`} vs hier
+                  {growthPct > 0 ? `+${growthPct}%` : `${growthPct}%`} {t("vs hier", "vs yesterday")}
                 </span>
               )}
             </div>
           </div>
-          <span className="text-xs text-arctic-500">Commandes payées & livrées</span>
+          <span className="text-xs text-arctic-500">{t("Commandes payées et livrées", "Paid and delivered orders")}</span>
         </div>
 
         {/* CSS Bar Chart */}
@@ -219,9 +228,9 @@ export default async function OverviewPage() {
       {/* Hustle Preview */}
       <section className="glass glass-edge rounded-shape-lg p-6">
         <div className="flex items-center justify-between">
-          <h2 className="a-label-md text-arctic-700">Today&apos;s hustle preview</h2>
+          <h2 className="a-label-md text-arctic-700">{t("Aperçu du bilan du jour", "Today’s hustle preview")}</h2>
           <span className="a-label-md inline-flex items-center gap-1.5 rounded-shape-full border border-arctic-400/45 bg-white/65 px-2 py-0.5 text-arctic-700 backdrop-blur-glass-thin">
-            <Glyph name="moon" size={13} className="text-brand-dark" /> Sent at 6 PM
+            <Glyph name="moon" size={13} className="text-brand-dark" /> {t("Envoyé à 18 h", "Sent at 6 PM")}
           </span>
         </div>
         <pre className="mt-3 whitespace-pre-wrap rounded-shape-md border border-arctic-400/30 bg-arctic-200/35 p-4 a-body-sm text-arctic-800 backdrop-blur-glass-thin">
@@ -237,8 +246,8 @@ export default async function OverviewPage() {
           className="glass glass-edge a-hover-lift flex items-center justify-between rounded-shape-lg p-5"
         >
           <div>
-            <div className="a-title-md text-arctic-900">Add a product</div>
-            <div className="a-body-sm text-arctic-600">Photo, price, sizes, stock, condition.</div>
+            <div className="a-title-md text-arctic-900">{t("Ajouter un produit", "Add a product")}</div>
+            <div className="a-body-sm text-arctic-600">{t("Photo, prix, tailles, stock, état.", "Photo, price, sizes, stock, condition.")}</div>
           </div>
           <Glyph name="box" size={26} className="text-brand-dark" />
         </Link>
@@ -247,8 +256,8 @@ export default async function OverviewPage() {
           className="glass glass-edge a-hover-lift flex items-center justify-between rounded-shape-lg p-5"
         >
           <div>
-            <div className="a-title-md text-arctic-900">Manage orders</div>
-            <div className="a-body-sm text-arctic-600">Move them New → Paid → Delivered.</div>
+            <div className="a-title-md text-arctic-900">{t("Gérer les commandes", "Manage orders")}</div>
+            <div className="a-body-sm text-arctic-600">{t("Faites-les passer de Nouvelle → Payée → Livrée.", "Move them New → Paid → Delivered.")}</div>
           </div>
           <Glyph name="receipt" size={26} className="text-brand-dark" />
         </Link>
@@ -258,9 +267,11 @@ export default async function OverviewPage() {
         <div className="inline-flex w-full items-center gap-2 rounded-shape-md border border-amber-300/60 bg-amber-50/85 px-4 py-3 a-body-md text-amber-900 backdrop-blur-glass-thin">
           <Glyph name="alert" size={17} className="shrink-0 text-amber-700" />
           <span>
-          {lowStock} product{lowStock > 1 ? "s are" : " is"} low on stock (3 or fewer).{" "}
+          {locale === "fr"
+            ? `${lowStock} produit${lowStock > 1 ? "s sont" : " est"} en stock faible (3 ou moins). `
+            : `${lowStock} product${lowStock > 1 ? "s are" : " is"} low on stock (3 or fewer). `}
           <Link href="/dashboard/products" className="font-semibold underline hover:no-underline">
-            Restock
+            {t("Réapprovisionner", "Restock")}
           </Link>
           </span>
         </div>
