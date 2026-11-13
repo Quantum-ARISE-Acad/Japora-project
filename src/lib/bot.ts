@@ -544,7 +544,78 @@ function formatOrderTimeline(status: string, isDeal: boolean): string {
   return `${s1}\n${s2}\n${s3}\n${s4}`;
 }
 
-async function trackCustomerOrders(
+export async function findTrackedOrdersForVendor(
+  vendorId: string,
+  opts: { orderRef?: string; phone?: string; limit?: number },
+) {
+  if (!vendorId || typeof vendorId !== "string") {
+    return [];
+  }
+
+  const cleanNeedle = (opts.orderRef || "").replace(/^#/, "").trim().toLowerCase();
+  const cleanDigits = digitsOnly(opts.phone || "");
+  const hasValidRef = cleanNeedle.length >= 3;
+  const hasValidPhone = cleanDigits.length >= 6;
+
+  // An empty tracking query must never return arbitrary recent orders.
+  if (!hasValidRef && !hasValidPhone) {
+    return [];
+  }
+
+  // Strictly enforce tenant ownership boundary: only orders belonging to `vendorId`
+  const recentOrders = await prisma.order.findMany({
+    where: {
+      vendorId,
+      deletedAt: null,
+    },
+    include: { items: true },
+    orderBy: { createdAt: "desc" },
+    take: 200,
+  });
+
+  const phoneTail = cleanDigits.length >= 8 ? cleanDigits.slice(-8) : cleanDigits;
+
+  const matches = recentOrders.filter((o) => {
+    if (o.vendorId !== vendorId) return false;
+
+    const idLower = o.id.toLowerCase();
+    if (hasValidRef) {
+      const refEnd = idLower.slice(-6);
+      const refStart = idLower.slice(0, 8);
+      if (
+        idLower === cleanNeedle ||
+        refEnd === cleanNeedle ||
+        refStart === cleanNeedle ||
+        idLower.endsWith(cleanNeedle) ||
+        idLower.startsWith(cleanNeedle) ||
+        idLower.includes(cleanNeedle)
+      ) {
+        return true;
+      }
+      if (!hasValidPhone || opts.orderRef !== opts.phone) {
+        return false;
+      }
+    }
+
+    if (hasValidPhone && o.customerPhone) {
+      const orderDigits = digitsOnly(o.customerPhone);
+      if (
+        orderDigits === cleanDigits ||
+        (phoneTail.length >= 8 && orderDigits.endsWith(phoneTail)) ||
+        (orderDigits.length >= 8 && cleanDigits.endsWith(orderDigits.slice(-8))) ||
+        orderDigits.includes(cleanDigits)
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  });
+
+  return matches.slice(0, opts.limit ?? 5);
+}
+
+export async function trackCustomerOrders(
   vendorId: string,
   fromPhone: string,
   shopName: string,
@@ -558,53 +629,11 @@ async function trackCustomerOrders(
     "http://localhost:5174"
   ).replace(/\/$/, "");
 
-  const phoneTail = cleanPhone.length >= 8 ? cleanPhone.slice(-8) : cleanPhone;
-
-  // Fetch recent orders and match by orderRef or customerPhone
-  const allRecent = await prisma.order.findMany({
-    where: { deletedAt: null },
-    include: { items: true },
-    orderBy: { createdAt: "desc" },
-    take: 150,
+  const orders = await findTrackedOrdersForVendor(vendorId, {
+    orderRef,
+    phone: cleanPhone,
+    limit: 5,
   });
-
-  const cleanNeedle = (orderRef || "").replace(/^#/, "").trim().toLowerCase();
-
-  let orders = allRecent.filter((o) => {
-    const idLower = o.id.toLowerCase();
-    if (cleanNeedle) {
-      return (
-        idLower === cleanNeedle ||
-        idLower.endsWith(cleanNeedle) ||
-        idLower.startsWith(cleanNeedle) ||
-        idLower.slice(-6) === cleanNeedle ||
-        idLower.slice(0, 8) === cleanNeedle
-      );
-    }
-    if (phoneTail) {
-      const oDigits = digitsOnly(o.customerPhone || "");
-      return (
-        oDigits === cleanPhone ||
-        (phoneTail.length >= 8 && oDigits.endsWith(phoneTail))
-      );
-    }
-    return o.vendorId === vendorId;
-  });
-
-  // Ensure any matched WhatsApp order from this customer is synced to the active vendor's dashboard
-  for (const ord of orders) {
-    if (
-      ord.vendorId !== vendorId &&
-      (ord.source === "whatsapp" || ord.source === "whatsapp_deal")
-    ) {
-      await prisma.order
-        .update({ where: { id: ord.id }, data: { vendorId } })
-        .catch(() => {});
-      ord.vendorId = vendorId;
-    }
-  }
-
-  orders = orders.slice(0, 5);
 
   if (orders.length === 0) {
     return {
@@ -1088,7 +1117,7 @@ export async function respondTo(
   if (/^CANCEL:/i.test(raw)) {
     const orderId = raw.slice(raw.indexOf(":") + 1).trim();
     const order = await prisma.order.findFirst({
-      where: { id: orderId, deletedAt: null },
+      where: { id: orderId, vendorId, deletedAt: null },
       include: { items: true },
     });
     if (!order) {

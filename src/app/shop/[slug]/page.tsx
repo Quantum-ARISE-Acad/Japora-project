@@ -18,6 +18,7 @@ import ShopWhatsAppQrBanner from "@/components/ShopWhatsAppQrBanner";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 import { SaasIcon, CategoryIcon } from "@/components/ui/SaasIcons";
+import { getPublicLocale, publicText } from "@/lib/public-locale";
 
 export const revalidate = 300;
 
@@ -38,6 +39,8 @@ export default async function PublicShopPage({ params }: Params) {
   const shop = await getShop(slug);
   if (!shop) notFound();
 
+  const locale = await getPublicLocale();
+  const t = (fr: string, en: string) => publicText(fr, en, locale);
   const region = findRegion(shop.region);
   const category = findCategory(shop.category);
   const initial = shop.shopName.charAt(0).toUpperCase() || "S";
@@ -54,7 +57,7 @@ export default async function PublicShopPage({ params }: Params) {
         {/* Breadcrumb */}
         <nav className="flex flex-wrap items-center gap-2 text-xs text-arctic-600">
           <Link href="/marketplace" className="font-semibold hover:text-arctic-900">
-            ← Retour au Marketplace
+            ← {t("Retour au Marketplace", "Back to Marketplace")}
           </Link>
           {region && (
             <>
@@ -93,7 +96,7 @@ export default async function PublicShopPage({ params }: Params) {
           >
             <div className="absolute right-4 top-4 flex items-center gap-2 rounded-full border border-white/25 bg-black/25 px-3 py-1 text-[11px] font-bold text-white backdrop-blur-md">
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Vitrine Officielle Japora</span>
+              <span>{t("Vitrine officielle Japora", "Official Japora storefront")}</span>
             </div>
           </div>
 
@@ -161,7 +164,7 @@ export default async function PublicShopPage({ params }: Params) {
                 </p>
               ) : (
                 <p className="a-body-sm mt-4 italic text-arctic-500">
-                  Bienvenue sur la boutique officielle {shop.shopName}. Parcourez le catalogue en ligne et commandez directement sur WhatsApp.
+                  {t(`Bienvenue sur la boutique officielle ${shop.shopName}. Parcourez le catalogue en ligne et commandez directement sur WhatsApp.`, `Welcome to ${shop.shopName}'s official shop. Browse the online catalog and order directly on WhatsApp.`)}
                 </p>
               )}
 
@@ -172,7 +175,7 @@ export default async function PublicShopPage({ params }: Params) {
                   className="a-btn a-btn--cafe a-btn--lg flex-1 gap-2 font-bold shadow-elev-1"
                 >
                   <SaasIcon name="catalog" size={16} />
-                  <span>Ouvrir le catalogue complet</span>
+                  <span>{t("Ouvrir le catalogue complet", "Open full catalog")}</span>
                   <SaasIcon name="arrow-right" size={15} />
                 </Link>
                 <Link
@@ -180,7 +183,7 @@ export default async function PublicShopPage({ params }: Params) {
                   className="btn-ghost a-btn--lg flex-1 gap-1.5 border border-emerald-500/40 text-emerald-800"
                 >
                   <SaasIcon name="sparkles" size={16} />
-                  <span>Poser une question à l&apos;IA</span>
+                  <span>{t("Poser une question à l’IA", "Ask the AI a question")}</span>
                 </Link>
                 {waLink ? (
                   <a
@@ -189,11 +192,11 @@ export default async function PublicShopPage({ params }: Params) {
                     rel="noopener noreferrer"
                     className="btn-ghost a-btn--lg flex-1 gap-1.5"
                   >
-                    <Glyph name="chat" size={17} /> Discuter sur WhatsApp
+                    <Glyph name="chat" size={17} /> {t("Discuter sur WhatsApp", "Chat on WhatsApp")}
                   </a>
                 ) : (
                   <span className="btn a-btn--lg flex-1 cursor-not-allowed border border-arctic-400/45 bg-white/40 text-arctic-500">
-                    WhatsApp non configuré
+                    {t("WhatsApp non configuré", "WhatsApp not configured")}
                   </span>
                 )}
               </div>
@@ -206,16 +209,16 @@ export default async function PublicShopPage({ params }: Params) {
           <section className="glass glass-edge rounded-shape-xl p-6 sm:p-8">
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <div className="a-eyebrow">Aperçu des articles</div>
+                <div className="a-eyebrow">{t("Aperçu des articles", "Product preview")}</div>
                 <h2 className="a-title-lg font-display text-arctic-900">
-                  Articles en vedette chez {shop.shopName}
+                  {t(`Articles en vedette chez ${shop.shopName}`, `Featured products at ${shop.shopName}`)}
                 </h2>
               </div>
               <Link
                 href={`/c/${shop.shopSlug}`}
                 className="inline-flex items-center gap-1 text-xs font-bold text-brand-dark hover:underline"
               >
-                <span>Tout voir dans le catalogue</span>
+                <span>{t("Tout voir dans le catalogue", "View full catalog")}</span>
                 <SaasIcon name="arrow-right" size={13} />
               </Link>
             </div>

@@ -7,6 +7,7 @@ import { compressImage } from "@/lib/client-image";
 import AssetDownloads from "./AssetDownloads";
 import { AuroraIsoscout } from "@/components/aurora";
 import ProductPlaceholder from "@/components/ProductPlaceholder";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 type Product = {
   id: string;
@@ -63,6 +64,7 @@ export default function ProductsClient({
   shopSlug: string;
 }) {
   const router = useRouter();
+  const { tr } = usePublicLang();
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -121,10 +123,13 @@ export default function ProductsClient({
     const data = await res.json().catch(() => ({}));
     setImporting(false);
     if (!res.ok) {
-      setImportMsg(data.error || "Couldn't reach WhatsApp Business. Connect it first.");
+      setImportMsg(data.error || tr("Impossible de joindre WhatsApp Business. Connectez-le d’abord.", "Couldn't reach WhatsApp Business. Connect it first."));
       return;
     }
-    setImportMsg(`Imported ${data.count} product${data.count === 1 ? "" : "s"} (${data.skipped} skipped).`);
+    setImportMsg(tr(
+      `${data.count} produit${data.count === 1 ? "" : "s"} importé${data.count === 1 ? "" : "s"} (${data.skipped} ignoré${data.skipped === 1 ? "" : "s"}).`,
+      `Imported ${data.count} product${data.count === 1 ? "" : "s"} (${data.skipped} skipped).`,
+    ));
     if (data.count > 0) await reload();
   }
 
@@ -163,7 +168,7 @@ export default function ProductsClient({
 
   function duplicateProduct(p: Product) {
     setForm({
-      name: `${p.name} (copie)`,
+      name: `${p.name} (${tr("copie", "copy")})`,
       price: (p.priceCents / 100).toString(),
       description: p.description,
       sizes: p.sizes,
@@ -212,7 +217,7 @@ export default function ProductsClient({
     const data = await res.json().catch(() => ({}));
     setUploading(false);
     if (!res.ok) {
-      setError(data.error || "Upload failed");
+      setError(data.error || tr("Échec du téléversement.", "Upload failed"));
       return;
     }
     setForm((f) => ({ ...f, imageUrl: data.url }));
@@ -246,7 +251,7 @@ export default function ProductsClient({
     const data = await res.json().catch(() => ({}));
     setSaving(false);
     if (!res.ok) {
-      setError(data.error || "Could not save product.");
+      setError(data.error || tr("Impossible d’enregistrer le produit.", "Could not save product."));
       return;
     }
     setOpen(false);
@@ -267,7 +272,7 @@ export default function ProductsClient({
   }
 
   async function remove(p: Product) {
-    if (!confirm(`Delete "${p.name}"?`)) return;
+    if (!confirm(tr(`Supprimer « ${p.name} » ?`, `Delete "${p.name}"?`))) return;
     const res = await fetch(`/api/products/${p.id}`, { method: "DELETE" });
     if (res.ok) {
       setProducts((all) => all.filter((item) => item.id !== p.id));
@@ -279,9 +284,9 @@ export default function ProductsClient({
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="a-headline-md text-arctic-900">Products</h1>
+          <h1 className="a-headline-md text-arctic-900">{tr("Produits", "Products")}</h1>
           <p className="text-sm text-arctic-600">
-            {products.length} product{products.length === 1 ? "" : "s"} in your catalog.
+            {products.length} {tr(products.length === 1 ? "produit dans votre catalogue." : "produits dans votre catalogue.", products.length === 1 ? "product in your catalog." : "products in your catalog.")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -289,12 +294,12 @@ export default function ProductsClient({
             onClick={importFromWhatsApp}
             disabled={importing}
             className="btn-ghost text-xs font-semibold"
-            title="Import all products from your Meta WhatsApp Cloud catalog"
+            title={tr("Importer les produits du catalogue Meta WhatsApp Cloud", "Import products from your Meta WhatsApp Cloud catalog")}
           >
-            {importing ? "Importing…" : "⬇ Import from WhatsApp"}
+            {importing ? tr("Importation…", "Importing…") : `⬇ ${tr("Importer depuis WhatsApp", "Import from WhatsApp")}`}
           </button>
           <button onClick={openAdd} className="btn-primary">
-            + Add product
+            + {tr("Ajouter un produit", "Add product")}
           </button>
         </div>
       </div>
@@ -310,7 +315,7 @@ export default function ProductsClient({
         <div className="flex flex-1 flex-wrap items-center gap-2">
           <input
             className="input min-w-[200px] flex-1 text-sm"
-            placeholder="Rechercher par nom, description..."
+            placeholder={tr("Rechercher par nom ou description…", "Search by name or description…")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -320,10 +325,10 @@ export default function ProductsClient({
             onChange={(e) => setStockFilter(e.target.value as typeof stockFilter)}
             className="input !w-auto text-xs font-medium"
           >
-            <option value="all">Tous les stocks ({products.length})</option>
-            <option value="in_stock">En stock</option>
-            <option value="low_stock">Stock faible (≤ 3)</option>
-            <option value="out_of_stock">Épuisé (0)</option>
+            <option value="all">{tr("Tous les stocks", "All stock levels")} ({products.length})</option>
+            <option value="in_stock">{tr("En stock", "In stock")}</option>
+            <option value="low_stock">{tr("Stock faible (≤ 3)", "Low stock (≤ 3)")}</option>
+            <option value="out_of_stock">{tr("Épuisé (0)", "Out of stock (0)")}</option>
           </select>
 
           <select
@@ -331,10 +336,10 @@ export default function ProductsClient({
             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
             className="input !w-auto text-xs font-medium"
           >
-            <option value="default">Tri : Date (récent)</option>
-            <option value="stock_asc">Stock (restock d&apos;abord)</option>
-            <option value="price_asc">Prix croissant</option>
-            <option value="price_desc">Prix décroissant</option>
+            <option value="default">{tr("Tri : date (récent)", "Sort: date (newest)")}</option>
+            <option value="stock_asc">{tr("Stock (à réapprovisionner d’abord)", "Stock (restock first)")}</option>
+            <option value="price_asc">{tr("Prix croissant", "Price: low to high")}</option>
+            <option value="price_desc">{tr("Prix décroissant", "Price: high to low")}</option>
           </select>
         </div>
 
@@ -346,9 +351,9 @@ export default function ProductsClient({
             className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
               viewMode === "grid" ? "bg-arctic-800 text-white" : "text-arctic-600 hover:text-arctic-900"
             }`}
-            title="Vue Grille"
+            title={tr("Vue en grille", "Grid view")}
           >
-            Grille
+            {tr("Grille", "Grid")}
           </button>
           <button
             type="button"
@@ -356,9 +361,9 @@ export default function ProductsClient({
             className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
               viewMode === "list" ? "bg-arctic-800 text-white" : "text-arctic-600 hover:text-arctic-900"
             }`}
-            title="Vue Liste"
+            title={tr("Vue en liste", "List view")}
           >
-            Liste
+            {tr("Liste", "List")}
           </button>
         </div>
       </div>
@@ -367,18 +372,21 @@ export default function ProductsClient({
         <div className="glass glass-edge rounded-shape-lg p-6">
           <AuroraIsoscout
             variant="products"
-            title="Your shelf is empty"
-            body="Add your first item — photo, price, stock — and your catalog link starts working. Customers see it in seconds, the bot answers price questions automatically."
+            title={tr("Votre catalogue est vide", "Your shelf is empty")}
+            body={tr(
+              "Ajoutez votre premier produit — photo, prix, stock — pour activer votre catalogue. Vos clients le verront immédiatement et le bot répondra automatiquement aux questions sur les prix.",
+              "Add your first item — photo, price, stock — and your catalog link starts working. Customers see it in seconds, the bot answers price questions automatically.",
+            )}
             action={
               <button onClick={openAdd} className="btn-primary">
-                + Add product
+                + {tr("Ajouter un produit", "Add product")}
               </button>
             }
           />
         </div>
       ) : filteredProducts.length === 0 ? (
         <div className="card p-12 text-center text-arctic-600">
-          <p className="text-sm">Aucun produit ne correspond à vos filtres.</p>
+          <p className="text-sm">{tr("Aucun produit ne correspond à vos filtres.", "No products match your filters.")}</p>
           <button
             onClick={() => {
               setSearchQuery("");
@@ -386,7 +394,7 @@ export default function ProductsClient({
             }}
             className="btn-ghost mt-2 text-xs"
           >
-            Réinitialiser les filtres
+            {tr("Réinitialiser les filtres", "Reset filters")}
           </button>
         </div>
       ) : viewMode === "grid" ? (
@@ -407,7 +415,7 @@ export default function ProductsClient({
                   <div className="absolute left-2 top-2 flex flex-col gap-1">
                     {!p.isActive && (
                       <span className="rounded bg-arctic-900/80 px-2 py-0.5 text-xs font-semibold text-white">
-                        Hidden
+                        {tr("Masqué", "Hidden")}
                       </span>
                     )}
                     {p.condition && p.condition !== "new" && (
@@ -427,7 +435,7 @@ export default function ProductsClient({
                           : "bg-white/90 text-arctic-800")
                     }
                   >
-                    {p.stock === 0 ? "Out of stock" : `${p.stock} in stock`}
+                    {p.stock === 0 ? tr("Épuisé", "Out of stock") : `${p.stock} ${tr("en stock", "in stock")}`}
                   </span>
                 </div>
 
@@ -441,13 +449,13 @@ export default function ProductsClient({
 
                   {/* Quick Stock Adjuster */}
                   <div className="flex items-center justify-between rounded-lg border border-arctic-300/40 bg-arctic-100/40 px-2 py-1 text-xs">
-                    <span className="text-arctic-600">Stock :</span>
+                    <span className="text-arctic-600">{tr("Stock :", "Stock:")}</span>
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={() => quickAdjustStock(p, -1)}
                         className="grid h-6 w-6 place-items-center rounded bg-white font-bold shadow-xs hover:bg-arctic-200"
-                        title="Diminuer le stock"
+                        title={tr("Diminuer le stock", "Decrease stock")}
                       >
                         -
                       </button>
@@ -456,7 +464,7 @@ export default function ProductsClient({
                         type="button"
                         onClick={() => quickAdjustStock(p, 1)}
                         className="grid h-6 w-6 place-items-center rounded bg-white font-bold shadow-xs hover:bg-arctic-200"
-                        title="Augmenter le stock"
+                        title={tr("Augmenter le stock", "Increase stock")}
                       >
                         +
                       </button>
@@ -475,21 +483,21 @@ export default function ProductsClient({
 
                   <div className="mt-auto flex flex-wrap gap-1.5 pt-2">
                     <button onClick={() => openEdit(p)} className="btn-ghost flex-1 !py-1 text-xs">
-                      Edit
+                      {tr("Modifier", "Edit")}
                     </button>
                     <button
                       onClick={() => duplicateProduct(p)}
                       className="btn-ghost !py-1 text-xs"
-                      title="Dupliquer ce produit"
+                      title={tr("Dupliquer ce produit", "Duplicate this product")}
                     >
-                      Copier
+                      {tr("Copier", "Copy")}
                     </button>
                     <button
                       onClick={() => toggleActive(p)}
                       className="btn-ghost !py-1 text-xs"
-                      title={p.isActive ? "Masquer" : "Afficher"}
+                      title={p.isActive ? tr("Masquer", "Hide") : tr("Afficher", "Show")}
                     >
-                      {p.isActive ? "Hide" : "Show"}
+                      {p.isActive ? tr("Masquer", "Hide") : tr("Afficher", "Show")}
                     </button>
                     <button onClick={() => remove(p)} className="btn-danger !py-1 text-xs">
                       ✕
@@ -526,16 +534,16 @@ export default function ProductsClient({
                     <span className="font-semibold text-arctic-900 truncate">{p.name}</span>
                     {p.condition && p.condition !== "new" && (
                       <span className="rounded bg-arctic-200 px-1.5 py-0.2 text-[10px] font-semibold text-arctic-700">
-                        {p.condition === "used" ? "Occasion" : "Reconditionné"}
+                        {p.condition === "used" ? tr("Occasion", "Used") : tr("Reconditionné", "Refurbished")}
                       </span>
                     )}
                     {!p.isActive && (
                       <span className="rounded bg-arctic-300 px-1.5 py-0.2 text-[10px] text-arctic-600">
-                        Masqué
+                        {tr("Masqué", "Hidden")}
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-arctic-500 truncate">{p.description || "Sans description"}</div>
+                  <div className="text-xs text-arctic-500 truncate">{p.description || tr("Sans description", "No description")}</div>
                 </div>
               </div>
 
@@ -566,16 +574,16 @@ export default function ProductsClient({
                 {/* Actions */}
                 <div className="flex items-center gap-1">
                   <button onClick={() => openEdit(p)} className="btn-ghost !py-1 text-xs">
-                    Modifier
+                    {tr("Modifier", "Edit")}
                   </button>
-                  <button onClick={() => duplicateProduct(p)} className="btn-ghost !py-1 text-xs" title="Dupliquer">
-                    Copier
+                  <button onClick={() => duplicateProduct(p)} className="btn-ghost !py-1 text-xs" title={tr("Dupliquer", "Duplicate")}>
+                    {tr("Copier", "Copy")}
                   </button>
                   <button onClick={() => toggleActive(p)} className="btn-ghost !py-1 text-xs">
-                    {p.isActive ? "Masquer" : "Afficher"}
+                    {p.isActive ? tr("Masquer", "Hide") : tr("Afficher", "Show")}
                   </button>
                   <button onClick={() => remove(p)} className="btn-danger !py-1 text-xs">
-                    Supprimer
+                    {tr("Supprimer", "Delete")}
                   </button>
                 </div>
               </div>
@@ -590,7 +598,7 @@ export default function ProductsClient({
           <div className="card w-full max-w-lg overflow-hidden">
             <div className="flex items-center justify-between border-b border-arctic-400/30 px-5 py-3">
               <h2 className="font-bold text-arctic-900">
-                {editingId ? "Edit product" : "Add product"}
+                {editingId ? tr("Modifier le produit", "Edit product") : tr("Ajouter un produit", "Add product")}
               </h2>
               <button onClick={() => setOpen(false)} className="text-arctic-500 hover:text-arctic-800">
                 ✕
@@ -607,19 +615,19 @@ export default function ProductsClient({
                   )}
                 </div>
                 <div className="flex-1">
-                  <label className="label">Product photo</label>
+                  <label className="label">{tr("Photo du produit", "Product photo")}</label>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={onFile}
                     className="block w-full text-sm text-arctic-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand/10 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-brand-dark hover:file:bg-brand/20"
                   />
-                  {uploading && <p className="mt-1 text-xs text-arctic-600">Uploading…</p>}
+                  {uploading && <p className="mt-1 text-xs text-arctic-600">{tr("Téléversement…", "Uploading…")}</p>}
                 </div>
               </div>
 
               <div>
-                <label className="label">Name</label>
+                <label className="label">{tr("Nom", "Name")}</label>
                 <input
                   className="input"
                   value={form.name}
@@ -630,7 +638,7 @@ export default function ProductsClient({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="label">Price ({currency})</label>
+                  <label className="label">{tr("Prix", "Price")} ({currency})</label>
                   <input
                     className="input"
                     inputMode="decimal"
@@ -641,7 +649,7 @@ export default function ProductsClient({
                   />
                 </div>
                 <div>
-                  <label className="label">Stock count</label>
+                  <label className="label">{tr("Quantité en stock", "Stock count")}</label>
                   <input
                     className="input"
                     inputMode="numeric"
@@ -653,26 +661,26 @@ export default function ProductsClient({
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="label">État du produit (Condition)</label>
+                  <label className="label">{tr("État du produit", "Product condition")}</label>
                   <select
                     className="input"
                     value={form.condition}
                     onChange={(e) => setForm({ ...form, condition: e.target.value })}
                   >
-                    <option value="new">Neuf (New)</option>
-                    <option value="used">Occasion (Used)</option>
-                    <option value="refurbished">Reconditionné (Refurbished)</option>
+                    <option value="new">{tr("Neuf", "New")}</option>
+                    <option value="used">{tr("Occasion", "Used")}</option>
+                    <option value="refurbished">{tr("Reconditionné", "Refurbished")}</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="label">Collection (optionnelle)</label>
+                  <label className="label">{tr("Collection (facultative)", "Collection (optional)")}</label>
                   <select
                     className="input"
                     value={form.collectionId}
                     onChange={(e) => setForm({ ...form, collectionId: e.target.value })}
                   >
-                    <option value="">— Aucune collection —</option>
+                    <option value="">— {tr("Aucune collection", "No collection")} —</option>
                     {collections.map((c) => (
                       <option key={c.id} value={c.id}>
                         📁 {c.name}
@@ -683,7 +691,7 @@ export default function ProductsClient({
               </div>
 
               <div>
-                <label className="label">Sizes / variants (comma-separated, optional)</label>
+                <label className="label">{tr("Tailles / variantes (séparées par des virgules, facultatif)", "Sizes / variants (comma-separated, optional)")}</label>
                 <input
                   className="input"
                   placeholder="S, M, L, XL"
@@ -693,7 +701,7 @@ export default function ProductsClient({
               </div>
 
               <div>
-                <label className="label">Description (optional)</label>
+                <label className="label">{tr("Description (facultative)", "Description (optional)")}</label>
                 <textarea
                   className="input min-h-[72px]"
                   value={form.description}
@@ -708,7 +716,7 @@ export default function ProductsClient({
                   onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
                   className="h-4 w-4 rounded border-arctic-400/45 text-brand focus:ring-brand"
                 />
-                Show in public catalog
+                {tr("Afficher dans le catalogue public", "Show in public catalog")}
               </label>
 
               {error && (
@@ -717,10 +725,14 @@ export default function ProductsClient({
 
               <div className="flex justify-end gap-2 pt-1">
                 <button type="button" onClick={() => setOpen(false)} className="btn-ghost">
-                  Cancel
+                  {tr("Annuler", "Cancel")}
                 </button>
                 <button className="btn-primary" disabled={saving || uploading}>
-                  {saving ? "Saving…" : editingId ? "Save changes" : "Add product"}
+                  {saving
+                    ? tr("Enregistrement…", "Saving…")
+                    : editingId
+                      ? tr("Enregistrer les modifications", "Save changes")
+                      : tr("Ajouter le produit", "Add product")}
                 </button>
               </div>
             </form>
