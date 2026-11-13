@@ -54,3 +54,7 @@ next-env.d.ts
 # disposable CI diagnostics
 /ci-results/
 deploy/.deployed
+
+# LibreOffice / Word lock files
+.~lock.*#
+~$*
