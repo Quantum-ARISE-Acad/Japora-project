@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { SaasIcon } from "@/components/ui/SaasIcons";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 export default function ShopWhatsAppQrBanner({
   shopName,
@@ -21,13 +22,17 @@ export default function ShopWhatsAppQrBanner({
   onOpenWebAssistant?: () => void;
   onOpenShopAi?: () => void;
 }) {
+  const { tr } = usePublicLang();
   const [waQrSvg, setWaQrSvg] = useState<string>("");
   const [zoomOpen, setZoomOpen] = useState(false);
 
   const cleanPhone = (whatsappNumber || "").replace(/\D/g, "");
   const defaultPrefill =
     whatsappPrefillMessage ||
-    `Bonjour ${shopName} (${shopSlug}) ! Je viens de scanner votre QR code sur Japora. Pouvez-vous me présenter vos produits disponibles ?`;
+    tr(
+      `Bonjour ${shopName} (${shopSlug}) ! Je viens de scanner votre QR code sur Japora. Pouvez-vous me présenter vos produits disponibles ?`,
+      `Hello ${shopName} (${shopSlug})! I scanned your Japora QR code. Could you show me your available products?`,
+    );
   const enrichedPrefill =
     defaultPrefill.toLowerCase().includes(shopName.toLowerCase()) ||
     defaultPrefill.toLowerCase().includes(shopSlug.toLowerCase())
@@ -80,9 +85,9 @@ export default function ShopWhatsAppQrBanner({
           <div className="flex-1 space-y-3 text-center md:text-left">
             <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/20 border border-emerald-400/30 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-emerald-300">
               <SaasIcon name="bot" size={14} />
-              <span>Assistant WhatsApp & IA</span>
+              <span>{tr("Assistant WhatsApp & IA", "WhatsApp & AI assistant")}</span>
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>En ligne 24h/24</span>
+              <span>{tr("En ligne 24h/24", "Online 24/7")}</span>
             </div>
 
             <div>
@@ -90,7 +95,7 @@ export default function ShopWhatsAppQrBanner({
                 {assistantName} de {shopName}
               </h2>
               <p className="mt-1 text-xs sm:text-sm text-slate-300 leading-relaxed max-w-2xl">
-                Scannez le <strong>QR Code WhatsApp</strong> ci-contre pour discuter avec notre assistant IA directement dans votre WhatsApp (voir le catalogue, chercher un produit disponible, commander et suivre votre colis), ou ouvrez l&apos;assistant directement ici sur le site :
+                {tr("Scannez le", "Scan the")} <strong>QR Code WhatsApp</strong> {tr("ci-contre pour discuter avec notre assistant IA directement dans votre WhatsApp (voir le catalogue, chercher un produit disponible, commander et suivre votre colis), ou ouvrez l’assistant directement ici sur le site :", "to chat with our AI assistant in WhatsApp (browse the catalog, find available products, place an order, and track your delivery), or open the assistant right here on the website:")}
               </p>
             </div>
 
@@ -101,7 +106,7 @@ export default function ShopWhatsAppQrBanner({
                 className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 px-4 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md shadow-emerald-900/50 transition cursor-pointer"
               >
                 <SaasIcon name="sparkles" size={15} />
-                <span>Ouvrir l&apos;Assistant IA sur le site</span>
+                <span>{tr("Ouvrir l’Assistant IA sur le site", "Open the AI assistant on the website")}</span>
               </button>
 
               {cleanPhone && (
@@ -112,7 +117,7 @@ export default function ShopWhatsAppQrBanner({
                   className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/15 hover:bg-emerald-500/25 px-4 py-2.5 text-xs sm:text-sm font-bold text-emerald-200 transition"
                 >
                   <SaasIcon name="message" size={15} />
-                  <span>Ouvrir dans WhatsApp</span>
+                  <span>{tr("Ouvrir dans WhatsApp", "Open in WhatsApp")}</span>
                 </a>
               )}
             </div>
@@ -122,7 +127,7 @@ export default function ShopWhatsAppQrBanner({
           <div className="flex flex-col items-center shrink-0">
             <div
               onClick={() => setZoomOpen(true)}
-              title="Cliquez pour agrandir le QR Code WhatsApp"
+              title={tr("Cliquez pour agrandir le QR Code WhatsApp", "Click to enlarge the WhatsApp QR code")}
               className="group relative cursor-pointer rounded-2xl bg-white p-3 shadow-xl ring-2 ring-emerald-400/60 transition hover:scale-105"
             >
               {waQrSvg ? (
@@ -132,13 +137,13 @@ export default function ShopWhatsAppQrBanner({
                 />
               ) : (
                 <div className="grid h-32 w-32 sm:h-36 sm:w-36 place-items-center text-xs text-slate-400">
-                  Chargement QR…
+                  {tr("Chargement du QR code…", "Loading QR code…")}
                 </div>
               )}
               <div className="mt-1.5 text-center">
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-700 px-2.5 py-0.5 text-[10px] font-bold text-white">
                   <SaasIcon name="qr" size={12} />
-                  <span>Scanner pour WhatsApp IA</span>
+                  <span>{tr("Scanner pour WhatsApp IA", "Scan to chat with WhatsApp AI")}</span>
                 </span>
               </div>
             </div>
@@ -147,7 +152,7 @@ export default function ShopWhatsAppQrBanner({
               onClick={() => setZoomOpen(true)}
               className="mt-1.5 text-[11px] font-medium text-emerald-300 hover:text-emerald-200 underline cursor-pointer"
             >
-              Agrandir le QR Code
+              {tr("Agrandir le QR code", "Enlarge QR code")}
             </button>
           </div>
         </div>
@@ -167,11 +172,11 @@ export default function ShopWhatsAppQrBanner({
               <div>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300">
                   <SaasIcon name="qr" size={13} />
-                  <span>QR Code Assistant WhatsApp</span>
+                  <span>{tr("QR code de l’assistant WhatsApp", "WhatsApp assistant QR code")}</span>
                 </span>
                 <h3 className="mt-1 text-lg font-extrabold text-white">{shopName}</h3>
                 <p className="text-xs text-slate-400">
-                  Scannez avec l&apos;appareil photo de votre téléphone pour discuter avec l&apos;IA sur WhatsApp.
+                  {tr("Scannez avec l’appareil photo de votre téléphone pour discuter avec l’IA sur WhatsApp.", "Scan with your phone camera to chat with AI on WhatsApp.")}
                 </p>
               </div>
               <button
@@ -191,7 +196,7 @@ export default function ShopWhatsAppQrBanner({
                 />
               )}
               <p className="mt-2 text-center text-xs font-bold text-emerald-800">
-                Ouvre directement l&apos;Assistant IA sur WhatsApp
+                {tr("Ouvre directement l’Assistant IA sur WhatsApp", "Opens the AI assistant directly in WhatsApp")}
               </p>
             </div>
 
@@ -204,7 +209,7 @@ export default function ShopWhatsAppQrBanner({
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#1ebe5d] px-4 py-2.5 text-xs font-bold text-white shadow-md transition"
                 >
                   <SaasIcon name="message" size={14} />
-                  <span>Ouvrir directement dans WhatsApp</span>
+                  <span>{tr("Ouvrir directement dans WhatsApp", "Open directly in WhatsApp")}</span>
                 </a>
               )}
               <button
@@ -216,7 +221,7 @@ export default function ShopWhatsAppQrBanner({
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 px-4 py-2.5 text-xs font-bold text-white transition cursor-pointer"
               >
                 <SaasIcon name="sparkles" size={14} />
-                <span>Utiliser l&apos;Assistant IA sur le site</span>
+                <span>{tr("Utiliser l’Assistant IA sur le site", "Use the AI assistant on the website")}</span>
               </button>
             </div>
           </div>
