@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
+import { useClerk } from "@clerk/nextjs";
+import { isClerkConfigured } from "@/components/auth/ClerkAuthProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 import { LanguageSwitcher, usePublicLang } from "@/components/PublicLanguageProvider";
 
@@ -109,6 +111,17 @@ export default function DashboardShell({
   );
   const flatItems = useMemo(() => localizedNav.flatMap((group) => group.items), [localizedNav]);
 
+  const clerkActive = isClerkConfigured();
+  let clerk: ReturnType<typeof useClerk> | null = null;
+  try {
+    if (clerkActive) {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      clerk = useClerk();
+    }
+  } catch {
+    clerk = null;
+  }
+
   // ⌘K / Ctrl-K opens the command palette anywhere.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -132,7 +145,16 @@ export default function DashboardShell({
   );
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    if (clerk?.signOut) {
+      try {
+        const origin = typeof window !== "undefined" ? window.location.origin : "";
+        await clerk.signOut({ redirectUrl: `${origin}/login` });
+        return;
+      } catch {
+        // Fall through to client router redirect if Clerk signOut fails
+      }
+    }
     router.push("/login");
     router.refresh();
   }

@@ -498,7 +498,7 @@ model PaymentIntent {
   provider     String
   providerRef  String?
   amountCents  Int
-  currency     String    @default("NGN")
+  currency     String    @default("XOF")
   status       String    @default("created") // created | pending | succeeded | failed | refunded
   method       String?
   metadata     String    @default("")

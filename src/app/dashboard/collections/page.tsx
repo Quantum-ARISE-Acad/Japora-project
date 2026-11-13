@@ -42,7 +42,7 @@ export default async function CollectionsPage() {
         }))}
         allProducts={allProducts}
         shopSlug={vendor.shopSlug}
-        currency={vendor.currency || "USD"}
+        currency={vendor.currency || "XOF"}
       />
     </div>
   );

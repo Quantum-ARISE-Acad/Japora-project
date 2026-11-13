@@ -58,22 +58,39 @@ function verifyMetaSignature(rawBody: string, signatureHeader: string | null): b
 
 /**
  * Resolve the target Vendor for an incoming WhatsApp webhook message:
- * 1) `Vendor.whatsappPhoneNumberId` matching incoming `phone_number_id` (always synced to the logged-in Dashboard vendor!)
- * 2) Explicit env override (`VENDOR_ID_FOR_PHONE_NUMBER_ID_<id>`)
- * 3) Explicit shopSlug mention in message text (e.g. from QR code scan)
+ * 1) Explicit env override (`VENDOR_ID_FOR_PHONE_NUMBER_ID_<id>`)
+ * 2) Shop slug in the message text, e.g. "(ma-boutique)" from a QR code prefill.
+ *    It comes before the number owner because several shops share one bot number.
+ * 3) `Vendor.whatsappPhoneNumberId` matching the incoming `phone_number_id`
  * 4) Recent conversation history (`WhatsAppMessage`)
- * 5) Fallback to active vendor
+ * 5) Fallback to the most recent active vendor
  */
 async function resolveVendorIdForInbound(
   phoneNumberId: string | undefined,
   fromPhone: string,
   text: string,
 ): Promise<string | null> {
-  // 1) Primary: Vendor bound to this WhatsApp Phone Number ID (auto-synced to the active Dashboard vendor)
+  // 1) Explicit operator mapping always wins.
   if (phoneNumberId) {
     const mapped = process.env[`VENDOR_ID_FOR_PHONE_NUMBER_ID_${phoneNumberId}`];
     if (mapped) return mapped;
+  }
 
+  // 2) Shop slug from the QR prefill: "(slug)". Look each candidate up directly
+  // so every shop can match, not only the first few.
+  const candidates = [...new Set(
+    Array.from((text || "").toLowerCase().matchAll(/\(([a-z0-9][a-z0-9-]{0,80})\)/g), (m) => m[1]),
+  )].slice(0, 5);
+  if (candidates.length > 0) {
+    const bySlug = await prisma.vendor.findFirst({
+      where: { shopSlug: { in: candidates }, deletedAt: null },
+      select: { id: true },
+    });
+    if (bySlug) return bySlug.id;
+  }
+
+  // 3) Vendor bound to this WhatsApp Phone Number ID.
+  if (phoneNumberId) {
     const owner = await prisma.vendor.findFirst({
       where: { whatsappPhoneNumberId: phoneNumberId, deletedAt: null },
       select: { id: true },
@@ -81,21 +98,7 @@ async function resolveVendorIdForInbound(
     if (owner) return owner.id;
   }
 
-  // 2) If the message mentions a specific shopSlug (e.g. from QR code prefill)
-  const lowerText = (text || "").toLowerCase();
-  if (lowerText.length > 2) {
-    const allVendors = await prisma.vendor.findMany({
-      where: { deletedAt: null },
-      select: { id: true, shopName: true, shopSlug: true },
-      take: 50,
-    });
-    const bySlug = allVendors.find(
-      (v) => v.shopSlug && lowerText.includes(`(${v.shopSlug.toLowerCase()})`),
-    );
-    if (bySlug) return bySlug.id;
-  }
-
-  // 3) Recent conversation history
+  // 4) Recent conversation history
   const cleanPhone = digitsOnly(fromPhone);
   if (cleanPhone) {
     const recentMsg = await prisma.whatsAppMessage.findFirst({
@@ -111,7 +114,7 @@ async function resolveVendorIdForInbound(
     if (recentMsg?.vendorId) return recentMsg.vendorId;
   }
 
-  // 4) Fallback to first active vendor
+  // 5) Fallback to the most recent active vendor
   const first = await prisma.vendor.findFirst({
     where: { deletedAt: null },
     orderBy: { createdAt: "desc" },

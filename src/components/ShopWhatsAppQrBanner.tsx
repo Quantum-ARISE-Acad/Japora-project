@@ -26,18 +26,17 @@ export default function ShopWhatsAppQrBanner({
   const [waQrSvg, setWaQrSvg] = useState<string>("");
   const [zoomOpen, setZoomOpen] = useState(false);
 
-  const cleanPhone = (whatsappNumber || "").replace(/\D/g, "");
+  // The Japora bot number (Meta Cloud API) when configured: the webhook routes the
+  // chat to this shop through "(shopSlug)" in the prefill. Otherwise the vendor's own number.
+  const botNumber = (process.env.NEXT_PUBLIC_WHATSAPP_BOT_NUMBER || "").replace(/\D/g, "");
+  const cleanPhone = botNumber || (whatsappNumber || "").replace(/\D/g, "");
   const defaultPrefill =
     whatsappPrefillMessage ||
-    tr(
-      `Bonjour ${shopName} (${shopSlug}) ! Je viens de scanner votre QR code sur Japora. Pouvez-vous me présenter vos produits disponibles ?`,
-      `Hello ${shopName} (${shopSlug})! I scanned your Japora QR code. Could you show me your available products?`,
-    );
-  const enrichedPrefill =
-    defaultPrefill.toLowerCase().includes(shopName.toLowerCase()) ||
-    defaultPrefill.toLowerCase().includes(shopSlug.toLowerCase())
-      ? defaultPrefill
-      : `${defaultPrefill} [${shopName}]`;
+    `Bonjour ${shopName} (${shopSlug}) ! Je viens de scanner votre QR code sur Japora. Pouvez-vous me présenter vos produits disponibles ?`;
+  // Always carry the "(slug)" tag the webhook reads, even in a custom message.
+  const enrichedPrefill = defaultPrefill.toLowerCase().includes(`(${shopSlug.toLowerCase()})`)
+    ? defaultPrefill
+    : `${defaultPrefill} (${shopSlug})`;
 
   const whatsappUrl = cleanPhone
     ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(enrichedPrefill)}`
