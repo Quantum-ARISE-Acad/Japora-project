@@ -62,12 +62,22 @@ export async function listShops(opts: ListShopsOpts = {}): Promise<ShopCard[]> {
   const where: Record<string, unknown> = {
     isPublic: true,
     deletedAt: null,
+    NOT: {
+      email: {
+        in: [
+          "demo@wcatalog.app",
+          "ameyo@soko.app",
+          "nouveau.vendeur.google@japora.app",
+          "google.merchant@japora.app",
+        ],
+      },
+    },
   };
 
   if (opts.region && opts.region.trim()) where.region = opts.region.trim();
   if (opts.category && opts.category.trim()) where.category = opts.category.trim();
   if (opts.q && opts.q.trim()) {
-    where.shopName = { contains: opts.q.trim(), mode: "insensitive" };
+    where.shopName = { contains: opts.q.trim() };
   }
 
   const shops = await prisma.vendor.findMany({

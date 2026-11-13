@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentVendor } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/utils";
+import { recordVendorActivity } from "@/lib/clerk-vendor-sync";
 
 export async function GET() {
   const vendor = await getCurrentVendor();
@@ -86,6 +87,18 @@ export async function POST(req: NextRequest) {
   revalidatePath("/dashboard/collections");
   revalidatePath("/dashboard/products");
   revalidatePath(`/c/${vendor.shopSlug}`);
+
+  await recordVendorActivity({
+    vendorId: vendor.id,
+    type: "catalog.collection.created",
+    subjectType: "collection",
+    subjectId: created.id,
+    data: {
+      name: created.name,
+      slug: created.slug,
+      productsCount: collection?.products.length ?? 0,
+    },
+  });
 
   return NextResponse.json({ ok: true, collection });
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { AuroraIsoscout } from "@/components/aurora";
 
 type Segment = "all" | "recent" | "unpaid" | "wholesale" | "vip" | "inactive" | "reactivation";
@@ -141,11 +142,47 @@ export default function BroadcastComposer({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="a-headline-md text-arctic-900">Broadcasts</h1>
-        <p className="text-sm text-arctic-600">
-          One WhatsApp message to a whole segment of customers, at once.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="a-headline-md text-arctic-900">Marketing & Acquisition</h1>
+          <p className="text-sm text-arctic-600">
+            Diffusez des campagnes WhatsApp Broadcast à votre CRM ou lancez des publicités
+            sponsorisées (WhatsApp Status, Facebook & Instagram) avec vos produits.
+          </p>
+        </div>
+        <Link
+          href="/dashboard/campaigns"
+          className="btn-primary text-xs sm:text-sm"
+        >
+          🚀 Studio Publicités Meta API (WhatsApp Status, FB & IG) →
+        </Link>
+      </div>
+
+      {/* Meta Marketing API Highlight Card inside Marketing */}
+      <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-50/80 via-white to-arctic-50 p-4 shadow-2xs">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-emerald-600 px-2.5 py-0.5 text-[10px] font-bold text-white">
+                NOUVEAU • Graph API v27.0
+              </span>
+              <span className="text-xs font-bold text-arctic-900">
+                Publicités Produits sur WhatsApp Status, Facebook & Instagram
+              </span>
+            </div>
+            <p className="text-xs text-arctic-600">
+              Sélectionnez un produit de votre boutique Japora, créez automatiquement la
+              campagne, l&apos;ensemble de publicités (ciblage & budget), le créatif et la
+              publicité avec suivi des clics, discussions WhatsApp, commandes et ROAS.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/campaigns"
+            className="rounded-xl border border-emerald-600/40 bg-white px-4 py-2 text-xs font-bold text-emerald-800 shadow-2xs hover:bg-emerald-50"
+          >
+            Ouvrir le Gestionnaire de Publicités Meta →
+          </Link>
+        </div>
       </div>
 
       <div className="card space-y-4 p-5">

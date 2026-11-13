@@ -5,6 +5,7 @@ import DashboardShell from "./DashboardShell";
 import UnverifiedBanner from "./UnverifiedBanner";
 import LiveOrderNotifier from "@/components/LiveOrderNotifier";
 import ShopOnboardingModal from "@/components/ShopOnboardingModal";
+import ClerkDashboardSync from "@/components/auth/ClerkDashboardSync";
 
 export default async function DashboardLayout({
   children,
@@ -26,6 +27,10 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen" style={style}>
+      <ClerkDashboardSync
+        vendorId={vendor.id}
+        needsOnboarding={!vendor.onboardedAt}
+      />
       {hasRealEmail && !vendor.emailVerifiedAt && <UnverifiedBanner email={vendor.email} />}
       <LiveOrderNotifier currency={vendor.currency || "USD"} />
       <ShopOnboardingModal

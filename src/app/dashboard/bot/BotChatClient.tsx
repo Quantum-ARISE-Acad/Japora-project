@@ -23,12 +23,13 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "system",
-      text: `Simulation d'un client discutant avec l'Assistant IA de ${shopName} sur WhatsApp.`,
+      text: `Console en direct connectée au catalogue MySQL et à l'Assistant IA Gemini de ${shopName}.`,
       at: 0,
     },
   ]);
   const [draft, setDraft] = useState("");
   const [fromPhone, setFromPhone] = useState("22893730817");
+  const [dispatchWhatsApp, setDispatchWhatsApp] = useState(false);
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -49,13 +50,13 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
       const res = await fetch("/api/bot/simulate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: trimmed, fromPhone }),
+        body: JSON.stringify({ text: trimmed, fromPhone, dispatchWhatsApp }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setMessages((m) => [
           ...m,
-          { role: "system", text: data.error || "Simulator error.", at: stamp + 1 },
+          { role: "system", text: data.error || "Erreur de connexion à l'assistant.", at: stamp + 1 },
         ]);
         return;
       }
@@ -78,7 +79,7 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
     setMessages([
       {
         role: "system",
-        text: `Réinitialisé. Simulation d'un client discutant avec ${shopName} sur WhatsApp.`,
+        text: `Conversation réinitialisée. Console en direct connectée à ${shopName}.`,
         at: 0,
       },
     ]);
@@ -188,17 +189,31 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
       </div>
 
       <aside className="space-y-4">
-        <div className="card p-4">
-          <h2 className="text-sm font-semibold text-arctic-900">Numéro WhatsApp simulé</h2>
-          <p className="mb-2 mt-1 text-xs text-arctic-600">
-            Utilisé pour créer les commandes dans votre Dashboard Vendeur et retrouver les commandes lors du suivi (&ldquo;Suivre ma commande&rdquo;).
-          </p>
-          <input
-            className="input"
-            inputMode="tel"
-            value={fromPhone}
-            onChange={(e) => setFromPhone(e.target.value)}
-          />
+        <div className="card p-4 space-y-3">
+          <div>
+            <h2 className="text-sm font-semibold text-arctic-900">Numéro WhatsApp Client</h2>
+            <p className="mb-2 mt-1 text-xs text-arctic-600">
+              Utilisé pour enregistrer les commandes dans MySQL et retrouver les commandes lors du suivi (&ldquo;Suivre ma commande&rdquo;).
+            </p>
+            <input
+              className="input"
+              inputMode="tel"
+              value={fromPhone}
+              onChange={(e) => setFromPhone(e.target.value)}
+            />
+          </div>
+
+          <label className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50/70 p-2.5 text-xs text-emerald-950 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={dispatchWhatsApp}
+              onChange={(e) => setDispatchWhatsApp(e.target.checked)}
+              className="mt-0.5 rounded border-emerald-400 text-emerald-600"
+            />
+            <span>
+              <strong>Envoyer aussi sur WhatsApp Cloud API</strong> (envoie réellement la réponse sur le WhatsApp de ce numéro)
+            </span>
+          </label>
         </div>
 
         <div className="card p-4">

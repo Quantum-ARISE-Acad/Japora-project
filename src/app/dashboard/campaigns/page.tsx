@@ -1,27 +1,54 @@
 import { requireVendor } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import { listCampaigns } from "@/lib/campaigns";
+import { prisma } from "@/lib/db";
+import {
+  getVendorMetaCampaignMap,
+  getVendorMetaConfig,
+} from "@/lib/meta-marketing";
 import CampaignsClient from "./CampaignsClient";
+
+export const dynamic = "force-dynamic";
 
 export default async function CampaignsPage() {
   const vendor = await requireVendor();
-  const [campaigns, products] = await Promise.all([
+  const [campaigns, products, metaMap, metaConfig] = await Promise.all([
     listCampaigns(vendor.id),
     prisma.product.findMany({
-      where: { vendorId: vendor.id, isActive: true },
+      where: { vendorId: vendor.id },
+      select: {
+        id: true,
+        name: true,
+        priceCents: true,
+        imageUrl: true,
+        description: true,
+        stock: true,
+      },
       orderBy: { createdAt: "desc" },
-      select: { id: true, name: true, priceCents: true },
     }),
+    getVendorMetaCampaignMap(vendor.id),
+    getVendorMetaConfig(vendor.id),
   ]);
 
-  // Serialise Date → ISO for the client boundary.
-  const dto = campaigns.map((c) => ({ ...c, createdAt: c.createdAt.toISOString() }));
+  const enrichedCampaigns = campaigns.map((c) => ({
+    ...c,
+    metaDetails: metaMap[c.id] ?? null,
+  }));
 
   return (
     <CampaignsClient
-      initialCampaigns={dto}
+      initialCampaigns={enrichedCampaigns}
       products={products}
       currency={vendor.currency}
+      shopName={vendor.shopName}
+      shopSlug={vendor.shopSlug}
+      whatsappNumber={vendor.whatsappNumber}
+      initialMetaConfig={{
+        ...metaConfig,
+        hasAccessToken: Boolean(metaConfig.accessToken),
+        maskedToken: metaConfig.accessToken
+          ? `${metaConfig.accessToken.slice(0, 8)}••••••••${metaConfig.accessToken.slice(-4)}`
+          : "",
+      }}
     />
   );
 }

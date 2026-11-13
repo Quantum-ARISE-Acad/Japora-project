@@ -5,6 +5,7 @@ import { createSession } from "@/lib/session";
 import { setUnifiedCookie } from "@/lib/unified-auth";
 import { getClientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
 import { logger } from "@/lib/logger";
+import { recordVendorActivity } from "@/lib/clerk-vendor-sync";
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
@@ -39,6 +40,13 @@ export async function POST(req: NextRequest) {
   });
 
   logger.info("auth.login.success", { vendorId: vendor.id });
+  await recordVendorActivity({
+    vendorId: vendor.id,
+    type: "auth.session.login",
+    subjectType: "vendor",
+    subjectId: vendor.id,
+    data: { email: vendor.email, authProvider: "local", ip },
+  });
   return NextResponse.json({ ok: true });
 }
 

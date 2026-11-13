@@ -9,6 +9,7 @@ import {
   parseWhatsAppAssistantConfig,
   sanitizeWhatsAppAssistantPatch,
 } from "@/lib/whatsapp-config";
+import { recordVendorActivity } from "@/lib/clerk-vendor-sync";
 
 const LANG_KEYS = new Set(Object.keys(LANG_NAMES) as Lang[]);
 
@@ -241,6 +242,27 @@ export async function PATCH(req: NextRequest) {
   }
 
   const updated = await prisma.vendor.update({ where: { id: vendor.id }, data });
+
+  await recordVendorActivity({
+    vendorId: updated.id,
+    type:
+      b.completeOnboarding === true
+        ? "shop.onboarding.completed"
+        : "shop.settings.updated",
+    subjectType: "vendor",
+    subjectId: updated.id,
+    data: {
+      shopName: updated.shopName,
+      shopSlug: updated.shopSlug,
+      currency: updated.currency,
+      language: updated.language,
+      region: updated.region,
+      category: updated.category,
+      whatsappNumber: updated.whatsappNumber,
+      momoNumber: updated.momoNumber,
+      onboardedAt: updated.onboardedAt?.toISOString() ?? null,
+    },
+  });
 
   try {
     revalidatePath("/dashboard", "layout");

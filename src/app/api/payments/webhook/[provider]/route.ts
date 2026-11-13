@@ -8,6 +8,7 @@ import {
 } from "@/lib/payments";
 import { evaluateAndGrant } from "@/lib/trust";
 import { recordConfirmedOrder } from "@/lib/funnel";
+import { settleFedaPayPaymentIntent } from "@/lib/payments/fedapay";
 
 /**
  * POST /api/payments/webhook/[provider]
@@ -66,12 +67,39 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
   }
 
   const intent = await prisma.paymentIntent.findFirst({
-    where: { provider: providerName, providerRef: parsed.providerRef },
+    where: {
+      provider: providerName,
+      OR: [
+        { providerRef: parsed.providerRef },
+        { metadata: { contains: parsed.providerRef } },
+      ],
+    },
+    orderBy: { createdAt: "desc" },
   });
   if (!intent) {
     logger.warn("payments.webhook.intent_not_found", {
       provider: providerName,
       providerRef: parsed.providerRef,
+    });
+    return NextResponse.json({ ok: true });
+  }
+
+  // Dedicated FedaPay webhook handling (covers Orders, PaymentLinks, and Subscriptions + WhatsApp notification)
+  if (providerName === "fedapay") {
+    const obj = (payload.object ?? payload.transaction ?? payload.data ?? {}) as Record<string, any>;
+    const fedaId = obj.id !== undefined ? String(obj.id) : intent.providerRef || "";
+    let verifiedOutcome = parsed.status;
+    try {
+      const v = await provider.verify(fedaId);
+      verifiedOutcome = v.status;
+    } catch {
+      // keep parsed.status
+    }
+    await settleFedaPayPaymentIntent({
+      intentId: intent.id,
+      outcome: verifiedOutcome,
+      fedaTxId: obj.id !== undefined ? String(obj.id) : undefined,
+      rawTransaction: obj,
     });
     return NextResponse.json({ ok: true });
   }

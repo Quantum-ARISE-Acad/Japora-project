@@ -1,107 +1,188 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
 import { createSession } from "@/lib/session";
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)+/g, "");
-}
+import { setUnifiedCookie } from "@/lib/unified-auth";
+import { syncClerkUserToVendor } from "@/lib/clerk-vendor-sync";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const {
-      clerkId,
-      email,
-      role = "seller",
-      name = "",
-      shopName = "",
-      whatsappNumber = "",
-      currency = "XOF",
-      category = "",
-      phone = "",
-    } = body;
+    const body = await req.json().catch(() => ({}));
+
+    let clerkId: string | null =
+      typeof body.clerkId === "string" && body.clerkId.trim()
+        ? body.clerkId.trim()
+        : null;
+    let email: string =
+      typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    let firstName: string | null =
+      typeof body.firstName === "string" ? body.firstName.trim() : null;
+    let lastName: string | null =
+      typeof body.lastName === "string" ? body.lastName.trim() : null;
+    let name: string =
+      typeof body.name === "string" ? body.name.trim() : "";
+    let avatarUrl: string | null =
+      typeof body.avatarUrl === "string" ? body.avatarUrl.trim() : null;
+    let shopName: string =
+      typeof body.shopName === "string" ? body.shopName.trim() : "";
+    let shopSlug: string =
+      typeof body.shopSlug === "string" ? body.shopSlug.trim() : "";
+    let whatsappNumber: string =
+      typeof body.whatsappNumber === "string" ? body.whatsappNumber.trim() : "";
+    let momoNumber: string =
+      typeof body.momoNumber === "string" ? body.momoNumber.trim() : "";
+    let currency: string =
+      typeof body.currency === "string" && body.currency.trim()
+        ? body.currency.trim()
+        : "XOF";
+    let language: string =
+      typeof body.language === "string" && body.language.trim()
+        ? body.language.trim()
+        : "fr";
+    let category: string =
+      typeof body.category === "string" ? body.category.trim() : "";
+    let region: string =
+      typeof body.region === "string" ? body.region.trim() : "";
+    const password: string | null =
+      typeof body.password === "string" && body.password ? body.password : null;
+    let authProvider: "google" | "clerk_email" | "local" =
+      body.authProvider === "google" ? "google" : "clerk_email";
+    let isGoogleOneClick = Boolean(body.isGoogleOneClick);
+
+    // Enrich with server-verified Clerk user data if Clerk is active
+    if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+      try {
+        const { auth, currentUser } = await import("@clerk/nextjs/server");
+        const clerkAuth = await auth();
+        if (clerkAuth?.userId) {
+          clerkId = clerkAuth.userId;
+          const clerkUser = await currentUser();
+          if (clerkUser) {
+            if (!email) {
+              email =
+                clerkUser.emailAddresses?.[0]?.emailAddress
+                  ?.trim()
+                  .toLowerCase() || "";
+            }
+            if (!firstName && clerkUser.firstName) {
+              firstName = clerkUser.firstName;
+            }
+            if (!lastName && clerkUser.lastName) {
+              lastName = clerkUser.lastName;
+            }
+            if (!name) {
+              name = [clerkUser.firstName, clerkUser.lastName]
+                .filter(Boolean)
+                .join(" ")
+                .trim();
+            }
+            if (!avatarUrl && clerkUser.imageUrl) {
+              avatarUrl = clerkUser.imageUrl;
+            }
+
+            const hasGoogle =
+              Array.isArray(clerkUser.externalAccounts) &&
+              clerkUser.externalAccounts.some((acc) =>
+                String(acc.provider || "").includes("google"),
+              );
+            if (hasGoogle) {
+              authProvider = "google";
+              if (!shopName) {
+                isGoogleOneClick = true;
+              }
+            }
+
+            const unsafe = (clerkUser.unsafeMetadata || {}) as Record<
+              string,
+              unknown
+            >;
+            if (!shopName && typeof unsafe.shopName === "string") {
+              shopName = unsafe.shopName.trim();
+            }
+            if (!whatsappNumber && typeof unsafe.whatsappNumber === "string") {
+              whatsappNumber = unsafe.whatsappNumber.trim();
+            }
+            if (
+              (!currency || currency === "XOF") &&
+              typeof unsafe.currency === "string"
+            ) {
+              currency = unsafe.currency.trim();
+            }
+            if (
+              (!language || language === "fr") &&
+              typeof unsafe.language === "string"
+            ) {
+              language = unsafe.language.trim();
+            }
+            if (!category && typeof unsafe.category === "string") {
+              category = unsafe.category.trim();
+            }
+            if (!region && typeof unsafe.region === "string") {
+              region = unsafe.region.trim();
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[clerk-sync] server Clerk lookup warning:", err);
+      }
+    }
 
     if (!email) {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Une adresse email est requise pour synchroniser le compte." },
+        { status: 400 },
+      );
     }
 
-    const cleanEmail = email.trim().toLowerCase();
-
-    // Japora is dedicated to vendors: always resolve or create a Vendor account
-    let vendor = null;
-    if (clerkId) {
-      vendor = await (prisma.vendor as any).findFirst({
-        where: {
-          OR: [
-            { clerkId: clerkId },
-            { email: cleanEmail },
-          ],
-        },
+    const { vendor, isNewAccount, needsOnboarding } =
+      await syncClerkUserToVendor({
+        clerkId,
+        email,
+        name,
+        firstName,
+        lastName,
+        avatarUrl,
+        shopName: shopName || null,
+        shopSlug: shopSlug || null,
+        whatsappNumber: whatsappNumber || null,
+        momoNumber: momoNumber || null,
+        currency,
+        language,
+        category: category || null,
+        region: region || null,
+        password,
+        authProvider,
+        isGoogleOneClick,
+        completeOnboarding: Boolean(shopName) && !isGoogleOneClick,
       });
-    } else {
-      vendor = await prisma.vendor.findUnique({
-        where: { email: cleanEmail },
-      });
-    }
 
-    if (!vendor) {
-      // Create new seller / vendor
-      const baseName = shopName.trim() || name.trim() || cleanEmail.split("@")[0];
-      let baseSlug = slugify(baseName) || "shop";
-      
-      // Ensure slug uniqueness
-      let slug = baseSlug;
-      let counter = 1;
-      while (await prisma.vendor.findUnique({ where: { shopSlug: slug } })) {
-        slug = `${baseSlug}-${counter}`;
-        counter++;
-      }
-
-      const now = new Date();
-      const trialEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-      vendor = await prisma.vendor.create({
-        data: {
-          ...(clerkId ? { clerkId } : {}),
-          email: cleanEmail,
-          passwordHash: "clerk_managed_auth",
-          shopName: baseName,
-          shopSlug: slug,
-          whatsappNumber: whatsappNumber.trim(),
-          currency: currency || "XOF",
-          category: category || "",
-          subscriptionStatus: "trialing",
-          trialEndsAt: trialEnd,
-          emailVerifiedAt: now,
-        } as any,
-      });
-    } else if (clerkId && !(vendor as any).clerkId) {
-      // Link existing vendor with clerkId
-      vendor = await (prisma.vendor as any).update({
-        where: { id: vendor.id },
-        data: { clerkId },
-      });
-    }
-
-    // Establish session cookie so dashboard and all existing APIs work seamlessly
+    // Establish HTTP-only session cookie + unified cookie so all APIs work seamlessly
     await createSession({
       vendorId: vendor.id,
       email: vendor.email,
+    });
+
+    await setUnifiedCookie({
+      sub: vendor.email,
+      email: vendor.email,
+      name: vendor.shopName || name || undefined,
+      phone: vendor.whatsappNumber || undefined,
+      role: "VENDOR",
+      originApp: "japora",
     });
 
     return NextResponse.json({
       ok: true,
       role: "seller",
       vendorId: vendor.id,
+      shopName: vendor.shopName,
       shopSlug: vendor.shopSlug,
+      isNewAccount,
+      needsOnboarding,
     });
   } catch (err: any) {
     console.error("[clerk-sync error]", err);
-    return NextResponse.json({ error: err.message || "Sync failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: err.message || "Échec de la synchronisation du compte." },
+      { status: 500 },
+    );
   }
 }

@@ -4,6 +4,7 @@ import { getCurrentVendor } from "@/lib/auth";
 import { parsePriceToCents } from "@/lib/utils";
 import { enqueue, kickDrain } from "@/lib/bus";
 import { becamePublished, productPublished } from "@/lib/catalog-events";
+import { recordVendorActivity } from "@/lib/clerk-vendor-sync";
 
 export async function GET(req: NextRequest) {
   const vendor = await getCurrentVendor();
@@ -82,5 +83,17 @@ export async function POST(req: NextRequest) {
   });
 
   kickDrain();
+  await recordVendorActivity({
+    vendorId: vendor.id,
+    type: "catalog.product.created",
+    subjectType: "product",
+    subjectId: product.id,
+    data: {
+      name: product.name,
+      priceCents: product.priceCents,
+      stock: product.stock,
+      collectionId: product.collectionId,
+    },
+  });
   return NextResponse.json({ ok: true, product });
 }

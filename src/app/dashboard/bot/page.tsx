@@ -49,10 +49,10 @@ export default async function BotPage() {
             "mr-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold " +
             (cloudLive
               ? "bg-emerald-100 text-emerald-800"
-              : "bg-arctic-200/65 text-arctic-700")
+              : "bg-amber-100 text-amber-800")
           }
         >
-          ● {cloudLive ? "WhatsApp Cloud API (Live)" : "Mode Simulation (Stub)"}
+          ● {cloudLive ? "WhatsApp Cloud API (Connecté)" : "WhatsApp Cloud API (À configurer)"}
         </span>
         <span
           className={
@@ -68,7 +68,7 @@ export default async function BotPage() {
         <span className="text-arctic-800">
           {cloudLive
             ? "Vos clients sur WhatsApp reçoivent ces réponses et boutons interactifs en temps réel via Meta Cloud API."
-            : "Mode simulation actif : testez toutes les fonctionnalités ci-dessous, puis renseignez votre Token Meta Cloud API & Phone Number ID pour passer en production."}
+            : "Renseignez votre Token Meta Cloud API & Phone Number ID ci-dessous pour activer l'envoi WhatsApp en direct."}
         </span>
       </div>
 
@@ -83,13 +83,13 @@ export default async function BotPage() {
         isGeminiLive={llmActive}
       />
 
-      {/* Simulateur interactif WhatsApp (Questions IA, Commandes 1-clic, Suivi de commande) */}
+      {/* Console en direct WhatsApp Cloud API & Assistant IA */}
       <div>
         <h2 className="text-base font-bold text-arctic-900 mb-2">
-          💬 Simulateur WhatsApp Client (Test en direct)
+          💬 Console Live WhatsApp Cloud API & Assistant IA Gemini
         </h2>
         <p className="text-xs text-arctic-600 mb-3">
-          Testez exactement ce que voit un client qui scanne votre QR Code WhatsApp : posez des questions à Gemini, cliquez sur les boutons de commande directe (les commandes arrivent dans votre onglet <strong>Orders</strong>), et testez le suivi de commande !
+          Interagissez en direct avec votre Assistant IA connecté à votre base de données MySQL : posez des questions à Gemini, passez de vraies commandes (enregistrées dans votre onglet <strong>Orders</strong>), suivez vos commandes et envoyez les réponses sur WhatsApp Cloud API !
         </p>
         <BotChatClient shopName={vendor.shopName} />
       </div>

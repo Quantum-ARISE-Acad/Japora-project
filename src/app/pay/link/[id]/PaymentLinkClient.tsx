@@ -172,7 +172,7 @@ export default function PaymentLinkClient({
                       <span>⚡</span> Payer en ligne avec FedaPay
                     </span>
                     <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
-                      Sandbox Actif
+                      Paiement Sécurisé
                     </span>
                   </div>
 

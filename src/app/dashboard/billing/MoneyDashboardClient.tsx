@@ -68,11 +68,11 @@ export default function MoneyDashboardClient({
   const [savingConfig, setSavingConfig] = useState(false);
   const [configMsg, setConfigMsg] = useState("");
 
-  // Sandbox Test Payment State
+  // Direct Payment State
   const [testAmount, setTestAmount] = useState(
     currency === "XOF" || currency === "XAF" ? "2500" : "15",
   );
-  const [testTitle, setTestTitle] = useState("Test Encaissement FedaPay Sandbox");
+  const [testTitle, setTestTitle] = useState("Encaissement Direct FedaPay");
   const [launchingTest, setLaunchingTest] = useState(false);
   const [launchingSub, setLaunchingSub] = useState(false);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
@@ -191,9 +191,9 @@ export default function MoneyDashboardClient({
       {queryStatus?.ok === "1" && (
         <div className="rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm text-emerald-950 flex items-center justify-between gap-3 shadow-sm">
           <div>
-            <strong className="font-bold">✅ Paiement FedaPay Sandbox confirmé !</strong>
+            <strong className="font-bold">✅ Paiement FedaPay confirmé !</strong>
             <p className="text-xs text-emerald-800 mt-0.5">
-              La transaction {queryStatus.ref ? `(${queryStatus.ref})` : ""} a été réglée et ajoutée à votre journal financier.
+              La transaction {queryStatus.ref ? `(${queryStatus.ref})` : ""} a été réglée et ajoutée à votre journal financier MySQL.
             </p>
           </div>
           <Link href="/dashboard/billing" className="text-xs font-semibold text-emerald-900 underline">
@@ -204,7 +204,7 @@ export default function MoneyDashboardClient({
 
       {queryStatus?.canceled === "1" && (
         <div className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-3.5 text-sm text-amber-900">
-          ⚠️ La transaction de test a été annulée ou refusée en mode Sandbox.
+          ⚠️ La transaction FedaPay a été annulée ou refusée.
         </div>
       )}
 
@@ -271,10 +271,10 @@ export default function MoneyDashboardClient({
           <div className="flex items-start justify-between gap-3 border-b border-arctic-200 pb-3">
             <div>
               <h2 className="text-base font-bold text-arctic-900 flex items-center gap-2">
-                <span>⚡</span> Configuration API FedaPay (Sandbox / Live)
+                <span>⚡</span> Configuration API FedaPay (Live / Sandbox)
               </h2>
               <p className="text-xs text-arctic-600 mt-0.5">
-                Connectez vos clés API FedaPay ou utilisez directement le simulateur Sandbox intégré pour vos tests de bout en bout.
+                Connectez vos clés API FedaPay officielles (`pk_live_...` / `sk_live_...`) enregistrées en base de données MySQL.
               </p>
             </div>
             <div className="flex rounded-lg border border-arctic-300/60 bg-arctic-100 p-0.5 text-xs font-semibold">
@@ -380,29 +380,29 @@ export default function MoneyDashboardClient({
           </form>
         </div>
 
-        {/* Right: Interactive Sandbox Payment Tester */}
+        {/* Right: Interactive FedaPay Payment Tester */}
         <div className="card p-6 lg:col-span-5 flex flex-col justify-between bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 text-white">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 px-3 py-1 text-xs font-bold text-emerald-300">
-                🧪 Simulateur FedaPay Sandbox
+                ⚡ Terminal FedaPay ({fedaConfig.environment === "live" ? "Live API v1" : "Sandbox API v1"})
               </span>
               <span className="text-xs font-mono text-slate-400">API v1</span>
             </div>
 
             <div>
               <h3 className="text-lg font-bold text-white">
-                Tester un encaissement maintenant
+                Encaissement Direct FedaPay API v1
               </h3>
               <p className="text-xs text-slate-300 mt-1">
-                Lancez une transaction de test pour vérifier le tunnel complet FedaPay (T-Money, Flooz, MTN MoMo, Carte) et la réception de notification WhatsApp Cloud API.
+                Créez une transaction réelle sur l&apos;API FedaPay v1 (T-Money, Flooz, MTN MoMo, Carte) enregistrée dans MySQL avec notification WhatsApp Cloud API.
               </p>
             </div>
 
             <div className="space-y-3 pt-1">
               <div>
                 <label className="block text-xs font-semibold text-emerald-200 mb-1">
-                  Montant du test ({currency})
+                  Montant à encaisser ({currency})
                 </label>
                 <input
                   type="text"
@@ -434,11 +434,11 @@ export default function MoneyDashboardClient({
               className="w-full rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm py-3 px-4 shadow-lg transition disabled:opacity-50"
             >
               {launchingTest
-                ? "Ouverture de FedaPay Sandbox…"
-                : "💳 Lancer le paiement test FedaPay →"}
+                ? "Connexion à l'API FedaPay v1…"
+                : "💳 Ouvrir le Guichet FedaPay →"}
             </button>
             <p className="text-[11px] text-center text-slate-400">
-              Aucun débit réel en mode Sandbox · Confirmation instantanée
+              Transaction réelle enregistrée dans MySQL · Confirmation instantanée
             </p>
           </div>
         </div>

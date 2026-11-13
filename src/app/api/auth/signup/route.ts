@@ -13,6 +13,7 @@ import { appUrl } from "@/lib/token";
 import { newVendorTrialDates } from "@/lib/billing";
 import { ensureReferralCode, recordSignupReferral } from "@/lib/referral";
 import { joinByCode } from "@/lib/cooperative";
+import { recordVendorActivity, type VendorAccountProfile } from "@/lib/clerk-vendor-sync";
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
@@ -27,10 +28,15 @@ export async function POST(req: NextRequest) {
 
   const email = String(body.email || "").trim().toLowerCase();
   const password = String(body.password || "");
-  const shopName = String(body.shopName || "").trim();
+  const ownerName = String(body.name || "").trim();
+  const shopName = String(body.shopName || ownerName || "").trim();
   const whatsappNumber = String(body.whatsappNumber || "").replace(/[^0-9]/g, "");
+  const momoNumber = String(body.momoNumber || whatsappNumber || "").replace(/[^0-9]/g, "");
   const currency = String(body.currency || "XOF").trim().toUpperCase().slice(0, 3) || "XOF";
   const language = String(body.language || "fr").trim() || "fr";
+  const category = String(body.category || "fashion").trim() || "fashion";
+  const region = String(body.region || "lome").trim() || "lome";
+  const clerkId = typeof body.clerkId === "string" && body.clerkId.trim() ? body.clerkId.trim() : undefined;
 
   if (!validateEmail(email)) {
     return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
@@ -56,17 +62,54 @@ export async function POST(req: NextRequest) {
     shopSlug = `${base}-${n++}`;
   }
 
+  const now = new Date();
+  const initialProfile: VendorAccountProfile = {
+    ownerName: ownerName || shopName,
+    email,
+    clerkId,
+    authProvider: clerkId ? "clerk_email" : "local",
+    lastLoginAt: now.toISOString(),
+    loginCount: 1,
+    createdAt: now.toISOString(),
+  };
+
   const vendor = await prisma.vendor.create({
     data: {
+      ...(clerkId ? { clerkId } : {}),
       email,
       passwordHash: await hashPassword(password),
       shopName,
       shopSlug,
-      whatsappNumber,
+      whatsappNumber: whatsappNumber || "15556449932",
+      momoNumber,
       currency,
       language,
-      onboardedAt: new Date(),
+      category,
+      region,
+      emailVerifiedAt: now,
+      onboardedAt: now,
+      uiPrefs: {
+        accountProfile: initialProfile,
+        shopTheme: "arctic",
+      } as never,
       ...newVendorTrialDates(),
+    },
+  });
+
+  await recordVendorActivity({
+    vendorId: vendor.id,
+    type: "auth.account.created",
+    subjectType: "vendor",
+    subjectId: vendor.id,
+    data: {
+      email: vendor.email,
+      ownerName: initialProfile.ownerName,
+      shopName: vendor.shopName,
+      shopSlug: vendor.shopSlug,
+      currency: vendor.currency,
+      language: vendor.language,
+      category: vendor.category,
+      region: vendor.region,
     },
   });
 

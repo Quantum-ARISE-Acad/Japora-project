@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useClerk } from "@clerk/nextjs";
+import { isClerkConfigured } from "@/components/auth/ClerkAuthProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 
 /**
@@ -71,6 +73,16 @@ export default function DashboardShell({
   const [drawer, setDrawer] = useState(false);
   const [palette, setPalette] = useState(false);
 
+  let clerkClient: any = null;
+  try {
+    if (isClerkConfigured()) {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      clerkClient = useClerk();
+    }
+  } catch {
+    clerkClient = null;
+  }
+
   // ⌘K / Ctrl-K opens the command palette anywhere.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -94,7 +106,18 @@ export default function DashboardShell({
   );
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    try {
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("japora_pending_signup");
+      }
+      await fetch("/api/auth/logout", { method: "POST" });
+      if (clerkClient?.signOut) {
+        await clerkClient.signOut({ redirectUrl: "/login" });
+        return;
+      }
+    } catch {
+      // ignore
+    }
     router.push("/login");
     router.refresh();
   }
