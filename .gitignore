@@ -27,6 +27,8 @@ prisma/prisma/
 .env
 .env.*
 !.env.example
+env
+env.*
 *.key
 *.pem
 *.p12
@@ -52,3 +54,7 @@ next-env.d.ts
 # disposable CI diagnostics
 /ci-results/
 deploy/.deployed
+
+# LibreOffice / Word lock files
+.~lock.*#
+~$*

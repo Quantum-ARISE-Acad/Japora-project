@@ -6,6 +6,7 @@ import {
   normalizeCurrency,
   SUPPORTED_CURRENCIES,
 } from "@/lib/currency";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 export default function ShopCurrencySelector({
   selectedCurrency,
@@ -16,6 +17,7 @@ export default function ShopCurrencySelector({
   onCurrencyChange: (code: string) => void;
   baseCurrency: string;
 }) {
+  const { tr } = usePublicLang();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -39,8 +41,8 @@ export default function ShopCurrencySelector({
         type="button"
         onClick={() => setOpen(!open)}
         className="btn-ghost gap-1.5 px-3 py-1.5 text-xs font-semibold"
-        title="Changer la devise d'affichage des prix"
-        aria-label="Sélectionner une devise"
+        title={tr("Changer la devise d’affichage des prix", "Change the price display currency")}
+        aria-label={tr("Sélectionner une devise", "Select a currency")}
       >
         <span>{current.flag}</span>
         <span>{current.code}</span>
@@ -50,8 +52,8 @@ export default function ShopCurrencySelector({
       {open && (
         <div className="absolute right-0 top-full mt-2 z-50 w-56 rounded-shape-xl border border-arctic-400/40 bg-white/95 p-1.5 shadow-xl backdrop-blur-md a-scale-in dark:bg-arctic-900/95">
           <div className="flex items-center justify-between px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-arctic-500 border-b border-arctic-200/50 dark:border-arctic-800">
-            <span>Devise d&apos;affichage</span>
-            <span className="text-[10px] lowercase text-arctic-400">auto-converti</span>
+            <span>{tr("Devise d’affichage", "Display currency")}</span>
+            <span className="text-[10px] lowercase text-arctic-400">{tr("conversion auto", "auto-converted")}</span>
           </div>
 
           <div className="mt-1 max-h-60 overflow-y-auto space-y-0.5">
@@ -84,7 +86,7 @@ export default function ShopCurrencySelector({
                   <div className="flex items-center gap-1">
                     {isBase && (
                       <span className="rounded bg-arctic-200/80 px-1 py-0.5 text-[9px] font-bold text-arctic-700 dark:bg-arctic-800 dark:text-arctic-300">
-                        Boutique
+                        {tr("Boutique", "Shop currency")}
                       </span>
                     )}
                     {isSelected && <span className="text-brand font-bold">✓</span>}
