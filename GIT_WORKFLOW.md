@@ -103,5 +103,5 @@ git push -u origin feat/ma-fonctionnalite
 
 Dans **Settings ➔ Branches** sur le dépôt GitHub `Quantum-ARISE-Acad/Japora-project`, activer une règle de protection pour **`main`**, **`staging`** et **`develop`** :
 - [x] **Require a pull request before merging** (avec au moins 1 approbation pour `main` et `staging`)
-- [x] **Require status checks to pass before merging** (cocher le job CI `CI result`, qui regroupe les contrôles de code, sécurité et infrastructure ; voir `docs/ci.md`)
+- [x] **Require status checks to pass before merging** (cocher le job CI `Stage 4 · CI result`, qui regroupe les contrôles de code, sécurité et infrastructure ; voir `docs/ci.docx`)
 - [x] **Block force pushes**

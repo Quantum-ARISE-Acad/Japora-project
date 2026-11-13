@@ -26,6 +26,11 @@
 		respond 404
 	}
 
+	# Compteurs métier lus par Prometheus sur le réseau interne uniquement.
+	handle /api/metrics* {
+		respond 404
+	}
+
 	# Les photos ajoutées après le démarrage : `next start` ne les servirait pas.
 	# Le CSP empêche un fichier déposé d'exécuter du code sur le domaine.
 	handle /uploads/* {

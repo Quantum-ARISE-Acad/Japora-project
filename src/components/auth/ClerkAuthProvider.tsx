@@ -15,20 +15,23 @@ export function isClerkConfigured(): boolean {
 export default function ClerkAuthProvider({ children }: ClerkAuthProviderProps) {
   const key = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
-  if (!key || key.trim() === "") {
+  if (!isClerkConfigured() || !key) {
     return <>{children}</>;
   }
 
   return (
     <ClerkProvider
       publishableKey={key}
+      signInUrl="/login"
+      signUpUrl="/signup"
+      signInFallbackRedirectUrl="/dashboard"
+      signUpFallbackRedirectUrl="/dashboard"
+      afterSignOutUrl="/login"
       appearance={{
         variables: {
           colorPrimary: "#1A1714",
         },
       }}
-
-
     >
       {children}
     </ClerkProvider>

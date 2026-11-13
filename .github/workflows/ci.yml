@@ -1,5 +1,13 @@
 name: CI — Quality & Build
 
+# Pipeline en étapes : chaque étape ne démarre que si la précédente est verte.
+#   Stage 1 · sécurité et qualité du code (6 jobs en parallèle)
+#   Stage 2 · tests et build (3 jobs)
+#   Stage 3 · Docker, sécurité de l'image et infrastructure (4 jobs)
+#   Stage 4 · CI result (verdict unique, exigé par le CD)
+#   Stage 5 · déploiement : workflow séparé .github/workflows/cd.yml
+# Le tableau des contrôles est dans docs/ci.docx.
+
 on:
   push:
     branches: ['**']
@@ -19,9 +27,14 @@ defaults:
   run:
     shell: bash
 
+env:
+  NODE_VERSION: '20'
+  NEXT_TELEMETRY_DISABLED: '1'
+
 jobs:
-  security:
-    name: Secrets & Workflow Validation
+  # ---------------------------------------------------------------- Stage 1
+  secrets:
+    name: Stage 1 · Secret Scan (Gitleaks)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -29,68 +42,252 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Scan Git history for secrets (redacted)
+      - name: Scan the whole Git history for secrets (redacted)
         run: |
           docker run --rm -v "$PWD:/repo:ro" \
             -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/repo \
             zricethezav/gitleaks:v8.24.3 git /repo --redact --verbose --no-banner --log-opts=--all \
             --gitleaks-ignore-path=/repo/.gitleaksignore
-      - name: Validate GitHub Actions workflow
-        run: docker run --rm -v "$PWD:/repo:ro" -w /repo rhysd/actionlint:1.7.7 .github/workflows/ci.yml
-      - name: Analyze deployment and CI shell scripts
-        run: |
-          docker run --rm -v "$PWD:/repo:ro" -w /repo koalaman/shellcheck:v0.10.0 --severity=warning \
-            deploy/mvp.sh deploy/backup/backup.sh deploy/scheduler/run.sh scripts/ci/infrastructure.sh
+      - name: Reject tracked secrets and database files
+        run: node scripts/ci/check-tracked-files.cjs
 
-  verify:
-    name: Lint, Typecheck, Tests & Build
+  dependencies:
+    name: Stage 1 · Dependency Audit (npm audit)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      DATABASE_URL: file:./prisma/dev.db
-      SESSION_SECRET: ci-only-session-secret-not-for-production
-      NEXT_PUBLIC_APP_URL: http://localhost:5174
-      NEXT_TELEMETRY_DISABLED: '1'
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
+      # Bloque toute faille élevée ou critique des dépendances de production,
+      # sauf exception datée et justifiée dans .github/ci/audit-allowlist.json.
+      - name: Audit production dependencies
+        run: node scripts/ci/audit.cjs
+
+  sast:
+    name: Stage 1 · Code Security Analysis (Semgrep)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      # CodeQL demande GitHub Advanced Security sur un dépôt privé ; Semgrep CE est gratuit.
+      - name: Scan the source code (JS, TS, React, Next.js, secrets rules)
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src semgrep/semgrep:1.99.0 semgrep scan \
+            --config p/javascript --config p/typescript --config p/react --config p/nextjs --config p/secrets \
+            --severity ERROR --error --metrics off --exclude tests --exclude node_modules
+
+  workflows-scripts:
+    name: Stage 1 · Workflows & Shell Scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate GitHub Actions workflows (CI and CD)
+        run: docker run --rm -v "$PWD:/repo:ro" -w /repo rhysd/actionlint:1.7.7
+      - name: Check shell syntax
+        run: |
+          bash -n deploy/mvp.sh scripts/ci/infrastructure.sh
+          sh -n deploy/backup/backup.sh deploy/scheduler/run.sh
+      - name: Analyze deployment and CI shell scripts (ShellCheck)
+        run: |
+          docker run --rm -v "$PWD:/repo:ro" -w /repo koalaman/shellcheck:v0.10.0 --severity=warning \
+            deploy/mvp.sh deploy/backup/backup.sh deploy/scheduler/run.sh scripts/ci/infrastructure.sh
+
+  lint:
+    name: Stage 1 · Lint (ESLint, no warnings)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - name: Reject tracked secrets and database files
-        run: node scripts/ci/check-tracked-files.cjs
-      # Docker also uses npm ci: both jobs resolve package-lock.json.
+      - name: Install exact dependency versions
+        run: npm ci --no-audit --no-fund
+      - name: Lint React and TypeScript
+        run: npm run lint
+
+  typecheck:
+    name: Stage 1 · Typecheck & Prisma Schema
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Prisma lit cette variable pour valider le schéma ; aucune base n'est ouverte.
+      DATABASE_URL: file:./prisma/dev.db
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
       - name: Install exact dependency versions
         run: npm ci --no-audit --no-fund
       - name: Validate Prisma schema
         run: npx --no-install prisma validate
-      - name: Lint React and TypeScript (no warnings)
-        run: |
-          mkdir -p ci-results
-          npm run lint 2>&1 | tee ci-results/lint.log
       - name: TypeScript check
         run: npx --no-install tsc --noEmit
-      - name: Run isolated SQLite test suites
+
+  # ---------------------------------------------------------------- Stage 2
+  tests:
+    name: Stage 2 · Tests (${{ matrix.group }})
+    needs: [secrets, dependencies, sast, workflows-scripts, lint, typecheck]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [unit, database]
+    env:
+      TEST_GROUP: ${{ matrix.group }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install exact dependency versions
+        run: npm ci --no-audit --no-fund
+      - name: Run isolated test suites
         run: |
           mkdir -p ci-results
-          npm test 2>&1 | tee ci-results/tests.log
-      - name: Build application with SQLite
-        run: |
-          npx --no-install prisma db push --skip-generate
-          npm run build
+          npm test 2>&1 | tee "ci-results/tests-${TEST_GROUP}.log"
       - name: Save test output
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: unit-test-results
+          name: tests-${{ matrix.group }}
+          path: ci-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  build:
+    name: Stage 2 · Build Next.js
+    needs: [secrets, dependencies, sast, workflows-scripts, lint, typecheck]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: file:./prisma/dev.db
+      SESSION_SECRET: ci-only-session-secret-not-for-production
+      NEXT_PUBLIC_APP_URL: http://localhost:5174
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install exact dependency versions
+        run: npm ci --no-audit --no-fund
+      - name: Build application with SQLite
+        run: |
+          npx --no-install prisma db push --skip-generate
+          npm run build
+
+  # ---------------------------------------------------------------- Stage 3
+  deploy-config:
+    name: Stage 3 · Deployment Configuration
+    needs: [tests, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Validate Docker Compose MVP without real secrets
+        run: |
+          bash deploy/mvp.sh init localhost ci@example.invalid
+          docker compose --env-file .env.mvp --env-file .env.keys -f docker-compose.mvp.yml config --quiet
+      - name: Validate Caddy, Prometheus and Grafana configuration
+        run: |
+          docker run --rm -e DOMAIN=localhost -e ACME_EMAIL=ci@example.invalid \
+            -v "$PWD/deploy/caddy:/etc/caddy:ro" caddy:2.10-alpine \
+            caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          docker run --rm --entrypoint promtool -v "$PWD/deploy/prometheus:/etc/prometheus:ro" \
+            prom/prometheus:v2.55.1 check config /etc/prometheus/prometheus.yml
+          for f in deploy/grafana/dashboards/*.json; do node -e 'JSON.parse(require("fs").readFileSync(process.argv[1]))' "$f"; done
+
+  image:
+    name: Stage 3 · Docker Image (${{ matrix.image }}) & Trivy
+    needs: [tests, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: app
+            context: .
+            scope: japora-postgresql
+            build-args: |
+              PRISMA_PROVIDER=postgresql
+              NEXT_PUBLIC_APP_URL=https://localhost
+          - image: backup
+            context: deploy/backup
+            scope: japora-backup
+            build-args: ''
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the production image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          load: true
+          push: false
+          tags: japora-ci-${{ matrix.image }}:${{ github.sha }}
+          build-args: ${{ matrix.build-args }}
+          cache-from: type=gha,scope=${{ matrix.scope }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
+      - name: Vulnerability report (high and critical)
+        env:
+          IMAGE: japora-ci-${{ matrix.image }}:${{ github.sha }}
+        run: |
+          mkdir -p ci-results
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/ci-results:/out" \
+            aquasec/trivy:0.58.1 image --quiet --scanners vuln --ignore-unfixed \
+            --severity HIGH,CRITICAL --format table --output "/out/trivy-${{ matrix.image }}.txt" "$IMAGE"
+      # Bloque l'image de l'application si une faille critique a déjà un correctif.
+      - name: Block fixable critical vulnerabilities
+        if: matrix.image == 'app'
+        env:
+          IMAGE: japora-ci-${{ matrix.image }}:${{ github.sha }}
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.58.1 image --quiet --scanners vuln --ignore-unfixed \
+            --severity CRITICAL --exit-code 1 "$IMAGE"
+      - name: Save vulnerability report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-${{ matrix.image }}
           path: ci-results/
           if-no-files-found: ignore
           retention-days: 7
 
   infrastructure:
-    name: Docker, PostgreSQL, HTTPS & Backups
+    name: Stage 3 · Infrastructure (PostgreSQL, HTTPS, Backups, Monitoring)
+    needs: [image, deploy-config]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -102,17 +299,10 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
       - uses: docker/setup-buildx-action@v3
-      - name: Check shell syntax
-        run: |
-          bash -n deploy/mvp.sh scripts/ci/infrastructure.sh
-          sh -n deploy/backup/backup.sh deploy/scheduler/run.sh
-      - name: Validate deployment configuration without real secrets
-        run: |
-          bash deploy/mvp.sh init localhost ci@example.invalid
-          docker compose --env-file .env.mvp --env-file .env.keys -f docker-compose.mvp.yml config --quiet
-      - name: Build production PostgreSQL image
+      # Reconstruit depuis le cache rempli par les jobs « Docker Image » : quelques secondes.
+      - name: Load the application image (from cache)
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -123,8 +313,7 @@ jobs:
             PRISMA_PROVIDER=postgresql
             NEXT_PUBLIC_APP_URL=https://localhost
           cache-from: type=gha,scope=japora-postgresql
-          cache-to: type=gha,mode=max,scope=japora-postgresql
-      - name: Build real backup image
+      - name: Load the backup image (from cache)
         uses: docker/build-push-action@v6
         with:
           context: deploy/backup
@@ -132,8 +321,7 @@ jobs:
           push: false
           tags: ${{ env.CI_BACKUP_IMAGE }}
           cache-from: type=gha,scope=japora-backup
-          cache-to: type=gha,mode=max,scope=japora-backup
-      - name: Test migrations, HTTP, persistence, backup and restore
+      - name: Test migrations, HTTPS, metrics, persistence, backup and restore
         run: bash scripts/ci/infrastructure.sh
       - name: Save infrastructure diagnostics
         if: always()
@@ -144,19 +332,18 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  # ---------------------------------------------------------------- Stage 4
   ci:
-    name: CI result
+    name: Stage 4 · CI result
     if: always()
-    needs: [security, verify, infrastructure]
+    needs: [secrets, dependencies, sast, workflows-scripts, lint, typecheck, tests, build, deploy-config, image, infrastructure]
     runs-on: ubuntu-latest
     timeout-minutes: 2
-    env:
-      SECURITY_RESULT: ${{ needs.security.result }}
-      VERIFY_RESULT: ${{ needs.verify.result }}
-      INFRASTRUCTURE_RESULT: ${{ needs.infrastructure.result }}
     steps:
-      - name: Require every check to succeed
-        run: |
-          test "$SECURITY_RESULT" = success
-          test "$VERIFY_RESULT" = success
-          test "$INFRASTRUCTURE_RESULT" = success
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Require every job to succeed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: printf '%s' "$RESULTS" | node scripts/ci/require-success.cjs

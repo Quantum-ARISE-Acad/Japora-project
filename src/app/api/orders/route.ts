@@ -267,10 +267,10 @@ export async function POST(req: NextRequest) {
         items: lineItems.map((li) => ({
           name: li.productName,
           quantity: li.quantity,
-          unitPrice: `${(li.unitPriceCents / 100).toFixed(2)} ${vendor?.currency || "USD"}`,
+          unitPrice: formatMoney(li.unitPriceCents, vendor?.currency || "XOF"),
           size: li.size,
         })),
-        total: `${(totalCents / 100).toFixed(2)} ${vendor?.currency || "USD"}`,
+        total: formatMoney(totalCents, vendor?.currency || "XOF"),
         payUrl,
         vendorWhatsApp: vendor.whatsappNumber || vendor.phone || undefined,
       });

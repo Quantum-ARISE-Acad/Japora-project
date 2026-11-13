@@ -9,7 +9,8 @@ import NotifyFollowers from "./NotifyFollowers";
 import Glyph from "@/components/Glyph";
 import EmailVerificationBanner from "@/components/EmailVerificationBanner";
 import { emailMode } from "@/lib/email";
-import { cookies } from "next/headers";
+import { isStoreSetupComplete } from "@/lib/onboarding";
+import StoreSetupCard from "./StoreSetupCard";
 
 export default async function OverviewPage() {
   const vendor = await requireVendor();
@@ -125,6 +126,17 @@ export default async function OverviewPage() {
           </a>
         </div>
       </header>
+
+      {!isStoreSetupComplete(vendor) && (
+        <StoreSetupCard
+          initial={{
+            shopName: vendor.shopName,
+            whatsappNumber: vendor.whatsappNumber,
+            region: vendor.region || "",
+            category: vendor.category || "",
+          }}
+        />
+      )}
 
       {/* Unconfirmed orders alert */}
       {unconfirmedOlderThan24h > 0 && (

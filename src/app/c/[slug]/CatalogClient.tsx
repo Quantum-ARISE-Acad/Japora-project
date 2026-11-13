@@ -359,17 +359,27 @@ export default function CatalogClient({
 
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     const payUrl = `${origin}/pay/${data.orderId}`;
-    const summary = `${tr(`Bonjour ${shopName}`, `Hello ${shopName}`)},\n\n` +
-      `${tr("Je viens de valider ma commande (Réf :", "I just placed my order (Ref:")} #${data.orderId.slice(0, 8)}).\n\n` +
-      `📦 *${tr("Articles commandés", "Items ordered")} :*\n${cart.map((l) => `• ${l.qty}× ${l.name}${l.size ? ` (${l.size})` : ""} — ${formatMoney(l.priceCents * l.qty, currency)}`).join("\n")}\n\n` +
-      `💰 *${tr("Sous-total", "Subtotal")} :* ${formatMoney(data.totalCents - data.deliveryFeeCents, currency)}\n` +
-      (data.deliveryFeeCents > 0 ? `🛵 *${tr("Frais de livraison", "Delivery fee")} :* +${formatMoney(data.deliveryFeeCents, currency)} (${checkoutZone || tr("Standard", "Standard")})\n` : "") +
-      `💳 *${tr("Total à régler", "Total due")} :* ${formatMoney(data.totalCents, currency)}\n` +
-      `📍 *${tr("Récupération", "Fulfillment")} :* ${fulfillment === "delivery" ? tr(`Livraison à domicile (${deliveryAddress || "Voir adresse"})`, `Home delivery (${deliveryAddress || "See address"})`) : tr("Retrait en boutique", "Store pickup")}\n` +
-      `📱 *${tr("Mode de paiement", "Payment method")} :* ${paymentLabel}\n` +
-      `👤 *${tr("Client", "Customer")} :* ${customerName}${customerPhone ? ` (${customerPhone})` : ""}\n` +
-      (note ? `📝 *${tr("Note", "Note")} :* ${note}\n` : "") +
-      `\n🔗 *${tr("Lien de suivi et paiement", "Tracking and payment link")} :*\n${payUrl}\n\n${tr("Merci de confirmer ma commande !", "Please confirm my order!")}`;
+    const itemsList = cart
+      .map((l) => `  - ${l.qty}x ${l.name}${l.size ? ` (${l.size})` : ""} : ${formatMoney(l.priceCents * l.qty, currency)}`)
+      .join("\n");
+
+    const summary =
+      `Bonjour ${shopName} !\n\n` +
+      `J'ai validé ma commande sur votre boutique Japora.\n` +
+      `Référence : #${data.orderId.slice(0, 8)}\n\n` +
+      `DÉTAILS DES ARTICLES :\n` +
+      `${itemsList}\n\n` +
+      `Sous-total : ${formatMoney(data.totalCents - data.deliveryFeeCents, currency)}\n` +
+      (data.deliveryFeeCents > 0 ? `Frais de livraison : +${formatMoney(data.deliveryFeeCents, currency)} (${checkoutZone || "Standard"})\n` : "") +
+      `Total à régler : ${formatMoney(data.totalCents, currency)}\n` +
+      `Mode de paiement : ${paymentLabel}\n` +
+      `Récupération : ${fulfillment === "delivery" ? `Livraison à domicile (${deliveryAddress || "Voir adresse"})` : "Retrait en boutique"}\n\n` +
+      `INFORMATIONS CLIENT :\n` +
+      `- Nom : ${customerName}\n` +
+      (customerPhone ? `- Téléphone : ${customerPhone}\n` : "") +
+      (note ? `- Note spéciale : ${note}\n` : "") +
+      `\nLien suivi & facture :\n${payUrl}\n\n` +
+      `Merci de bien vouloir me confirmer ma commande !`;
 
     setPlacedSummary({
       orderId: data.orderId,

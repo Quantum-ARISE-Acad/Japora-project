@@ -49,7 +49,7 @@ export async function buildSummary(
     where: { id: vendorId },
     select: { shopName: true, currency: true },
   });
-  const currency = vendor?.currency || "NGN";
+  const currency = vendor?.currency || "XOF";
   const shopName = vendor?.shopName || "Your shop";
 
   const orders = await prisma.order.findMany({
