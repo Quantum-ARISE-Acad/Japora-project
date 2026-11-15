@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import InstallPrompt from "@/components/InstallPrompt";
 import ThemeSync from "@/components/ThemeSync";
@@ -7,18 +7,24 @@ import ClerkAuthProvider from "@/components/auth/ClerkAuthProvider";
 import { PublicLanguageProvider } from "@/components/PublicLanguageProvider";
 
 
+// Fonts are self-hosted (src/app/fonts, variable woff2, latin subset) so the
+// build never depends on reaching Google Fonts — a failed fetch there breaks
+// `next build` on Vercel.
+
 // Body / UI face — Inter, with the tabular-figure feature used by the ledger.
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+const inter = localFont({
+  src: "./fonts/Inter-Variable.woff2",
+  weight: "100 900",
+  style: "normal",
   variable: "--font-sans",
   display: "swap",
 });
 
 // Modern display face — Plus Jakarta Sans for crisp, contemporary headings.
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
+const jakarta = localFont({
+  src: "./fonts/PlusJakartaSans-Variable.woff2",
+  weight: "200 800",
+  style: "normal",
   variable: "--font-display",
   display: "swap",
 });
