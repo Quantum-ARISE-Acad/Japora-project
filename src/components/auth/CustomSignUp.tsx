@@ -98,7 +98,7 @@ export default function CustomSignUp() {
       const oauthTarget = signUp || signIn;
       await oauthTarget!.authenticateWithRedirect({
         strategy: "oauth_google",
-        redirectUrl: "/sso-callback",
+        redirectUrl: "/sso-callback?intent=signUp",
         redirectUrlComplete: "/dashboard",
       });
     } catch (err: any) {
@@ -210,6 +210,12 @@ export default function CustomSignUp() {
         } else {
           throw paramErr;
         }
+      }
+
+      // Resolve Clerk Protect challenge in-place (avoids redirect to accounts.dev/sign-up/protect-check)
+      if (result?.protectCheck || result?.missingFields?.includes?.("protect_check")) {
+        await (clerk as any).__internal_resolvePendingProtectCheck?.("signUp");
+        result = clerk.client?.signUp ?? result;
       }
 
       if (result.status === "missing_requirements") {

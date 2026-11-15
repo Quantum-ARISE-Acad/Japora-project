@@ -22,13 +22,15 @@ export default function ClerkAuthProvider({ children }: ClerkAuthProviderProps) 
   return (
     <ClerkProvider
       publishableKey={key}
+      signInUrl="/login"
+      signUpUrl="/signup"
+      signInFallbackRedirectUrl="/dashboard"
+      signUpFallbackRedirectUrl="/dashboard"
       appearance={{
         variables: {
           colorPrimary: "#1A1714",
         },
       }}
-
-
     >
       {children}
     </ClerkProvider>

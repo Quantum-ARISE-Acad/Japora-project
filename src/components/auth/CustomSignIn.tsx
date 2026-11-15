@@ -84,7 +84,7 @@ export default function CustomSignIn() {
       const oauthClient = signIn || signUp;
       await oauthClient!.authenticateWithRedirect({
         strategy: "oauth_google",
-        redirectUrl: "/sso-callback",
+        redirectUrl: "/sso-callback?intent=signIn",
         redirectUrlComplete: redirectUrl,
       });
     } catch (err: any) {
@@ -121,10 +121,16 @@ export default function CustomSignIn() {
     const cleanEmail = email.trim().toLowerCase();
 
     try {
-      const result = await signIn.create({
+      let result: any = await signIn.create({
         identifier: cleanEmail,
         password,
       });
+
+      // Resolve Clerk Protect challenge in-place (avoids redirect to accounts.dev/sign-in/protect-check)
+      if (result?.protectCheck || result?.status === "needs_protect_check") {
+        await (clerk as any).__internal_resolvePendingProtectCheck?.("signIn");
+        result = clerk.client?.signIn ?? result;
+      }
 
       if (result.status === "complete") {
         await finalizeClerkLogin(

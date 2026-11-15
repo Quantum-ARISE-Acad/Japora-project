@@ -1,7 +1,7 @@
 /**
  * Japora maintenance cron — housekeeping that keeps the system healthy at scale.
- * Schedule hourly (see vercel.json) with the same shared-secret auth as the
- * daily summary: `?key=CRON_SECRET` or `X-Cron-Key`.
+ * Scheduled daily on Vercel Hobby (see vercel.json; hourly requires Pro).
+ * Auth: `Authorization: Bearer CRON_SECRET` (Vercel Cron), `X-Cron-Key` or `?key=`.
  *
  * Does three bounded, idempotent jobs:
  *   1. Retry failed outbound WhatsApp sends (transient provider errors) — plain
@@ -22,6 +22,7 @@ import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { sendWhatsApp } from "@/lib/whatsapp";
 import { drainOutbox } from "@/lib/bus";
+import { isAuthorizedCron } from "@/lib/cron-auth";
 
 const RETRY_LOOKBACK_MS = 24 * 60 * 60 * 1000; // only retry recent failures
 const RETRY_BATCH = 50; // bound the fan-out per run
@@ -65,10 +66,9 @@ async function retryFailedSends(): Promise<{ retried: number; failedAgain: numbe
 }
 
 async function handle(req: NextRequest) {
-  const expected = process.env.CRON_SECRET;
-  const provided = req.nextUrl.searchParams.get("key") || req.headers.get("x-cron-key");
-  if (!expected || provided !== expected) {
-    logger.warn("cron.maintenance.unauthorized", { hasProvided: Boolean(provided) });
+  const auth = isAuthorizedCron(req);
+  if (!auth.ok) {
+    logger.warn("cron.maintenance.unauthorized", { hasProvided: auth.hasProvided });
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 
