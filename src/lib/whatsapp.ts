@@ -8,6 +8,8 @@ export type OutboundMessage = {
   to: string;
   body: string;
   orderId?: string | null;
+  overrideToken?: string;
+  overridePhoneNumberId?: string;
 };
 
 export interface WhatsAppProvider {
@@ -33,8 +35,8 @@ class StubProvider implements WhatsAppProvider {
 }
 
 /**
- * Real Meta WhatsApp Cloud API. Activated automatically once WHATSAPP_TOKEN and
- * WHATSAPP_PHONE_NUMBER_ID are present in the environment or configured per vendor.
+ * Real Meta WhatsApp Cloud API. Activated when the vendor has configured
+ * their Access Token and Phone Number ID in Dashboard → Assistant WhatsApp.
  */
 class CloudApiProvider implements WhatsAppProvider {
   name = "cloud-api";
@@ -80,12 +82,8 @@ export function getProvider(
   if (process.env.NODE_ENV === "test" || process.env.WATURU_TEST_MODE === "1") {
     return new StubProvider();
   }
-  const token = (overrideToken || process.env.WHATSAPP_TOKEN || "").trim();
-  const phoneNumberId = (
-    overridePhoneNumberId ||
-    process.env.WHATSAPP_PHONE_NUMBER_ID ||
-    ""
-  ).trim();
+  const token = (overrideToken || "").trim();
+  const phoneNumberId = (overridePhoneNumberId || "").trim();
   if (token && phoneNumberId) {
     return new CloudApiProvider(token, phoneNumberId);
   }
@@ -100,12 +98,8 @@ export function isLiveMode(vendor?: {
     return false;
   }
   const cfg = vendor ? parseWhatsAppAssistantConfig(vendor.uiPrefs) : null;
-  const token = (cfg?.whatsappAccessToken || process.env.WHATSAPP_TOKEN || "").trim();
-  const phoneNumberId = (
-    vendor?.whatsappPhoneNumberId ||
-    process.env.WHATSAPP_PHONE_NUMBER_ID ||
-    ""
-  ).trim();
+  const token = (cfg?.whatsappAccessToken || "").trim();
+  const phoneNumberId = (vendor?.whatsappPhoneNumberId || "").trim();
   return Boolean(token && phoneNumberId);
 }
 
@@ -126,11 +120,8 @@ async function resolveVendorCloudCredentials(
     if (!v) return {};
     const cfg = parseWhatsAppAssistantConfig(v.uiPrefs);
     return {
-      token: cfg.whatsappAccessToken || process.env.WHATSAPP_TOKEN || undefined,
-      phoneNumberId:
-        v.whatsappPhoneNumberId ||
-        process.env.WHATSAPP_PHONE_NUMBER_ID ||
-        undefined,
+      token: cfg.whatsappAccessToken || undefined,
+      phoneNumberId: v.whatsappPhoneNumberId || undefined,
     };
   } catch {
     return {};
@@ -168,6 +159,8 @@ export type OutboundTemplate = {
   // Optional shorthand for body text parameters (converted into a body component).
   parameters?: string[];
   orderId?: string | null;
+  overrideToken?: string;
+  overridePhoneNumberId?: string;
 };
 
 function isSectionList(
@@ -307,12 +300,8 @@ function getInteractive(
   if (process.env.NODE_ENV === "test" || process.env.WATURU_TEST_MODE === "1") {
     return new StubInteractive();
   }
-  const token = (overrideToken || process.env.WHATSAPP_TOKEN || "").trim();
-  const phoneNumberId = (
-    overridePhoneNumberId ||
-    process.env.WHATSAPP_PHONE_NUMBER_ID ||
-    ""
-  ).trim();
+  const token = (overrideToken || "").trim();
+  const phoneNumberId = (overridePhoneNumberId || "").trim();
   if (token && phoneNumberId) {
     return new CloudApiInteractive(token, phoneNumberId);
   }
@@ -351,7 +340,10 @@ export async function sendWhatsAppInteractive(msg: OutboundInteractive) {
 /** Send a pre-approved WhatsApp template message. Logs + persists. */
 export async function sendWhatsAppTemplate(msg: OutboundTemplate) {
   const creds = await resolveVendorCloudCredentials(msg.vendorId);
-  const provider = getInteractive(creds.token, creds.phoneNumberId);
+  const provider = getInteractive(
+    msg.overrideToken || creds.token,
+    msg.overridePhoneNumberId || creds.phoneNumberId,
+  );
   let status = "stubbed";
   let providerId: string | undefined;
   let error: string | undefined;
@@ -380,7 +372,10 @@ export async function sendWhatsAppTemplate(msg: OutboundTemplate) {
 /** Send a message via the active provider and persist a log row either way. */
 export async function sendWhatsApp(msg: OutboundMessage) {
   const creds = await resolveVendorCloudCredentials(msg.vendorId);
-  const provider = getProvider(creds.token, creds.phoneNumberId);
+  const provider = getProvider(
+    msg.overrideToken || creds.token,
+    msg.overridePhoneNumberId || creds.phoneNumberId,
+  );
   let status = "stubbed";
   let error: string | undefined;
   let providerId: string | undefined;
@@ -489,11 +484,20 @@ export async function sendCustomerUpdate(msg: {
   templateName?: string;
   languageCode?: string;
   components?: unknown[];
+  overrideToken?: string;
+  overridePhoneNumberId?: string;
 }) {
   const inWindow = await isWithinServiceWindow(msg.vendorId, msg.to);
 
   if (inWindow) {
-    const r = await sendWhatsApp({ vendorId: msg.vendorId, to: msg.to, body: msg.body, orderId: msg.orderId });
+    const r = await sendWhatsApp({
+      vendorId: msg.vendorId,
+      to: msg.to,
+      body: msg.body,
+      orderId: msg.orderId,
+      overrideToken: msg.overrideToken,
+      overridePhoneNumberId: msg.overridePhoneNumberId,
+    });
     logger.info("whatsapp.customer_update", { vendorId: msg.vendorId, path: "in_window_free", billable: false });
     return { ...r, inWindow: true, billable: false };
   }
@@ -506,13 +510,22 @@ export async function sendCustomerUpdate(msg: {
       languageCode: msg.languageCode || "en",
       components: msg.components,
       orderId: msg.orderId,
+      overrideToken: msg.overrideToken,
+      overridePhoneNumberId: msg.overridePhoneNumberId,
     });
     logger.info("whatsapp.customer_update", { vendorId: msg.vendorId, path: "template_paid", billable: true });
     return { ...r, inWindow: false, billable: true };
   }
 
   // No template registered yet — send text best-effort, flagged for visibility.
-  const r = await sendWhatsApp({ vendorId: msg.vendorId, to: msg.to, body: msg.body, orderId: msg.orderId });
+  const r = await sendWhatsApp({
+    vendorId: msg.vendorId,
+    to: msg.to,
+    body: msg.body,
+    orderId: msg.orderId,
+    overrideToken: msg.overrideToken,
+    overridePhoneNumberId: msg.overridePhoneNumberId,
+  });
   logger.warn("whatsapp.customer_update", { vendorId: msg.vendorId, path: "out_of_window_no_template", billable: true });
   return { ...r, inWindow: false, billable: true };
 }

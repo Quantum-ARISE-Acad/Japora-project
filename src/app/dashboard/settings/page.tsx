@@ -85,7 +85,7 @@ export default async function SettingsPage() {
         referralCode,
         qualifiedReferrals,
       }}
-      whatsappLive={isLiveMode()}
+      whatsappLive={isLiveMode(vendor)}
       storageMode={storageMode()}
     />
     </div>

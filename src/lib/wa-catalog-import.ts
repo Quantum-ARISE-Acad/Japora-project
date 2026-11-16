@@ -14,6 +14,7 @@ import { prisma } from "./db";
 import { logger } from "./logger";
 import { enqueue, kickDrain } from "./bus";
 import { becamePublished, productPublished } from "./catalog-events";
+import { parseWhatsAppAssistantConfig } from "./whatsapp-config";
 
 const GRAPH_VERSION = "v21.0";
 
@@ -54,27 +55,28 @@ function parseGraphPriceToCents(raw: string | undefined): number {
 export async function importFromWhatsAppCatalog(
   vendorId: string,
 ): Promise<ImportResult> {
-  const token = process.env.WHATSAPP_TOKEN;
-  const businessAccountId = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID;
+  // Read once, not per product: `catalog.product.published` carries the
+  // storefront link and the currency, and both live on the vendor.
+  const vendor = await prisma.vendor.findUnique({
+    where: { id: vendorId },
+    select: { id: true, shopSlug: true, currency: true, category: true, uiPrefs: true },
+  });
+  if (!vendor) {
+    logger.warn("wa_catalog.import_unknown_vendor", { vendorId });
+    return { ok: false, error: "Unknown vendor." };
+  }
+
+  const waCfg = parseWhatsAppAssistantConfig(vendor.uiPrefs);
+  const token = waCfg.whatsappAccessToken.trim();
+  const businessAccountId = waCfg.whatsappBusinessAccountId.trim();
 
   if (!token || !businessAccountId) {
     logger.info("wa_catalog.import_skipped_no_credentials", { vendorId });
     return {
       ok: false,
       error:
-        "WhatsApp Business credentials not configured. Set WHATSAPP_TOKEN and WHATSAPP_BUSINESS_ACCOUNT_ID.",
+        "Identifiants WhatsApp Business non configurés. Renseignez votre Access Token et votre WABA ID dans l'onglet Assistant WhatsApp.",
     };
-  }
-
-  // Read once, not per product: `catalog.product.published` carries the
-  // storefront link and the currency, and both live on the vendor.
-  const vendor = await prisma.vendor.findUnique({
-    where: { id: vendorId },
-    select: { id: true, shopSlug: true, currency: true, category: true },
-  });
-  if (!vendor) {
-    logger.warn("wa_catalog.import_unknown_vendor", { vendorId });
-    return { ok: false, error: "Unknown vendor." };
   }
 
   try {

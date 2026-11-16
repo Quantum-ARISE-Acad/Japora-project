@@ -70,7 +70,7 @@ export default async function CatalogPage({ params, searchParams }: Params) {
         slug: c.slug,
         description: c.description,
         productCount: c.products.length,
-        coverImageUrl: c.products.find((p) => p.imageUrl)?.imageUrl || "",
+        coverImageUrl: c.imageUrl || c.products.find((p) => p.imageUrl)?.imageUrl || "",
       }))}
       products={products.map((p) => ({
         id: p.id,

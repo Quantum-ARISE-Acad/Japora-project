@@ -37,43 +37,6 @@ export function validatePassword(password: string): PasswordCheck {
   return { ok: true };
 }
 
-/**
- * Ensure the currently logged-in dashboard vendor owns the configured
- * WHATSAPP_PHONE_NUMBER_ID so that all incoming WhatsApp webhook orders, deals,
- * and tracking requests route directly to the active vendor's dashboard.
- */
-async function syncActiveVendorWhatsAppBinding(vendor: Vendor): Promise<Vendor> {
-  const envPhoneId = (process.env.WHATSAPP_PHONE_NUMBER_ID || "").trim();
-  if (!envPhoneId) return vendor;
-
-  try {
-    if (vendor.whatsappPhoneNumberId !== envPhoneId) {
-      await prisma.vendor.updateMany({
-        where: { whatsappPhoneNumberId: envPhoneId, id: { not: vendor.id } },
-        data: { whatsappPhoneNumberId: null },
-      });
-      vendor = await prisma.vendor.update({
-        where: { id: vendor.id },
-        data: {
-          whatsappPhoneNumberId: envPhoneId,
-          ...(vendor.whatsappNumber ? {} : { whatsappNumber: "15556449932" }),
-        },
-      });
-    }
-    // Also adopt any WhatsApp / Deal orders so they always appear in the active vendor's dashboard
-    await prisma.order.updateMany({
-      where: {
-        vendorId: { not: vendor.id },
-        source: { in: ["whatsapp", "whatsapp_deal"] },
-      },
-      data: { vendorId: vendor.id },
-    });
-  } catch {
-    // Ignore race conditions on concurrent requests
-  }
-  return vendor;
-}
-
 /** Returns the logged-in vendor, or null if there is no valid session. */
 export async function getCurrentVendor(): Promise<Vendor | null> {
   // 1. Check Clerk session first if Clerk is configured
@@ -86,7 +49,7 @@ export async function getCurrentVendor(): Promise<Vendor | null> {
           where: { clerkId: clerkAuth.userId },
         });
         if (existingByClerk && !existingByClerk.deletedAt) {
-          return await syncActiveVendorWhatsAppBinding(existingByClerk);
+          return existingByClerk;
         }
 
         // Auto-provision or link Clerk vendor in MySQL if not yet linked
@@ -162,7 +125,7 @@ export async function getCurrentVendor(): Promise<Vendor | null> {
         });
 
         if (synced.vendor && !synced.vendor.deletedAt) {
-          return await syncActiveVendorWhatsAppBinding(synced.vendor);
+          return synced.vendor;
         }
       }
     } catch {
@@ -178,7 +141,7 @@ export async function getCurrentVendor(): Promise<Vendor | null> {
         where: { id: session.vendorId },
       });
       if (vendor && !vendor.deletedAt) {
-        return await syncActiveVendorWhatsAppBinding(vendor);
+        return vendor;
       }
     }
   } catch (err) {
@@ -192,7 +155,7 @@ export async function getCurrentVendor(): Promise<Vendor | null> {
     if (unified?.email) {
       const vendor = await syncUnifiedVendor(unified);
       if (vendor && !vendor.deletedAt) {
-        return await syncActiveVendorWhatsAppBinding(vendor);
+        return vendor;
       }
     }
   } catch {

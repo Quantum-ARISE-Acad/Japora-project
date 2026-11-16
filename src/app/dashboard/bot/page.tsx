@@ -77,7 +77,7 @@ export default async function BotPage() {
         shopName={vendor.shopName}
         shopSlug={vendor.shopSlug}
         initialWhatsappNumber={vendor.whatsappNumber}
-        initialPhoneNumberId={vendor.whatsappPhoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID || ""}
+        initialPhoneNumberId={vendor.whatsappPhoneNumberId || ""}
         initialConfig={waConfig}
         isCloudLive={cloudLive}
         isGeminiLive={llmActive}

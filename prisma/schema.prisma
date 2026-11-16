@@ -586,6 +586,7 @@ model Collection {
   name        String
   slug        String
   description String    @default("") @db.VarChar(1000)
+  imageUrl    String    @default("") @db.VarChar(2048)
   createdAt   DateTime  @default(now())
   products    Product[]
 

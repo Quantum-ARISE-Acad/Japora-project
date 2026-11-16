@@ -160,16 +160,6 @@ export async function syncClerkUserToVendor(
       input.completeOnboarding !== false;
 
     const trialEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    const envPhoneId = (process.env.WHATSAPP_PHONE_NUMBER_ID || "").trim();
-
-    if (envPhoneId) {
-      await prisma.vendor
-        .updateMany({
-          where: { whatsappPhoneNumberId: envPhoneId },
-          data: { whatsappPhoneNumberId: null },
-        })
-        .catch(() => {});
-    }
 
     const initialProfile: VendorAccountProfile = {
       ownerName: fullName,
@@ -191,9 +181,8 @@ export async function syncClerkUserToVendor(
         passwordHash,
         shopName: resolvedShopName,
         shopSlug: resolvedSlug,
-        whatsappNumber: cleanWhatsapp || "15556449932",
+        whatsappNumber: cleanWhatsapp,
         momoNumber: cleanMomo,
-        ...(envPhoneId ? { whatsappPhoneNumberId: envPhoneId } : {}),
         currency: (input.currency || "XOF").trim().toUpperCase().slice(0, 3),
         language: (input.language || "fr").trim() || "fr",
         region: (input.region || "lome").trim(),

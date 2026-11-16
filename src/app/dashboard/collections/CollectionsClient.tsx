@@ -20,6 +20,7 @@ type Collection = {
   name: string;
   slug: string;
   description: string;
+  imageUrl?: string;
   productCount: number;
   products: { id: string; name: string; priceCents: number; imageUrl?: string; stock?: number }[];
 };
@@ -45,6 +46,8 @@ export default function CollectionsClient({
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
   const [description, setDescription] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [productSearch, setProductSearch] = useState("");
   const [saving, setSaving] = useState(false);
@@ -66,6 +69,7 @@ export default function CollectionsClient({
     setSlug("");
     setSlugTouched(false);
     setDescription("");
+    setImageUrl("");
     setSelectedProductIds([]);
     setProductSearch("");
     setEditingId(null);
@@ -78,11 +82,40 @@ export default function CollectionsClient({
     setSlug(c.slug);
     setSlugTouched(true);
     setDescription(c.description);
+    setImageUrl(c.imageUrl || "");
     setSelectedProductIds(c.products.map((p) => p.id));
     setProductSearch("");
     setEditingId(c.id);
     setError("");
     setOpen(true);
+  }
+
+  async function handleCollectionImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      setError("L'image de la collection ne doit pas dépasser 10 Mo.");
+      return;
+    }
+    setUploadingImage(true);
+    setError("");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("folder", "collections");
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) {
+        setError(data.error || "Échec du téléversement de l'image.");
+      } else {
+        setImageUrl(data.url);
+      }
+    } catch {
+      setError("Erreur réseau lors du téléversement de l'image.");
+    } finally {
+      setUploadingImage(false);
+      e.target.value = "";
+    }
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -105,6 +138,7 @@ export default function CollectionsClient({
           name: name.trim(),
           slug: slug.trim() || undefined,
           description: description.trim(),
+          imageUrl: imageUrl.trim(),
           productIds: selectedProductIds,
         }),
       });
@@ -126,6 +160,7 @@ export default function CollectionsClient({
           name: data.collection.name,
           slug: data.collection.slug,
           description: data.collection.description || "",
+          imageUrl: data.collection.imageUrl || imageUrl.trim() || "",
           productCount: returnedProducts.length,
           products: returnedProducts,
         };
@@ -234,7 +269,7 @@ export default function CollectionsClient({
       ) : (
         <div className="grid gap-5 md:grid-cols-2">
           {collections.map((c) => {
-            const coverProduct = c.products.find((p) => p.imageUrl);
+            const coverImage = c.imageUrl || c.products.find((p) => p.imageUrl)?.imageUrl;
             return (
               <div
                 key={c.id}
@@ -242,12 +277,12 @@ export default function CollectionsClient({
               >
                 {/* Collection visual header */}
                 <div className="relative h-28 bg-gradient-to-r from-brand-dark via-brand to-emerald-600 p-4 text-white flex items-end justify-between overflow-hidden">
-                  {coverProduct?.imageUrl && (
+                  {coverImage && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={coverProduct.imageUrl}
+                      src={coverImage}
                       alt={c.name}
-                      className="absolute inset-0 h-full w-full object-cover opacity-25 mix-blend-overlay"
+                      className="absolute inset-0 h-full w-full object-cover opacity-35 mix-blend-overlay"
                     />
                   )}
                   <div className="relative z-10 min-w-0">
@@ -419,6 +454,41 @@ export default function CollectionsClient({
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
+              </div>
+
+              <div>
+                <label className="label">Image de couverture (Firebase Storage)</label>
+                <div className="flex flex-wrap items-center gap-3">
+                  {imageUrl && (
+                    <div className="relative h-14 w-20 overflow-hidden rounded-lg border border-arctic-300 bg-arctic-100">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={imageUrl} alt="Aperçu couverture" className="h-full w-full object-cover" />
+                    </div>
+                  )}
+                  <label className="btn-ghost cursor-pointer text-xs !py-2 px-3">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleCollectionImageUpload}
+                      disabled={uploadingImage}
+                      className="hidden"
+                    />
+                    {uploadingImage
+                      ? "Téléversement Firebase…"
+                      : imageUrl
+                        ? "📷 Changer l'image"
+                        : "📷 Ajouter une image de couverture"}
+                  </label>
+                  {imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl("")}
+                      className="text-xs font-medium text-red-600 hover:underline"
+                    >
+                      Retirer
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Product selector */}

@@ -51,7 +51,7 @@ export default function SettingsForm({
 }: {
   initial: Initial;
   whatsappLive: boolean;
-  storageMode: "local" | "s3";
+  storageMode: "firebase" | "s3" | "local";
 }) {
   const router = useRouter();
   const [shopName, setShopName] = useState(initial.shopName);
@@ -119,6 +119,7 @@ export default function SettingsForm({
     try {
       const fd = new FormData();
       fd.append("file", file);
+      fd.append("folder", "avatars");
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -599,22 +600,28 @@ export default function SettingsForm({
 
       <div className="card p-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-arctic-900">Image storage</h2>
+          <h2 className="text-sm font-semibold text-arctic-900">Image &amp; document storage</h2>
           <span
             className={
               "rounded-full px-2 py-0.5 text-xs font-semibold " +
-              (storageMode === "s3"
+              (storageMode === "firebase" || storageMode === "s3"
                 ? "bg-brand/10 text-brand-dark"
                 : "bg-arctic-200/65 text-arctic-700")
             }
           >
-            {storageMode === "s3" ? "● S3-compatible (live)" : "● Local filesystem"}
+            {storageMode === "firebase"
+              ? "● Firebase Storage (live)"
+              : storageMode === "s3"
+                ? "● S3-compatible (live)"
+                : "● Local filesystem"}
           </span>
         </div>
         <p className="mt-2 text-sm text-arctic-600">
-          {storageMode === "s3"
-            ? "Product photos are uploaded to your configured S3-compatible bucket (AWS S3, Cloudflare R2, or Supabase Storage)."
-            : "Product photos are saved to ./public/uploads. Fine for a single Node host — switch to S3 storage before deploying to serverless. Set the STORAGE_S3_* env vars to flip."}
+          {storageMode === "firebase"
+            ? "Toutes les photos de produits, couvertures de collections, logos de boutiques et documents sont hébergés sur Firebase Cloud Storage."
+            : storageMode === "s3"
+              ? "Product photos are uploaded to your configured S3-compatible bucket (AWS S3, Cloudflare R2, or Supabase Storage)."
+              : "Product photos are saved to ./public/uploads. Fine for a single Node host — configure NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET or STORAGE_S3_* before deploying to serverless."}
         </p>
       </div>
 
@@ -634,8 +641,8 @@ export default function SettingsForm({
         </div>
         <p className="mt-2 text-sm text-arctic-600">
           {whatsappLive
-            ? "Outbound messages go through Meta's WhatsApp Cloud API."
-            : "Set WHATSAPP_TOKEN and WHATSAPP_PHONE_NUMBER_ID in your .env file to go live. Until then, outbound messages are logged + recorded but not sent."}
+            ? "Les messages WhatsApp sortants passent en direct par Meta WhatsApp Cloud API."
+            : "Configurez votre Access Token et votre Phone Number ID dans l'onglet Assistant WhatsApp du tableau de bord pour activer l'envoi réel."}
         </p>
         <div className="mt-4 space-y-2 text-sm">
           <div>

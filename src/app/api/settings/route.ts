@@ -72,16 +72,24 @@ export async function PATCH(req: NextRequest) {
     data.momoNumber = digitsOnly(b.momoNumber);
   }
   // Meta Cloud API phone_number_id — digits only; empty string clears it.
+  const forceClaimPhoneNumberId = Boolean(b.forceClaimPhoneNumberId);
   if (typeof b.whatsappPhoneNumberId === "string") {
     const v = b.whatsappPhoneNumberId.trim();
     const cleaned = v ? digitsOnly(v) : null;
     if (cleaned) {
       const takenPhoneId = await prisma.vendor.findFirst({
         where: { whatsappPhoneNumberId: cleaned, NOT: { id: vendor.id } },
+        select: { id: true, shopName: true, shopSlug: true, email: true },
       });
-      if (takenPhoneId) {
+      if (takenPhoneId && !forceClaimPhoneNumberId) {
         return NextResponse.json(
-          { error: "Ce Phone Number ID WhatsApp est déjà associé à une autre boutique." },
+          {
+            error: `Ce Phone Number ID WhatsApp (${cleaned}) est déjà utilisé par la boutique « ${takenPhoneId.shopName} » (/c/${takenPhoneId.shopSlug}). Voulez-vous le transférer et l'associer à votre boutique actuelle ?`,
+            conflictCode: "WHATSAPP_PHONE_ID_TAKEN",
+            existingShopName: takenPhoneId.shopName,
+            existingShopSlug: takenPhoneId.shopSlug,
+            phoneNumberId: cleaned,
+          },
           { status: 409 },
         );
       }

@@ -37,6 +37,7 @@ export default async function CollectionsPage() {
           name: c.name,
           slug: c.slug,
           description: c.description,
+          imageUrl: c.imageUrl || "",
           productCount: c.products.length,
           products: c.products,
         }))}

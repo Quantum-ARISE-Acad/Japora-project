@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
 
   const baseSlug = slugify(String(body.slug || "").trim() || name) || `collection-${Date.now().toString(36)}`;
   const description = String(body.description || "").trim();
+  const imageUrl = typeof body.imageUrl === "string" ? body.imageUrl.trim() : "";
 
   // Ensure unique slug per vendor (if custom slug was not forced, auto-suffix; if forced, check conflict)
   let finalSlug = baseSlug;
@@ -61,6 +62,7 @@ export async function POST(req: NextRequest) {
       name,
       slug: finalSlug,
       description,
+      imageUrl,
     },
   });
 

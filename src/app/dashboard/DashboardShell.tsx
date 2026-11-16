@@ -48,7 +48,6 @@ const NAV: Group[] = [
     section: "Grow",
     items: [
       { href: "/dashboard/analytics", label: "Analytics", icon: "target" },
-      { href: "/dashboard/cooperative", label: "Cooperative", icon: "customers" },
       { href: "/dashboard/broadcasts", label: "Marketing", icon: "megaphone" },
       { href: "/dashboard/campaigns", label: "Ads", icon: "target" },
       { href: "/dashboard/bot", label: "Assistant WhatsApp", icon: "bot" },

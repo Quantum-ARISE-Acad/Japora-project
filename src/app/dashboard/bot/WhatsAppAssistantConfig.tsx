@@ -51,6 +51,11 @@ export default function WhatsAppAssistantConfig({
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [claimPrompt, setClaimPrompt] = useState<{
+    existingShopName: string;
+    existingShopSlug: string;
+    phoneNumberId: string;
+  } | null>(null);
 
   // Test message sender state
   const [testToPhone, setTestToPhone] = useState(
@@ -66,11 +71,13 @@ export default function WhatsAppAssistantConfig({
       : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5174";
   const webhookUrl = `${origin}/api/whatsapp/webhook`;
 
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault();
+  async function submitSettings(forceClaim = false) {
     setSaving(true);
     setSaveError("");
     setSaveSuccess(false);
+    if (!forceClaim) {
+      setClaimPrompt(null);
+    }
 
     try {
       const res = await fetch("/api/settings", {
@@ -79,6 +86,7 @@ export default function WhatsAppAssistantConfig({
         body: JSON.stringify({
           whatsappNumber,
           whatsappPhoneNumberId,
+          forceClaimPhoneNumberId: forceClaim,
           whatsappAssistant: {
             aiEnabled,
             showQrOnShop,
@@ -95,9 +103,16 @@ export default function WhatsAppAssistantConfig({
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
+      if (res.status === 409 && data?.conflictCode === "WHATSAPP_PHONE_ID_TAKEN") {
+        setClaimPrompt({
+          existingShopName: data.existingShopName || "une autre boutique",
+          existingShopSlug: data.existingShopSlug || "",
+          phoneNumberId: data.phoneNumberId || whatsappPhoneNumberId,
+        });
+      } else if (!res.ok) {
         setSaveError(data.error || "Erreur lors de l'enregistrement.");
       } else {
+        setClaimPrompt(null);
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3500);
         router.refresh();
@@ -107,6 +122,11 @@ export default function WhatsAppAssistantConfig({
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    await submitSettings(false);
   }
 
   async function handleTestWhatsAppSend() {
@@ -120,6 +140,8 @@ export default function WhatsAppAssistantConfig({
         body: JSON.stringify({
           to: testToPhone.trim(),
           body: `🤖 Test de connexion Japora WhatsApp Cloud API + Gemini IA pour la boutique "${shopName}" ! Répondez "Menu" pour voir nos articles.`,
+          whatsappAccessToken: whatsappAccessToken.trim() || undefined,
+          whatsappPhoneNumberId: whatsappPhoneNumberId.trim() || undefined,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -311,14 +333,14 @@ export default function WhatsAppAssistantConfig({
               <span>🔑</span> Identifiants de connexion WhatsApp Cloud API (Meta) & Gemini
             </h3>
             <p className="mt-0.5 text-xs text-arctic-600">
-              Fournissez ici les identifiants de votre application Meta (developers.facebook.com → WhatsApp → API Setup) pour connecter cette boutique en direct, ou configurez-les globalement dans le fichier <code className="font-mono">.env</code>.
+              Renseignez ici les identifiants de votre application Meta (<code className="font-mono">developers.facebook.com → WhatsApp → API Setup</code>) pour connecter directement cette boutique sur Japora.
             </p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="label text-xs">
-                WhatsApp Phone Number ID (<code className="font-mono">WHATSAPP_PHONE_NUMBER_ID</code>)
+                WhatsApp Phone Number ID
               </label>
               <input
                 className="input text-xs font-mono"
@@ -345,12 +367,12 @@ export default function WhatsAppAssistantConfig({
 
             <div>
               <label className="label text-xs">
-                Meta Cloud API Access Token (<code className="font-mono">WHATSAPP_TOKEN</code>)
+                Meta Cloud API Access Token
               </label>
               <input
                 type="password"
                 className="input text-xs font-mono"
-                placeholder="EAAGm0PX4ZCps... (Laisser vide si déjà dans .env)"
+                placeholder="EAAGm0PX4ZCps... (Votre token Meta WhatsApp Cloud API)"
                 value={whatsappAccessToken}
                 onChange={(e) => setWhatsappAccessToken(e.target.value)}
               />
@@ -361,17 +383,17 @@ export default function WhatsAppAssistantConfig({
 
             <div>
               <label className="label text-xs">
-                Clé API Google Gemini (<code className="font-mono">GEMINI_API_KEY</code> - optionnelle)
+                Clé API Google Gemini (optionnelle)
               </label>
               <input
                 type="password"
                 className="input text-xs font-mono"
-                placeholder="AIzaSy... (Laisser vide pour utiliser la clé globale du .env)"
+                placeholder="AIzaSy... (Votre clé Gemini personnalisée)"
                 value={geminiApiKey}
                 onChange={(e) => setGeminiApiKey(e.target.value)}
               />
               <span className="text-[11px] text-arctic-500">
-                Déjà configurée par défaut sur la plateforme si <code className="font-mono">GEMINI_API_KEY</code> est présent dans <code className="font-mono">.env</code>.
+                Permet d&apos;utiliser votre propre clé Gemini pour l&apos;assistant IA de votre boutique.
               </span>
             </div>
           </div>
@@ -443,6 +465,46 @@ export default function WhatsAppAssistantConfig({
             </p>
           )}
         </div>
+
+        {claimPrompt && (
+          <div className="rounded-xl border-2 border-amber-400 bg-amber-50 p-4 space-y-3 text-xs">
+            <div className="flex items-start gap-2.5">
+              <span className="text-lg">⚠️</span>
+              <div className="space-y-1">
+                <p className="font-bold text-amber-900 text-sm">
+                  Ce Phone Number ID ({claimPrompt.phoneNumberId}) est déjà utilisé ailleurs
+                </p>
+                <p className="text-amber-800 leading-relaxed">
+                  Ces informations WhatsApp Cloud API sont actuellement associées à la boutique{" "}
+                  <strong>« {claimPrompt.existingShopName} »</strong>
+                  {claimPrompt.existingShopSlug ? ` (/c/${claimPrompt.existingShopSlug})` : ""}.
+                  Voulez-vous transférer cette configuration WhatsApp vers votre boutique actuelle{" "}
+                  <strong>« {shopName} »</strong> ?
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setClaimPrompt(null)}
+                className="btn-ghost text-xs py-1.5 px-3"
+                disabled={saving}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() => submitSettings(true)}
+                disabled={saving}
+                className="btn-primary text-xs py-1.5 px-4"
+              >
+                {saving
+                  ? "Transfert en cours…"
+                  : "✓ Oui, ramener et configurer sur cette boutique"}
+              </button>
+            </div>
+          </div>
+        )}
 
         {saveError && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{saveError}</p>
