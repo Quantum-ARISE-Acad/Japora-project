@@ -7,8 +7,18 @@ import {
   sendWhatsAppInteractive,
   sendSharedNumberPicker,
   applyStatusUpdate,
+  downloadWhatsAppMedia,
 } from "@/lib/whatsapp";
-import { respondTo, logBotEvent, parseIntent } from "@/lib/bot";
+import {
+  respondTo,
+  respondToPhoto,
+  transcribeVoiceNote,
+  voiceNotHeardReply,
+  logBotEvent,
+  parseIntent,
+  type BotReply,
+} from "@/lib/bot";
+import { activeHandoff } from "@/lib/handoff";
 import { recordTouchFromText } from "@/lib/campaigns";
 import { parseWhatsAppAssistantConfig } from "@/lib/whatsapp-config";
 import { digitsOnly } from "@/lib/utils";
@@ -211,6 +221,8 @@ type MetaMessage = {
   interactive?: MetaInteractive;
   button?: { payload?: string; text?: string };
   referral?: MetaReferral;
+  audio?: { id?: string; mime_type?: string; voice?: boolean };
+  image?: { id?: string; mime_type?: string; caption?: string };
 };
 type MetaStatus = {
   id?: string;
@@ -231,6 +243,8 @@ function extractText(m: MetaMessage): string {
   if (m.interactive?.list_reply?.title) return m.interactive.list_reply.title;
   if (m.button?.text) return m.button.text;
   if (m.text?.body) return m.text.body;
+  // A photo's caption can carry the "(slug)" tag and the customer's question.
+  if (m.image?.caption) return m.image.caption;
   return "";
 }
 
@@ -312,7 +326,38 @@ export async function POST(req: NextRequest) {
           // A list choice or a QR scan opens the conversation with the shop's
           // welcome, which does not depend on Gemini being available.
           const opening = picked || (route.kind === "vendor" && route.qrOpening === true);
-          const text = opening ? "Bonjour" : rawText;
+          let text = opening ? "Bonjour" : rawText;
+          let storedBody = picked ? "Bonjour (boutique choisie dans la liste)" : rawText;
+
+          // Voice notes are transcribed and answered like text; photos are
+          // searched in the shop's catalog. Both use Gemini.
+          let mediaReply: BotReply | null = null;
+          let voicePrefix = "";
+          if (vendorId && m.type === "audio" && m.audio?.id) {
+            const transcript = await transcribeVoiceNote(
+              vendorId,
+              await downloadWhatsAppMedia(vendorId, m.audio.id),
+            );
+            if (transcript) {
+              text = transcript;
+              storedBody = `[vocal] ${transcript}`;
+              voicePrefix = `Vous avez dit : « ${transcript.slice(0, 300)} »\n\n`;
+            } else {
+              storedBody = "[vocal non transcrit]";
+              mediaReply = (await activeHandoff(vendorId, from))
+                ? { reply: "", intent: "handoff" }
+                : voiceNotHeardReply();
+            }
+          } else if (vendorId && m.type === "image" && m.image?.id) {
+            const caption = m.image.caption || "";
+            storedBody = caption ? `[photo] ${caption}` : "[photo]";
+            mediaReply = await respondToPhoto(
+              vendorId,
+              from,
+              await downloadWhatsAppMedia(vendorId, m.image.id),
+              caption,
+            );
+          }
 
           logger.info("whatsapp.webhook.inbound", {
             from,
@@ -328,7 +373,7 @@ export async function POST(req: NextRequest) {
                   vendorId,
                   direction: "IN",
                   contact: digitsOnly(from) || from,
-                  body: picked ? "Bonjour (boutique choisie dans la liste)" : rawText,
+                  body: storedBody,
                   status: "received",
                 },
               });
@@ -353,8 +398,9 @@ export async function POST(req: NextRequest) {
           let responded = false;
           let intent = parseIntent(text).intent;
           try {
-            const result = await respondTo(vendorId, from, text);
+            const result = mediaReply ?? (await respondTo(vendorId, from, text));
             intent = result.intent;
+            if (voicePrefix && result.reply) result.reply = `${voicePrefix}${result.reply}`;
             if (chosenShopName && result.reply) {
               result.reply = `${shopChosenPreamble(chosenShopName)}\n\n${result.reply}`;
             }

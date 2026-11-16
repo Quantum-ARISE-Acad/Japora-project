@@ -50,10 +50,12 @@ export default function SettingsForm({
   initial,
   whatsappLive,
   storageMode,
+  storageMissing = [],
 }: {
   initial: Initial;
   whatsappLive: boolean;
-  storageMode: "local" | "s3";
+  storageMode: "local" | "s3" | "incomplete";
+  storageMissing?: string[];
 }) {
   const router = useRouter();
   const [shopName, setShopName] = useState(initial.shopName);
@@ -601,7 +603,7 @@ export default function SettingsForm({
 
       <div className="card p-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-arctic-900">Image storage</h2>
+          <h2 className="text-sm font-semibold text-arctic-900">Stockage des photos</h2>
           <span
             className={
               "rounded-full px-2 py-0.5 text-xs font-semibold " +
@@ -610,13 +612,19 @@ export default function SettingsForm({
                 : "bg-arctic-200/65 text-arctic-700")
             }
           >
-            {storageMode === "s3" ? "● S3-compatible (live)" : "● Local filesystem"}
+            {storageMode === "s3"
+              ? "Stockage externe (S3 / R2)"
+              : storageMode === "incomplete"
+                ? "Configuration incomplète"
+                : "Sur ce serveur"}
           </span>
         </div>
         <p className="mt-2 text-sm text-arctic-600">
           {storageMode === "s3"
-            ? "Product photos are uploaded to your configured S3-compatible bucket (AWS S3, Cloudflare R2, or Supabase Storage)."
-            : "Product photos are saved to ./public/uploads. Fine for a single Node host — switch to S3 storage before deploying to serverless. Set the STORAGE_S3_* env vars to flip."}
+            ? "Les photos des produits sont envoyées dans votre espace de stockage externe (Cloudflare R2, AWS S3 ou Supabase). Le serveur ne les garde plus."
+            : storageMode === "incomplete"
+              ? `Un espace de stockage est indiqué, mais il manque : ${storageMissing.join(", ")}. En attendant, les photos restent enregistrées sur ce serveur.`
+              : "Les photos des produits sont enregistrées sur ce serveur. Pour les placer dans un stockage externe (Cloudflare R2, par exemple), remplissez les réglages STORAGE_S3_*."}
         </p>
       </div>
 

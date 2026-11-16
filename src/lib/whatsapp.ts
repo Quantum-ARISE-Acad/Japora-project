@@ -138,6 +138,42 @@ async function resolveVendorCloudCredentials(
   }
 }
 
+/** Largest voice note or photo the assistant downloads (Gemini accepts up to 20 MB inline). */
+const MAX_MEDIA_BYTES = 15 * 1024 * 1024;
+
+/**
+ * Download a voice note or photo a customer sent (Meta media id) with the
+ * credentials of the line that received it. Null in test/stub mode or on error.
+ */
+export async function downloadWhatsAppMedia(
+  vendorId: string,
+  mediaId: string,
+): Promise<{ data: Buffer; mimeType: string } | null> {
+  if (!mediaId || !/^[A-Za-z0-9_.-]{1,200}$/.test(mediaId)) return null;
+  const creds = await resolveVendorCloudCredentials(vendorId);
+  const token = (creds.token || "").trim();
+  if (!token) return null;
+  try {
+    const meta = await fetch(`https://graph.facebook.com/v21.0/${mediaId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!meta.ok) throw new Error(`media lookup ${meta.status}`);
+    const info = (await meta.json()) as { url?: string; mime_type?: string; file_size?: number };
+    if (!info.url || !/^https:\/\/[^/]*(fbsbx\.com|fbcdn\.net|facebook\.com|whatsapp\.net)\//.test(info.url)) {
+      throw new Error("unexpected media url");
+    }
+    if (info.file_size && info.file_size > MAX_MEDIA_BYTES) throw new Error("media too large");
+    const file = await fetch(info.url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!file.ok) throw new Error(`media download ${file.status}`);
+    const data = Buffer.from(await file.arrayBuffer());
+    if (data.length > MAX_MEDIA_BYTES) throw new Error("media too large");
+    return { data, mimeType: info.mime_type || file.headers.get("content-type") || "application/octet-stream" };
+  } catch (e) {
+    logger.warn("whatsapp.media_download_failed", { vendorId, error: e instanceof Error ? e.message : String(e) });
+    return null;
+  }
+}
+
 /**
  * Japora bot — interactive buttons / list messages. Buttons can be either a
  * short button list (max 3) or sectioned list rows (catalog browse).

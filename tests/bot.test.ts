@@ -11,6 +11,13 @@ describe("parseIntent — multilingual keyword routing", () => {
   test("Pidgin greeting (how far)", () => {
     assert.equal(parseIntent("how far?").intent, "greeting");
   });
+  test("greetings are whole words: 'rouge' is not 'ge' (good evening)", () => {
+    assert.notEqual(parseIntent("et en rouge ?").intent, "greeting");
+    assert.equal(parseIntent("Bonjour !").intent, "greeting");
+  });
+  test("small French words are not product words", () => {
+    assert.deepEqual(tokens("et en rouge ?"), ["rouge"]);
+  });
   test("Swahili menu request", () => {
     assert.equal(parseIntent("orodha tafadhali").intent, "menu");
   });

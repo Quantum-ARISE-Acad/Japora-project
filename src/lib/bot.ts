@@ -20,11 +20,38 @@ import { upsertFromOrder } from "./customers";
 import { createForUnpaidOrder } from "./receivables";
 import {
   isLlmConfigured,
+  isMediaAiConfigured,
   generateBotReply,
+  matchProductsFromImage,
   reserveLlmCall,
+  transcribeAudio,
   type CatalogItem,
+  type ChatTurn,
 } from "./llm";
 import { parseWhatsAppAssistantConfig } from "./whatsapp-config";
+import {
+  counterMessage,
+  decideOffer,
+  extractOfferAmount,
+  isAcceptance,
+  looksLikeBareOffer,
+} from "./bargaining";
+import {
+  HANDOFF_BUTTON_ID,
+  activeHandoff,
+  noteHandoffMessage,
+  resolveHandoff,
+  startHandoff,
+  wantsAssistantBack,
+  wantsHumanSeller,
+} from "./handoff";
+
+/** "Voir le catalogue" and "Parler au vendeur" buttons, used in most fallbacks. */
+const MENU_BUTTON: BotButton = { id: "MENU", title: "Voir le catalogue" };
+const HANDOFF_BUTTON: BotButton = { id: HANDOFF_BUTTON_ID, title: "Parler au vendeur" };
+
+/** A negotiation older than this is forgotten: a bare number is no longer an offer. */
+const NEGOTIATION_TTL_MS = 30 * 60 * 1000;
 
 /** A tappable button the bot can attach to a reply (max 3, titles ≤ 20 chars). */
 export type BotButton = { id: string; title: string };
@@ -42,6 +69,8 @@ export type BotIntent =
   | "menu"
   | "unpaid"
   | "track_order"
+  | "handoff"
+  | "photo_search"
   | "unknown";
 
 export type ParsedIntent = {
@@ -108,6 +137,9 @@ const DEAL_WORDS = [
   "laisse moi", "laisser a", "laisser à", "reduction sur", "réduction sur", "remise sur",
   // English / Pidgin
   "bargain", "make a deal", "my offer", "i offer", "last price", "reduce price",
+  // Market haggling (French)
+  "je te donne", "je vous donne", "dernier prix", "fais moi", "faites moi",
+  "trop cher", "c'est cher", "diminue", "diminuez", "baisse le prix", "baissez",
 ];
 
 const PRICE_WORDS = [
@@ -163,6 +195,17 @@ function tokenize(text: string): string {
 
 function containsAny(text: string, needles: string[]): boolean {
   return needles.some((n) => text.includes(n));
+}
+
+/**
+ * Whole-word match: short greetings like "ge" or "yo" must not fire inside
+ * "rouge" or "moyen".
+ */
+function containsWord(text: string, needles: string[]): boolean {
+  return needles.some((n) => {
+    const escaped = n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}($|[^\\p{L}\\p{N}])`, "u").test(text);
+  });
 }
 
 function extractQuantity(text: string): { qty: number; cleaned: string } {
@@ -257,7 +300,7 @@ export function parseIntent(text: string): ParsedIntent {
   if (containsAny(t, PRICE_WORDS)) return { intent: "price_check", productMatches };
 
   // Bare greeting only if it's a short hello with nothing else interesting.
-  if (containsAny(t, GREETINGS) && t.split(/\s+/).length <= 4) {
+  if (containsWord(t, GREETINGS) && t.split(/\s+/).length <= 4) {
     return { intent: "greeting", productMatches: [] };
   }
 
@@ -307,6 +350,9 @@ const STOP_WORDS = new Set([
   "de", "au", "aux", "je", "tu", "il", "nous", "vous", "ils", "pour", "sur",
   "dans", "avec", "est", "sont", "avez", "moi", "me", "disponible", "disponibles",
   "boutique", "produit", "produits", "article", "articles", "fcfa", "cfa", "xof",
+  // Short French words that matched product names by accident ("et en rouge ?" → "Sac en cuir").
+  "et", "en", "ou", "mais", "aussi", "ce", "cet", "cette", "ces", "ca", "si", "plus",
+  "elle", "lui", "leur", "par", "ne", "pas", "qui", "quoi", "comment",
 ]);
 
 function tokens(s: string): string[] {
@@ -447,8 +493,38 @@ async function retrieveForLlm(
   return ranked;
 }
 
+/**
+ * The last messages of this WhatsApp conversation, oldest first, so Gemini
+ * understands follow-ups like "et en rouge ?". The current message is dropped.
+ */
+async function conversationHistory(
+  vendorId: string,
+  fromPhone: string,
+  current: string,
+): Promise<ChatTurn[]> {
+  const clean = digitsOnly(fromPhone);
+  if (!clean) return [];
+  const rows = await prisma.whatsAppMessage.findMany({
+    where: { vendorId, contact: { in: [...new Set([clean, fromPhone])] } },
+    orderBy: { createdAt: "desc" },
+    take: 13,
+    select: { direction: true, body: true },
+  });
+  const turns: ChatTurn[] = rows
+    .reverse()
+    .map((r) => ({
+      role: r.direction === "IN" ? ("customer" as const) : ("assistant" as const),
+      text: r.body.replace(/^\[interactive\]\s*/, "").slice(0, 600),
+    }))
+    .filter((t) => t.text.trim());
+  const last = turns[turns.length - 1];
+  if (last && last.role === "customer" && last.text.trim() === current.trim()) turns.pop();
+  return turns.slice(-12);
+}
+
 async function tryLlmAnswer(opts: {
   vendorId: string;
+  fromPhone?: string;
   shopName: string;
   currency: string;
   question: string;
@@ -467,7 +543,11 @@ async function tryLlmAnswer(opts: {
   }
   try {
     const catalog = await retrieveForLlm(opts.vendorId, opts.question, opts.currency, 12);
+    const history = opts.fromPhone
+      ? await conversationHistory(opts.vendorId, opts.fromPhone, opts.question)
+      : [];
     const reply = await generateBotReply({
+      history,
       shopName: opts.shopName,
       question: opts.question,
       catalog,
@@ -639,12 +719,12 @@ export async function trackCustomerOrders(
     return {
       reply:
         `📦 Aucune commande ou proposition de deal active trouvée pour votre numéro (${cleanPhone || fromPhone}) chez ${shopName}.\n\n` +
-        `Astuce : Envoyez la référence de votre commande (ex: #LTW4GX), appuyez sur "See menu" pour commander, ou "🤝 Proposer deal" pour négocier un prix.`,
+        `Astuce : Envoyez la référence de votre commande (ex: #LTW4GX), appuyez sur « Voir le catalogue » pour commander, ou "🤝 Proposer deal" pour négocier un prix.`,
       intent: "track_order",
       buttons: [
-        { id: "MENU", title: "See menu" },
+        MENU_BUTTON,
         { id: "DEAL", title: "🤝 Proposer deal" },
-        { id: "BALANCE", title: "My balance" },
+        { id: "BALANCE", title: "Mon solde" },
       ],
     };
   }
@@ -711,7 +791,7 @@ export async function trackCustomerOrders(
 
   const buttons: BotButton[] = [
     { id: `TRACK:${latest.id}`, title: "🔄 Actualiser suivi" },
-    { id: "MENU", title: "See menu" },
+    MENU_BUTTON,
   ];
   if (latest.status === "NEW") {
     buttons.push({ id: `CANCEL:${latest.id}`, title: "❌ Annuler" });
@@ -745,9 +825,9 @@ async function placeOrder(
   const qty = Math.max(1, Math.min(product.stock > 0 ? product.stock : 1, quantity));
   if (product.stock <= 0 && !product.preOrderAllowed) {
     return {
-      reply: `Sorry, ${product.name} is out of stock right now.`,
+      reply: `Désolé, ${product.name} est épuisé pour le moment.`,
       intent,
-      buttons: [{ id: "MENU", title: "See menu" }],
+      buttons: [MENU_BUTTON],
     };
   }
 
@@ -847,8 +927,8 @@ async function placeOrder(
     intent,
     buttons: [
       { id: `TRACK:${order.id}`, title: "📦 Suivre commande" },
-      { id: "MENU", title: "Keep shopping" },
-      { id: "BALANCE", title: "My balance" },
+      { id: "MENU", title: "Continuer mes achats" },
+      { id: "BALANCE", title: "Mon solde" },
     ],
   };
 }
@@ -867,6 +947,11 @@ export async function placeDealOrder(opts: {
   shopName: string;
   quantity?: number;
   customNote?: string;
+  /**
+   * The assistant already accepted the price (at or above the vendor's secret
+   * minimum): the order is confirmed at once, stock and receivable included.
+   */
+  accepted?: boolean;
 }): Promise<{ orderId: string; refCode: string; botReply: BotReply }> {
   const qty = Math.max(1, opts.quantity || 1);
   const originalTotalCents = opts.product.priceCents * qty;
@@ -878,9 +963,12 @@ export async function placeDealOrder(opts: {
       ? Math.round(((originalTotalCents - proposedTotalCents) / originalTotalCents) * 100)
       : 0;
 
+  const accepted = opts.accepted === true;
   const dealNote =
-    `[DEAL_PENDING|orig:${originalTotalCents}|prop:${proposedTotalCents}] ` +
-    `🤝 Proposition de deal : ${formatMoney(proposedTotalCents, opts.currency)} au lieu de ${formatMoney(originalTotalCents, opts.currency)}` +
+    `[${accepted ? "DEAL_ACCEPTED" : "DEAL_PENDING"}|orig:${originalTotalCents}|prop:${proposedTotalCents}] ` +
+    (accepted
+      ? `Marchandage conclu par l'assistant : ${formatMoney(proposedTotalCents, opts.currency)} au lieu de ${formatMoney(originalTotalCents, opts.currency)}`
+      : `🤝 Proposition de deal : ${formatMoney(proposedTotalCents, opts.currency)} au lieu de ${formatMoney(originalTotalCents, opts.currency)}`) +
     (discountPct > 0 ? ` (-${discountPct}%)` : "") +
     (opts.customNote ? ` — ${opts.customNote}` : "");
 
@@ -892,7 +980,7 @@ export async function placeDealOrder(opts: {
           opts.customerName?.trim() ||
           (cleanPhone ? `Client Deal (${cleanPhone})` : "Client Deal WhatsApp"),
         customerPhone: cleanPhone,
-        status: "NEW",
+        status: accepted ? "CONFIRMED" : "NEW",
         totalCents: proposedTotalCents,
         source: "whatsapp_deal",
         note: dealNote,
@@ -908,6 +996,13 @@ export async function placeDealOrder(opts: {
         },
       },
     });
+
+    if (accepted && opts.product.stock >= qty) {
+      await tx.product.update({
+        where: { id: opts.product.id },
+        data: { stock: { decrement: qty } },
+      });
+    }
 
     if (cleanPhone) {
       try {
@@ -940,6 +1035,35 @@ export async function placeDealOrder(opts: {
   ).replace(/\/$/, "");
   const payUrl = `${appUrl}/pay/${order.id}`;
 
+  if (accepted) {
+    try {
+      await createForUnpaidOrder(prisma, opts.vendorId, order.id, {
+        amountCents: proposedTotalCents,
+        note: "Marchandage conclu par l'assistant WhatsApp",
+      });
+    } catch (e) {
+      logger.warn("bot.receivable_failed", { orderId: order.id, error: String(e) });
+    }
+    logger.info("bot.deal_auto_accepted", { vendorId: opts.vendorId, orderId: order.id });
+    return {
+      orderId: order.id,
+      refCode,
+      botReply: {
+        reply:
+          `Marché conclu ! ${qty > 1 ? `${qty}× ` : ""}${opts.product.name} pour ${formatMoney(proposedTotalCents, opts.currency)}` +
+          `${proposedTotalCents < originalTotalCents ? ` au lieu de ${formatMoney(originalTotalCents, opts.currency)}` : ""}.\n\n` +
+          `Référence : #${refCode}\n` +
+          `Payer et suivre votre commande : ${payUrl}\n\n` +
+          `${opts.shopName} a reçu votre commande dans son tableau de bord.`,
+        intent: "propose_deal",
+        buttons: [
+          { id: `TRACK:${order.id}`, title: "Suivre ma commande" },
+          MENU_BUTTON,
+        ],
+      },
+    };
+  }
+
   const botReply: BotReply = {
     reply:
       `🤝 Proposition de deal enregistrée et transmise à ${opts.shopName} !\n\n` +
@@ -952,11 +1076,301 @@ export async function placeDealOrder(opts: {
     intent: "propose_deal",
     buttons: [
       { id: `TRACK:${order.id}`, title: "📦 Suivre mon deal" },
-      { id: "MENU", title: "See menu" },
+      MENU_BUTTON,
     ],
   };
 
   return { orderId: order.id, refCode, botReply };
+}
+
+/* ----------------------------- Automatic bargaining ----------------------------- */
+
+type DealProduct = {
+  id: string;
+  name: string;
+  priceCents: number;
+  stock: number;
+  preOrderAllowed: boolean;
+};
+
+/** The vendor's secret minimum price for a product, or null when not set. */
+async function priceFloorOf(productId: string): Promise<number | null> {
+  const f = await prisma.productPriceFloor.findUnique({
+    where: { productId },
+    select: { minPriceCents: true },
+  });
+  return f?.minPriceCents ?? null;
+}
+
+/** The customer's open negotiation in this shop (last 30 minutes), if any. */
+async function openNegotiation(vendorId: string, fromPhone: string) {
+  const contact = digitsOnly(fromPhone) || fromPhone;
+  return prisma.negotiation.findFirst({
+    where: { vendorId, contact, updatedAt: { gt: new Date(Date.now() - NEGOTIATION_TTL_MS) } },
+    orderBy: { updatedAt: "desc" },
+  });
+}
+
+type DealContext = {
+  vendorId: string;
+  fromPhone: string;
+  product: DealProduct;
+  quantity: number;
+  currency: string;
+  shopName: string;
+};
+
+/**
+ * Answer a price offer (total for `quantity` items). With a secret minimum
+ * price the assistant decides alone: it accepts at or above the minimum and
+ * counter-offers below it. Without one, the offer goes to the vendor.
+ */
+async function negotiate(ctx: DealContext, offerTotalCents: number): Promise<BotReply> {
+  const qty = Math.max(1, ctx.quantity);
+  const { vendorId, fromPhone, product, currency, shopName } = ctx;
+  const floor = await priceFloorOf(product.id);
+  if (floor === null) {
+    const { botReply } = await placeDealOrder({
+      vendorId,
+      fromPhone,
+      product,
+      proposedTotalCents: offerTotalCents,
+      currency,
+      shopName,
+      quantity: qty,
+    });
+    return botReply;
+  }
+  if (product.stock < qty && !product.preOrderAllowed) {
+    return {
+      reply:
+        product.stock > 0
+          ? `Il ne reste que ${product.stock} ${product.name} pour le moment.`
+          : `Désolé, ${product.name} est épuisé pour le moment.`,
+      intent: "propose_deal",
+      buttons: [MENU_BUTTON, HANDOFF_BUTTON],
+    };
+  }
+
+  const contact = digitsOnly(fromPhone) || fromPhone;
+  const key = { vendorId, contact, productId: product.id };
+  const existing = await prisma.negotiation.findUnique({ where: { vendorId_contact_productId: key } });
+  const fresh =
+    existing && existing.quantity === qty && existing.updatedAt.getTime() > Date.now() - NEGOTIATION_TTL_MS;
+  const decision = decideOffer({
+    priceCents: product.priceCents,
+    floorCents: floor,
+    offerCents: Math.round(offerTotalCents / qty),
+    round: fresh ? existing.round : 0,
+    lastCounterCents: fresh ? existing.lastCounterCents : 0,
+    currency,
+  });
+
+  if (decision.kind === "accept") {
+    await prisma.negotiation.deleteMany({ where: key });
+    const { botReply } = await placeDealOrder({
+      vendorId,
+      fromPhone,
+      product,
+      proposedTotalCents: decision.unitCents * qty,
+      currency,
+      shopName,
+      quantity: qty,
+      accepted: true,
+    });
+    return botReply;
+  }
+
+  await prisma.negotiation.upsert({
+    where: { vendorId_contact_productId: key },
+    create: { ...key, quantity: qty, round: decision.round, lastCounterCents: decision.unitCents },
+    update: { quantity: qty, round: decision.round, lastCounterCents: decision.unitCents },
+  });
+  const counterTotal = decision.unitCents * qty;
+  return {
+    reply: counterMessage({
+      productName: qty > 1 ? `${qty} ${product.name}` : product.name,
+      offerLabel: formatMoney(offerTotalCents, currency),
+      counterLabel: formatMoney(counterTotal, currency),
+      round: decision.round,
+      final: decision.final,
+    }),
+    intent: "propose_deal",
+    buttons: [
+      {
+        id: `DEAL_ACCEPT:${product.id}:${decision.unitCents}:${qty}`,
+        title: clampTitle(`OK pour ${formatMoney(counterTotal, currency)}`),
+      },
+      { id: `ORDER:${product.id}:${qty}`, title: "Prix affiché" },
+      HANDOFF_BUTTON,
+    ],
+  };
+}
+
+/**
+ * The customer accepts a unit price (button or "ok"). Checked again against
+ * the minimum: a forged or stale button can never sell below it.
+ */
+async function acceptPrice(ctx: DealContext, unitCents: number): Promise<BotReply> {
+  const qty = Math.max(1, ctx.quantity);
+  const floor = await priceFloorOf(ctx.product.id);
+  if (floor === null || unitCents < floor) return negotiate(ctx, unitCents * qty);
+  return negotiate(ctx, Math.min(unitCents, ctx.product.priceCents) * qty);
+}
+
+/* ------------------------------- Hand-off ------------------------------- */
+
+/**
+ * Hand-off gate shared by text and photos: while the vendor answers this
+ * customer the assistant stays silent (empty reply); "assistant" brings it
+ * back; "je veux parler au vendeur" opens a hand-off. Null = carry on.
+ */
+async function handoffGate(
+  vendorId: string,
+  fromPhone: string,
+  raw: string,
+  shopName: string,
+): Promise<BotReply | null> {
+  const handoff = await activeHandoff(vendorId, fromPhone);
+  if (handoff) {
+    if (wantsAssistantBack(raw)) {
+      await resolveHandoff(vendorId, fromPhone);
+      return {
+        reply: `L'assistant de ${shopName} est de retour. Que puis-je faire pour vous ?`,
+        intent: "greeting",
+        buttons: [MENU_BUTTON, { id: "DEAL", title: "Proposer un prix" }, { id: "TRACK", title: "Suivre commande" }],
+      };
+    }
+    await noteHandoffMessage(handoff.id, raw);
+    return { reply: "", intent: "handoff" };
+  }
+  if (wantsHumanSeller(raw)) {
+    const pressedButton = raw.trim().toUpperCase() === HANDOFF_BUTTON_ID;
+    await startHandoff({
+      vendorId,
+      contact: fromPhone,
+      reason: pressedButton ? "bouton Parler au vendeur" : "demande du client",
+      lastMessage: pressedButton ? "(a touché « Parler au vendeur »)" : raw,
+    });
+    return {
+      reply:
+        `D'accord, j'ai prévenu ${shopName}. Le vendeur va vous répondre ici dès que possible.\n\n` +
+        `Pour revenir à l'assistant, écrivez « assistant ».`,
+      intent: "handoff",
+    };
+  }
+  return null;
+}
+
+/* ------------------------------- Voice notes ------------------------------- */
+
+/**
+ * Turn a customer's voice note into text with Gemini (the shop's key or the
+ * server's), within the shop's daily AI quota. Null when it cannot be heard.
+ */
+export async function transcribeVoiceNote(
+  vendorId: string,
+  media: { data: Buffer; mimeType: string } | null,
+): Promise<string | null> {
+  if (!media) return null;
+  const vendor = await prisma.vendor.findUnique({ where: { id: vendorId }, select: { uiPrefs: true } });
+  const waConfig = parseWhatsAppAssistantConfig(vendor?.uiPrefs);
+  if (waConfig.aiEnabled === false || !isMediaAiConfigured(waConfig.geminiApiKey)) return null;
+  if (!(await reserveLlmCall(vendorId))) return null;
+  try {
+    return await transcribeAudio({ data: media.data, mimeType: media.mimeType, vendorGeminiKey: waConfig.geminiApiKey });
+  } catch (e) {
+    logger.warn("bot.voice_transcription_failed", { vendorId, error: String(e) });
+    return null;
+  }
+}
+
+/** Reply when a voice note cannot be transcribed. */
+export function voiceNotHeardReply(): BotReply {
+  return {
+    reply:
+      "Je n'arrive pas à écouter votre message vocal pour le moment. " +
+      "Pouvez-vous l'écrire, ou demander directement au vendeur ?",
+    intent: "unknown",
+    buttons: [MENU_BUTTON, HANDOFF_BUTTON],
+  };
+}
+
+/* ------------------------------- Photo search ------------------------------- */
+
+/**
+ * The customer sent a photo: find similar products in this shop's catalog
+ * with Gemini vision. `media` is null when the photo could not be downloaded.
+ */
+export async function respondToPhoto(
+  vendorId: string,
+  fromPhone: string,
+  media: { data: Buffer; mimeType: string } | null,
+  caption = "",
+): Promise<BotReply> {
+  const vendor = await prisma.vendor.findUnique({
+    where: { id: vendorId },
+    select: { shopName: true, currency: true, uiPrefs: true },
+  });
+  const shopName = vendor?.shopName || "la boutique";
+  const currency = vendor?.currency || "XOF";
+  const waConfig = parseWhatsAppAssistantConfig(vendor?.uiPrefs);
+
+  const gate = await handoffGate(vendorId, fromPhone, caption || "(photo)", shopName);
+  if (gate) return gate;
+
+  const cannotSee: BotReply = {
+    reply:
+      `Merci pour la photo ! Je ne peux pas l'analyser pour le moment. ` +
+      `Décrivez-moi l'article (type, couleur, taille), ou demandez directement au vendeur.`,
+    intent: "photo_search",
+    buttons: [MENU_BUTTON, HANDOFF_BUTTON],
+  };
+  if (!media || waConfig.aiEnabled === false || !isMediaAiConfigured(waConfig.geminiApiKey)) return cannotSee;
+  if (!(await reserveLlmCall(vendorId))) return cannotSee;
+
+  const products = await prisma.product.findMany({
+    where: { vendorId, isActive: true },
+    orderBy: [{ stock: "desc" }, { createdAt: "desc" }],
+    take: 150,
+    select: { id: true, name: true, description: true, priceCents: true, stock: true },
+  });
+  const match = await matchProductsFromImage({
+    data: media.data,
+    mimeType: media.mimeType,
+    caption,
+    catalog: products,
+    vendorGeminiKey: waConfig.geminiApiKey,
+  });
+  if (!match) return cannotSee;
+
+  const found = match.productIds
+    .map((id) => products.find((p) => p.id === id))
+    .filter((p): p is (typeof products)[number] => Boolean(p));
+  const seen = match.description ? ` (${match.description})` : "";
+  if (found.length === 0) {
+    return {
+      reply:
+        `Je n'ai pas cet article${seen} chez ${shopName}. ` +
+        `Vous pouvez voir le catalogue, ou demander au vendeur s'il peut en trouver.`,
+      intent: "photo_search",
+      buttons: [MENU_BUTTON, HANDOFF_BUTTON],
+    };
+  }
+  const lines = found.map(
+    (p, i) =>
+      `${i + 1}. ${p.name} — ${formatMoney(p.priceCents, currency)}${p.stock > 0 ? ` (${p.stock} disponibles)` : " (épuisé)"}`,
+  );
+  const top = found[0];
+  return {
+    reply: `Voici ce qui ressemble à votre photo${seen} :\n\n${lines.join("\n")}`,
+    intent: "photo_search",
+    buttons: [
+      { id: `ORDER:${top.id}`, title: clampTitle(`Commander ${top.name}`) },
+      { id: `DEAL_PROMPT:${top.id}`, title: "Proposer un prix" },
+      HANDOFF_BUTTON,
+    ],
+  };
 }
 
 /**
@@ -1018,6 +1432,22 @@ export async function respondTo(
     return p;
   }
 
+  const gate = await handoffGate(vendorId, fromPhone, raw, shopName);
+  if (gate) return gate.reply ? withAway(gate) : gate;
+
+  // Button fast-path: DEAL_ACCEPT:<productId>:<unitPriceCents>:<qty> (counter-offer accepted)
+  if (/^DEAL_ACCEPT:/i.test(raw)) {
+    const parts = raw.split(":");
+    const product = await findProductForButton((parts[1] || "").trim());
+    const unitCents = parseInt(parts[2] || "0", 10);
+    const qty = Math.max(1, parseInt(parts[3] || "1", 10) || 1);
+    if (product && unitCents > 0) {
+      return withAway(
+        await acceptPrice({ vendorId, fromPhone, product, quantity: qty, currency, shopName }, unitCents),
+      );
+    }
+  }
+
   // Button fast-path: ORDER:<productId>[:<qty>]
   if (/^ORDER:/i.test(raw)) {
     const parts = raw.split(":");
@@ -1037,16 +1467,9 @@ export async function respondTo(
     const qty = Math.max(1, parseInt(parts[3] || "1", 10) || 1);
     const product = await findProductForButton(id);
     if (product && proposedCents > 0) {
-      const { botReply } = await placeDealOrder({
-        vendorId,
-        fromPhone,
-        product,
-        proposedTotalCents: proposedCents,
-        currency,
-        shopName,
-        quantity: qty,
-      });
-      return withAway(botReply);
+      return withAway(
+        await negotiate({ vendorId, fromPhone, product, quantity: qty, currency, shopName }, proposedCents),
+      );
     }
   }
 
@@ -1124,7 +1547,7 @@ export async function respondTo(
       return withAway({
         reply: `Commande introuvable.`,
         intent: "track_order",
-        buttons: [{ id: "MENU", title: "See menu" }],
+        buttons: [MENU_BUTTON],
       });
     }
     if (order.status !== "NEW") {
@@ -1148,8 +1571,26 @@ export async function respondTo(
     return withAway({
       reply: `❌ Votre commande #${order.id.slice(-6).toUpperCase()} chez ${shopName} a bien été annulée.`,
       intent: "track_order",
-      buttons: [{ id: "MENU", title: "See menu" }],
+      buttons: [MENU_BUTTON],
     });
+  }
+
+  // Bargaining follow-up: a bare amount is a new offer, "ok" accepts the last counter-offer.
+  const nego = await openNegotiation(vendorId, fromPhone);
+  if (nego) {
+    const product = await prisma.product.findFirst({
+      where: { id: nego.productId, vendorId, isActive: true },
+    });
+    if (product) {
+      const ctx = { vendorId, fromPhone, product, quantity: nego.quantity, currency, shopName };
+      if (looksLikeBareOffer(raw)) {
+        const amount = extractOfferAmount(raw);
+        if (amount) return withAway(await negotiate(ctx, Math.round(amount * 100)));
+      }
+      if (isAcceptance(raw) && nego.lastCounterCents > 0) {
+        return withAway(await acceptPrice(ctx, nego.lastCounterCents));
+      }
+    }
   }
 
   const parsed = parseIntent(raw);
@@ -1170,7 +1611,7 @@ export async function respondTo(
             `• Suivre l'état de votre commande`,
         intent: parsed.intent,
         buttons: [
-          { id: "MENU", title: "See menu" },
+          MENU_BUTTON,
           { id: "DEAL", title: "🤝 Proposer deal" },
           { id: "TRACK", title: "📦 Suivre commande" },
         ],
@@ -1181,7 +1622,7 @@ export async function respondTo(
       const products = await topActiveProducts(vendorId, 8);
       if (products.length === 0) {
         return withAway({
-          reply: `${shopName} hasn't listed any products yet. Check back soon.`,
+          reply: `${shopName} n'a pas encore ajouté de produits. Revenez bientôt !`,
           intent: parsed.intent,
         });
       }
@@ -1215,23 +1656,19 @@ export async function respondTo(
         return withAway({
           reply: `Aucun produit disponible dans ${shopName} pour proposer un deal.`,
           intent: "propose_deal",
-          buttons: [{ id: "MENU", title: "See menu" }],
+          buttons: [MENU_BUTTON],
         });
       }
 
       if (parsed.proposedPrice && parsed.proposedPrice > 0) {
         // User supplied a price in major currency units (e.g. 8000 FCFA -> 800000 cents)
         const proposedTotalCents = Math.round(parsed.proposedPrice * 100);
-        const { botReply } = await placeDealOrder({
-          vendorId,
-          fromPhone,
-          product,
-          proposedTotalCents,
-          currency,
-          shopName,
-          quantity: parsed.quantity ?? 1,
-        });
-        return withAway(botReply);
+        return withAway(
+          await negotiate(
+            { vendorId, fromPhone, product, quantity: parsed.quantity ?? 1, currency, shopName },
+            proposedTotalCents,
+          ),
+        );
       }
 
       // No price specified yet -> offer quick deal buttons on the matched product
@@ -1272,6 +1709,7 @@ export async function respondTo(
       if (!product) {
         const { reply: ai, topProducts } = await tryLlmAnswer({
           vendorId,
+          fromPhone,
           shopName,
           currency,
           question: raw,
@@ -1293,22 +1731,26 @@ export async function respondTo(
             title: clampTitle(`🤝 Deal ${firstInStock.name}`),
           });
         }
-        actionButtons.push({ id: "MENU", title: "See menu" });
+        actionButtons.push(topProducts.length > 0 ? MENU_BUTTON : HANDOFF_BUTTON);
+        if (topProducts.length === 0) actionButtons.unshift(MENU_BUTTON);
         return withAway({
-          reply: ai || `Sorry, we couldn't find "${phrase}" in ${shopName}.`,
+          reply:
+            ai ||
+            `Je n'ai pas trouvé « ${phrase} » chez ${shopName}. ` +
+              `Regardez le catalogue, ou demandez directement au vendeur.`,
           intent: parsed.intent,
           buttons: actionButtons.slice(0, 3),
         });
       }
-      const stockLine = product.stock > 0 ? `${product.stock} in stock` : `out of stock`;
+      const stockLine = product.stock > 0 ? `${product.stock} disponibles` : `épuisé`;
       const sizesLine = product.sizes ? ` | Tailles: ${product.sizes}` : "";
       return withAway({
         reply: `${product.name} — ${formatMoney(product.priceCents, currency)}. ${stockLine}${sizesLine}.`,
         intent: parsed.intent,
         buttons: [
-          { id: `ORDER:${product.id}`, title: "Order this" },
+          { id: `ORDER:${product.id}`, title: "Commander" },
           { id: `DEAL_PROMPT:${product.id}`, title: "🤝 Proposer deal" },
-          { id: "MENU", title: "See menu" },
+          MENU_BUTTON,
         ],
       });
     }
@@ -1321,8 +1763,8 @@ export async function respondTo(
         return withAway({
           reply:
             products.length > 0
-              ? `We couldn't find "${phrase}" to order. Tap a product below to order directly:`
-              : `We couldn't find "${phrase}" to order.`,
+              ? `Je n'ai pas trouvé « ${phrase} » à commander. Touchez un produit ci-dessous pour le commander :`
+              : `Je n'ai pas trouvé « ${phrase} » à commander.`,
           intent: parsed.intent,
           buttons:
             products.length > 0
@@ -1330,7 +1772,7 @@ export async function respondTo(
                   id: `ORDER:${p.id}`,
                   title: clampTitle(p.name),
                 }))
-              : [{ id: "MENU", title: "See menu" }],
+              : [MENU_BUTTON],
         });
       }
       return withAway(
@@ -1362,10 +1804,10 @@ export async function respondTo(
       });
       if (receivables.length === 0) {
         return withAway({
-          reply: `You have no open balances with ${shopName}. Thanks.`,
+          reply: `Vous n'avez aucun montant à payer chez ${shopName}. Merci !`,
           intent: parsed.intent,
           buttons: [
-            { id: "MENU", title: "See menu" },
+            MENU_BUTTON,
             { id: "TRACK", title: "📦 Suivre commande" },
           ],
         });
@@ -1378,11 +1820,11 @@ export async function respondTo(
           }`,
       );
       return withAway({
-        reply: `Open balance with ${shopName}: ${formatMoney(total, currency)}\n\n${lines.join("\n")}`,
+        reply: `Reste à payer chez ${shopName} : ${formatMoney(total, currency)}\n\n${lines.join("\n")}`,
         intent: parsed.intent,
         buttons: [
           { id: "TRACK", title: "📦 Suivre commande" },
-          { id: "MENU", title: "See menu" },
+          MENU_BUTTON,
         ],
       });
     }
@@ -1390,6 +1832,7 @@ export async function respondTo(
     default: {
       const { reply: ai, topProducts } = await tryLlmAnswer({
         vendorId,
+        fromPhone,
         shopName,
         currency,
         question: raw,
@@ -1411,12 +1854,15 @@ export async function respondTo(
           title: clampTitle(`🤝 Deal ${firstInStock.name}`),
         });
       }
-      actionButtons.push({ id: "MENU", title: "See menu" });
+      actionButtons.push(MENU_BUTTON);
       if (actionButtons.length < 3) {
-        actionButtons.push({ id: "TRACK", title: "📦 Suivre commande" });
+        actionButtons.push(ai ? { id: "TRACK", title: "📦 Suivre commande" } : HANDOFF_BUTTON);
       }
       return withAway({
-        reply: ai || `Sorry, I didn't catch that.`,
+        reply:
+          ai ||
+          `Je n'ai pas bien compris. Vous pouvez voir le catalogue, proposer un prix, ` +
+            `ou parler directement au vendeur.`,
         intent: parsed.intent,
         buttons: actionButtons.slice(0, 3),
       });

@@ -25,6 +25,39 @@ export type CatalogItem = {
   description?: string;
 };
 
+/** One earlier message of the WhatsApp conversation, oldest first. */
+export type ChatTurn = { role: "customer" | "assistant"; text: string };
+
+/**
+ * Normalize a conversation for chat APIs: merge consecutive turns of the same
+ * speaker, start with the customer, keep the last `max` turns.
+ */
+export function normalizeHistory(history: ChatTurn[] = [], max = 10): ChatTurn[] {
+  const merged: ChatTurn[] = [];
+  for (const t of history) {
+    const text = (t.text || "").trim();
+    if (!text) continue;
+    const last = merged[merged.length - 1];
+    if (last && last.role === t.role) last.text = `${last.text}\n${text}`;
+    else merged.push({ role: t.role, text });
+  }
+  let out = merged.slice(-max);
+  while (out.length > 0 && out[0].role !== "customer") out = out.slice(1);
+  // The current question is sent after the history as a customer turn.
+  if (out.length > 0 && out[out.length - 1].role === "customer") out = out.slice(0, -1);
+  return out;
+}
+
+/** Gemini key: the vendor's own, else the server's. */
+function geminiKey(vendorGeminiKey?: string): string | undefined {
+  return vendorGeminiKey || process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || undefined;
+}
+
+/** Audio, photos: Gemini only (it reads both). */
+export function isMediaAiConfigured(vendorGeminiKey?: string): boolean {
+  return Boolean(geminiKey(vendorGeminiKey));
+}
+
 export function isLlmConfigured(vendorGeminiKey?: string): boolean {
   return Boolean(
     vendorGeminiKey ||
@@ -122,6 +155,9 @@ export function buildSystemPrompt(
     `- If they want to negotiate or propose a deal/discount, tell them they can tap "🤝 Proposer un deal" or send "Deal [Nom du produit] à [Prix proposé]" and the seller will validate it in their dashboard.`,
     `- If they want to track an order, tell them to tap "📦 Suivre commande" or send their order reference (#XXXXXX).`,
     `- Prices are already formatted; quote them exactly as written.`,
+    `- Use the earlier messages of the conversation to understand short follow-ups ("et en rouge ?", "et la taille M ?", "combien pour deux ?").`,
+    `- Never reveal or hint at a minimum price; the seller's bargaining rules are handled separately.`,
+    `- If you are not sure which language to use, answer in French.`,
   ];
 
   if (extra?.deliveryInfo) {
@@ -136,15 +172,22 @@ export function buildSystemPrompt(
 
 const TIMEOUT_MS = 9000;
 
-async function callGemini(
-  system: string,
-  user: string,
+type GeminiPart = { text: string } | { inline_data: { mime_type: string; data: string } };
+type GeminiContent = { role: "user" | "model"; parts: GeminiPart[] };
+
+/** Calls Gemini with a fallback model list; returns the text answer or null. */
+async function geminiGenerate(
+  body: {
+    system?: string;
+    contents: GeminiContent[];
+    temperature?: number;
+    maxOutputTokens?: number;
+    json?: boolean;
+  },
   vendorGeminiKey?: string,
+  timeoutMs = TIMEOUT_MS,
 ): Promise<string | null> {
-  const key =
-    vendorGeminiKey ||
-    process.env.GEMINI_API_KEY ||
-    process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+  const key = geminiKey(vendorGeminiKey);
   if (!key) return null;
 
   const candidateModels = [
@@ -155,25 +198,19 @@ async function callGemini(
 
   for (const modelName of candidateModels) {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${key}`;
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: system }],
-          },
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: user }],
-            },
-          ],
+          ...(body.system ? { systemInstruction: { parts: [{ text: body.system }] } } : {}),
+          contents: body.contents,
           generationConfig: {
-            temperature: 0.6,
-            maxOutputTokens: 380,
+            temperature: body.temperature ?? 0.6,
+            maxOutputTokens: body.maxOutputTokens ?? 380,
+            ...(body.json ? { responseMimeType: "application/json" } : {}),
           },
         }),
         signal: ctrl.signal,
@@ -184,7 +221,10 @@ async function callGemini(
       const data = (await res.json()) as {
         candidates?: { content?: { parts?: { text?: string }[] } }[];
       };
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      const text = data.candidates?.[0]?.content?.parts
+        ?.map((p) => p.text || "")
+        .join("")
+        .trim();
       if (text) return text;
     } catch (e) {
       logger.warn("llm.gemini_failed", { model: modelName, error: String(e) });
@@ -195,7 +235,37 @@ async function callGemini(
   return null;
 }
 
-async function callAnthropic(system: string, user: string): Promise<string | null> {
+async function callGemini(
+  system: string,
+  user: string,
+  vendorGeminiKey?: string,
+  history: ChatTurn[] = [],
+): Promise<string | null> {
+  const contents: GeminiContent[] = [
+    ...history.map((t) => ({
+      role: (t.role === "customer" ? "user" : "model") as "user" | "model",
+      parts: [{ text: t.text.slice(0, 600) }],
+    })),
+    { role: "user", parts: [{ text: user }] },
+  ];
+  return geminiGenerate({ system, contents }, vendorGeminiKey);
+}
+
+function chatMessages(history: ChatTurn[], user: string) {
+  return [
+    ...history.map((t) => ({
+      role: t.role === "customer" ? ("user" as const) : ("assistant" as const),
+      content: t.text.slice(0, 600),
+    })),
+    { role: "user" as const, content: user },
+  ];
+}
+
+async function callAnthropic(
+  system: string,
+  user: string,
+  history: ChatTurn[] = [],
+): Promise<string | null> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return null;
   const model = process.env.JAPORA_LLM_MODEL || "claude-3-5-haiku-latest";
@@ -213,7 +283,7 @@ async function callAnthropic(system: string, user: string): Promise<string | nul
         model,
         max_tokens: 300,
         system,
-        messages: [{ role: "user", content: user }],
+        messages: chatMessages(history, user),
       }),
       signal: ctrl.signal,
     });
@@ -236,7 +306,11 @@ async function callAnthropic(system: string, user: string): Promise<string | nul
   }
 }
 
-async function callOpenAI(system: string, user: string): Promise<string | null> {
+async function callOpenAI(
+  system: string,
+  user: string,
+  history: ChatTurn[] = [],
+): Promise<string | null> {
   const key = process.env.OPENAI_API_KEY;
   if (!key) return null;
   const model = process.env.JAPORA_LLM_MODEL || "gpt-4o-mini";
@@ -249,10 +323,7 @@ async function callOpenAI(system: string, user: string): Promise<string | null> 
       body: JSON.stringify({
         model,
         max_tokens: 300,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
+        messages: [{ role: "system", content: system }, ...chatMessages(history, user)],
       }),
       signal: ctrl.signal,
     });
@@ -284,8 +355,11 @@ export async function generateBotReply(opts: {
   deliveryInfo?: string;
   customInstructions?: string;
   vendorGeminiKey?: string;
+  /** Earlier messages of this WhatsApp conversation, oldest first. */
+  history?: ChatTurn[];
 }): Promise<string | null> {
   if (!isLlmConfigured(opts.vendorGeminiKey)) return null;
+  const history = normalizeHistory(opts.history);
   const system = buildSystemPrompt(opts.shopName, {
     assistantName: opts.assistantName,
     deliveryInfo: opts.deliveryInfo,
@@ -301,20 +375,119 @@ export async function generateBotReply(opts: {
   const provider = llmProviderName(opts.vendorGeminiKey);
   let answer: string | null = null;
   if (provider === "gemini") {
-    answer = await callGemini(system, user, opts.vendorGeminiKey);
+    answer = await callGemini(system, user, opts.vendorGeminiKey, history);
   } else if (provider === "anthropic") {
-    answer = await callAnthropic(system, user);
+    answer = await callAnthropic(system, user, history);
   } else if (provider === "openai") {
-    answer = await callOpenAI(system, user);
+    answer = await callOpenAI(system, user, history);
   }
 
   // Fallback to Gemini if primary failed and Gemini key is available
   if (!answer && provider !== "gemini") {
-    answer = await callGemini(system, user, opts.vendorGeminiKey);
+    answer = await callGemini(system, user, opts.vendorGeminiKey, history);
   }
 
   if (answer) logger.info("llm.reply", { provider, shopName: opts.shopName });
   return answer;
+}
+
+/**
+ * Transcribe a WhatsApp voice note (any language the customer speaks) with
+ * Gemini. Returns the words only, or null when Gemini is unavailable.
+ */
+export async function transcribeAudio(opts: {
+  data: Buffer;
+  mimeType: string;
+  vendorGeminiKey?: string;
+}): Promise<string | null> {
+  const text = await geminiGenerate(
+    {
+      system:
+        "You transcribe WhatsApp voice notes sent by customers of a small shop in West Africa. " +
+        "Write exactly what the customer says, in the language they speak (French, English, Pidgin, Ewe, Mina...). " +
+        "Output only the transcription, without quotes or comments. If nothing is understandable, output nothing.",
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { inline_data: { mime_type: opts.mimeType.split(";")[0] || "audio/ogg", data: opts.data.toString("base64") } },
+            { text: "Transcris ce message vocal." },
+          ],
+        },
+      ],
+      temperature: 0,
+      maxOutputTokens: 400,
+    },
+    opts.vendorGeminiKey,
+    20000,
+  );
+  return text ? text.replace(/^["«\s]+|["»\s]+$/g, "").trim() || null : null;
+}
+
+export type ImageMatch = { description: string; productIds: string[] };
+
+/**
+ * Photo search: Gemini looks at the customer's photo and picks the catalog
+ * products that look like it (same kind of item, colour, material).
+ */
+export async function matchProductsFromImage(opts: {
+  data: Buffer;
+  mimeType: string;
+  caption?: string;
+  catalog: { id: string; name: string; description?: string }[];
+  vendorGeminiKey?: string;
+}): Promise<ImageMatch | null> {
+  const catalogText = opts.catalog
+    .slice(0, 150)
+    .map((p) => `${p.id} | ${p.name}${p.description ? ` | ${p.description.slice(0, 120)}` : ""}`)
+    .join("\n");
+  const raw = await geminiGenerate(
+    {
+      system:
+        "You help a shop find, in its own catalog, the products that look like the item in a customer's photo. " +
+        'Answer with JSON only: {"description": "<the item in the photo, in French, max 12 words>", "productIds": ["<id>", ...]}. ' +
+        "productIds: up to 3 catalog ids of the same kind of item, best match first; empty if nothing is similar. " +
+        "Only use ids from the catalog.",
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { inline_data: { mime_type: opts.mimeType.split(";")[0] || "image/jpeg", data: opts.data.toString("base64") } },
+            {
+              text:
+                `Catalogue (id | nom | description):\n${catalogText || "(vide)"}\n\n` +
+                `Message du client : ${opts.caption?.slice(0, 300) || "(aucun)"}`,
+            },
+          ],
+        },
+      ],
+      temperature: 0.1,
+      maxOutputTokens: 300,
+      json: true,
+    },
+    opts.vendorGeminiKey,
+    20000,
+  );
+  return raw ? parseImageMatch(raw, new Set(opts.catalog.map((p) => p.id))) : null;
+}
+
+/** Parse Gemini's JSON answer, keeping only ids that exist in the catalog. */
+export function parseImageMatch(raw: string, knownIds: Set<string>): ImageMatch | null {
+  try {
+    const json = JSON.parse(raw.replace(/^```(?:json)?\s*|\s*```$/g, "")) as {
+      description?: unknown;
+      productIds?: unknown;
+    };
+    const ids = Array.isArray(json.productIds)
+      ? [...new Set(json.productIds.filter((id): id is string => typeof id === "string" && knownIds.has(id)))]
+      : [];
+    return {
+      description: typeof json.description === "string" ? json.description.slice(0, 120) : "",
+      productIds: ids.slice(0, 3),
+    };
+  } catch {
+    return null;
+  }
 }
 
 export const __testing = { formatCatalogForPrompt, buildSystemPrompt };

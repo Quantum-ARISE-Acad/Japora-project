@@ -43,7 +43,7 @@ function clip(s: string, max: number): string {
 export function normalizeForMatch(s: string): string {
   return ` ${(s || "")
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim()} `;

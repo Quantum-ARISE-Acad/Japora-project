@@ -14,6 +14,8 @@ type Product = {
   name: string;
   description: string;
   priceCents: number;
+  /** Secret minimum price for automatic bargaining (vendor only). */
+  minPriceCents?: number | null;
   imageUrl: string;
   sizes: string;
   stock: number;
@@ -31,6 +33,7 @@ type CollectionRef = {
 type FormState = {
   name: string;
   price: string;
+  minPrice: string;
   description: string;
   sizes: string;
   stock: string;
@@ -43,6 +46,7 @@ type FormState = {
 const EMPTY_FORM: FormState = {
   name: "",
   price: "",
+  minPrice: "",
   description: "",
   sizes: "",
   stock: "0",
@@ -153,6 +157,7 @@ export default function ProductsClient({
     setForm({
       name: p.name,
       price: (p.priceCents / 100).toString(),
+      minPrice: p.minPriceCents ? (p.minPriceCents / 100).toString() : "",
       description: p.description,
       sizes: p.sizes,
       stock: p.stock.toString(),
@@ -170,6 +175,7 @@ export default function ProductsClient({
     setForm({
       name: `${p.name} (${tr("copie", "copy")})`,
       price: (p.priceCents / 100).toString(),
+      minPrice: p.minPriceCents ? (p.minPriceCents / 100).toString() : "",
       description: p.description,
       sizes: p.sizes,
       stock: p.stock.toString(),
@@ -231,6 +237,7 @@ export default function ProductsClient({
     const payload = {
       name: form.name.trim(),
       price: form.price,
+      minPrice: form.minPrice.trim() || null,
       description: form.description.trim(),
       sizes: form.sizes.trim(),
       stock: parseInt(form.stock, 10) || 0,
@@ -638,8 +645,11 @@ export default function ProductsClient({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="label">{tr("Prix", "Price")} ({currency})</label>
+                  <label className="label" htmlFor="product-price">
+                    {tr("Prix affiché", "Shown price")} ({currency})
+                  </label>
                   <input
+                    id="product-price"
                     className="input"
                     inputMode="decimal"
                     placeholder="0.00"
@@ -649,8 +659,31 @@ export default function ProductsClient({
                   />
                 </div>
                 <div>
-                  <label className="label">{tr("Quantité en stock", "Stock count")}</label>
+                  <label className="label" htmlFor="product-min-price">
+                    {tr("Prix minimum (secret)", "Minimum price (secret)")} ({currency})
+                  </label>
                   <input
+                    id="product-min-price"
+                    className="input"
+                    inputMode="decimal"
+                    placeholder={tr("Facultatif", "Optional")}
+                    value={form.minPrice}
+                    onChange={(e) => setForm({ ...form, minPrice: e.target.value })}
+                    aria-describedby="product-min-price-help"
+                  />
+                </div>
+                <p id="product-min-price-help" className="col-span-2 -mt-1 text-xs text-arctic-600">
+                  {tr(
+                    "Les clients voient seulement le prix affiché. Si vous indiquez un prix minimum, l’assistant WhatsApp marchande seul et accepte toute offre à partir de ce prix, sans jamais descendre en dessous. Sans prix minimum, chaque offre vous est envoyée pour validation.",
+                    "Customers only see the shown price. With a minimum price, the WhatsApp assistant bargains on its own and accepts any offer from that price, never below it. Without one, every offer is sent to you for approval.",
+                  )}
+                </p>
+                <div>
+                  <label className="label" htmlFor="product-stock">
+                    {tr("Quantité en stock", "Stock count")}
+                  </label>
+                  <input
+                    id="product-stock"
                     className="input"
                     inputMode="numeric"
                     value={form.stock}
