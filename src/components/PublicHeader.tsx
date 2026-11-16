@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import { isClerkConfigured } from "@/components/auth/ClerkAuthProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 import { LanguageSwitcher, usePublicLang } from "@/components/PublicLanguageProvider";
 
@@ -12,10 +14,137 @@ type PublicHeaderProps = {
 };
 
 export default function PublicHeader({ isAuthenticated = false, shopSlug }: PublicHeaderProps) {
+  const router = useRouter();
   const pathname = usePathname();
   const { tr } = usePublicLang();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openingDashboard, setOpeningDashboard] = useState(false);
+  const [authState, setAuthState] = useState<{
+    authenticated: boolean;
+    shopSlug?: string;
+  }>({
+    authenticated: isAuthenticated,
+    shopSlug,
+  });
+  const syncedClerkRef = useRef(false);
+
+  const clerkActive = isClerkConfigured();
+  let clerkUserHook: any = null;
+  try {
+    if (clerkActive) {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      clerkUserHook = useUser();
+    }
+  } catch {
+    clerkUserHook = null;
+  }
+
+  const clerkLoaded = clerkUserHook?.isLoaded ?? true;
+  const clerkSignedIn = Boolean(clerkUserHook?.isSignedIn);
+  const clerkUser = clerkUserHook?.user ?? null;
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setAuthState({ authenticated: true, shopSlug });
+    }
+  }, [isAuthenticated, shopSlug]);
+
+  // Verify backend session and auto-sync Clerk session if needed so that
+  // clicking "Go to Dashboard" always opens the merchant's shop dashboard.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkAndSyncSession() {
+      try {
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        const data = await res.json().catch(() => null);
+        if (!cancelled && data?.authenticated) {
+          setAuthState({
+            authenticated: true,
+            shopSlug: data.shopSlug || shopSlug,
+          });
+          return;
+        }
+      } catch {
+        // ignore network error
+      }
+
+      if (clerkActive && clerkLoaded && clerkSignedIn && clerkUser && !syncedClerkRef.current) {
+        syncedClerkRef.current = true;
+        const email =
+          clerkUser.primaryEmailAddress?.emailAddress ||
+          clerkUser.emailAddresses?.[0]?.emailAddress ||
+          "";
+        if (email || clerkUser.id) {
+          try {
+            const syncRes = await fetch("/api/auth/clerk-sync", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                clerkId: clerkUser.id || null,
+                email,
+                firstName: clerkUser.firstName || null,
+                lastName: clerkUser.lastName || null,
+                name: clerkUser.fullName || "",
+                avatarUrl: clerkUser.imageUrl || null,
+              }),
+            });
+            const syncData = await syncRes.json().catch(() => null);
+            if (!cancelled && syncData?.ok) {
+              setAuthState({
+                authenticated: true,
+                shopSlug: syncData.shopSlug || shopSlug,
+              });
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+    }
+
+    checkAndSyncSession();
+    return () => {
+      cancelled = true;
+    };
+  }, [clerkActive, clerkLoaded, clerkSignedIn, clerkUser, shopSlug]);
+
+  const effectiveAuthenticated = authState.authenticated || clerkSignedIn;
+  const effectiveShopSlug = authState.shopSlug || shopSlug;
+
+  async function handleGoToDashboard(e: React.MouseEvent<HTMLAnchorElement>) {
+    // If Clerk is signed in on the client but the backend session cookie hasn't
+    // been established yet, synchronize first before navigating to /dashboard.
+    if (!authState.authenticated && clerkSignedIn && clerkUser) {
+      e.preventDefault();
+      if (openingDashboard) return;
+      setOpeningDashboard(true);
+      try {
+        const email =
+          clerkUser.primaryEmailAddress?.emailAddress ||
+          clerkUser.emailAddresses?.[0]?.emailAddress ||
+          "";
+        await fetch("/api/auth/clerk-sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clerkId: clerkUser.id || null,
+            email,
+            firstName: clerkUser.firstName || null,
+            lastName: clerkUser.lastName || null,
+            name: clerkUser.fullName || "",
+            avatarUrl: clerkUser.imageUrl || null,
+          }),
+        });
+      } catch {
+        // ignore
+      }
+      window.location.href = "/dashboard";
+      return;
+    }
+    router.refresh();
+  }
 
   const navLinks = [
     {
@@ -51,7 +180,7 @@ export default function PublicHeader({ isAuthenticated = false, shopSlug }: Publ
       }`}
     >
       {/* Top Announcement Bar */}
-      <div className="border-b border-arctic-200/50 bg-arctic-900 px-4 py-1.5 text-center text-[11px] font-medium text-arctic-100">
+      <div className="border-b border-white/10 bg-stone-900 px-4 py-1.5 text-center text-[11px] font-medium text-stone-200 dark:bg-arctic-100">
         <div className="mx-auto flex max-w-6xl items-center justify-center gap-2">
           <span className="inline-flex h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
           <span>
@@ -136,18 +265,24 @@ export default function PublicHeader({ isAuthenticated = false, shopSlug }: Publ
           <LanguageSwitcher />
           <ThemeToggle />
 
-          {isAuthenticated ? (
+          {effectiveAuthenticated ? (
             <div className="flex items-center gap-2">
-              {shopSlug && (
+              {effectiveShopSlug && (
                 <Link
-                  href={`/shop/${shopSlug}`}
+                  href={`/shop/${effectiveShopSlug}`}
                   className="btn-ghost hidden text-xs sm:inline-flex"
                 >
                   {tr("Ma vitrine", "My storefront")}
                 </Link>
               )}
-              <Link href="/dashboard" className="btn-primary text-xs">
-                {tr("Tableau de bord →", "Dashboard →")}
+              <Link
+                href="/dashboard"
+                onClick={handleGoToDashboard}
+                className="a-btn a-btn--cafe px-4 text-xs font-bold shadow-elev-1"
+              >
+                {openingDashboard
+                  ? tr("Ouverture…", "Opening…")
+                  : tr("Aller au Dashboard →", "Go to Dashboard →")}
               </Link>
             </div>
           ) : (
@@ -213,10 +348,26 @@ export default function PublicHeader({ isAuthenticated = false, shopSlug }: Publ
           </div>
 
           <div className="my-4 border-t border-arctic-200/60 pt-4">
-            {isAuthenticated ? (
-              <Link href="/dashboard" className="btn-primary w-full justify-center">
-                {tr("Accéder au tableau de bord →", "Go to dashboard →")}
-              </Link>
+            {effectiveAuthenticated ? (
+              <div className="flex flex-col gap-2">
+                {effectiveShopSlug && (
+                  <Link
+                    href={`/shop/${effectiveShopSlug}`}
+                    className="btn-ghost w-full justify-center text-xs"
+                  >
+                    {tr("Ma vitrine", "My storefront")}
+                  </Link>
+                )}
+                <Link
+                  href="/dashboard"
+                  onClick={handleGoToDashboard}
+                  className="a-btn a-btn--cafe w-full justify-center text-xs font-bold"
+                >
+                  {openingDashboard
+                    ? tr("Ouverture…", "Opening…")
+                    : tr("Aller au Dashboard →", "Go to Dashboard →")}
+                </Link>
+              </div>
             ) : (
               <div className="grid grid-cols-2 gap-2.5">
                 <Link href="/login" className="btn-ghost w-full justify-center text-xs">

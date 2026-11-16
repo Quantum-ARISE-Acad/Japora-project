@@ -22,14 +22,18 @@ const CATEGORY_FR: Record<string, string> = {
 
 export default function LandingClient({
   featuredShops,
+  isAuthenticated = false,
+  shopSlug,
 }: {
   featuredShops: ShopCard[];
+  isAuthenticated?: boolean;
+  shopSlug?: string;
 }) {
   const { tr } = usePublicLang();
 
   return (
     <div className="min-h-screen flex flex-col">
-      <PublicHeader />
+      <PublicHeader isAuthenticated={isAuthenticated} shopSlug={shopSlug} />
 
       <main className="mx-auto max-w-6xl flex-1 px-4">
         {/* ============================================================
@@ -1186,7 +1190,7 @@ export default function LandingClient({
          * 10. CLOSING CALL-TO-ACTION BANNER
          * ============================================================ */}
         <section className="mb-20">
-          <div className="relative overflow-hidden rounded-shape-xl bg-gradient-to-br from-arctic-900 via-arctic-800 to-slate-900 p-8 text-center text-white shadow-elev-3 sm:p-14">
+          <div className="relative overflow-hidden rounded-shape-xl bg-gradient-to-br from-stone-900 via-stone-800 to-slate-900 p-8 text-center text-white shadow-elev-3 ring-1 ring-white/10 sm:p-14">
             <div
               aria-hidden
               className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full opacity-25 blur-3xl"
@@ -1205,7 +1209,7 @@ export default function LandingClient({
                   "Ready to sell online, on WhatsApp, and track all your sales?"
                 )}
               </h2>
-              <p className="mx-auto max-w-xl text-xs leading-relaxed text-arctic-200 sm:text-sm">
+              <p className="mx-auto max-w-xl text-xs leading-relaxed text-stone-300 sm:text-sm">
                 {tr(
                   "Rejoignez les marchands qui automatisent leurs prises de commandes, encaissent par Mobile Money et développent leur visibilité sur le Marketplace Japora.",
                   "Join merchants who automate order taking, accept Mobile Money payments, and grow their visibility on the Japora Marketplace."
@@ -1232,7 +1236,7 @@ export default function LandingClient({
                 </Link>
                 <Link
                   href="/how-to-use"
-                  className="a-btn a-btn--lg border border-white/15 bg-transparent text-arctic-200 hover:text-white"
+                  className="a-btn a-btn--lg border border-white/15 bg-transparent text-stone-300 hover:text-white"
                 >
                   {tr("Voir comment ça marche", "See how it works")}
                 </Link>

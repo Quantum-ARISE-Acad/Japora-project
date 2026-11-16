@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useClerk } from "@clerk/nextjs";
+import { isClerkConfigured } from "./ClerkAuthProvider";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
@@ -15,8 +16,17 @@ export default function CustomSignIn() {
   const redirectUrl = searchParams.get("redirect") || "/dashboard";
   const { tr } = usePublicLang();
 
-  const clerk = useClerk();
-  const isLoaded = Boolean(clerk?.loaded && clerk?.client);
+  const clerkActive = isClerkConfigured();
+  let clerk: any = null;
+  try {
+    if (clerkActive) {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      clerk = useClerk();
+    }
+  } catch {
+    clerk = null;
+  }
+  const isLoaded = clerkActive ? Boolean(clerk?.loaded && clerk?.client) : true;
   const signIn = clerk?.client?.signIn;
   const signUp = clerk?.client?.signUp;
 
@@ -37,17 +47,25 @@ export default function CustomSignIn() {
     if (sessionId) {
       await clerk.setActive({ session: sessionId });
     }
-    await fetch("/api/auth/clerk-sync", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        clerkId: clerkUserId || clerk.user?.id || null,
-        email: email.trim().toLowerCase(),
-        password,
-        authProvider: "clerk_email",
-      }),
-    }).catch(() => {});
+    try {
+      await fetch("/api/auth/clerk-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clerkId: clerkUserId || clerk.user?.id || null,
+          email: email.trim().toLowerCase(),
+          password,
+          authProvider: "clerk_email",
+        }),
+      });
+    } catch {
+      // ignore
+    }
 
+    if (typeof window !== "undefined") {
+      window.location.href = redirectUrl;
+      return;
+    }
     router.push(redirectUrl);
     router.refresh();
   }
@@ -107,18 +125,36 @@ export default function CustomSignIn() {
     e.preventDefault();
     setError("");
 
-    if (!isLoaded || !signIn) {
-      setError(
-        tr(
-          "Le service d'authentification Clerk charge encore. Réessayez dans une seconde.",
-          "Clerk authentication is still loading. Please try again in a second.",
-        ),
-      );
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Local database login fallback when Clerk is not configured or unavailable
+    if (!clerkActive || !signIn) {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: cleanEmail, password }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data?.ok) {
+          window.location.href = redirectUrl;
+          return;
+        }
+        setError(
+          data?.error ||
+            tr("Email ou mot de passe incorrect.", "Invalid email or password."),
+        );
+      } catch {
+        setError(
+          tr("Erreur réseau lors de la connexion.", "Network error during sign-in."),
+        );
+      }
+      setLoading(false);
       return;
     }
 
     setLoading(true);
-    const cleanEmail = email.trim().toLowerCase();
 
     try {
       let result: any = await signIn.create({
@@ -182,9 +218,25 @@ export default function CustomSignIn() {
     } catch (err: any) {
       const errCode = err?.errors?.[0]?.code || "";
       // If the user is already signed in on Clerk, synchronize and redirect
-      if (errCode === "session_exists" && clerk.session?.id) {
+      if (errCode === "session_exists" && clerk?.session?.id) {
         await finalizeClerkLogin(clerk.session.id, clerk.user?.id || null);
         return;
+      }
+
+      // Also try local DB login if the vendor exists in MySQL but not yet in Clerk
+      try {
+        const localRes = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: cleanEmail, password }),
+        });
+        const localData = await localRes.json().catch(() => ({}));
+        if (localRes.ok && localData?.ok) {
+          window.location.href = redirectUrl;
+          return;
+        }
+      } catch {
+        // ignore and show Clerk error below
       }
 
       const clerkMessage =

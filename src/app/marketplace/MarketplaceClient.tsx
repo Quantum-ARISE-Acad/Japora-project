@@ -257,7 +257,7 @@ export default function MarketplaceClient({
               />
               <button
                 type="submit"
-                className="rounded-shape-full bg-arctic-900 px-6 py-2.5 a-label-md font-bold text-white transition hover:bg-arctic-800"
+                className="rounded-shape-full bg-arctic-900 px-6 py-2.5 a-label-md font-bold text-arctic-50 transition hover:bg-arctic-800"
               >
                 {tr("Rechercher", "Search")}
               </button>
@@ -379,7 +379,7 @@ export default function MarketplaceClient({
                   <span
                     className={`grid h-9 w-9 place-items-center rounded-shape-md ${
                       isSelected
-                        ? "bg-white/15 text-white"
+                        ? "bg-arctic-50/15 text-arctic-50"
                         : "bg-brand/10 text-brand-dark"
                     }`}
                   >
@@ -420,7 +420,7 @@ export default function MarketplaceClient({
                   href={makeFilterUrl({ region: isSelected ? "" : r.slug })}
                   className={`a-chip transition-all ${
                     isSelected
-                      ? "border-arctic-900 bg-arctic-900 text-white font-semibold shadow-xs"
+                      ? "border-arctic-900 bg-arctic-900 text-arctic-50 font-semibold shadow-xs"
                       : "hover:border-brand/60"
                   }`}
                 >
@@ -557,7 +557,7 @@ export default function MarketplaceClient({
                 className="rounded-shape-lg border border-arctic-200/80 bg-arctic-50/70 p-5"
               >
                 <div className="flex items-center justify-between">
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-arctic-900 font-display text-xs font-bold text-white">
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-arctic-900 font-display text-xs font-bold text-arctic-50">
                     {item.step}
                   </span>
                   <span className="rounded-full bg-brand/15 px-2.5 py-0.5 text-[10px] font-bold text-brand-dark">
@@ -684,7 +684,7 @@ export default function MarketplaceClient({
          * 8. VENDOR RECRUITMENT BANNER — List your shop
          * ============================================================ */}
         <section className="mb-8">
-          <div className="rounded-shape-xl bg-gradient-to-r from-arctic-900 via-arctic-800 to-slate-900 p-8 text-white shadow-elev-3 sm:p-10">
+          <div className="rounded-shape-xl bg-gradient-to-r from-stone-900 via-stone-800 to-slate-900 p-8 text-white shadow-elev-3 ring-1 ring-white/10 sm:p-10">
             <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
               <div className="max-w-xl space-y-2">
                 <span className="inline-block rounded-full bg-white/10 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-200">
@@ -696,7 +696,7 @@ export default function MarketplaceClient({
                     "List your shop for free in the Marketplace"
                   )}
                 </h2>
-                <p className="text-xs leading-relaxed text-arctic-200 sm:text-sm">
+                <p className="text-xs leading-relaxed text-stone-300 sm:text-sm">
                   {tr(
                     "Créez votre boutique en quelques instants, activez l'option « Marketplace public » dans vos paramètres et laissez de nouveaux clients vous découvrir chaque jour.",
                     "Open your shop in moments, enable the public marketplace toggle in your settings, and let new local buyers discover you every day."

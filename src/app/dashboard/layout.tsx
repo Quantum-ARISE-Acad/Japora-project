@@ -7,6 +7,8 @@ import LiveOrderNotifier from "@/components/LiveOrderNotifier";
 import ShopOnboardingModal from "@/components/ShopOnboardingModal";
 import ClerkDashboardSync from "@/components/auth/ClerkDashboardSync";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardLayout({
   children,
 }: {

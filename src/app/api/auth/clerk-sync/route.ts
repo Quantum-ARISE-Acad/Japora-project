@@ -125,6 +125,10 @@ export async function POST(req: Request) {
       }
     }
 
+    if (!email && clerkId) {
+      email = `${clerkId}@clerk.japora.app`;
+    }
+
     if (!email) {
       return NextResponse.json(
         { error: "Une adresse email est requise pour synchroniser le compte." },

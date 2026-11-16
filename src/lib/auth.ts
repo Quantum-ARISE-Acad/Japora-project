@@ -90,75 +90,79 @@ export async function getCurrentVendor(): Promise<Vendor | null> {
         }
 
         // Auto-provision or link Clerk vendor in MySQL if not yet linked
-        const clerkUser = await currentUser();
-        if (clerkUser) {
-          const email =
-            clerkUser.emailAddresses?.[0]?.emailAddress?.trim().toLowerCase() ||
-            `${clerkAuth.userId}@clerk.japora.app`;
+        let clerkUser: any = null;
+        try {
+          clerkUser = await currentUser();
+        } catch {
+          clerkUser = null;
+        }
 
-          const unsafeMeta = (clerkUser.unsafeMetadata || {}) as Record<
-            string,
-            unknown
-          >;
-          const hasGoogleExternal =
-            Array.isArray(clerkUser.externalAccounts) &&
-            clerkUser.externalAccounts.some((acc) =>
-              String(acc.provider || "").includes("google"),
-            );
+        const email =
+          clerkUser?.emailAddresses?.[0]?.emailAddress?.trim().toLowerCase() ||
+          `${clerkAuth.userId}@clerk.japora.app`;
 
-          const metaShopName =
-            typeof unsafeMeta.shopName === "string"
-              ? unsafeMeta.shopName.trim()
-              : "";
-          const metaWhatsapp =
-            typeof unsafeMeta.whatsappNumber === "string"
-              ? unsafeMeta.whatsappNumber.trim()
-              : "";
-          const metaCurrency =
-            typeof unsafeMeta.currency === "string"
-              ? unsafeMeta.currency.trim()
-              : "XOF";
-          const metaLanguage =
-            typeof unsafeMeta.language === "string"
-              ? unsafeMeta.language.trim()
-              : "fr";
-          const metaCategory =
-            typeof unsafeMeta.category === "string"
-              ? unsafeMeta.category.trim()
-              : "fashion";
-          const metaRegion =
-            typeof unsafeMeta.region === "string"
-              ? unsafeMeta.region.trim()
-              : "lome";
+        const unsafeMeta = (clerkUser?.unsafeMetadata || {}) as Record<
+          string,
+          unknown
+        >;
+        const hasGoogleExternal =
+          Array.isArray(clerkUser?.externalAccounts) &&
+          clerkUser.externalAccounts.some((acc: any) =>
+            String(acc.provider || "").includes("google"),
+          );
 
-          const { syncClerkUserToVendor } = await import("./clerk-vendor-sync");
-          const synced = await syncClerkUserToVendor({
-            clerkId: clerkAuth.userId,
-            email,
-            firstName: clerkUser.firstName,
-            lastName: clerkUser.lastName,
-            name: [clerkUser.firstName, clerkUser.lastName]
-              .filter(Boolean)
-              .join(" ")
-              .trim(),
-            avatarUrl: clerkUser.imageUrl || null,
-            shopName: metaShopName || null,
-            whatsappNumber:
-              metaWhatsapp ||
-              clerkUser.phoneNumbers?.[0]?.phoneNumber ||
-              null,
-            currency: metaCurrency,
-            language: metaLanguage,
-            category: metaCategory,
-            region: metaRegion,
-            authProvider: hasGoogleExternal ? "google" : "clerk_email",
-            isGoogleOneClick: hasGoogleExternal && !metaShopName,
-            completeOnboarding: Boolean(metaShopName),
-          });
+        const metaShopName =
+          typeof unsafeMeta.shopName === "string"
+            ? unsafeMeta.shopName.trim()
+            : "";
+        const metaWhatsapp =
+          typeof unsafeMeta.whatsappNumber === "string"
+            ? unsafeMeta.whatsappNumber.trim()
+            : "";
+        const metaCurrency =
+          typeof unsafeMeta.currency === "string"
+            ? unsafeMeta.currency.trim()
+            : "XOF";
+        const metaLanguage =
+          typeof unsafeMeta.language === "string"
+            ? unsafeMeta.language.trim()
+            : "fr";
+        const metaCategory =
+          typeof unsafeMeta.category === "string"
+            ? unsafeMeta.category.trim()
+            : "fashion";
+        const metaRegion =
+          typeof unsafeMeta.region === "string"
+            ? unsafeMeta.region.trim()
+            : "lome";
 
-          if (synced.vendor && !synced.vendor.deletedAt) {
-            return await syncActiveVendorWhatsAppBinding(synced.vendor);
-          }
+        const { syncClerkUserToVendor } = await import("./clerk-vendor-sync");
+        const synced = await syncClerkUserToVendor({
+          clerkId: clerkAuth.userId,
+          email,
+          firstName: clerkUser?.firstName || null,
+          lastName: clerkUser?.lastName || null,
+          name: [clerkUser?.firstName, clerkUser?.lastName]
+            .filter(Boolean)
+            .join(" ")
+            .trim(),
+          avatarUrl: clerkUser?.imageUrl || null,
+          shopName: metaShopName || null,
+          whatsappNumber:
+            metaWhatsapp ||
+            clerkUser?.phoneNumbers?.[0]?.phoneNumber ||
+            null,
+          currency: metaCurrency,
+          language: metaLanguage,
+          category: metaCategory,
+          region: metaRegion,
+          authProvider: hasGoogleExternal ? "google" : "clerk_email",
+          isGoogleOneClick: hasGoogleExternal && !metaShopName,
+          completeOnboarding: Boolean(metaShopName),
+        });
+
+        if (synced.vendor && !synced.vendor.deletedAt) {
+          return await syncActiveVendorWhatsAppBinding(synced.vendor);
         }
       }
     } catch {
@@ -167,13 +171,35 @@ export async function getCurrentVendor(): Promise<Vendor | null> {
   }
 
   // 2. Fall back to local cookie session
-  const session = await getSession();
-  if (!session) return null;
-  const vendor = await prisma.vendor.findUnique({
-    where: { id: session.vendorId },
-  });
-  if (!vendor || vendor.deletedAt) return null;
-  return await syncActiveVendorWhatsAppBinding(vendor);
+  try {
+    const session = await getSession();
+    if (session) {
+      const vendor = await prisma.vendor.findUnique({
+        where: { id: session.vendorId },
+      });
+      if (vendor && !vendor.deletedAt) {
+        return await syncActiveVendorWhatsAppBinding(vendor);
+      }
+    }
+  } catch (err) {
+    console.warn("[getCurrentVendor] session DB lookup warning:", err);
+  }
+
+  // 3. Fall back to unified Wataru SSO cookie
+  try {
+    const { getUnifiedCookie, syncUnifiedVendor } = await import("./unified-auth");
+    const unified = await getUnifiedCookie();
+    if (unified?.email) {
+      const vendor = await syncUnifiedVendor(unified);
+      if (vendor && !vendor.deletedAt) {
+        return await syncActiveVendorWhatsAppBinding(vendor);
+      }
+    }
+  } catch {
+    // Ignore unified cookie fallback errors
+  }
+
+  return null;
 }
 
 export async function requireVendor(): Promise<Vendor> {

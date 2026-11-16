@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useClerk } from "@clerk/nextjs";
+import { isClerkConfigured } from "./ClerkAuthProvider";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
@@ -31,8 +32,17 @@ export default function CustomSignUp() {
   const router = useRouter();
   const { tr } = usePublicLang();
 
-  const clerk = useClerk();
-  const isLoaded = Boolean(clerk?.loaded && clerk?.client);
+  const clerkActive = isClerkConfigured();
+  let clerk: any = null;
+  try {
+    if (clerkActive) {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      clerk = useClerk();
+    }
+  } catch {
+    clerk = null;
+  }
+  const isLoaded = clerkActive ? Boolean(clerk?.loaded && clerk?.client) : true;
   const signUp = clerk?.client?.signUp;
   const signIn = clerk?.client?.signIn;
 
@@ -161,13 +171,28 @@ export default function CustomSignUp() {
       return;
     }
 
-    if (!isLoaded || !signUp) {
-      setError(
-        tr(
-          "Le service d'authentification Clerk charge encore. Réessayez dans une seconde.",
-          "Clerk authentication is still loading. Please try again in a second.",
-        ),
-      );
+    if (!clerkActive || !signUp) {
+      setLoading(true);
+      try {
+        const res = await syncWithBackend(null);
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data?.ok) {
+          window.location.href = "/dashboard";
+          return;
+        }
+        setError(
+          data?.error ||
+            tr(
+              "Erreur lors de la création de la boutique.",
+              "Error creating your shop.",
+            ),
+        );
+      } catch {
+        setError(
+          tr("Erreur réseau lors de l'inscription.", "Network error during sign-up."),
+        );
+      }
+      setLoading(false);
       return;
     }
 
@@ -232,6 +257,10 @@ export default function CustomSignUp() {
           await clerk.setActive({ session: result.createdSessionId });
         }
         await syncWithBackend(result.createdUserId);
+        if (typeof window !== "undefined") {
+          window.location.href = "/dashboard";
+          return;
+        }
         router.push("/dashboard");
         router.refresh();
         return;
@@ -276,6 +305,10 @@ export default function CustomSignUp() {
           await clerk.setActive({ session: completeSignUp.createdSessionId });
         }
         await syncWithBackend(completeSignUp.createdUserId);
+        if (typeof window !== "undefined") {
+          window.location.href = "/dashboard";
+          return;
+        }
         router.push("/dashboard");
         router.refresh();
       } else {
