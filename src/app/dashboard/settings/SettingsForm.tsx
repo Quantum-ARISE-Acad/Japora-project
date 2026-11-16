@@ -7,6 +7,7 @@ import ShopQrCard from "../ShopQrCard";
 import DangerZone from "./DangerZone";
 import { REGIONS, CATEGORIES } from "@/lib/regions";
 import { LANG_NAMES, type Lang } from "@/lib/i18n";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 type Initial = {
   shopName: string;
@@ -53,6 +54,7 @@ export default function SettingsForm({
   whatsappLive: boolean;
   storageMode: "firebase" | "s3" | "local";
 }) {
+  const { tr } = usePublicLang();
   const router = useRouter();
   const [shopName, setShopName] = useState(initial.shopName);
   const [shopSlug, setShopSlug] = useState(initial.shopSlug);
@@ -217,22 +219,27 @@ export default function SettingsForm({
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="a-headline-md text-arctic-900">Shop settings</h1>
-          <p className="text-sm text-arctic-600">Signed in as {initial.email}</p>
+          <h1 className="a-headline-md text-arctic-900">{tr("Paramètres de la boutique", "Shop settings")}</h1>
+          <p className="text-sm text-arctic-600">
+            {tr("Connecté en tant que", "Signed in as")} {initial.email}
+          </p>
         </div>
         <button
           type="button"
           onClick={() => window.dispatchEvent(new Event("japora:open-onboarding"))}
           className="btn-ghost text-xs border border-brand/30 text-brand-dark font-semibold self-start sm:self-auto"
         >
-          ✨ Assistant de configuration rapide
+          {tr("✨ Assistant de configuration rapide", "✨ Quick setup wizard")}
         </button>
       </div>
 
       <div className="card p-5">
-        <h2 className="text-sm font-semibold text-arctic-900">Your catalog link</h2>
+        <h2 className="text-sm font-semibold text-arctic-900">{tr("Lien de votre catalogue", "Your catalog link")}</h2>
         <p className="mb-3 mt-1 text-sm text-arctic-600">
-          Share this URL anywhere — WhatsApp bio, status, groups, Instagram.
+          {tr(
+            "Partagez cette URL partout — bio WhatsApp, statuts, groupes, Instagram.",
+            "Share this URL anywhere — WhatsApp bio, status, groups, Instagram.",
+          )}
         </p>
         <CopyableLink slug={shopSlug} />
       </div>
@@ -241,12 +248,12 @@ export default function SettingsForm({
 
       <form onSubmit={onSubmit} className="card space-y-4 p-5">
         <div>
-          <label className="label">Shop name</label>
+          <label className="label">{tr("Nom de la boutique", "Shop name")}</label>
           <input className="input" value={shopName} onChange={(e) => setShopName(e.target.value)} required />
         </div>
 
         <div>
-          <label className="label">Catalog URL slug</label>
+          <label className="label">{tr("Identifiant URL du catalogue", "Catalog URL slug")}</label>
           <div className="flex items-center gap-2">
             <span className="text-sm text-arctic-600">/c/</span>
             <input
@@ -257,15 +264,21 @@ export default function SettingsForm({
             />
           </div>
           <p className="mt-1 text-xs text-arctic-600">
-            Lowercase letters, numbers, and dashes. Changing this breaks old links.
+            {tr(
+              "Lettres minuscules, chiffres et tirets. Modifier ceci invalide vos anciens liens.",
+              "Lowercase letters, numbers, and dashes. Changing this breaks old links.",
+            )}
           </p>
         </div>
 
         <div>
-          <label className="label">Tagline (optional)</label>
+          <label className="label">{tr("Slogan (optionnel)", "Tagline (optional)")}</label>
           <input
             className="input"
-            placeholder="One line your customers will see under the shop name."
+            placeholder={tr(
+              "Une phrase que vos clients verront sous le nom de votre boutique.",
+              "One line your customers will see under the shop name.",
+            )}
             value={tagline}
             onChange={(e) => setTagline(e.target.value)}
           />
@@ -273,34 +286,39 @@ export default function SettingsForm({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="label">WhatsApp number</label>
+            <label className="label">{tr("Numéro WhatsApp", "WhatsApp number")}</label>
             <input
               className="input"
               inputMode="tel"
-              placeholder="With country code, e.g. 2348012345678"
+              placeholder={tr("Avec indicatif pays, ex: 22890123456", "With country code, e.g. 2348012345678")}
               value={whatsappNumber}
               onChange={(e) => setWhatsappNumber(e.target.value)}
             />
             <p className="mt-1 text-xs text-arctic-600">
-              Digits only — used for &ldquo;Chat&rdquo; / order links on your catalog.
+              {tr(
+                "Chiffres uniquement — utilisé pour les boutons WhatsApp de votre catalogue.",
+                "Digits only — used for 'Chat' / order links on your catalog.",
+              )}
             </p>
           </div>
           <div>
-            <label className="label">Mobile-money number (optional)</label>
+            <label className="label">{tr("Numéro Mobile Money (optionnel)", "Mobile-money number (optional)")}</label>
             <input
               className="input"
               inputMode="tel"
-              placeholder="Same as WhatsApp if left blank"
+              placeholder={tr("Identique au WhatsApp si laissé vide", "Same as WhatsApp if left blank")}
               value={momoNumber}
               onChange={(e) => setMomoNumber(e.target.value)}
             />
             <p className="mt-1 text-xs text-arctic-600">
-              The merchant number buyers send to when paying by dial code (T-Money,
-              Flooz…). Leave empty to use your WhatsApp number.
+              {tr(
+                "Numéro marchand vers lequel les clients envoient les paiements USSD (T-Money, Flooz…). Laissez vide pour utiliser votre numéro WhatsApp.",
+                "The merchant number buyers send to when paying by dial code (T-Money, Flooz…). Leave empty to use your WhatsApp number.",
+              )}
             </p>
           </div>
           <div>
-            <label className="label">Currency</label>
+            <label className="label">{tr("Devise", "Currency")}</label>
             <select className="input" value={currency} onChange={(e) => setCurrency(e.target.value)}>
               {[currency, ...CURRENCY_PRESETS.filter((c) => c !== currency)].map((c) => (
                 <option key={c} value={c}>{c}</option>
@@ -311,9 +329,9 @@ export default function SettingsForm({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="label">Region</label>
+            <label className="label">{tr("Région", "Region")}</label>
             <select className="input" value={region} onChange={(e) => setRegion(e.target.value)}>
-              <option value="">— None —</option>
+              <option value="">{tr("— Aucune —", "— None —")}</option>
               {Object.entries(REGIONS_BY_COUNTRY).map(([country, list]) => (
                 <optgroup key={country} label={country}>
                   {list.map((r) => (
@@ -326,9 +344,9 @@ export default function SettingsForm({
             </select>
           </div>
           <div>
-            <label className="label">Category</label>
+            <label className="label">{tr("Catégorie", "Category")}</label>
             <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
-              <option value="">— None —</option>
+              <option value="">{tr("— Aucune —", "— None —")}</option>
               {CATEGORIES.map((c) => (
                 <option key={c.slug} value={c.slug}>
                   {c.icon} {c.label}
@@ -339,7 +357,7 @@ export default function SettingsForm({
         </div>
 
         <div>
-          <label className="label">Language</label>
+          <label className="label">{tr("Langue par défaut de la boutique", "Language")}</label>
           <select
             className="input"
             value={language}
@@ -354,13 +372,16 @@ export default function SettingsForm({
         </div>
 
         <div>
-          <label className="label">Bio (optional)</label>
+          <label className="label">{tr("Biographie / Présentation (optionnel)", "Bio (optional)")}</label>
           <textarea
             className="input min-h-[72px]"
             value={bio}
             maxLength={BIO_MAX}
             onChange={(e) => setBio(e.target.value)}
-            placeholder="One-paragraph intro shown on your public shop page."
+            placeholder={tr(
+              "Courte présentation affichée sur votre page boutique publique.",
+              "One-paragraph intro shown on your public shop page.",
+            )}
           />
           <p className="mt-1 text-right text-xs text-arctic-600">
             {bio.length}/{BIO_MAX}
@@ -369,7 +390,7 @@ export default function SettingsForm({
 
         <div className="rounded-shape-lg border border-arctic-300/60 bg-arctic-100/40 p-4">
           <label className="label text-arctic-900 font-semibold mb-2 block">
-            Logo ou Photo de Profil de la Boutique
+            {tr("Logo ou Photo de Profil de la Boutique", "Store Logo or Profile Picture")}
           </label>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-shape-xl border-2 border-brand/30 bg-white shadow-sm flex items-center justify-center">
@@ -387,7 +408,7 @@ export default function SettingsForm({
               )}
               {uploadingAvatar && (
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-xs font-semibold">
-                  Envoi…
+                  {tr("Envoi…", "Uploading…")}
                 </div>
               )}
             </div>
@@ -396,7 +417,11 @@ export default function SettingsForm({
               <div className="flex flex-wrap items-center gap-2">
                 <label className="btn-primary cursor-pointer text-xs py-1.5 px-3 inline-flex items-center gap-1.5">
                   <span>📷</span>
-                  <span>{uploadingAvatar ? "Téléversement…" : "Choisir une image"}</span>
+                  <span>
+                    {uploadingAvatar
+                      ? tr("Téléversement…", "Uploading…")
+                      : tr("Choisir une image", "Choose image")}
+                  </span>
                   <input
                     type="file"
                     accept="image/png, image/jpeg, image/webp, image/gif"
@@ -414,12 +439,15 @@ export default function SettingsForm({
                     }}
                     className="btn-ghost text-xs py-1.5 px-2.5 text-red-600 hover:text-red-700"
                   >
-                    Supprimer
+                    {tr("Supprimer", "Remove")}
                   </button>
                 )}
               </div>
               <p className="text-[11px] text-arctic-600">
-                Formats acceptés : PNG, JPG, WebP jusqu'à 5 Mo. Ce logo est enregistré automatiquement dès sa sélection et apparaît sur votre boutique publique et vos fiches produits.
+                {tr(
+                  "Formats acceptés : PNG, JPG, WebP jusqu'à 5 Mo. Ce logo est enregistré automatiquement dès sa sélection et apparaît sur votre boutique publique.",
+                  "Accepted formats: PNG, JPG, WebP up to 5 MB. This logo is automatically saved on selection and appears on your public storefront.",
+                )}
               </p>
               {avatarSavedMsg && (
                 <p className="text-xs text-emerald-700 font-semibold">{avatarSavedMsg}</p>
@@ -433,12 +461,12 @@ export default function SettingsForm({
           <div className="mt-3 pt-3 border-t border-arctic-200/60">
             <details className="text-xs text-arctic-600">
               <summary className="cursor-pointer font-medium hover:text-arctic-900">
-                Ou spécifier une URL d'image externe
+                {tr("Ou spécifier une URL d'image externe", "Or enter an external image URL")}
               </summary>
               <input
                 className="input mt-2 text-xs py-1.5"
                 type="text"
-                placeholder="https://images.unsplash.com/... ou /uploads/..."
+                placeholder="https://images.unsplash.com/..."
                 value={avatarUrl}
                 onChange={(e) => setAvatarUrl(e.target.value)}
               />
@@ -454,9 +482,14 @@ export default function SettingsForm({
             className="mt-0.5 h-4 w-4 rounded border-arctic-400/45 text-brand focus:ring-brand"
           />
           <span>
-            <span className="font-medium">List my shop in the public marketplace</span>
+            <span className="font-medium">
+              {tr("Afficher ma boutique sur la marketplace publique", "List my shop in the public marketplace")}
+            </span>
             <span className="block text-xs text-arctic-600">
-              Uncheck to keep the catalog link unlisted (still accessible by URL).
+              {tr(
+                "Décochez pour garder votre catalogue privé (toujours accessible par lien direct).",
+                "Uncheck to keep the catalog link unlisted (still accessible by URL).",
+              )}
             </span>
           </span>
         </label>
@@ -469,9 +502,14 @@ export default function SettingsForm({
             className="mt-0.5 h-4 w-4 rounded border-arctic-400/45 text-brand focus:ring-brand"
           />
           <span>
-            <span className="font-medium">Enable wholesale tier</span>
+            <span className="font-medium">
+              {tr("Activer les tarifs de gros (B2B)", "Enable wholesale tier")}
+            </span>
             <span className="block text-xs text-arctic-600">
-              Show wholesale pricing + minimum quantities for bulk buyers.
+              {tr(
+                "Affiche les prix de gros et quantités minimales pour les acheteurs en volume.",
+                "Show wholesale pricing + minimum quantities for bulk buyers.",
+              )}
             </span>
           </span>
         </label>
@@ -486,9 +524,14 @@ export default function SettingsForm({
               className="mt-0.5 h-4 w-4 rounded border-arctic-400/45 text-brand focus:ring-brand"
             />
             <span>
-              <span className="font-medium">Proposer la livraison à domicile / expédition</span>
+              <span className="font-medium">
+                {tr("Proposer la livraison à domicile / expédition", "Offer home delivery / shipping")}
+              </span>
               <span className="block text-xs text-arctic-600">
-                Permet aux clients de choisir une option de livraison lors de la commande.
+                {tr(
+                  "Permet aux clients de choisir une option de livraison lors de la commande.",
+                  "Allows customers to select a delivery option during checkout.",
+                )}
               </span>
             </span>
           </label>
@@ -497,7 +540,7 @@ export default function SettingsForm({
             <div className="space-y-3 pl-6 pt-2">
               <div>
                 <label className="block text-xs font-semibold text-arctic-700">
-                  Frais de livraison par défaut ({currency})
+                  {tr("Frais de livraison par défaut", "Default delivery fee")} ({currency})
                 </label>
                 <input
                   type="number"
@@ -511,7 +554,7 @@ export default function SettingsForm({
 
               <div>
                 <label className="block text-xs font-semibold text-arctic-700">
-                  Zones spécifiques et tarifs (optionnel)
+                  {tr("Zones spécifiques et tarifs (optionnel)", "Specific zones and rates (optional)")}
                 </label>
                 <textarea
                   rows={2}
@@ -521,7 +564,10 @@ export default function SettingsForm({
                   className="input mt-1 w-full text-xs font-mono"
                 />
                 <span className="block text-[11px] text-arctic-500 mt-0.5">
-                  Format: &ldquo;Nom de zone: Tarif&rdquo;, séparés par des virgules.
+                  {tr(
+                    "Format : « Nom de zone: Tarif », séparés par des virgules.",
+                    "Format: 'Zone name: Rate', separated by commas.",
+                  )}
                 </span>
               </div>
             </div>
@@ -532,36 +578,51 @@ export default function SettingsForm({
 
         {savedAt && (
           <div className="rounded-xl border border-emerald-500/40 bg-emerald-50/90 px-4 py-3 text-sm font-semibold text-emerald-800 flex items-center justify-between">
-            <span>✅ Vos informations de boutique ont été mises à jour avec succès !</span>
+            <span>
+              {tr(
+                "✅ Vos informations de boutique ont été mises à jour avec succès !",
+                "✅ Your shop settings have been updated successfully!",
+              )}
+            </span>
             <a
               href={`/c/${shopSlug}`}
               target="_blank"
               rel="noreferrer"
               className="text-xs underline hover:text-emerald-950"
             >
-              Voir ma boutique ↗
+              {tr("Voir ma boutique ↗", "View my shop ↗")}
             </a>
           </div>
         )}
 
         <div className="flex items-center justify-end gap-3">
-          {savedAt && <span className="text-xs font-semibold text-emerald-700">Enregistré ✓</span>}
+          {savedAt && (
+            <span className="text-xs font-semibold text-emerald-700">
+              {tr("Enregistré ✓", "Saved ✓")}
+            </span>
+          )}
           <button type="submit" className="btn-primary" disabled={saving}>
-            {saving ? "Enregistrement…" : "Enregistrer les modifications"}
+            {saving
+              ? tr("Enregistrement…", "Saving…")
+              : tr("Enregistrer les modifications", "Save changes")}
           </button>
         </div>
       </form>
 
       <div className="card p-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-arctic-900">Refer a vendor, both win</h2>
+          <h2 className="text-sm font-semibold text-arctic-900">
+            {tr("Parrainez un vendeur, gagnez tous les deux", "Refer a vendor, both win")}
+          </h2>
           <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-            {initial.qualifiedReferrals} qualified
+            {initial.qualifiedReferrals} {tr("qualifié(s)", "qualified")}
           </span>
         </div>
         <p className="mt-1 text-sm text-arctic-600">
-          Share your invite link. When a vendor signs up and starts selling, both of you get
-          rewards.
+          {tr(
+            "Partagez votre lien d'invitation. Quand un vendeur s'inscrit et commence à vendre, vous êtes récompensés.",
+            "Share your invite link. When a vendor signs up and starts selling, both of you get rewards.",
+          )}
         </p>
         {initial.referralCode ? (
           <div className="mt-3 space-y-2">
@@ -579,7 +640,7 @@ export default function SettingsForm({
                 onClick={copyInvite}
                 className="btn-ghost text-xs"
               >
-                {copied ? "Copied ✓" : "Copy invite link"}
+                {copied ? tr("Copié ✓", "Copied ✓") : tr("Copier le lien d'invitation", "Copy invite link")}
               </button>
               <a
                 href={waInvite}
@@ -587,20 +648,25 @@ export default function SettingsForm({
                 rel="noreferrer"
                 className="btn-primary text-xs"
               >
-                Share on WhatsApp ↗
+                {tr("Partager sur WhatsApp ↗", "Share on WhatsApp ↗")}
               </a>
             </div>
           </div>
         ) : (
           <p className="mt-3 text-xs text-arctic-500">
-            Your referral code will appear after your next save.
+            {tr(
+              "Votre code de parrainage apparaîtra après votre prochaine sauvegarde.",
+              "Your referral code will appear after your next save.",
+            )}
           </p>
         )}
       </div>
 
       <div className="card p-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-arctic-900">Image &amp; document storage</h2>
+          <h2 className="text-sm font-semibold text-arctic-900">
+            {tr("Stockage d'images et de documents", "Image & document storage")}
+          </h2>
           <span
             className={
               "rounded-full px-2 py-0.5 text-xs font-semibold " +
@@ -618,7 +684,10 @@ export default function SettingsForm({
         </div>
         <p className="mt-2 text-sm text-arctic-600">
           {storageMode === "firebase"
-            ? "Toutes les photos de produits, couvertures de collections, logos de boutiques et documents sont hébergés sur Firebase Cloud Storage."
+            ? tr(
+                "Toutes les photos de produits, couvertures de collections, logos de boutiques et documents sont hébergés sur Firebase Cloud Storage.",
+                "All product photos, collection covers, store logos, and documents are hosted on Firebase Cloud Storage.",
+              )
             : storageMode === "s3"
               ? "Product photos are uploaded to your configured S3-compatible bucket (AWS S3, Cloudflare R2, or Supabase Storage)."
               : "Product photos are saved to ./public/uploads. Fine for a single Node host — configure NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET or STORAGE_S3_* before deploying to serverless."}
@@ -641,8 +710,14 @@ export default function SettingsForm({
         </div>
         <p className="mt-2 text-sm text-arctic-600">
           {whatsappLive
-            ? "Les messages WhatsApp sortants passent en direct par Meta WhatsApp Cloud API."
-            : "Configurez votre Access Token et votre Phone Number ID dans l'onglet Assistant WhatsApp du tableau de bord pour activer l'envoi réel."}
+            ? tr(
+                "Les messages WhatsApp sortants passent en direct par Meta WhatsApp Cloud API.",
+                "Outbound WhatsApp messages are sent live through Meta WhatsApp Cloud API.",
+              )
+            : tr(
+                "Configurez votre Access Token et votre Phone Number ID dans l'onglet Assistant WhatsApp du tableau de bord pour activer l'envoi réel.",
+                "Configure your Access Token and Phone Number ID in the WhatsApp Assistant tab of the dashboard to enable live sending.",
+              )}
         </p>
         <div className="mt-4 space-y-2 text-sm">
           <div>
@@ -651,14 +726,12 @@ export default function SettingsForm({
               {process.env.NEXT_PUBLIC_APP_URL || "https://your-domain"}/api/whatsapp/webhook
             </code>
           </div>
-          <div>
-            <span className="font-semibold text-arctic-800">Verify token:</span> set in{" "}
-            <code className="rounded bg-arctic-200/65 px-1.5 py-0.5 text-xs">WHATSAPP_VERIFY_TOKEN</code>{" "}
-            and match it in the Meta dashboard.
-          </div>
           <div className="pt-2">
             <a href="/dashboard/bot" className="btn-primary text-xs">
-              🤖 Configurer l&apos;Assistant WhatsApp Cloud API & IA Gemini →
+              {tr(
+                "🤖 Configurer l'Assistant WhatsApp Cloud API & IA Gemini →",
+                "🤖 Configure WhatsApp Cloud API & Gemini AI Assistant →",
+              )}
             </a>
           </div>
         </div>

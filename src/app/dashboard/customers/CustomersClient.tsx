@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { formatMoney, waMeLink, digitsOnly } from "@/lib/utils";
 import { AuroraIsoscout } from "@/components/aurora";
 import { isCustomerInactiveFor30Days, isCustomerVip } from "@/lib/customer-segments";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 type Row = {
   id: string;
@@ -54,6 +55,7 @@ export default function CustomersClient({
   shopName: string;
 }) {
   const router = useRouter();
+  const { tr } = usePublicLang();
   const [query, setQuery] = useState(initialQuery);
   const [rows, setRows] = useState(initialRows);
   const [selected, setSelected] = useState<Row | null>(null);
@@ -166,9 +168,14 @@ export default function CustomersClient({
     <div className="mx-auto max-w-6xl px-4 py-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="a-headline-md text-arctic-900">Customers</h1>
+          <h1 className="a-headline-md text-arctic-900">
+            {tr("Clients (CRM)", "Customers")}
+          </h1>
           <p className="text-sm text-arctic-600">
-            {total} {total === 1 ? "buyer" : "buyers"} on record. Tap a row to open details.
+            {tr(
+              `${total} client${total === 1 ? "" : "s"} enregistré${total === 1 ? "" : "s"}. Cliquez sur une ligne pour voir les détails.`,
+              `${total} ${total === 1 ? "buyer" : "buyers"} on record. Tap a row to open details.`,
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -176,9 +183,9 @@ export default function CustomersClient({
             type="button"
             onClick={exportCSV}
             className="btn-ghost gap-1.5 text-xs font-semibold"
-            title="Exporter la liste client en CSV"
+            title={tr("Exporter la liste client en CSV", "Export customer list as CSV")}
           >
-            📥 Exporter CSV
+            📥 {tr("Exporter CSV", "Export CSV")}
           </button>
         </div>
       </div>
@@ -188,7 +195,7 @@ export default function CustomersClient({
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Rechercher nom, téléphone, email…"
+          placeholder={tr("Rechercher nom, téléphone, email…", "Search name, phone, email…")}
           className="input min-w-[220px] flex-1 text-sm"
         />
 
@@ -201,7 +208,7 @@ export default function CustomersClient({
                 segmentFilter === "all" ? "bg-arctic-800 text-white" : "text-arctic-700 hover:text-arctic-900"
               }`}
             >
-              Tous ({rows.length})
+              {tr("Tous", "All")} ({rows.length})
             </button>
             <button
               type="button"
@@ -210,7 +217,7 @@ export default function CustomersClient({
                 segmentFilter === "vip" ? "bg-amber-600 text-white" : "text-arctic-700 hover:text-arctic-900"
               }`}
             >
-              ⭐ VIP (≥3 cmd)
+              ⭐ {tr("VIP (≥3 cmd)", "VIP (≥3 orders)")}
             </button>
             <button
               type="button"
@@ -219,7 +226,7 @@ export default function CustomersClient({
                 segmentFilter === "recent" ? "bg-emerald-600 text-white" : "text-arctic-700 hover:text-arctic-900"
               }`}
             >
-              Récents (30j)
+              {tr("Récents (30j)", "Recent (30d)")}
             </button>
             <button
               type="button"
@@ -228,7 +235,7 @@ export default function CustomersClient({
                 segmentFilter === "inactive" ? "bg-rose-600 text-white" : "text-arctic-700 hover:text-arctic-900"
               }`}
             >
-              Inactifs (≥30j)
+              {tr("Inactifs (≥30j)", "Inactive (≥30d)")}
             </button>
           </div>
 
@@ -237,9 +244,9 @@ export default function CustomersClient({
             onChange={(e) => setSortBy(e.target.value as any)}
             className="input !w-auto text-xs font-medium"
           >
-            <option value="spent">Tri : Total dépensé</option>
-            <option value="orders">Tri : Nb commandes</option>
-            <option value="recent">Tri : Dernière commande</option>
+            <option value="spent">{tr("Tri : Total dépensé", "Sort: Total spent")}</option>
+            <option value="orders">{tr("Tri : Nb commandes", "Sort: Order count")}</option>
+            <option value="recent">{tr("Tri : Dernière commande", "Sort: Last order")}</option>
           </select>
         </div>
       </div>
@@ -248,11 +255,11 @@ export default function CustomersClient({
         <table className="w-full text-sm">
           <thead className="bg-arctic-100/55 text-left text-xs font-semibold uppercase tracking-wide text-arctic-600">
             <tr>
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Phone</th>
-              <th className="px-4 py-3 text-right">Orders</th>
-              <th className="px-4 py-3 text-right">Total spent</th>
-              <th className="px-4 py-3">Last order</th>
+              <th className="px-4 py-3">{tr("Nom", "Name")}</th>
+              <th className="px-4 py-3">{tr("Téléphone", "Phone")}</th>
+              <th className="px-4 py-3 text-right">{tr("Commandes", "Orders")}</th>
+              <th className="px-4 py-3 text-right">{tr("Total dépensé", "Total spent")}</th>
+              <th className="px-4 py-3">{tr("Dernière commande", "Last order")}</th>
             </tr>
           </thead>
           <tbody>
@@ -261,8 +268,11 @@ export default function CustomersClient({
                 <td colSpan={5} className="px-4 py-6">
                   <AuroraIsoscout
                     variant="customers"
-                    title="No customers yet"
-                    body="They'll appear here automatically after the first order. Share your catalog link and the bot will start a Customer record from every new phone."
+                    title={tr("Aucun client pour le moment", "No customers yet")}
+                    body={tr(
+                      "Ils apparaîtront ici automatiquement après leur première commande. Partagez votre lien de catalogue et le bot créera une fiche client à chaque nouveau numéro.",
+                      "They'll appear here automatically after the first order. Share your catalog link and the bot will start a Customer record from every new phone.",
+                    )}
                   />
                 </td>
               </tr>
@@ -312,14 +322,16 @@ export default function CustomersClient({
               <div>
                 <h2 className="a-title-lg text-arctic-900">{selected.name}</h2>
                 <p className="text-xs text-arctic-600">
-                  Customer of {shopName} · {selected.orderCount} order
-                  {selected.orderCount === 1 ? "" : "s"}
+                  {tr(
+                    `Client de ${shopName} · ${selected.orderCount} commande${selected.orderCount === 1 ? "" : "s"}`,
+                    `Customer of ${shopName} · ${selected.orderCount} order${selected.orderCount === 1 ? "" : "s"}`,
+                  )}
                 </p>
               </div>
               <button
                 onClick={() => setSelected(null)}
                 className="text-arctic-500 hover:text-arctic-800"
-                aria-label="Close"
+                aria-label={tr("Fermer", "Close")}
               >
                 ✕
               </button>
@@ -327,11 +339,11 @@ export default function CustomersClient({
 
             <dl className="grid grid-cols-2 gap-3 rounded-lg bg-arctic-100/55 p-3 text-sm">
               <div>
-                <dt className="text-xs text-arctic-600">Phone</dt>
+                <dt className="text-xs text-arctic-600">{tr("Téléphone", "Phone")}</dt>
                 <dd className="font-medium text-arctic-900">{selected.phone || "—"}</dd>
               </div>
               <div>
-                <dt className="text-xs text-arctic-600">Total spent</dt>
+                <dt className="text-xs text-arctic-600">{tr("Total dépensé", "Total spent")}</dt>
                 <dd className="font-semibold text-arctic-900">
                   {formatMoney(selected.totalSpentCents, currency)}
                 </dd>
@@ -341,7 +353,7 @@ export default function CustomersClient({
                 <dd className="font-medium text-arctic-900">{selected.email || "—"}</dd>
               </div>
               <div>
-                <dt className="text-xs text-arctic-600">Last order</dt>
+                <dt className="text-xs text-arctic-600">{tr("Dernière commande", "Last order")}</dt>
                 <dd className="font-medium text-arctic-900">
                   {timeAgo(selected.lastOrderAt)}
                 </dd>
@@ -353,20 +365,23 @@ export default function CustomersClient({
                 <a
                   href={waMeLink(
                     selected.phone,
-                    `Hi ${selected.name}, this is ${shopName}.`,
+                    tr(
+                      `Bonjour ${selected.name}, ici ${shopName}.`,
+                      `Hi ${selected.name}, this is ${shopName}.`,
+                    ),
                   )}
                   target="_blank"
                   rel="noreferrer"
                   className="flex-1 rounded-lg bg-brand px-3 py-2 text-center text-sm font-semibold text-white hover:bg-brand-dark"
                 >
-                  Send WhatsApp
+                  {tr("Écrire sur WhatsApp", "Send WhatsApp")}
                 </a>
               )}
               <button
                 onClick={() => router.push(`/dashboard/orders?phone=${digitsOnly(selected.phone)}`)}
                 className="flex-1 rounded-lg border border-arctic-400/30 px-3 py-2 text-sm font-semibold text-arctic-800 hover:bg-arctic-100/55"
               >
-                View orders
+                {tr("Voir les commandes", "View orders")}
               </button>
             </div>
 
@@ -379,23 +394,28 @@ export default function CustomersClient({
                 onChange={(e) => setDraftNotes(e.target.value)}
                 rows={5}
                 className="mt-1 w-full rounded-lg border border-arctic-400/30 p-2 text-sm focus:border-brand focus:outline-none"
-                placeholder="Preferred sizes, delivery quirks, allergies…"
+                placeholder={tr(
+                  "Tailles préférées, instructions de livraison, préférences…",
+                  "Preferred sizes, delivery quirks, allergies…",
+                )}
               />
               <button
                 onClick={saveNotes}
                 disabled={saving || draftNotes === selected.notes}
                 className="mt-2 w-full rounded-lg bg-arctic-800 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
               >
-                {saving ? "Saving…" : "Save notes"}
+                {saving ? tr("Enregistrement…", "Saving…") : tr("Enregistrer les notes", "Save notes")}
               </button>
             </div>
 
             <div>
               <h3 className="text-xs font-semibold uppercase tracking-wide text-arctic-600">
-                Recent orders
+                {tr("Commandes récentes", "Recent orders")}
               </h3>
               {recent.length === 0 ? (
-                <p className="mt-2 text-sm text-arctic-500">No orders linked yet.</p>
+                <p className="mt-2 text-sm text-arctic-500">
+                  {tr("Aucune commande liée pour le moment.", "No orders linked yet.")}
+                </p>
               ) : (
                 <ul className="mt-2 space-y-1.5 text-sm">
                   {recent.map((o) => (

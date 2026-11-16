@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { formatMoney } from "@/lib/utils";
 import ProductPlaceholder from "@/components/ProductPlaceholder";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 export type AnalyticsOrderItem = {
   productId: string | null;
@@ -67,43 +68,48 @@ export type AnalyticsCampaignSummary = {
 
 type PeriodKey = "7d" | "30d" | "90d" | "all";
 
-const PERIODS: { key: PeriodKey; label: string; days: number | null }[] = [
-  { key: "7d", label: "7 jours", days: 7 },
-  { key: "30d", label: "30 jours", days: 30 },
-  { key: "90d", label: "90 jours", days: 90 },
-  { key: "all", label: "Tout l'historique", days: null },
+const PERIODS: { key: PeriodKey; labelFr: string; labelEn: string; days: number | null }[] = [
+  { key: "7d", labelFr: "7 jours", labelEn: "7 days", days: 7 },
+  { key: "30d", labelFr: "30 jours", labelEn: "30 days", days: 30 },
+  { key: "90d", labelFr: "90 jours", labelEn: "90 days", days: 90 },
+  { key: "all", labelFr: "Tout l'historique", labelEn: "All time", days: null },
 ];
 
-const SOURCE_LABELS: Record<string, { label: string; color: string }> = {
-  catalog: { label: "Catalogue en ligne", color: "bg-emerald-600" },
-  whatsapp: { label: "Bot & Chat WhatsApp", color: "bg-teal-500" },
-  whatsapp_deal: { label: "Négociation IA WhatsApp", color: "bg-sky-500" },
-  manual: { label: "Saisie manuelle vendeur", color: "bg-amber-500" },
+const SOURCE_LABELS: Record<string, { labelFr: string; labelEn: string; color: string }> = {
+  catalog: { labelFr: "Catalogue en ligne", labelEn: "Online catalog", color: "bg-emerald-600" },
+  whatsapp: { labelFr: "Bot & Chat WhatsApp", labelEn: "WhatsApp Bot & Chat", color: "bg-teal-500" },
+  whatsapp_deal: { labelFr: "Négociation IA WhatsApp", labelEn: "WhatsApp AI Deal", color: "bg-sky-500" },
+  manual: { labelFr: "Saisie manuelle vendeur", labelEn: "Manual merchant entry", color: "bg-amber-500" },
 };
 
-const STATUS_META: Record<string, { label: string; badge: string; bar: string }> = {
+const STATUS_META: Record<string, { labelFr: string; labelEn: string; badge: string; bar: string }> = {
   NEW: {
-    label: "Nouvelles",
+    labelFr: "Nouvelles",
+    labelEn: "New",
     badge: "bg-blue-100 text-blue-800",
     bar: "bg-blue-500",
   },
   CONFIRMED: {
-    label: "Confirmées",
+    labelFr: "Confirmées",
+    labelEn: "Confirmed",
     badge: "bg-amber-100 text-amber-800",
     bar: "bg-amber-500",
   },
   PAID: {
-    label: "Payées",
+    labelFr: "Payées",
+    labelEn: "Paid",
     badge: "bg-emerald-100 text-emerald-800",
     bar: "bg-emerald-600",
   },
   DELIVERED: {
-    label: "Livrées",
+    labelFr: "Livrées",
+    labelEn: "Delivered",
     badge: "bg-teal-100 text-teal-800",
     bar: "bg-teal-600",
   },
   CANCELLED: {
-    label: "Annulées",
+    labelFr: "Annulées",
+    labelEn: "Cancelled",
     badge: "bg-red-100 text-red-700",
     bar: "bg-red-500",
   },
@@ -134,6 +140,7 @@ export default function AnalyticsClient({
   openReceivablesCents: number;
   openReceivablesCount: number;
 }) {
+  const { tr } = usePublicLang();
   const [period, setPeriod] = useState<PeriodKey>("30d");
 
   const now = useMemo(() => Date.now(), []);
@@ -237,17 +244,17 @@ export default function AnalyticsClient({
     const confirmed = Math.max(sets.confirmed_order.size, paidOrders.length);
 
     const stageDefs = [
-      { stage: "visit", label: "1. Visites de la boutique", count: visits },
-      { stage: "product_view", label: "2. Fiches produits consultées", count: views },
-      { stage: "cart", label: "3. Ajouts au panier", count: carts },
+      { stage: "visit", label: tr("1. Visites de la boutique", "1. Storefront visits"), count: visits },
+      { stage: "product_view", label: tr("2. Fiches produits consultées", "2. Product views"), count: views },
+      { stage: "cart", label: tr("3. Ajouts au panier", "3. Added to cart"), count: carts },
       {
         stage: "ussd_intent",
-        label: "4. Intentions de paiement Mobile Money / USSD",
+        label: tr("4. Intentions de paiement Mobile Money / USSD", "4. Mobile Money / USSD checkout intents"),
         count: ussd,
       },
       {
         stage: "confirmed_order",
-        label: "5. Commandes payées & confirmées",
+        label: tr("5. Commandes payées & confirmées", "5. Paid & confirmed orders"),
         count: confirmed,
       },
     ];
@@ -281,7 +288,7 @@ export default function AnalyticsClient({
       productViews,
       productCarts,
     };
-  }, [funnelEvents, selectedDays, cutoffMs, paidOrders.length, filteredOrders.length]);
+  }, [funnelEvents, selectedDays, cutoffMs, paidOrders.length, filteredOrders.length, tr]);
 
   // Daily chart data (14 bars for 7d/30d, or 14 buckets for 90d/all)
   const chartDays = selectedDays === 7 ? 7 : 14;
@@ -470,9 +477,13 @@ export default function AnalyticsClient({
       {/* Header + Period Filter + Export */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="a-headline-md text-arctic-900">Analytics &amp; Pilotage de la Boutique</h1>
+          <h1 className="a-headline-md text-arctic-900">
+            {tr("Analytics & Pilotage de la Boutique", "Store Analytics & Insights")}
+          </h1>
           <p className="a-body-md mt-1 text-arctic-600">
-            Performances commerciales en temps réel de <strong>{shopName}</strong> : ventes, produits, conversion, WhatsApp IA et stocks.
+            {tr("Performances commerciales en temps réel de", "Real-time commercial performance for")}{" "}
+            <strong>{shopName}</strong> :{" "}
+            {tr("ventes, produits, conversion, WhatsApp IA et stocks.", "sales, products, conversion, WhatsApp AI, and inventory.")}
           </p>
         </div>
 
@@ -491,7 +502,7 @@ export default function AnalyticsClient({
                       : "text-arctic-700 hover:text-arctic-900"
                   }`}
                 >
-                  {p.label}
+                  {tr(p.labelFr, p.labelEn)}
                 </button>
               );
             })}
@@ -502,7 +513,7 @@ export default function AnalyticsClient({
             onClick={exportAnalyticsCsv}
             className="btn-ghost text-xs !py-2 px-3.5"
           >
-            ⬇ Exporter CSV
+            {tr("⬇ Exporter CSV", "⬇ Export CSV")}
           </button>
         </div>
       </div>
@@ -512,7 +523,7 @@ export default function AnalyticsClient({
         <div className="card p-5 space-y-1.5">
           <div className="flex items-center justify-between">
             <span className="text-xs uppercase tracking-wider text-arctic-500 font-semibold">
-              Chiffre d&apos;affaires encaissé
+              {tr("Chiffre d'affaires encaissé", "Collected revenue")}
             </span>
             {revenueGrowthPct !== null && (
               <span
@@ -530,67 +541,69 @@ export default function AnalyticsClient({
             {formatMoney(totalRevenue, currency)}
           </div>
           <div className="text-[11px] text-emerald-700 font-medium">
-            {paidOrders.length} commande{paidOrders.length > 1 ? "s" : ""} payée{paidOrders.length > 1 ? "s" : ""} / livrée{paidOrders.length > 1 ? "s" : ""}
+            {paidOrders.length} {tr("commande(s) payée(s) / livrée(s)", "paid / delivered order(s)")}
           </div>
         </div>
 
         <div className="card p-5 space-y-1.5">
           <div className="text-xs uppercase tracking-wider text-arctic-500 font-semibold">
-            En attente d&apos;encaissement
+            {tr("En attente d'encaissement", "Pending collection")}
           </div>
           <div className="text-2xl font-black text-amber-700">
             {formatMoney(pendingRevenue + openReceivablesCents, currency)}
           </div>
           <div className="text-[11px] text-arctic-600 font-medium">
-            {pendingOrders.length} cmd en cours · {openReceivablesCount} créance{openReceivablesCount > 1 ? "s" : ""} client
+            {pendingOrders.length} {tr("cmd en cours", "pending orders")} · {openReceivablesCount}{" "}
+            {tr("créance(s) client", "open receivable(s)")}
           </div>
         </div>
 
         <div className="card p-5 space-y-1.5">
           <div className="text-xs uppercase tracking-wider text-arctic-500 font-semibold">
-            Panier moyen
+            {tr("Panier moyen", "Avg. order value")}
           </div>
           <div className="text-2xl font-black text-arctic-900">
             {formatMoney(avgOrder, currency)}
           </div>
           <div className="text-[11px] text-arctic-500 font-medium">
-            Sur {filteredOrders.length} commande{filteredOrders.length > 1 ? "s" : ""} reçue{filteredOrders.length > 1 ? "s" : ""}
+            {tr("Sur", "Across")} {filteredOrders.length} {tr("commande(s) reçue(s)", "received order(s)")}
           </div>
         </div>
 
         <div className="card p-5 space-y-1.5">
           <div className="text-xs uppercase tracking-wider text-arctic-500 font-semibold">
-            Taux de conversion
+            {tr("Taux de conversion", "Conversion rate")}
           </div>
           <div className="text-2xl font-black text-emerald-700">
             {filteredFunnel.conversionRate}%
           </div>
           <div className="text-[11px] text-arctic-500 font-medium">
-            {filteredFunnel.visits} visite{filteredFunnel.visits > 1 ? "s" : ""} → {filteredFunnel.confirmed} achat{filteredFunnel.confirmed > 1 ? "s" : ""}
+            {filteredFunnel.visits} {tr("visite(s)", "visit(s)")} → {filteredFunnel.confirmed} {tr("achat(s)", "order(s)")}
           </div>
         </div>
 
         <div className="card p-5 space-y-1.5">
           <div className="text-xs uppercase tracking-wider text-arctic-500 font-semibold">
-            Fidélisation clients
+            {tr("Fidélisation clients", "Customer retention")}
           </div>
           <div className="text-2xl font-black text-arctic-900">
             {retentionRatePct}%
           </div>
           <div className="text-[11px] text-arctic-500 font-medium">
-            {repeatCustomersCount} client{repeatCustomersCount > 1 ? "s" : ""} récurrent{repeatCustomersCount > 1 ? "s" : ""} sur {customers.length}
+            {repeatCustomersCount} {tr("client(s) récurrent(s) sur", "repeat customer(s) out of")} {customers.length}
           </div>
         </div>
 
         <div className="card p-5 space-y-1.5">
           <div className="text-xs uppercase tracking-wider text-arctic-500 font-semibold">
-            Activité Assistant WhatsApp
+            {tr("Activité Assistant WhatsApp", "WhatsApp Assistant activity")}
           </div>
           <div className="text-2xl font-black text-arctic-900">
             {whatsappMetrics.inboundCount + whatsappMetrics.outboundCount}
           </div>
           <div className="text-[11px] text-arctic-500 font-medium">
-            {whatsappMetrics.inboundCount} reçus · {whatsappMetrics.outboundCount} envoyés ({whatsappMetrics.botRepliesCount} réponses IA)
+            {whatsappMetrics.inboundCount} {tr("reçus", "inbound")} · {whatsappMetrics.outboundCount}{" "}
+            {tr("envoyés", "outbound")} ({whatsappMetrics.botRepliesCount} {tr("réponses IA", "AI replies")})
           </div>
         </div>
       </div>
@@ -600,15 +613,21 @@ export default function AnalyticsClient({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 className="text-base font-bold text-arctic-900">
-              Évolution quotidienne des ventes ({chartDays} derniers jours)
+              {tr(
+                `Évolution quotidienne des ventes (${chartDays} derniers jours)`,
+                `Daily sales evolution (last ${chartDays} days)`,
+              )}
             </h2>
             <p className="text-xs text-arctic-500">
-              Survolez une barre pour voir le chiffre d&apos;affaires et le nombre de commandes du jour
+              {tr(
+                "Survolez une barre pour voir le chiffre d'affaires et le nombre de commandes du jour",
+                "Hover over a bar to see daily revenue and order count",
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-              {formatMoney(totalRevenue, currency)} encaissés
+              {formatMoney(totalRevenue, currency)} {tr("encaissés", "collected")}
             </span>
           </div>
         </div>
@@ -625,7 +644,7 @@ export default function AnalyticsClient({
               <div key={d.date} className="flex flex-col items-center gap-1.5 h-full justify-end group">
                 <div className="relative flex flex-col items-center w-full h-full justify-end">
                   <div className="pointer-events-none absolute -top-9 rounded-md bg-stone-900 px-2 py-1 text-[10px] font-semibold text-white shadow-md opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-20">
-                    {formatMoney(d.rev, currency)} · {d.totalCount} cmd
+                    {formatMoney(d.rev, currency)} · {d.totalCount} {tr("cmd", "ord")}
                   </div>
                   <div
                     className={`w-full rounded-t-md transition-all duration-medium ${
@@ -652,10 +671,10 @@ export default function AnalyticsClient({
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-bold text-arctic-900">
-                Entonnoir de conversion de la boutique
+                {tr("Entonnoir de conversion de la boutique", "Storefront conversion funnel")}
               </h2>
               <p className="text-xs text-arctic-500">
-                Parcours client du catalogue jusqu&apos;au paiement confirmé
+                {tr("Parcours client du catalogue jusqu'au paiement confirmé", "Customer journey from catalog visit to confirmed payment")}
               </p>
             </div>
             <Link
@@ -663,7 +682,7 @@ export default function AnalyticsClient({
               target="_blank"
               className="text-xs font-semibold text-brand-dark hover:underline"
             >
-              Voir ma boutique ↗
+              {tr("Voir ma boutique ↗", "View my store ↗")}
             </Link>
           </div>
 
@@ -705,10 +724,10 @@ export default function AnalyticsClient({
         <section className="card p-6 space-y-5">
           <div>
             <h2 className="text-base font-bold text-arctic-900">
-              Répartition par statut
+              {tr("Répartition par statut", "Breakdown by status")}
             </h2>
             <p className="text-xs text-arctic-500">
-              État actuel des commandes sur la période
+              {tr("État actuel des commandes sur la période", "Current status of orders in this period")}
             </p>
           </div>
 
@@ -723,7 +742,7 @@ export default function AnalyticsClient({
                 <div key={statusKey} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${meta.badge}`}>
-                      {meta.label}
+                      {tr(meta.labelFr, meta.labelEn)}
                     </span>
                     <span className="font-mono text-arctic-700">
                       {info.count} ({pct}%) · {formatMoney(info.cents, currency)}
@@ -739,7 +758,7 @@ export default function AnalyticsClient({
 
           <div className="border-t border-arctic-200/70 pt-4 space-y-2.5">
             <h3 className="text-xs font-bold uppercase tracking-wider text-arctic-600">
-              Canaux d&apos;acquisition
+              {tr("Canaux d'acquisition", "Acquisition channels")}
             </h3>
             {Object.entries(SOURCE_LABELS).map(([srcKey, meta]) => {
               const info = sourceCounts[srcKey] || { count: 0, cents: 0 };
@@ -751,7 +770,7 @@ export default function AnalyticsClient({
               return (
                 <div key={srcKey} className="space-y-1">
                   <div className="flex justify-between text-xs">
-                    <span className="font-medium text-arctic-800">{meta.label}</span>
+                    <span className="font-medium text-arctic-800">{tr(meta.labelFr, meta.labelEn)}</span>
                     <span className="text-arctic-600 font-mono">
                       {info.count} ({pct}%)
                     </span>
@@ -772,31 +791,31 @@ export default function AnalyticsClient({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 className="text-base font-bold text-arctic-900">
-                Performance détaillée des produits
+                {tr("Performance détaillée des produits", "Detailed product performance")}
               </h2>
               <p className="text-xs text-arctic-500">
-                Ventes, revenus générés, consultations et stock restant
+                {tr("Ventes, revenus générés, consultations et stock restant", "Units sold, revenue generated, views, and remaining stock")}
               </p>
             </div>
             <Link href="/dashboard/products" className="text-xs font-semibold text-brand-dark hover:underline">
-              Gérer les produits →
+              {tr("Gérer les produits →", "Manage products →")}
             </Link>
           </div>
 
           {productPerformance.length === 0 ? (
             <p className="text-xs text-arctic-500 italic py-4">
-              Aucun produit dans votre catalogue pour le moment.
+              {tr("Aucun produit dans votre catalogue pour le moment.", "No products in your catalog yet.")}
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-arctic-200 text-[11px] uppercase tracking-wider text-arctic-500">
-                    <th className="pb-2.5 font-semibold">Produit</th>
-                    <th className="pb-2.5 font-semibold text-right">Vues</th>
-                    <th className="pb-2.5 font-semibold text-right">Vendus</th>
-                    <th className="pb-2.5 font-semibold text-right">Chiffre d&apos;affaires</th>
-                    <th className="pb-2.5 font-semibold text-right">Stock</th>
+                    <th className="pb-2.5 font-semibold">{tr("Produit", "Product")}</th>
+                    <th className="pb-2.5 font-semibold text-right">{tr("Vues", "Views")}</th>
+                    <th className="pb-2.5 font-semibold text-right">{tr("Vendus", "Sold")}</th>
+                    <th className="pb-2.5 font-semibold text-right">{tr("Chiffre d'affaires", "Revenue")}</th>
+                    <th className="pb-2.5 font-semibold text-right">{tr("Stock", "Stock")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-arctic-200/60">
@@ -840,7 +859,7 @@ export default function AnalyticsClient({
                                 : "bg-emerald-100 text-emerald-800"
                           }`}
                         >
-                          {p.stock <= 0 ? "Rupture" : `${p.stock} en stock`}
+                          {p.stock <= 0 ? tr("Rupture", "Out of stock") : `${p.stock} ${tr("en stock", "in stock")}`}
                         </span>
                       </td>
                     </tr>
@@ -855,10 +874,10 @@ export default function AnalyticsClient({
         <section className="card p-6 space-y-4">
           <div>
             <h2 className="text-base font-bold text-arctic-900">
-              Santé du stock &amp; Inventaire
+              {tr("Santé du stock & Inventaire", "Stock & Inventory health")}
             </h2>
             <p className="text-xs text-arctic-500">
-              Valeur du stock actif :{" "}
+              {tr("Valeur du stock actif :", "Active inventory value:")}{" "}
               <strong className="text-arctic-900">
                 {formatMoney(totalCatalogValueCents, currency)}
               </strong>
@@ -867,18 +886,25 @@ export default function AnalyticsClient({
 
           <div className="grid grid-cols-2 gap-2.5">
             <div className="rounded-xl border border-red-200/70 bg-red-50/70 p-3">
-              <div className="text-[11px] font-semibold text-red-700">En rupture (0)</div>
+              <div className="text-[11px] font-semibold text-red-700">
+                {tr("En rupture (0)", "Out of stock (0)")}
+              </div>
               <div className="text-xl font-black text-red-800">{outOfStockProducts.length}</div>
             </div>
             <div className="rounded-xl border border-amber-200/70 bg-amber-50/70 p-3">
-              <div className="text-[11px] font-semibold text-amber-800">Stock faible (≤ 5)</div>
+              <div className="text-[11px] font-semibold text-amber-800">
+                {tr("Stock faible (≤ 5)", "Low stock (≤ 5)")}
+              </div>
               <div className="text-xl font-black text-amber-900">{lowStockProducts.length}</div>
             </div>
           </div>
 
           {outOfStockProducts.length === 0 && lowStockProducts.length === 0 ? (
             <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3.5 text-xs text-emerald-800">
-              ✓ Tous vos produits actifs disposent d&apos;un stock suffisant.
+              {tr(
+                "✓ Tous vos produits actifs disposent d'un stock suffisant.",
+                "✓ All active products have sufficient stock.",
+              )}
             </div>
           ) : (
             <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
@@ -893,7 +919,7 @@ export default function AnalyticsClient({
                       p.stock <= 0 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-800"
                     }`}
                   >
-                    {p.stock <= 0 ? "0 restant" : `${p.stock} restants`}
+                    {p.stock <= 0 ? tr("0 restant", "0 left") : `${p.stock} ${tr("restants", "left")}`}
                   </span>
                 </div>
               ))}
@@ -909,20 +935,20 @@ export default function AnalyticsClient({
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-bold text-arctic-900">
-                Meilleurs clients (CRM)
+                {tr("Meilleurs clients (CRM)", "Top customers (CRM)")}
               </h2>
               <p className="text-xs text-arctic-500">
-                Clients classés par chiffre d&apos;affaires cumulé
+                {tr("Clients classés par chiffre d'affaires cumulé", "Customers ranked by lifetime spend")}
               </p>
             </div>
             <Link href="/dashboard/customers" className="text-xs font-semibold text-brand-dark hover:underline">
-              Voir tous les clients →
+              {tr("Voir tous les clients →", "View all customers →")}
             </Link>
           </div>
 
           {customers.length === 0 ? (
             <p className="text-xs text-arctic-500 italic">
-              Aucun client enregistré pour le moment.
+              {tr("Aucun client enregistré pour le moment.", "No customers recorded yet.")}
             </p>
           ) : (
             <div className="space-y-2.5">
@@ -945,7 +971,7 @@ export default function AnalyticsClient({
                       {formatMoney(c.totalSpentCents, currency)}
                     </div>
                     <div className="text-[10px] text-arctic-500">
-                      {c.orderCount} commande{c.orderCount > 1 ? "s" : ""}
+                      {c.orderCount} {tr("commande(s)", "order(s)")}
                     </div>
                   </div>
                 </div>
@@ -959,9 +985,11 @@ export default function AnalyticsClient({
           <div>
             <div className="flex justify-between items-center">
               <h2 className="text-base font-bold text-arctic-900">
-                Heures d&apos;affluence des commandes
+                {tr("Heures d'affluence des commandes", "Peak ordering hours")}
               </h2>
-              <span className="text-xs text-arctic-500">Créneaux 0h – 23h</span>
+              <span className="text-xs text-arctic-500">
+                {tr("Créneaux 0h – 23h", "0h – 23h slots")}
+              </span>
             </div>
 
             <div className="grid grid-cols-12 items-end gap-1.5 h-28 pt-5 mt-2 border-t border-arctic-300/30">
@@ -993,10 +1021,10 @@ export default function AnalyticsClient({
             <div className="border-t border-arctic-200/70 pt-4 space-y-2">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-arctic-600">
-                  Campagnes &amp; Liens trackés
+                  {tr("Campagnes & Liens trackés", "Tracked campaigns & links")}
                 </h3>
                 <Link href="/dashboard/campaigns" className="text-[11px] font-semibold text-brand-dark hover:underline">
-                  Campagnes →
+                  {tr("Campagnes →", "Campaigns →")}
                 </Link>
               </div>
               {campaigns.slice(0, 3).map((camp) => (
@@ -1006,7 +1034,8 @@ export default function AnalyticsClient({
                 >
                   <span className="font-medium text-arctic-800 truncate pr-2">{camp.name}</span>
                   <span className="font-mono text-arctic-600 shrink-0">
-                    {camp.clicks} clics · {camp.orders} cmd · {formatMoney(camp.revenueCents, currency)}
+                    {camp.clicks} {tr("clics", "clicks")} · {camp.orders} {tr("cmd", "ord")} ·{" "}
+                    {formatMoney(camp.revenueCents, currency)}
                   </span>
                 </div>
               ))}

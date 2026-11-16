@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatMoney, slugify } from "@/lib/utils";
 import ProductPlaceholder from "@/components/ProductPlaceholder";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 type ProductSummary = {
   id: string;
@@ -37,6 +38,7 @@ export default function CollectionsClient({
   currency: string;
 }) {
   const router = useRouter();
+  const { tr } = usePublicLang();
   const [collections, setCollections] = useState<Collection[]>(initialCollections);
   const [productsState, setProductsState] = useState<ProductSummary[]>(allProducts);
   const [open, setOpen] = useState(false);
@@ -240,30 +242,38 @@ export default function CollectionsClient({
       <div className="flex flex-wrap justify-between items-center gap-3">
         <div className="flex items-center gap-3">
           <span className="rounded-full bg-arctic-100 px-3 py-1 text-xs font-semibold text-arctic-700">
-            {collections.length} collection{collections.length > 1 ? "s" : ""} active{collections.length > 1 ? "s" : ""}
+            {tr(
+              `${collections.length} collection${collections.length > 1 ? "s" : ""} active${collections.length > 1 ? "s" : ""}`,
+              `${collections.length} active collection${collections.length === 1 ? "" : "s"}`,
+            )}
           </span>
           <Link
             href={`/c/${shopSlug}`}
             target="_blank"
             className="text-xs font-semibold text-brand-dark hover:underline"
           >
-            Voir ma boutique ↗
+            {tr("Voir ma boutique ↗", "View my shop ↗")}
           </Link>
         </div>
         <button onClick={openCreate} className="btn-primary">
-          + Nouvelle collection
+          + {tr("Nouvelle collection", "New collection")}
         </button>
       </div>
 
       {collections.length === 0 ? (
         <div className="card p-12 text-center text-arctic-600 space-y-3">
           <span className="text-4xl">📁</span>
-          <h3 className="text-base font-bold text-arctic-800">Aucune collection créée</h3>
+          <h3 className="text-base font-bold text-arctic-800">
+            {tr("Aucune collection créée", "No collections created yet")}
+          </h3>
           <p className="text-sm max-w-md mx-auto">
-            Créez votre première collection pour regrouper vos articles par thème (ex: Nouveautés, Promotions, Best-sellers) et les afficher en vitrine sur votre boutique.
+            {tr(
+              "Créez votre première collection pour regrouper vos articles par thème (ex: Nouveautés, Promotions, Best-sellers) et les afficher en vitrine sur votre boutique.",
+              "Create your first collection to group your items by theme (e.g. New Arrivals, Sale, Best Sellers) and showcase them on your storefront.",
+            )}
           </p>
           <button onClick={openCreate} className="btn-primary mt-2">
-            + Créer ma première collection
+            + {tr("Créer ma première collection", "Create my first collection")}
           </button>
         </div>
       ) : (
@@ -292,7 +302,7 @@ export default function CollectionsClient({
                     <h3 className="mt-1 text-lg font-bold text-white truncate">{c.name}</h3>
                   </div>
                   <span className="relative z-10 shrink-0 rounded-full bg-white text-brand-dark px-3 py-1 text-xs font-bold shadow-sm">
-                    {c.productCount} produit{c.productCount > 1 ? "s" : ""}
+                    {c.productCount} {tr(`produit${c.productCount > 1 ? "s" : ""}`, `product${c.productCount === 1 ? "" : "s"}`)}
                   </span>
                 </div>
 
@@ -301,14 +311,16 @@ export default function CollectionsClient({
                     {c.description ? (
                       <p className="text-xs text-arctic-600 line-clamp-2">{c.description}</p>
                     ) : (
-                      <p className="text-xs italic text-arctic-400">Aucune description</p>
+                      <p className="text-xs italic text-arctic-400">
+                        {tr("Aucune description", "No description")}
+                      </p>
                     )}
 
                     {/* Products thumbnails */}
                     {c.products.length > 0 ? (
                       <div className="mt-4">
                         <div className="text-[11px] font-semibold uppercase tracking-wider text-arctic-500 mb-2">
-                          Produits inclus
+                          {tr("Produits inclus", "Included products")}
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {c.products.slice(0, 6).map((p) => (
@@ -335,20 +347,22 @@ export default function CollectionsClient({
                           ))}
                           {c.products.length > 6 && (
                             <div className="grid h-10 px-3 place-items-center rounded-lg bg-arctic-200 text-xs font-bold text-arctic-700">
-                              +{c.products.length - 6} autres
+                              +{c.products.length - 6} {tr("autres", "more")}
                             </div>
                           )}
                         </div>
                       </div>
                     ) : (
                       <div className="mt-4 rounded-lg border border-dashed border-arctic-300 bg-arctic-50/60 p-3 text-center">
-                        <p className="text-xs text-arctic-500">Aucun produit dans cette collection.</p>
+                        <p className="text-xs text-arctic-500">
+                          {tr("Aucun produit dans cette collection.", "No products in this collection.")}
+                        </p>
                         <button
                           type="button"
                           onClick={() => openEdit(c)}
                           className="mt-1.5 text-xs font-semibold text-brand-dark hover:underline"
                         >
-                          + Ajouter des produits maintenant
+                          + {tr("Ajouter des produits maintenant", "Add products now")}
                         </button>
                       </div>
                     )}
@@ -361,26 +375,28 @@ export default function CollectionsClient({
                         target="_blank"
                         className="text-xs font-semibold text-brand-dark hover:underline flex items-center gap-1"
                       >
-                        Voir sur la boutique ↗
+                        {tr("Voir sur la boutique ↗", "View on shop ↗")}
                       </Link>
                       <button
                         type="button"
                         onClick={() => copyLink(c)}
                         className="text-xs font-medium text-arctic-600 hover:text-arctic-900"
                       >
-                        {copiedId === c.id ? "✓ Lien copié !" : "📋 Copier le lien"}
+                        {copiedId === c.id
+                          ? tr("✓ Lien copié !", "✓ Link copied!")
+                          : tr("📋 Copier le lien", "📋 Copy link")}
                       </button>
                     </div>
 
                     <div className="flex items-center gap-1.5">
                       <button onClick={() => openEdit(c)} className="btn-ghost text-xs !py-1.5 px-3">
-                        ✏️ Produits / Modifier
+                        ✏️ {tr("Produits / Modifier", "Products / Edit")}
                       </button>
                       <button
                         onClick={() => handleDelete(c.id)}
                         className="btn-danger text-xs !py-1.5 px-2.5"
                       >
-                        Supprimer
+                        {tr("Supprimer", "Delete")}
                       </button>
                     </div>
                   </div>
@@ -398,10 +414,15 @@ export default function CollectionsClient({
             <div className="flex items-center justify-between border-b border-arctic-300/40 bg-arctic-50 px-5 py-3.5">
               <div>
                 <h3 className="font-bold text-arctic-900">
-                  {editingId ? "Modifier la collection & ses produits" : "Créer une nouvelle collection"}
+                  {editingId
+                    ? tr("Modifier la collection & ses produits", "Edit collection & products")
+                    : tr("Créer une nouvelle collection", "Create a new collection")}
                 </h3>
                 <p className="text-xs text-arctic-500">
-                  Regroupez vos produits et affichez-les en vitrine sur votre boutique.
+                  {tr(
+                    "Regroupez vos produits et affichez-les en vitrine sur votre boutique.",
+                    "Group your products and display them on your storefront.",
+                  )}
                 </p>
               </div>
               <button
@@ -416,10 +437,10 @@ export default function CollectionsClient({
             <form onSubmit={handleSave} className="max-h-[80vh] space-y-4 overflow-y-auto p-5">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="label">Nom de la collection *</label>
+                  <label className="label">{tr("Nom de la collection *", "Collection name *")}</label>
                   <input
                     className="input"
-                    placeholder="Ex: Nouveautés Été, Promotions..."
+                    placeholder={tr("Ex: Nouveautés Été, Promotions...", "e.g. Summer Drops, Sale...")}
                     value={name}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -433,10 +454,10 @@ export default function CollectionsClient({
                 </div>
 
                 <div>
-                  <label className="label">Identifiant URL (slug)</label>
+                  <label className="label">{tr("Identifiant URL (slug)", "URL Slug")}</label>
                   <input
                     className="input font-mono text-xs"
-                    placeholder="Ex: nouveautes-ete"
+                    placeholder={tr("Ex: nouveautes-ete", "e.g. summer-drops")}
                     value={slug}
                     onChange={(e) => {
                       setSlugTouched(true);
@@ -447,17 +468,21 @@ export default function CollectionsClient({
               </div>
 
               <div>
-                <label className="label">Description (affichée en haut de la collection)</label>
+                <label className="label">
+                  {tr("Description (affichée en haut de la collection)", "Description (shown at the top of the collection)")}
+                </label>
                 <textarea
                   className="input min-h-[64px]"
-                  placeholder="Présentez cette sélection à vos clients..."
+                  placeholder={tr("Présentez cette sélection à vos clients...", "Introduce this collection to your customers...")}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
 
               <div>
-                <label className="label">Image de couverture (Firebase Storage)</label>
+                <label className="label">
+                  {tr("Image de couverture (Firebase Storage)", "Cover image (Firebase Storage)")}
+                </label>
                 <div className="flex flex-wrap items-center gap-3">
                   {imageUrl && (
                     <div className="relative h-14 w-20 overflow-hidden rounded-lg border border-arctic-300 bg-arctic-100">
@@ -474,10 +499,10 @@ export default function CollectionsClient({
                       className="hidden"
                     />
                     {uploadingImage
-                      ? "Téléversement Firebase…"
+                      ? tr("Téléversement Firebase…", "Uploading to Firebase…")
                       : imageUrl
-                        ? "📷 Changer l'image"
-                        : "📷 Ajouter une image de couverture"}
+                        ? tr("📷 Changer l'image", "📷 Change image")
+                        : tr("📷 Ajouter une image de couverture", "📷 Add cover image")}
                   </label>
                   {imageUrl && (
                     <button
@@ -485,7 +510,7 @@ export default function CollectionsClient({
                       onClick={() => setImageUrl("")}
                       className="text-xs font-medium text-red-600 hover:underline"
                     >
-                      Retirer
+                      {tr("Retirer", "Remove")}
                     </button>
                   )}
                 </div>
@@ -495,7 +520,10 @@ export default function CollectionsClient({
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <label className="label !mb-0">
-                    Produits dans cette collection ({selectedProductIds.length} sélectionné{selectedProductIds.length > 1 ? "s" : ""})
+                    {tr(
+                      `Produits dans cette collection (${selectedProductIds.length} sélectionné${selectedProductIds.length > 1 ? "s" : ""})`,
+                      `Products in this collection (${selectedProductIds.length} selected)`,
+                    )}
                   </label>
                   {productsState.length > 0 && (
                     <div className="flex items-center gap-2 text-xs">
@@ -504,7 +532,7 @@ export default function CollectionsClient({
                         onClick={() => setSelectedProductIds(filteredModalProducts.map((p) => p.id))}
                         className="font-semibold text-brand-dark hover:underline"
                       >
-                        Tout sélectionner
+                        {tr("Tout sélectionner", "Select all")}
                       </button>
                       <span className="text-arctic-300">|</span>
                       <button
@@ -512,7 +540,7 @@ export default function CollectionsClient({
                         onClick={() => setSelectedProductIds([])}
                         className="font-medium text-arctic-500 hover:underline"
                       >
-                        Tout désélectionner
+                        {tr("Tout désélectionner", "Clear all")}
                       </button>
                     </div>
                   )}
@@ -522,7 +550,7 @@ export default function CollectionsClient({
                   <input
                     type="text"
                     className="input text-xs !py-1.5"
-                    placeholder="🔍 Rechercher un produit à ajouter..."
+                    placeholder={tr("🔍 Rechercher un produit à ajouter...", "🔍 Search a product to add...")}
                     value={productSearch}
                     onChange={(e) => setProductSearch(e.target.value)}
                   />
@@ -531,14 +559,16 @@ export default function CollectionsClient({
                 <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-xl border border-arctic-300/50 bg-arctic-50/60 p-2.5 text-xs">
                   {productsState.length === 0 ? (
                     <div className="p-4 text-center text-arctic-500">
-                      Aucun produit dans votre catalogue.{" "}
+                      {tr("Aucun produit dans votre catalogue.", "No products in your catalog.")}{" "}
                       <Link href="/dashboard/products" className="font-semibold text-brand-dark underline">
-                        Créez d&apos;abord un produit
+                        {tr("Créez d'abord un produit", "Create a product first")}
                       </Link>
                       .
                     </div>
                   ) : filteredModalProducts.length === 0 ? (
-                    <p className="p-3 text-center text-arctic-400">Aucun produit ne correspond à votre recherche.</p>
+                    <p className="p-3 text-center text-arctic-400">
+                      {tr("Aucun produit ne correspond à votre recherche.", "No products match your search.")}
+                    </p>
                   ) : (
                     filteredModalProducts.map((p) => {
                       const checked = selectedProductIds.includes(p.id);
@@ -575,7 +605,7 @@ export default function CollectionsClient({
                               <div className="truncate font-semibold text-arctic-900">{p.name}</div>
                               {otherCol && (
                                 <div className="text-[10px] text-amber-700">
-                                  Actuellement dans : {otherCol.name}
+                                  {tr("Actuellement dans :", "Currently in:")} {otherCol.name}
                                 </div>
                               )}
                             </div>
@@ -598,10 +628,14 @@ export default function CollectionsClient({
 
               <div className="flex justify-end gap-2 border-t border-arctic-200 pt-3">
                 <button type="button" onClick={() => setOpen(false)} className="btn-ghost">
-                  Annuler
+                  {tr("Annuler", "Cancel")}
                 </button>
                 <button type="submit" disabled={saving} className="btn-primary">
-                  {saving ? "Enregistrement…" : editingId ? "Enregistrer les modifications" : "Créer la collection"}
+                  {saving
+                    ? tr("Enregistrement…", "Saving…")
+                    : editingId
+                      ? tr("Enregistrer les modifications", "Save changes")
+                      : tr("Créer la collection", "Create collection")}
                 </button>
               </div>
             </form>

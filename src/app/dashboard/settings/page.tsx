@@ -2,12 +2,10 @@ import { requireVendor } from "@/lib/auth";
 import { isLiveMode } from "@/lib/whatsapp";
 import { storageMode } from "@/lib/storage";
 import { ensureReferralCode, rewardCount } from "@/lib/referral";
-import { getCooperativeForVendor } from "@/lib/cooperative";
 import { verificationProgress, evaluateAndGrant } from "@/lib/trust";
 import SettingsForm from "./SettingsForm";
 import AuroraCustomization from "./AuroraCustomization";
 import AwayHoursCard from "./AwayHoursCard";
-import CooperativeCard from "./CooperativeCard";
 import VerifiedShopCard from "./VerifiedShopCard";
 
 import ShopThemeCard from "./ShopThemeCard";
@@ -37,21 +35,9 @@ export default async function SettingsPage() {
     paidOrdersNeeded: 3,
   }));
 
-  const cooperative = await getCooperativeForVendor(vendor.id).catch(() => null);
-  const coopDto = cooperative
-    ? {
-        ...cooperative,
-        members: cooperative.members.map((m) => ({
-          ...m,
-          createdAt: m.createdAt.toISOString(),
-        })),
-      }
-    : null;
-
   return (
     <div className="space-y-6">
       <VerifiedShopCard progress={verification} />
-      <CooperativeCard cooperative={coopDto} />
       <AwayHoursCard
         initial={{
           awayMessage: vendor.awayMessage,

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
 import { isClerkConfigured } from "@/components/auth/ClerkAuthProvider";
 import ThemeToggle from "@/components/ThemeToggle";
+import { LanguageSwitcher, usePublicLang } from "@/components/PublicLanguageProvider";
 
 /**
  * Lumière dashboard shell — the "orchestrator".
@@ -21,39 +22,50 @@ import ThemeToggle from "@/components/ThemeToggle";
  * All targets ≥44px, full keyboard nav, visible gold focus ring.
  */
 
-type Item = { href: string; label: string; icon: IconName; exact?: boolean };
-type Group = { section: string | null; items: Item[] };
+type Item = { href: string; labelFr: string; labelEn: string; icon: IconName; exact?: boolean };
+type Group = { sectionFr: string | null; sectionEn: string | null; items: Item[] };
 
 const NAV: Group[] = [
-  { section: null, items: [{ href: "/dashboard", label: "Overview", icon: "home", exact: true }] },
   {
-    section: "Sell",
+    sectionFr: null,
+    sectionEn: null,
+    items: [{ href: "/dashboard", labelFr: "Vue d'ensemble", labelEn: "Overview", icon: "home", exact: true }],
+  },
+  {
+    sectionFr: "Ventes",
+    sectionEn: "Sell",
     items: [
-      { href: "/dashboard/orders", label: "Orders", icon: "orders" },
-      { href: "/dashboard/products", label: "Products", icon: "products" },
-      { href: "/dashboard/collections", label: "Collections", icon: "products" },
-      { href: "/dashboard/customers", label: "Customers", icon: "customers" },
+      { href: "/dashboard/orders", labelFr: "Commandes", labelEn: "Orders", icon: "orders" },
+      { href: "/dashboard/products", labelFr: "Produits", labelEn: "Products", icon: "products" },
+      { href: "/dashboard/collections", labelFr: "Collections", labelEn: "Collections", icon: "products" },
+      { href: "/dashboard/customers", labelFr: "Clients", labelEn: "Customers", icon: "customers" },
     ],
   },
   {
-    section: "Money",
+    sectionFr: "Finances",
+    sectionEn: "Money",
     items: [
-      { href: "/dashboard/receivables", label: "Receivables", icon: "coins" },
-      { href: "/dashboard/bookkeeping", label: "Bookkeeping", icon: "coins" },
-      { href: "/dashboard/payment-links", label: "Payment Links", icon: "wallet" },
-      { href: "/dashboard/billing", label: "Money", icon: "wallet" },
+      { href: "/dashboard/receivables", labelFr: "Créances", labelEn: "Receivables", icon: "coins" },
+      { href: "/dashboard/bookkeeping", labelFr: "Comptabilité", labelEn: "Bookkeeping", icon: "coins" },
+      { href: "/dashboard/payment-links", labelFr: "Liens de paiement", labelEn: "Payment Links", icon: "wallet" },
+      { href: "/dashboard/billing", labelFr: "Encaissements", labelEn: "Money", icon: "wallet" },
     ],
   },
   {
-    section: "Grow",
+    sectionFr: "Croissance",
+    sectionEn: "Grow",
     items: [
-      { href: "/dashboard/analytics", label: "Analytics", icon: "target" },
-      { href: "/dashboard/broadcasts", label: "Marketing", icon: "megaphone" },
-      { href: "/dashboard/campaigns", label: "Ads", icon: "target" },
-      { href: "/dashboard/bot", label: "Assistant WhatsApp", icon: "bot" },
+      { href: "/dashboard/analytics", labelFr: "Analytics", labelEn: "Analytics", icon: "target" },
+      { href: "/dashboard/broadcasts", labelFr: "Marketing", labelEn: "Marketing", icon: "megaphone" },
+      { href: "/dashboard/campaigns", labelFr: "Publicités", labelEn: "Ads", icon: "target" },
+      { href: "/dashboard/bot", labelFr: "Assistant WhatsApp", labelEn: "WhatsApp Assistant", icon: "bot" },
     ],
   },
-  { section: null, items: [{ href: "/dashboard/settings", label: "Settings", icon: "settings" }] },
+  {
+    sectionFr: null,
+    sectionEn: null,
+    items: [{ href: "/dashboard/settings", labelFr: "Paramètres", labelEn: "Settings", icon: "settings" }],
+  },
 ];
 
 const FLAT = NAV.flatMap((g) => g.items);
@@ -69,6 +81,7 @@ export default function DashboardShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { tr } = usePublicLang();
   const [drawer, setDrawer] = useState(false);
   const [palette, setPalette] = useState(false);
 
@@ -135,7 +148,11 @@ export default function DashboardShell({
       <div className="flex-1 space-y-4 overflow-y-auto">
         {NAV.map((group, gi) => (
           <div key={gi} className="space-y-0.5">
-            {group.section && <div className="a-eyebrow px-3 pb-1 pt-2">{group.section}</div>}
+            {group.sectionFr && (
+              <div className="a-eyebrow px-3 pb-1 pt-2">
+                {tr(group.sectionFr, group.sectionEn || group.sectionFr)}
+              </div>
+            )}
             {group.items.map((it) => {
               const on = active(it);
               return (
@@ -158,7 +175,7 @@ export default function DashboardShell({
                     }
                   />
                   <Icon name={it.icon} className={on ? "text-brand-dark" : "text-arctic-500 group-hover:text-arctic-700"} />
-                  <span className="truncate">{it.label}</span>
+                  <span className="truncate">{tr(it.labelFr, it.labelEn)}</span>
                 </Link>
               );
             })}
@@ -174,14 +191,14 @@ export default function DashboardShell({
           className="flex min-h-[44px] items-center gap-3 rounded-shape-md px-3 text-[14px] font-medium text-arctic-700 hover:bg-arctic-200/60 hover:text-arctic-900"
         >
           <Icon name="catalog" className="text-arctic-500" />
-          View catalog
+          {tr("Voir le catalogue", "View catalog")}
         </a>
         <button
           onClick={logout}
           className="flex min-h-[44px] w-full items-center gap-3 rounded-shape-md px-3 text-[14px] font-medium text-arctic-700 hover:bg-arctic-200/60 hover:text-arctic-900"
         >
           <Icon name="logout" className="text-arctic-500" />
-          Sign out
+          {tr("Déconnexion", "Sign out")}
         </button>
       </div>
     </nav>
@@ -205,11 +222,11 @@ export default function DashboardShell({
       )}
 
       <div className="min-w-0">
-        {/* Top bar — page identity + search + theme + mobile menu. */}
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-arctic-300/50 bg-arctic-50/80 px-4 py-3 backdrop-blur-glass">
+        {/* Top bar — page identity + search + language switcher + theme + mobile menu. */}
+        <header className="sticky top-0 z-30 flex items-center gap-2.5 border-b border-arctic-300/50 bg-arctic-50/80 px-4 py-3 backdrop-blur-glass">
           <button
             onClick={() => setDrawer(true)}
-            aria-label="Open menu"
+            aria-label={tr("Ouvrir le menu", "Open menu")}
             className="grid h-10 w-10 place-items-center rounded-shape-md text-arctic-700 hover:bg-arctic-200/60 lg:hidden"
           >
             <Icon name="menu" />
@@ -217,7 +234,7 @@ export default function DashboardShell({
 
           <div className="min-w-0 flex-1">
             <div className="truncate font-display text-[18px] font-semibold leading-tight text-arctic-900">
-              {current?.label ?? "Dashboard"}
+              {current ? tr(current.labelFr, current.labelEn) : tr("Tableau de bord", "Dashboard")}
             </div>
           </div>
 
@@ -225,15 +242,16 @@ export default function DashboardShell({
             onClick={() => setPalette(true)}
             className="inline-flex h-10 items-center gap-2 rounded-shape-full border border-arctic-400/45 px-3 text-[13px] text-arctic-600 transition-colors hover:border-brand/50 hover:text-arctic-900"
             style={{ background: "var(--aurora-surface)" }}
-            aria-label="Search and quick navigation"
+            aria-label={tr("Recherche et navigation rapide", "Search and quick navigation")}
           >
             <Icon name="search" className="h-4 w-4" />
-            <span className="hidden sm:inline">Search</span>
+            <span className="hidden sm:inline">{tr("Rechercher", "Search")}</span>
             <kbd className="hidden rounded border border-arctic-400/50 px-1.5 py-0.5 text-[10px] font-semibold text-arctic-500 sm:inline">
               ⌘K
             </kbd>
           </button>
 
+          <LanguageSwitcher />
           <ThemeToggle />
         </header>
 
@@ -268,18 +286,23 @@ function CommandPalette({
   onClose: () => void;
   onNavigate: (href: string) => void;
 }) {
+  const { tr } = usePublicLang();
   const [q, setQ] = useState("");
   const [sel, setSel] = useState(0);
 
   const actions = useMemo(
     () => [
-      ...items.map((it) => ({ label: it.label, href: it.href, hint: "Go to" })),
-      { label: "Add product", href: "/dashboard/products", hint: "Action" },
-      { label: "New campaign", href: "/dashboard/campaigns", hint: "Action" },
-      { label: "View public catalog", href: `/c/${shopSlug}`, hint: "Open" },
-      { label: "How Japora works", href: "/how-to-use", hint: "Guide" },
+      ...items.map((it) => ({
+        label: tr(it.labelFr, it.labelEn),
+        href: it.href,
+        hint: tr("Aller à", "Go to"),
+      })),
+      { label: tr("Ajouter un produit", "Add product"), href: "/dashboard/products", hint: "Action" },
+      { label: tr("Nouvelle campagne", "New campaign"), href: "/dashboard/campaigns", hint: "Action" },
+      { label: tr("Voir le catalogue public", "View public catalog"), href: `/c/${shopSlug}`, hint: tr("Ouvrir", "Open") },
+      { label: tr("Comment fonctionne Japora", "How Japora works"), href: "/how-to-use", hint: "Guide" },
     ],
-    [items, shopSlug],
+    [items, shopSlug, tr],
   );
 
   const results = useMemo(() => {
@@ -309,14 +332,16 @@ function CommandPalette({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={onKey}
-            placeholder="Search pages and actions…"
+            placeholder={tr("Rechercher une page ou une action…", "Search pages and actions…")}
             className="h-14 flex-1 bg-transparent text-[15px] text-arctic-900 outline-none placeholder:text-arctic-500"
           />
           <kbd className="rounded border border-arctic-400/50 px-1.5 py-0.5 text-[10px] font-semibold text-arctic-500">Esc</kbd>
         </div>
         <ul className="max-h-[50vh] overflow-y-auto p-2">
           {results.length === 0 && (
-            <li className="px-3 py-6 text-center text-sm text-arctic-500">No matches.</li>
+            <li className="px-3 py-6 text-center text-sm text-arctic-500">
+              {tr("Aucun résultat.", "No matches.")}
+            </li>
           )}
           {results.map((a, i) => (
             <li key={a.label}>

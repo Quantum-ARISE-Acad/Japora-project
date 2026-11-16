@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AuroraSlider } from "@/components/aurora";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 import {
   DEFAULT_PREFS,
   parseUiPrefs,
@@ -28,6 +29,7 @@ type Props = {
 };
 
 export default function AuroraCustomization({ initial }: Props) {
+  const { tr } = usePublicLang();
   const initialPrefs = useMemo(() => parseUiPrefs(initial), [initial]);
   const [prefs, setPrefs] = useState(initialPrefs);
   const [saving, setSaving] = useState(false);
@@ -82,15 +84,19 @@ export default function AuroraCustomization({ initial }: Props) {
     <div className="glass glass-edge rounded-shape-lg p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="a-title-lg text-arctic-900">Customize the feel</h2>
+          <h2 className="a-title-lg text-arctic-900">
+            {tr("Personnaliser l'ergonomie du tableau de bord", "Customize the feel")}
+          </h2>
           <p className="a-body-md mt-1 text-arctic-700">
-            Tune the motion, density, and accent of your dashboard. The preview
-            below reacts as you drag.
+            {tr(
+              "Ajustez les animations, la densité et l'accentuation visuelle de votre tableau de bord. L'aperçu réagit en direct.",
+              "Tune the motion, density, and accent of your dashboard. The preview below reacts as you drag.",
+            )}
           </p>
         </div>
         {savedAt && (
           <span className="rounded-shape-full border border-arctic-400/45 bg-arctic-200/70 px-2 py-0.5 a-label-md text-arctic-900 backdrop-blur-glass-thin">
-            ✓ Saved
+            {tr("✓ Enregistré", "✓ Saved")}
           </span>
         )}
       </div>
@@ -99,30 +105,38 @@ export default function AuroraCustomization({ initial }: Props) {
         {/* Sliders */}
         <div className="space-y-5">
           <AuroraSlider
-            label="Motion intensity"
+            label={tr("Intensité des animations", "Motion intensity")}
             value={prefs.motion}
             onChange={(e) => update("motion", Number(e.currentTarget.value))}
             formatValue={(v) =>
-              v < 25 ? "Calm" : v < 75 ? "Balanced" : "Expressive"
+              v < 25
+                ? tr("Calme", "Calm")
+                : v < 75
+                  ? tr("Équilibré", "Balanced")
+                  : tr("Expressif", "Expressive")
             }
           />
           <AuroraSlider
-            label="Density"
+            label={tr("Densité d'affichage", "Density")}
             value={prefs.density}
             onChange={(e) => update("density", Number(e.currentTarget.value))}
             formatValue={(v) =>
-              v < 35 ? "Compact" : v < 65 ? "Comfortable" : "Spacious"
+              v < 35
+                ? tr("Compact", "Compact")
+                : v < 65
+                  ? tr("Confortable", "Comfortable")
+                  : tr("Spacieux", "Spacious")
             }
           />
           <AuroraSlider
-            label="Accent shift"
+            label={tr("Nuance d'accentuation", "Accent shift")}
             value={prefs.accentShift}
             onChange={(e) => update("accentShift", Number(e.currentTarget.value))}
             formatValue={(v) => {
               const shift = (v - 50) / 50;
-              if (shift < -0.5) return "Cooler";
-              if (shift > 0.5) return "Warmer";
-              return "Base";
+              if (shift < -0.5) return tr("Plus froid", "Cooler");
+              if (shift > 0.5) return tr("Plus chaud", "Warmer");
+              return tr("Standard", "Base");
             }}
           />
 
@@ -138,21 +152,20 @@ export default function AuroraCustomization({ initial }: Props) {
               disabled={saving || !dirty}
               className="btn-primary"
             >
-              {saving ? "Saving…" : "Save preferences"}
+              {saving ? tr("Enregistrement…", "Saving…") : tr("Enregistrer les préférences", "Save preferences")}
             </button>
             <button onClick={reset} disabled={saving} className="btn-ghost">
-              Reset to default
+              {tr("Réinitialiser", "Reset to default")}
             </button>
           </div>
         </div>
 
         {/* Live preview */}
         <aside className="glass glass-edge rounded-shape-lg p-4" style={previewStyle}>
-          <div className="a-label-md mb-3 text-arctic-700">Live preview</div>
+          <div className="a-label-md mb-3 text-arctic-700">{tr("Aperçu en direct", "Live preview")}</div>
           <div
             className="space-y-3"
             style={{
-              // The accent shift translates to a hue rotation on a tinted band.
               filter: "hue-rotate(var(--aurora-accent-hue, 0deg))",
             }}
           >
@@ -162,21 +175,20 @@ export default function AuroraCustomization({ initial }: Props) {
                 padding: `calc(0.9rem * var(--aurora-density, 1))`,
               }}
             >
-              <div className="a-label-md text-arctic-700">Today</div>
-              <div className="a-display-sm text-arctic-900">₦42,000</div>
+              <div className="a-label-md text-arctic-700">{tr("Aujourd'hui", "Today")}</div>
+              <div className="a-display-sm text-arctic-900">42 000 FCFA</div>
             </div>
             <button
               className="btn-primary w-full"
               style={{
-                // M3-Expressive duration token — uses the user's chosen multiplier.
                 transitionDuration: "var(--aurora-dur-short)",
               }}
               onClick={(e) => e.preventDefault()}
             >
-              Sample action
+              {tr("Action exemple", "Sample action")}
             </button>
             <div className="grid grid-cols-3 gap-2">
-              {["New", "Paid", "Sent"].map((k, i) => (
+              {[tr("Nouveau", "New"), tr("Payé", "Paid"), tr("Envoyé", "Sent")].map((k, i) => (
                 <span
                   key={k}
                   className={

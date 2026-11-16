@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoney, waMeLink } from "@/lib/utils";
 import { AuroraIsoscout } from "@/components/aurora";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 type Row = {
   id: string;
@@ -61,6 +62,7 @@ export default function ReceivablesClient({
   shopName: string;
 }) {
   const router = useRouter();
+  const { tr } = usePublicLang();
   const [rows, setRows] = useState(initialRows);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -141,14 +143,19 @@ export default function ReceivablesClient({
     <div className="mx-auto max-w-6xl px-4 py-6">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="a-headline-md text-arctic-900">Receivables</h1>
+          <h1 className="a-headline-md text-arctic-900">
+            {tr("Créances clients", "Receivables")}
+          </h1>
           <p className="text-sm text-arctic-600">
-            The structured version of your gbese / karatasi notebook.
+            {tr(
+              "Suivez les soldes impayés et relancez vos clients en un clic sur WhatsApp.",
+              "The structured version of your credit notebook.",
+            )}
           </p>
         </div>
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
           <div className="text-xs font-semibold uppercase tracking-wide text-amber-700">
-            Total outstanding
+            {tr("Total impayé", "Total outstanding")}
           </div>
           <div className="text-2xl font-bold text-amber-900">
             {formatMoney(outstandingCents, currency)}
@@ -160,8 +167,11 @@ export default function ReceivablesClient({
         <div className="glass glass-edge rounded-shape-lg p-6">
           <AuroraIsoscout
             variant="receivables"
-            title="No open tabs"
-            body="A receivable lands here whenever an order ships unpaid (credit sale, M-Pesa pending, etc.). You can also add one manually from above."
+            title={tr("Aucune créance en cours", "No open tabs")}
+            body={tr(
+              "Une créance apparaît ici lorsqu'une commande est expédiée avant paiement complet (vente à crédit, acompte, etc.).",
+              "A receivable lands here whenever an order ships unpaid (credit sale, M-Pesa pending, etc.). You can also add one manually from above.",
+            )}
           />
         </div>
       ) : (
@@ -192,16 +202,16 @@ export default function ReceivablesClient({
                       .reduce((s, r) => s + r.amountCents, 0),
                     currency,
                   )}{" "}
-                  open
+                  {tr("ouvert", "open")}
                 </div>
               </header>
 
               <table className="w-full text-sm">
                 <thead className="text-left text-xs font-semibold uppercase tracking-wide text-arctic-600">
                   <tr>
-                    <th className="px-4 py-2">Status</th>
-                    <th className="px-4 py-2 text-right">Amount due</th>
-                    <th className="px-4 py-2">Due</th>
+                    <th className="px-4 py-2">{tr("Statut", "Status")}</th>
+                    <th className="px-4 py-2 text-right">{tr("Montant dû", "Amount due")}</th>
+                    <th className="px-4 py-2">{tr("Échéance", "Due")}</th>
                     <th className="px-4 py-2">Note</th>
                     <th className="px-4 py-2 text-right">Actions</th>
                   </tr>
@@ -225,7 +235,7 @@ export default function ReceivablesClient({
                           className={`px-4 py-2 ${overdue ? "font-semibold text-red-600" : "text-arctic-700"}`}
                         >
                           {fmtDate(r.dueDate)}
-                          {overdue && " (overdue)"}
+                          {overdue && tr(" (en retard)", " (overdue)")}
                         </td>
                         <td className="px-4 py-2 text-arctic-600">{r.note || "—"}</td>
                         <td className="px-4 py-2">
@@ -236,21 +246,21 @@ export default function ReceivablesClient({
                                   onClick={() => sendReminder(r)}
                                   className="rounded-lg border border-arctic-400/30 px-2.5 py-1 text-xs font-semibold text-arctic-800 hover:bg-arctic-100/55"
                                 >
-                                  Remind
+                                  {tr("Relancer", "Remind")}
                                 </button>
                                 <button
                                   onClick={() => markPaid(r)}
                                   disabled={busy === r.id}
                                   className="rounded-lg bg-brand px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-dark disabled:opacity-50"
                                 >
-                                  Mark paid
+                                  {tr("Marquer payé", "Mark paid")}
                                 </button>
                                 <button
                                   onClick={() => writeOff(r)}
                                   disabled={busy === r.id}
                                   className="rounded-lg border border-red-200 px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
                                 >
-                                  Write off
+                                  {tr("Annuler dette", "Write off")}
                                 </button>
                               </>
                             )}

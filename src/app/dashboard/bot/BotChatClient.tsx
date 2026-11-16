@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 type Btn = { id: string; title: string };
 type Msg =
@@ -20,6 +21,7 @@ const QUICK_TRIES = [
 ];
 
 export default function BotChatClient({ shopName }: { shopName: string }) {
+  const { tr } = usePublicLang();
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "system",
@@ -95,11 +97,13 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
             </span>
             <div className="leading-tight">
               <div className="font-semibold text-arctic-900">{shopName}</div>
-              <div className="text-xs text-arctic-600">Assistant WhatsApp IA (Gemini)</div>
+              <div className="text-xs text-arctic-600">
+                {tr("Assistant WhatsApp IA (Gemini)", "WhatsApp AI Assistant (Gemini)")}
+              </div>
             </div>
           </div>
           <button onClick={reset} className="text-xs font-medium text-arctic-600 hover:text-arctic-800">
-            Réinitialiser
+            {tr("Réinitialiser", "Reset")}
           </button>
         </div>
 
@@ -177,13 +181,16 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
         >
           <input
             className="input flex-1"
-            placeholder="Écrivez un message client (ex: Menu, Suivre ma commande, prix…)"
+            placeholder={tr(
+              "Écrivez un message client (ex: Menu, Suivre ma commande, prix…)",
+              "Type a customer message (e.g. Menu, Track my order, price…)",
+            )}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             disabled={sending}
           />
           <button className="btn-primary" disabled={sending || !draft.trim()}>
-            Envoyer
+            {tr("Envoyer", "Send")}
           </button>
         </form>
       </div>
@@ -191,9 +198,14 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
       <aside className="space-y-4">
         <div className="card p-4 space-y-3">
           <div>
-            <h2 className="text-sm font-semibold text-arctic-900">Numéro WhatsApp Client</h2>
+            <h2 className="text-sm font-semibold text-arctic-900">
+              {tr("Numéro WhatsApp Client", "Customer WhatsApp Number")}
+            </h2>
             <p className="mb-2 mt-1 text-xs text-arctic-600">
-              Utilisé pour enregistrer les commandes dans MySQL et retrouver les commandes lors du suivi (&ldquo;Suivre ma commande&rdquo;).
+              {tr(
+                "Utilisé pour enregistrer les commandes dans MySQL et retrouver les commandes lors du suivi (« Suivre ma commande »).",
+                "Used to record orders in MySQL and look up orders when tracking ('Track my order').",
+              )}
             </p>
             <input
               className="input"
@@ -211,13 +223,21 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
               className="mt-0.5 rounded border-emerald-400 text-emerald-600"
             />
             <span>
-              <strong>Envoyer aussi sur WhatsApp Cloud API</strong> (envoie réellement la réponse sur le WhatsApp de ce numéro)
+              <strong>
+                {tr("Envoyer aussi sur WhatsApp Cloud API", "Also send via WhatsApp Cloud API")}
+              </strong>{" "}
+              {tr(
+                "(envoie réellement la réponse sur le WhatsApp de ce numéro)",
+                "(actually sends the reply to this number's WhatsApp)",
+              )}
             </span>
           </label>
         </div>
 
         <div className="card p-4">
-          <h2 className="text-sm font-semibold text-arctic-900">Messages rapides à tester</h2>
+          <h2 className="text-sm font-semibold text-arctic-900">
+            {tr("Messages rapides à tester", "Quick test messages")}
+          </h2>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {QUICK_TRIES.map((t) => (
               <button
@@ -231,7 +251,10 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
             ))}
           </div>
           <p className="mt-3 text-xs text-arctic-600">
-            Astuce : Cliquez sur <strong>Menu</strong> puis sur un bouton de produit pour passer une commande en 1 clic, puis cliquez sur <strong>📦 Suivre commande</strong> !
+            {tr(
+              "Astuce : Cliquez sur Menu puis sur un bouton de produit pour passer une commande en 1 clic, puis cliquez sur 📦 Suivre commande !",
+              "Tip: Click Menu then tap a product button to place a 1-click order, then tap 📦 Track order!",
+            )}
           </p>
         </div>
       </aside>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export type PublicLocale = "fr" | "en";
 
@@ -21,6 +22,7 @@ const LanguageContext = createContext<LanguageContextType>({
 const STORAGE_KEY = "japora-lang";
 
 export function PublicLanguageProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [locale, setLocaleState] = useState<PublicLocale>("fr");
 
   useEffect(() => {
@@ -28,6 +30,7 @@ export function PublicLanguageProvider({ children }: { children: React.ReactNode
       const saved = localStorage.getItem(STORAGE_KEY) as PublicLocale | null;
       if (saved === "fr" || saved === "en") {
         setLocaleState(saved);
+        document.cookie = `${STORAGE_KEY}=${saved}; path=/; max-age=31536000; SameSite=Lax`;
         document.documentElement.lang = saved;
         return;
       }
@@ -48,6 +51,11 @@ export function PublicLanguageProvider({ children }: { children: React.ReactNode
       localStorage.setItem(STORAGE_KEY, lang);
       document.cookie = `${STORAGE_KEY}=${lang}; path=/; max-age=31536000; SameSite=Lax`;
       document.documentElement.lang = lang;
+    } catch {
+      // ignore
+    }
+    try {
+      router.refresh();
     } catch {
       // ignore
     }

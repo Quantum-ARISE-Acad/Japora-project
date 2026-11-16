@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { formatCurrencyAmount } from "@/lib/currency";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 import type { CampaignStats } from "@/lib/campaigns";
 import type {
   MetaAdCampaignDetails,
@@ -184,6 +185,7 @@ export default function CampaignsClient({
   whatsappNumber: string | null;
   initialMetaConfig: MetaConfigDTO;
 }) {
+  const { tr } = usePublicLang();
   const [campaigns, setCampaigns] = useState<EnrichedCampaign[]>(initialCampaigns);
   const [metaConfig, setMetaConfig] = useState<MetaConfigDTO>(initialMetaConfig);
 
@@ -756,7 +758,7 @@ export default function CampaignsClient({
                 Meta Marketing API v27.0
               </span>
               <span className="inline-flex items-center gap-1 rounded-full bg-blue-600 px-2.5 py-0.5 text-xs font-semibold text-white">
-                🟢 Connecté (Graph API v27.0)
+                {tr("🟢 Connecté (Graph API v27.0)", "🟢 Connected (Graph API v27.0)")}
               </span>
               <span className="rounded-full bg-arctic-100 px-2.5 py-0.5 font-mono text-xs text-arctic-700">
                 {metaConfig.adAccountId}
@@ -766,14 +768,21 @@ export default function CampaignsClient({
               </span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-arctic-900">
-              Publicités & Acquisition — WhatsApp Status, Facebook & Instagram
+              {tr(
+                "Publicités & Acquisition — WhatsApp Status, Facebook & Instagram",
+                "Ads & Acquisition — WhatsApp Status, Facebook & Instagram",
+              )}
             </h1>
             <p className="max-w-3xl text-sm text-arctic-600">
-              Créez et pilotez vos campagnes publicitaires directement avec les produits de
-              votre boutique <strong>{shopName}</strong> via le pipeline officiel Meta
-              Marketing API (<code>/campaigns</code> → <code>/adsets</code> →{" "}
-              <code>/adcreatives</code> → <code>/ads</code>) avec suivi en temps réel des
-              clics, discussions WhatsApp, commandes et ROAS.
+              {tr(
+                "Créez et pilotez vos campagnes publicitaires directement avec les produits de votre boutique",
+                "Create and manage your ad campaigns directly with products from your store",
+              )}{" "}
+              <strong>{shopName}</strong>{" "}
+              {tr(
+                "via le pipeline officiel Meta Marketing API (/campaigns → /adsets → /adcreatives → /ads) avec suivi en temps réel des clics, discussions WhatsApp, commandes et ROAS.",
+                "via the official Meta Marketing API pipeline (/campaigns → /adsets → /adcreatives → /ads) with real-time tracking of clicks, WhatsApp chats, orders, and ROAS.",
+              )}
             </p>
           </div>
 
@@ -782,14 +791,14 @@ export default function CampaignsClient({
               href="/dashboard/broadcasts"
               className="rounded-xl border border-arctic-400/30 bg-white px-3.5 py-2 text-xs font-medium text-arctic-700 hover:bg-arctic-50"
             >
-              📣 Broadcasts WhatsApp
+              {tr("📣 Broadcasts WhatsApp", "📣 WhatsApp Broadcasts")}
             </Link>
             <button
               type="button"
               onClick={() => setShowConfigModal(true)}
               className="rounded-xl border border-arctic-400/35 bg-white px-3.5 py-2 text-xs font-semibold text-arctic-800 shadow-2xs hover:bg-arctic-50"
             >
-              ⚙️ Configurer Meta API & Token
+              {tr("⚙️ Configurer Meta API & Token", "⚙️ Configure Meta API & Token")}
             </button>
             <button
               type="button"
@@ -797,8 +806,8 @@ export default function CampaignsClient({
               className="btn-primary text-xs sm:text-sm"
             >
               {showStudio
-                ? "Fermer le Studio Publicitaire"
-                : "+ Créer une Publicité Produit"}
+                ? tr("Fermer le Studio Publicitaire", "Close Ad Studio")
+                : tr("+ Créer une Publicité Produit", "+ Create Product Ad")}
             </button>
           </div>
         </div>
@@ -807,47 +816,47 @@ export default function CampaignsClient({
       {/* Global Analytics KPI Grid */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <KpiCard
-          label="Impressions & Portée"
+          label={tr("Impressions & Portée", "Impressions & Reach")}
           value={analytics.impressions.toLocaleString("fr-FR")}
-          sub={`Portée unique : ${analytics.reach.toLocaleString("fr-FR")}`}
+          sub={`${tr("Portée unique :", "Unique reach:")} ${analytics.reach.toLocaleString("fr-FR")}`}
           badge="Meta Reach"
           accent="blue"
         />
         <KpiCard
-          label="Vues WhatsApp Status"
+          label={tr("Vues WhatsApp Status", "WhatsApp Status Views")}
           value={analytics.statusViews.toLocaleString("fr-FR")}
-          sub={`${analytics.activeCount} campagne(s) active(s)`}
+          sub={`${analytics.activeCount} ${tr("campagne(s) active(s)", "active campaign(s)")}`}
           badge="Status Ads"
           accent="emerald"
         />
         <KpiCard
-          label="Clics Publicitaires"
+          label={tr("Clics Publicitaires", "Ad Clicks")}
           value={analytics.totalClicks.toLocaleString("fr-FR")}
           sub={`CTR : ${analytics.ctr}% • CPC : ${formatMoney(analytics.cpcCents, currency)}`}
           badge="LINK_CLICKS"
           accent="indigo"
         />
         <KpiCard
-          label="Discussions WhatsApp"
+          label={tr("Discussions WhatsApp", "WhatsApp Chats")}
           value={analytics.whatsappChats.toLocaleString("fr-FR")}
-          sub="Conversations engagées"
+          sub={tr("Conversations engagées", "Started conversations")}
           badge="CTWA"
           accent="teal"
         />
         <KpiCard
-          label="Commandes Attribuées"
+          label={tr("Commandes Attribuées", "Attributed Orders")}
           value={analytics.orders.toLocaleString("fr-FR")}
-          sub={`Taux conv. (CVR) : ${analytics.cvr}%`}
-          badge="Ventes"
+          sub={`${tr("Taux conv. (CVR) :", "Conv. rate (CVR):")} ${analytics.cvr}%`}
+          badge={tr("Ventes", "Sales")}
           accent="amber"
         />
         <KpiCard
-          label="Revenu & ROAS Global"
+          label={tr("Revenu & ROAS Global", "Global Revenue & ROAS")}
           value={formatMoney(analytics.revenueCents, currency)}
-          sub={`Dépensé : ${formatMoney(analytics.spendCents, currency)} • ROAS : ${
+          sub={`${tr("Dépensé :", "Spent:")} ${formatMoney(analytics.spendCents, currency)} • ROAS : ${
             analytics.roas !== null ? `${analytics.roas}×` : "—"
           }`}
-          badge={analytics.roas && analytics.roas >= 2 ? "Rentable 🔥" : "ROAS"}
+          badge={analytics.roas && analytics.roas >= 2 ? tr("Rentable 🔥", "Profitable 🔥") : "ROAS"}
           accent="emerald"
           highlight
         />
@@ -857,21 +866,24 @@ export default function CampaignsClient({
       <div className="card p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div className="text-xs font-semibold uppercase tracking-wider text-arctic-600">
-            Entonnoir de Conversion Meta Marketing API → Boutique Japora & WhatsApp
+            {tr(
+              "Entonnoir de Conversion Meta Marketing API → Boutique Japora & WhatsApp",
+              "Conversion Funnel Meta Marketing API → Japora Storefront & WhatsApp",
+            )}
           </div>
           <div className="text-xs text-arctic-500">
-            Attribution automatique sur 7 jours via <code>/go/&lt;refCode&gt;</code>
+            {tr("Attribution automatique sur 7 jours via", "7-day automatic attribution via")} <code>/go/&lt;refCode&gt;</code>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
           <FunnelStage
-            step="1. Impressions Meta"
+            step={tr("1. Impressions Meta", "1. Meta Impressions")}
             count={analytics.impressions}
             pct={100}
             color="bg-blue-500"
           />
           <FunnelStage
-            step="2. Portée & Status WA"
+            step={tr("2. Portée & Status WA", "2. Reach & WA Status")}
             count={analytics.reach}
             pct={
               analytics.impressions > 0
@@ -881,7 +893,7 @@ export default function CampaignsClient({
             color="bg-indigo-500"
           />
           <FunnelStage
-            step="3. Clics (/go/ref)"
+            step={tr("3. Clics (/go/ref)", "3. Clicks (/go/ref)")}
             count={analytics.totalClicks}
             pct={
               analytics.reach > 0
@@ -891,7 +903,7 @@ export default function CampaignsClient({
             color="bg-emerald-500"
           />
           <FunnelStage
-            step="4. Discussions WhatsApp"
+            step={tr("4. Discussions WhatsApp", "4. WhatsApp Chats")}
             count={analytics.whatsappChats}
             pct={
               analytics.totalClicks > 0
@@ -904,7 +916,7 @@ export default function CampaignsClient({
             color="bg-teal-500"
           />
           <FunnelStage
-            step="5. Commandes Payées"
+            step={tr("5. Commandes Payées", "5. Paid Orders")}
             count={analytics.orders}
             pct={
               analytics.whatsappChats > 0

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { formatMoney } from "@/lib/utils";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 export interface PaymentLinkItem {
   id: string;
@@ -26,6 +27,7 @@ export default function PaymentLinksClient({
   currency,
   shopName,
 }: PaymentLinksClientProps) {
+  const { tr } = usePublicLang();
   const [links, setLinks] = useState<PaymentLinkItem[]>(initialLinks);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filter, setFilter] = useState<"all" | "pending" | "paid">("all");
@@ -219,10 +221,13 @@ export default function PaymentLinksClient({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Liens de Paiement × FedaPay
+            {tr("Liens de Paiement × FedaPay", "Payment Links × FedaPay")}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Générez des liens de paiement instantanés avec FedaPay (T-Money, Flooz, Mobile Money & Carte) et envoyez-les directement via WhatsApp Cloud API.
+            {tr(
+              "Générez des liens de paiement instantanés avec FedaPay (T-Money, Flooz, Mobile Money & Carte) et envoyez-les directement via WhatsApp Cloud API.",
+              "Generate instant payment links with FedaPay (T-Money, Flooz, Mobile Money & Card) and send them directly via WhatsApp Cloud API.",
+            )}
           </p>
         </div>
 
@@ -231,7 +236,7 @@ export default function PaymentLinksClient({
             href="/dashboard/billing"
             className="btn-ghost text-xs px-3 py-2.5 rounded-xl"
           >
-            ⚙️ Config FedaPay Money
+            {tr("⚙️ Config FedaPay Money", "⚙️ FedaPay Money Config")}
           </Link>
           <button
             type="button"
@@ -239,7 +244,7 @@ export default function PaymentLinksClient({
             className="btn-primary flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl shadow-md"
           >
             <span>➕</span>
-            <span>Créer un lien de paiement</span>
+            <span>{tr("Créer un lien de paiement", "Create payment link")}</span>
           </button>
         </div>
       </div>
@@ -254,31 +259,31 @@ export default function PaymentLinksClient({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="card p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
           <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">
-            Total Encaissé
+            {tr("Total Encaissé", "Total Collected")}
           </span>
           <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
             {formatMoney(totalCollectedCents, currency)}
           </div>
           <span className="text-xs text-slate-400 mt-1 block">
-            {links.filter((l) => l.isPaid).length} paiement(s) confirmé(s)
+            {links.filter((l) => l.isPaid).length} {tr("paiement(s) confirmé(s)", "confirmed payment(s)")}
           </span>
         </div>
 
         <div className="card p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
           <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">
-            En Attente
+            {tr("En Attente", "Pending")}
           </span>
           <div className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">
             {formatMoney(pendingCents, currency)}
           </div>
           <span className="text-xs text-slate-400 mt-1 block">
-            {links.filter((l) => !l.isPaid).length} lien(s) non réglé(s)
+            {links.filter((l) => !l.isPaid).length} {tr("lien(s) non réglé(s)", "unpaid link(s)")}
           </span>
         </div>
 
         <div className="card p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
           <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">
-            Total Liens Générés
+            {tr("Total Liens Générés", "Total Links Generated")}
           </span>
           <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
             {links.length}
@@ -301,7 +306,11 @@ export default function PaymentLinksClient({
                 : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
-            {f === "all" ? "Tous les liens" : f === "pending" ? "En attente" : "Payés"}
+            {f === "all"
+              ? tr("Tous les liens", "All links")
+              : f === "pending"
+                ? tr("En attente", "Pending")
+                : tr("Payés", "Paid")}
           </button>
         ))}
       </div>
@@ -311,17 +320,20 @@ export default function PaymentLinksClient({
         <div className="card p-12 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
           <span className="text-4xl">🔗</span>
           <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mt-2">
-            Aucun lien de paiement trouvé
+            {tr("Aucun lien de paiement trouvé", "No payment links found")}
           </h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
-            Générez un lien direct pour demander un acompte ou faire payer un client à distance via FedaPay (T-Money, Flooz, Mobile Money).
+            {tr(
+              "Générez un lien direct pour demander un acompte ou faire payer un client à distance via FedaPay (T-Money, Flooz, Mobile Money).",
+              "Generate a direct link to request a deposit or collect payment remotely via FedaPay (T-Money, Flooz, Mobile Money).",
+            )}
           </p>
           <button
             type="button"
             onClick={() => setShowCreateModal(true)}
             className="btn-primary mt-4 text-xs px-4 py-2"
           >
-            Créer mon premier lien
+            {tr("Créer mon premier lien", "Create my first link")}
           </button>
         </div>
       ) : (
@@ -340,15 +352,15 @@ export default function PaymentLinksClient({
                     </span>
                     {l.isPaid ? (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
-                        ✓ Payé
+                        {tr("✓ Payé", "✓ Paid")}
                       </span>
                     ) : isExpired ? (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300">
-                        Expiré
+                        {tr("Expiré", "Expired")}
                       </span>
                     ) : (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
-                        En attente
+                        {tr("En attente", "Pending")}
                       </span>
                     )}
                   </div>
@@ -358,16 +370,16 @@ export default function PaymentLinksClient({
                       {l.description}
                     </p>
                   ) : (
-                    <p className="text-xs text-slate-400 italic">Sans description</p>
+                    <p className="text-xs text-slate-400 italic">{tr("Sans description", "No description")}</p>
                   )}
 
                   <div className="text-[11px] text-slate-400 flex items-center gap-3">
-                    <span>Créé le {new Date(l.createdAt).toLocaleDateString()}</span>
+                    <span>{tr("Créé le", "Created")} {new Date(l.createdAt).toLocaleDateString()}</span>
                     {l.paidAt && (
-                      <span>• Réglé le {new Date(l.paidAt).toLocaleDateString()}</span>
+                      <span>• {tr("Réglé le", "Paid")} {new Date(l.paidAt).toLocaleDateString()}</span>
                     )}
                     {l.expiresAt && !l.isPaid && (
-                      <span>• Expire le {new Date(l.expiresAt).toLocaleDateString()}</span>
+                      <span>• {tr("Expire le", "Expires")} {new Date(l.expiresAt).toLocaleDateString()}</span>
                     )}
                   </div>
                 </div>
@@ -379,7 +391,7 @@ export default function PaymentLinksClient({
                     target="_blank"
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-light/40 text-brand-dark hover:bg-brand-light transition-colors"
                   >
-                    💳 Ouvrir & Payer ↗
+                    {tr("💳 Ouvrir & Payer ↗", "💳 Open & Pay ↗")}
                   </Link>
 
                   <button
@@ -387,7 +399,7 @@ export default function PaymentLinksClient({
                     onClick={() => copyLink(l.id)}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 transition-colors"
                   >
-                    {copiedId === l.id ? "✓ Copié !" : "📋 Copier"}
+                    {copiedId === l.id ? tr("✓ Copié !", "✓ Copied!") : tr("📋 Copier", "📋 Copy")}
                   </button>
 
                   <button
@@ -398,7 +410,7 @@ export default function PaymentLinksClient({
                       setWaName("");
                     }}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-1 transition-colors"
-                    title="Envoyer directement au numéro du client via Meta WhatsApp Cloud API"
+                    title={tr("Envoyer directement au numéro du client via Meta WhatsApp Cloud API", "Send directly to customer phone via Meta WhatsApp Cloud API")}
                   >
                     <span>📲</span>
                     <span>Cloud API WhatsApp</span>
@@ -411,7 +423,7 @@ export default function PaymentLinksClient({
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 flex items-center gap-1 transition-colors"
                   >
                     <span>💬</span>
-                    <span>Partager</span>
+                    <span>{tr("Partager", "Share")}</span>
                   </a>
 
                   <button
@@ -423,14 +435,14 @@ export default function PaymentLinksClient({
                         : "bg-slate-900 text-white hover:bg-slate-800"
                     }`}
                   >
-                    {l.isPaid ? "Marquer impayé" : "Marquer payé"}
+                    {l.isPaid ? tr("Marquer impayé", "Mark unpaid") : tr("Marquer payé", "Mark paid")}
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleDelete(l.id)}
                     className="p-1.5 text-xs text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors"
-                    title="Supprimer"
+                    title={tr("Supprimer", "Delete")}
                   >
                     🗑️
                   </button>
