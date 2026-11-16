@@ -154,6 +154,8 @@ export type OutboundInteractive = {
   header?: string;
   body: string;
   footer?: string;
+  /** Label of the button that opens a list message. */
+  listButton?: string;
   buttons: InteractiveButton[] | InteractiveListSection[];
   orderId?: string | null;
   broadcastId?: string | null;
@@ -246,7 +248,7 @@ class CloudApiInteractive implements InteractiveCapable {
           body: { text: msg.body },
           ...(msg.footer ? { footer: { text: msg.footer } } : {}),
           action: {
-            button: "Voir les options",
+            button: msg.listButton || "Voir les options",
             sections: (msg.buttons as InteractiveListSection[]).map((s) => ({
               title: s.title,
               rows: s.rows.map((r) => ({
@@ -350,6 +352,46 @@ export async function sendWhatsAppInteractive(msg: OutboundInteractive) {
     },
   });
   return { record, provider: provider.name, status, providerId, error };
+}
+
+/**
+ * Send the "Quelle boutique ?" list on the shared Japora number. No shop is
+ * chosen yet, so the message uses the server's Japora credentials and is not
+ * stored in any shop's inbox (it is logged). Falls back to plain text.
+ */
+export async function sendSharedNumberPicker(msg: {
+  to: string;
+  phoneNumberId?: string;
+  body: string;
+  footer?: string;
+  listButton?: string;
+  sections?: InteractiveListSection[];
+  textFallback: string;
+}): Promise<{ status: string; kind: "list" | "text" }> {
+  if (msg.sections && msg.sections.length > 0) {
+    try {
+      const r = await getInteractive(undefined, msg.phoneNumberId).sendInteractive({
+        vendorId: "",
+        to: msg.to,
+        body: msg.body,
+        footer: msg.footer,
+        listButton: msg.listButton,
+        buttons: msg.sections,
+      });
+      logger.info("whatsapp.shared_picker_sent", { to: digitsOnly(msg.to), kind: "list", status: r.status });
+      return { status: r.status, kind: "list" };
+    } catch (e) {
+      logger.warn("whatsapp.shared_picker_list_failed", { error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+  try {
+    const r = await getProvider(undefined, msg.phoneNumberId).send({ vendorId: "", to: msg.to, body: msg.textFallback });
+    logger.info("whatsapp.shared_picker_sent", { to: digitsOnly(msg.to), kind: "text", status: r.status });
+    return { status: r.status, kind: "text" };
+  } catch (e) {
+    logger.error("whatsapp.shared_picker_failed", { error: e instanceof Error ? e.message : String(e) });
+    return { status: "failed", kind: "text" };
+  }
 }
 
 /** Send a pre-approved WhatsApp template message. Logs + persists. */
