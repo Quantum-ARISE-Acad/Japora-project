@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { SaasIcon } from "@/components/ui/SaasIcons";
+import { shopWhatsAppLink } from "@/lib/shop-picker";
 
 export default function ShopWhatsAppQrBanner({
   shopName,
@@ -26,18 +27,15 @@ export default function ShopWhatsAppQrBanner({
 
   // The Japora bot number (Meta Cloud API) when configured: the webhook routes the
   // chat to this shop through "(shopSlug)" in the prefill. Otherwise the vendor's own number.
-  const botNumber = (process.env.NEXT_PUBLIC_WHATSAPP_BOT_NUMBER || "").replace(/\D/g, "");
-  const cleanPhone = botNumber || (whatsappNumber || "").replace(/\D/g, "");
-  const defaultPrefill =
-    whatsappPrefillMessage ||
-    `Bonjour ${shopName} (${shopSlug}) ! Je viens de scanner votre QR code sur Japora. Pouvez-vous me présenter vos produits disponibles ?`;
-  // Always carry the "(slug)" tag the webhook reads, even in a custom message.
-  const enrichedPrefill = defaultPrefill.toLowerCase().includes(`(${shopSlug.toLowerCase()})`)
-    ? defaultPrefill
-    : `${defaultPrefill} (${shopSlug})`;
-
-  const whatsappUrl = cleanPhone
-    ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(enrichedPrefill)}`
+  const waLink = shopWhatsAppLink({
+    shopName,
+    shopSlug,
+    vendorNumber: whatsappNumber,
+    botNumber: process.env.NEXT_PUBLIC_WHATSAPP_BOT_NUMBER,
+    prefill: whatsappPrefillMessage,
+  });
+  const whatsappUrl = waLink
+    ? waLink.url
     : typeof window !== "undefined"
     ? `${window.location.origin}/c/${shopSlug}?assistant=open`
     : `/c/${shopSlug}?assistant=open`;
@@ -106,7 +104,7 @@ export default function ShopWhatsAppQrBanner({
                 <span>Ouvrir l&apos;Assistant IA sur le site</span>
               </button>
 
-              {cleanPhone && (
+              {waLink && (
                 <a
                   href={whatsappUrl}
                   target="_blank"
@@ -198,7 +196,7 @@ export default function ShopWhatsAppQrBanner({
             </div>
 
             <div className="mt-4 flex flex-col gap-2">
-              {cleanPhone && (
+              {waLink && (
                 <a
                   href={whatsappUrl}
                   target="_blank"

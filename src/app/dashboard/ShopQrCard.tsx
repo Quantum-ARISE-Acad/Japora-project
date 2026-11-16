@@ -1,12 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { waMeLink } from "@/lib/utils";
+import { shopWhatsAppLink } from "@/lib/shop-picker";
 
 /**
  * Printable shop & WhatsApp Assistant QR codes.
  * Renders:
- *  1) WhatsApp AI Assistant direct QR (https://wa.me/<number>?text=...)
+ *  1) WhatsApp AI Assistant direct QR (https://wa.me/<number>?text=...). Same link
+ *     as the public catalog: the Japora bot number with the "(slug)" tag when
+ *     NEXT_PUBLIC_WHATSAPP_BOT_NUMBER is set, otherwise the vendor's own number.
  *  2) Shop AI Assistant QR (/c/<slug>?assistant=open)
  *  3) Standard Catalog QR (/c/<slug>)
  */
@@ -31,14 +33,20 @@ export default function ShopQrCard({
   const catalogUrl = `${base.replace(/\/$/, "")}/c/${slug}`;
   const shopAiUrl = `${catalogUrl}?assistant=open`;
 
-  const hasWhatsApp = whatsappNumber.replace(/[^0-9]/g, "").length > 0;
-  const waAssistantUrl = useMemo(() => {
-    if (!hasWhatsApp) return shopAiUrl;
-    const text =
-      whatsappPrefillMessage ||
-      `Bonjour ${shopName} ! Je viens de scanner votre QR code sur Japora. Quels sont vos articles disponibles ?`;
-    return waMeLink(whatsappNumber, text);
-  }, [hasWhatsApp, whatsappNumber, shopName, whatsappPrefillMessage, shopAiUrl]);
+  const waLink = useMemo(
+    () =>
+      shopWhatsAppLink({
+        shopName,
+        shopSlug: slug,
+        vendorNumber: whatsappNumber,
+        botNumber: process.env.NEXT_PUBLIC_WHATSAPP_BOT_NUMBER,
+        prefill: whatsappPrefillMessage,
+      }),
+    [shopName, slug, whatsappNumber, whatsappPrefillMessage],
+  );
+  const hasWhatsApp = waLink !== null;
+  const viaJaporaNumber = waLink?.viaJaporaNumber ?? false;
+  const waAssistantUrl = waLink?.url ?? shopAiUrl;
 
   const targetUrl =
     qrType === "whatsapp_ai"
@@ -154,6 +162,11 @@ export default function ShopQrCard({
               <p className="text-xs text-arctic-600 break-all font-mono bg-white/80 p-2 rounded border border-arctic-200">
                 {targetUrl}
               </p>
+              {qrType === "whatsapp_ai" && viaJaporaNumber && (
+                <p className="text-xs text-arctic-600">
+                  Ce QR code ouvre le numéro WhatsApp de Japora avec le nom de votre boutique déjà écrit : l&apos;assistant répond automatiquement au nom de votre boutique, et les commandes arrivent dans votre tableau de bord.
+                </p>
+              )}
               {qrType === "whatsapp_ai" && !hasWhatsApp && (
                 <p className="text-xs text-amber-700 bg-amber-50 px-2.5 py-1.5 rounded border border-amber-200">
                   ⚠️ Renseignez votre numéro WhatsApp ci-dessous pour que ce QR code pointe vers votre numéro WhatsApp.
