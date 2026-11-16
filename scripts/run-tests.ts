@@ -31,6 +31,7 @@ const databaseSuites = new Set([
   "stand-readiness.test.ts",
   "integration.test.ts",
   "telemetry.test.ts",
+  "search.test.ts",
 ]);
 // TEST_GROUP=unit runs suites without a database, TEST_GROUP=database the others
 // (lets CI run both groups as separate parallel jobs). Unset: every suite.

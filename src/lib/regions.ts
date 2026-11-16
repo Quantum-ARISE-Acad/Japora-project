@@ -68,6 +68,18 @@ export const CATEGORIES: Category[] = [
   { slug: "other", label: "Other", icon: "✨" },
 ];
 
+/** French names of the categories, shown in the marketplace and used by search. */
+export const CATEGORY_LABEL_FR: Record<string, string> = {
+  fashion: "Mode & Wax",
+  food: "Alimentation",
+  beauty: "Beauté & Soins",
+  electronics: "Électronique",
+  home: "Maison & Déco",
+  groceries: "Épicerie",
+  services: "Services",
+  other: "Autres",
+};
+
 /** Popular West African market names offered as starting points; custom names remain accepted. */
 export const COOPERATIVE_NAME_SUGGESTIONS = [
   "Grand Marché de Lomé (Assigamé)",
