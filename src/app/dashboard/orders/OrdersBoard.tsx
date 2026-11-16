@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoney, parseSizes, waMeLink, type OrderStatus } from "@/lib/utils";
 import Glyph from "@/components/Glyph";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 type Item = {
   id: string;
@@ -97,15 +98,15 @@ function payLinkText(o: Order, shopName: string, currency: string, payUrl: strin
   return `Hi ${o.customerName}, here's your secure payment link for your ${shopName} order (${total}): ${payUrl}\n\nPay by dial code (T-Money / Flooz) — it works on any phone, no app needed.`;
 }
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, locale: "fr" | "en"): string {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.round(diff / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
+  if (m < 1) return locale === "fr" ? "à l’instant" : "just now";
+  if (m < 60) return locale === "fr" ? `il y a ${m} min` : `${m}m ago`;
   const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
+  if (h < 24) return locale === "fr" ? `il y a ${h} h` : `${h}h ago`;
   const d = Math.round(h / 24);
-  return `${d}d ago`;
+  return locale === "fr" ? `il y a ${d} j` : `${d}d ago`;
 }
 
 export default function OrdersBoard({
@@ -120,6 +121,7 @@ export default function OrdersBoard({
   shopName: string;
 }) {
   const router = useRouter();
+  const { tr } = usePublicLang();
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [showCancelled, setShowCancelled] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
@@ -249,17 +251,17 @@ export default function OrdersBoard({
       flash(
         order.id,
         to === "CONFIRMED"
-          ? "✅ Confirmé & Notification WhatsApp envoyée"
+          ? tr("✅ Confirmé et notification WhatsApp envoyée", "✅ Confirmed & WhatsApp notification sent")
           : to === "CANCELLED"
-          ? "❌ Annulé & Client notifié"
-          : `Statut → ${to}`,
+          ? tr("❌ Annulé et client notifié", "❌ Cancelled & customer notified")
+          : `${tr("Statut", "Status")} → ${to}`,
       );
       router.refresh();
     }
   }
 
   async function remove(order: Order) {
-    if (!confirm(`Delete order from ${order.customerName}?`)) return;
+    if (!confirm(tr(`Supprimer la commande de ${order.customerName} ?`, `Delete order from ${order.customerName}?`))) return;
     setOrders((curr) => curr.filter((o) => o.id !== order.id));
     await fetch(`/api/orders/${order.id}`, { method: "DELETE" });
     router.refresh();
@@ -267,7 +269,7 @@ export default function OrdersBoard({
 
   async function notifyViaApi(order: Order) {
     if (!order.customerPhone) {
-      flash(order.id, "No phone number on file.");
+      flash(order.id, tr("Aucun numéro de téléphone enregistré.", "No phone number on file."));
       return;
     }
     const res = await fetch("/api/whatsapp/send", {
@@ -289,20 +291,24 @@ export default function OrdersBoard({
   }
 
   const cancelled = byStatus.CANCELLED ?? [];
+  const columnTitle = (key: OrderStatus) => tr(
+    ({ NEW: "Nouvelle", CONFIRMED: "Confirmée", PAID: "Payée", DELIVERED: "Livrée" } as Partial<Record<OrderStatus, string>>)[key] ?? key,
+    ({ NEW: "New", CONFIRMED: "Confirmed", PAID: "Paid", DELIVERED: "Delivered" } as Partial<Record<OrderStatus, string>>)[key] ?? key,
+  );
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="a-headline-md text-arctic-900">Orders & Deals WhatsApp</h1>
+            <h1 className="a-headline-md text-arctic-900">{tr("Commandes et offres WhatsApp", "Orders & WhatsApp deals")}</h1>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 border border-emerald-300">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              Live Sync WhatsApp
+              {tr("Synchronisation WhatsApp en direct", "Live WhatsApp sync")}
             </span>
           </div>
           <p className="text-sm text-arctic-600">
-            {orders.length} {orders.length === 1 ? "order" : "orders"}. Validez les deals proposés par les clients sur WhatsApp et suivez vos commandes en temps réel.
+            {orders.length} {tr(orders.length === 1 ? "commande" : "commandes", orders.length === 1 ? "order" : "orders")}. {tr("Validez les offres proposées par vos clients sur WhatsApp et suivez les commandes en temps réel.", "Approve customer offers on WhatsApp and track orders in real time.")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -311,20 +317,20 @@ export default function OrdersBoard({
             onClick={() => void reload(false)}
             disabled={refreshing}
             className="btn-ghost gap-1.5 text-xs font-semibold"
-            title="Actualiser les commandes WhatsApp en direct"
+            title={tr("Actualiser les commandes WhatsApp", "Refresh WhatsApp orders")}
           >
-            {refreshing ? "⏳ Sync..." : "🔄 Actualiser"}
+            {refreshing ? `⏳ ${tr("Synchronisation…", "Syncing…")}` : `🔄 ${tr("Actualiser", "Refresh")}`}
           </button>
           <button
             type="button"
             onClick={exportCSV}
             className="btn-ghost gap-1.5 text-xs font-semibold"
-            title="Download filtered orders as CSV"
+            title={tr("Télécharger les commandes filtrées au format CSV", "Download filtered orders as CSV")}
           >
-            📥 Export CSV
+            📥 {tr("Exporter CSV", "Export CSV")}
           </button>
           <button onClick={() => setManualOpen(true)} className="btn-primary">
-            + Add order
+            + {tr("Ajouter une commande", "Add order")}
           </button>
         </div>
       </div>
@@ -339,10 +345,10 @@ export default function OrdersBoard({
               </span>
               <div>
                 <h2 className="text-sm font-bold text-arctic-900">
-                  {pendingDeals.length} Proposition{pendingDeals.length > 1 ? "s" : ""} de Deal en attente de votre validation
+                  {pendingDeals.length} {tr(pendingDeals.length > 1 ? "offres en attente de validation" : "offre en attente de validation", pendingDeals.length > 1 ? "offers awaiting your approval" : "offer awaiting your approval")}
                 </h2>
                 <p className="text-xs text-arctic-600">
-                  Lorsque vous cliquez sur <strong>Valider le Deal</strong>, la commande passe en Confirmée et le client reçoit automatiquement une notification WhatsApp avec son lien de paiement !
+                  {tr("En validant l’offre, la commande est confirmée et le client reçoit automatiquement une notification WhatsApp avec son lien de paiement.", "Approving the offer confirms the order and automatically sends the customer a WhatsApp notification with a payment link.")}
                 </p>
               </div>
             </div>
@@ -367,7 +373,7 @@ export default function OrdersBoard({
       <div className="card flex flex-wrap items-center gap-3 p-3">
         <input
           className="input min-w-[200px] flex-1"
-          placeholder="Search customer name, phone, or product…"
+          placeholder={tr("Rechercher un client, un téléphone ou un produit…", "Search customer name, phone, or product…")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -377,10 +383,10 @@ export default function OrdersBoard({
           onChange={(e) => setDateFilter(e.target.value as "all" | "today" | "7d" | "30d")}
           className="input !w-auto text-xs font-medium"
         >
-          <option value="all">All dates</option>
-          <option value="today">Today</option>
-          <option value="7d">Last 7 days</option>
-          <option value="30d">Last 30 days</option>
+          <option value="all">{tr("Toutes les dates", "All dates")}</option>
+          <option value="today">{tr("Aujourd’hui", "Today")}</option>
+          <option value="7d">{tr("7 derniers jours", "Last 7 days")}</option>
+          <option value="30d">{tr("30 derniers jours", "Last 30 days")}</option>
         </select>
 
         <div className="flex flex-wrap gap-1">
@@ -405,7 +411,7 @@ export default function OrdersBoard({
                     : "bg-arctic-200/65 text-arctic-600 line-through hover:bg-arctic-300")
                 }
               >
-                <span>{col.title}</span>
+                <span>{columnTitle(col.key)}</span>
                 <span
                   className={
                     "rounded-full px-1.5 py-0.2 text-[10px] " +
@@ -433,7 +439,7 @@ export default function OrdersBoard({
               <div className="sticky top-0 z-10 -mx-3 -mt-3 mb-2 flex items-center justify-between rounded-t-xl bg-inherit px-4 pb-2 pt-3 md:static md:m-0 md:mb-2 md:rounded-none md:bg-transparent md:p-1">
                 <div className="flex items-center gap-2 text-sm font-semibold text-arctic-800">
                   <span className={`h-2 w-2 rounded-full ${col.dot}`} />
-                  {col.title}
+                  {columnTitle(col.key)}
                 </div>
                 <span className="rounded-full bg-white/70 px-2 py-0.5 text-xs font-semibold text-arctic-700">
                   {items.length}
@@ -441,7 +447,7 @@ export default function OrdersBoard({
               </div>
               <div className="flex flex-col gap-2">
                 {items.length === 0 && (
-                  <p className="px-1 py-4 text-center text-xs text-arctic-500">No orders here</p>
+                  <p className="px-1 py-4 text-center text-xs text-arctic-500">{tr("Aucune commande ici", "No orders here")}</p>
                 )}
                 {items.map((o) => (
                   <OrderCard
@@ -467,8 +473,8 @@ export default function OrdersBoard({
             onClick={() => setShowCancelled((s) => !s)}
             className="flex w-full items-center justify-between text-left text-sm font-semibold text-arctic-800"
           >
-            <span>Cancelled ({cancelled.length})</span>
-            <span className="text-arctic-500">{showCancelled ? "Hide" : "Show"}</span>
+            <span>{tr("Annulées", "Cancelled")} ({cancelled.length})</span>
+            <span className="text-arctic-500">{showCancelled ? tr("Masquer", "Hide") : tr("Afficher", "Show")}</span>
           </button>
           {showCancelled && (
             <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
@@ -521,6 +527,7 @@ function OrderCard({
   onNotify: (o: Order) => void;
   toast: string | null;
 }) {
+  const { tr, locale } = usePublicLang();
   const dealMeta = parseDealMetadata(o.note, o.source);
   const actions = actionsFor(o.status, dealMeta.isDeal);
   const waText = notifyText(o, shopName, currency);
@@ -541,7 +548,11 @@ function OrderCard({
       {dealMeta.isDeal && (
         <div className="mb-2 flex items-center justify-between rounded-lg bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-900 border border-amber-200">
           <span>
-            🤝 {o.status === "NEW" ? "DEAL PROPOSÉ PAR LE CLIENT" : o.status === "CANCELLED" ? "DEAL REFUSÉ" : "DEAL VALIDÉ"}
+            🤝 {o.status === "NEW"
+              ? tr("OFFRE PROPOSÉE PAR LE CLIENT", "CUSTOMER OFFER")
+              : o.status === "CANCELLED"
+                ? tr("OFFRE REFUSÉE", "OFFER REJECTED")
+                : tr("OFFRE VALIDÉE", "OFFER APPROVED")}
           </span>
           <span className="font-mono">#{refShort}</span>
         </div>
@@ -556,7 +567,7 @@ function OrderCard({
               target="_blank"
               rel="noreferrer"
               className="text-xs font-medium text-brand-dark hover:underline"
-              title="Open chat in WhatsApp"
+              title={tr("Ouvrir la conversation WhatsApp", "Open WhatsApp chat")}
             >
               <Glyph name="chat" size={13} className="mr-1 -mt-0.5 text-brand-dark" />{o.customerPhone}
             </a>
@@ -566,10 +577,10 @@ function OrderCard({
           <div className="font-bold text-arctic-900">{formatMoney(o.totalCents, currency)}</div>
           {dealMeta.isDeal && dealMeta.originalCents && (
             <div className="text-[10px] text-arctic-500 line-through">
-              Catalogue: {formatMoney(dealMeta.originalCents, currency)}
+              {tr("Catalogue", "Catalog")}: {formatMoney(dealMeta.originalCents, currency)}
             </div>
           )}
-          <div className="text-[10px] uppercase tracking-wide text-arctic-500">{timeAgo(o.createdAt)}</div>
+          <div className="text-[10px] uppercase tracking-wide text-arctic-500">{timeAgo(o.createdAt, locale)}</div>
         </div>
       </header>
 
@@ -601,7 +612,32 @@ function OrderCard({
                 : "rounded-md bg-arctic-200/65 px-2 py-1 text-xs font-medium text-arctic-800 hover:bg-arctic-300"
             }
           >
-            {a.label}
+            {tr(
+              ({
+                "✅ Valider le Deal": "✅ Valider l’offre",
+                "❌ Refuser le Deal": "❌ Refuser l’offre",
+                Confirm: "Confirmer",
+                Cancel: "Annuler",
+                "Mark paid": "Marquer comme payée",
+                "← New": "← Nouvelle",
+                "Mark delivered": "Marquer comme livrée",
+                "← Confirmed": "← Confirmée",
+                "↩ Reopen": "↩ Rouvrir",
+                Restore: "Restaurer",
+              } as Record<string, string>)[a.label] ?? a.label,
+              ({
+                "✅ Valider le Deal": "✅ Approve offer",
+                "❌ Refuser le Deal": "❌ Reject offer",
+                Confirm: "Confirm",
+                Cancel: "Cancel",
+                "Mark paid": "Mark paid",
+                "← New": "← New",
+                "Mark delivered": "Mark delivered",
+                "← Confirmed": "← Confirmed",
+                "↩ Reopen": "↩ Reopen",
+                Restore: "Restore",
+              } as Record<string, string>)[a.label] ?? a.label,
+            )}
           </button>
         ))}
         <span className="ml-auto flex items-center gap-1">
@@ -611,23 +647,23 @@ function OrderCard({
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-brand-dark hover:bg-arctic-200/65"
-              title="Send a payment link on WhatsApp"
+              title={tr("Envoyer un lien de paiement par WhatsApp", "Send a payment link on WhatsApp")}
             >
-              <Glyph name="phone" size={13} /> Pay link
+              <Glyph name="phone" size={13} /> {tr("Lien de paiement", "Pay link")}
             </a>
           )}
           <button
             onClick={() => onNotify(o)}
             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-arctic-700 hover:bg-arctic-200/65"
-            title="Send WhatsApp update"
+            title={tr("Envoyer une mise à jour WhatsApp", "Send WhatsApp update")}
           >
-            <Glyph name="share" size={13} /> Update
+            <Glyph name="share" size={13} /> {tr("Mise à jour", "Update")}
           </button>
           <button
             onClick={() => onDelete(o)}
             className="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium text-red-500 hover:bg-red-50"
-            title="Delete order"
-            aria-label="Delete order"
+            title={tr("Supprimer la commande", "Delete order")}
+            aria-label={tr("Supprimer la commande", "Delete order")}
           >
             <Glyph name="trash" size={14} />
           </button>
@@ -657,6 +693,7 @@ function ManualOrderModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const { tr } = usePublicLang();
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [note, setNote] = useState("");
@@ -705,7 +742,7 @@ function ManualOrderModal({
     const data = await res.json().catch(() => ({}));
     setSaving(false);
     if (!res.ok) {
-      setError(data.error || "Could not create order.");
+      setError(data.error || tr("Impossible de créer la commande.", "Could not create order."));
       return;
     }
     onCreated();
@@ -715,17 +752,17 @@ function ManualOrderModal({
     <div className="fixed inset-0 z-30 grid place-items-center bg-arctic-900/40 p-4">
       <div className="card w-full max-w-lg overflow-hidden">
         <div className="flex items-center justify-between border-b border-arctic-400/30 px-5 py-3">
-          <h2 className="font-bold text-arctic-900">New order</h2>
+          <h2 className="font-bold text-arctic-900">{tr("Nouvelle commande", "New order")}</h2>
           <button onClick={onClose} className="text-arctic-500 hover:text-arctic-800">✕</button>
         </div>
         <form onSubmit={submit} className="max-h-[75vh] space-y-4 overflow-y-auto p-5">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">Customer name</label>
+              <label className="label">{tr("Nom du client", "Customer name")}</label>
               <input className="input" value={customerName} onChange={(e) => setCustomerName(e.target.value)} required />
             </div>
             <div>
-              <label className="label">WhatsApp number</label>
+              <label className="label">{tr("Numéro WhatsApp", "WhatsApp number")}</label>
               <input
                 className="input"
                 inputMode="tel"
@@ -737,10 +774,10 @@ function ManualOrderModal({
           </div>
 
           <div>
-            <label className="label">Items</label>
+            <label className="label">{tr("Articles", "Items")}</label>
             {products.length === 0 ? (
               <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
-                Add some products to your catalog first.
+                {tr("Ajoutez d’abord des produits à votre catalogue.", "Add some products to your catalog first.")}
               </p>
             ) : (
               <div className="space-y-2">
@@ -752,7 +789,7 @@ function ManualOrderModal({
                   >
                     {products.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.name} — {formatMoney(p.priceCents, currency)} ({p.stock} left)
+                        {p.name} — {formatMoney(p.priceCents, currency)} ({p.stock} {tr("restant(s)", "left")})
                       </option>
                     ))}
                   </select>
@@ -762,7 +799,7 @@ function ManualOrderModal({
                     onChange={(e) => setSize(e.target.value)}
                     disabled={sizeOptions.length === 0}
                   >
-                    <option value="">{sizeOptions.length === 0 ? "—" : "Size"}</option>
+                    <option value="">{sizeOptions.length === 0 ? "—" : tr("Taille", "Size")}</option>
                     {sizeOptions.map((s) => (
                       <option key={s} value={s}>{s}</option>
                     ))}
@@ -812,26 +849,26 @@ function ManualOrderModal({
           </div>
 
           <div>
-            <label className="label">Note (optional)</label>
+            <label className="label">{tr("Note (facultative)", "Note (optional)")}</label>
             <textarea
               className="input min-h-[60px]"
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Delivery instructions, colour pref, etc."
+              placeholder={tr("Consignes de livraison, couleur préférée, etc.", "Delivery instructions, colour preference, etc.")}
             />
           </div>
 
           <div className="flex items-center justify-between border-t border-arctic-400/30 pt-3">
-            <span className="text-sm text-arctic-600">Total</span>
+            <span className="text-sm text-arctic-600">{tr("Total", "Total")}</span>
             <span className="a-title-lg text-arctic-900">{formatMoney(total, currency)}</span>
           </div>
 
           {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={onClose} className="btn-ghost">Cancel</button>
+            <button type="button" onClick={onClose} className="btn-ghost">{tr("Annuler", "Cancel")}</button>
             <button className="btn-primary" disabled={saving || lines.length === 0}>
-              {saving ? "Creating…" : "Create order"}
+              {saving ? tr("Création…", "Creating…") : tr("Créer la commande", "Create order")}
             </button>
           </div>
         </form>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { formatMoney, waMeLink, digitsOnly } from "@/lib/utils";
 import { AuroraIsoscout } from "@/components/aurora";
 import { isCustomerInactiveFor30Days, isCustomerVip } from "@/lib/customer-segments";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 type Row = {
   id: string;
@@ -28,16 +29,16 @@ type RecentOrder = {
   source: string;
 };
 
-function timeAgo(iso: string | null): string {
-  if (!iso) return "never";
+function timeAgo(iso: string | null, locale: "fr" | "en"): string {
+  if (!iso) return locale === "fr" ? "jamais" : "never";
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.round(diff / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
+  if (m < 1) return locale === "fr" ? "à l’instant" : "just now";
+  if (m < 60) return locale === "fr" ? `il y a ${m} min` : `${m}m ago`;
   const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
+  if (h < 24) return locale === "fr" ? `il y a ${h} h` : `${h}h ago`;
   const d = Math.round(h / 24);
-  return `${d}d ago`;
+  return locale === "fr" ? `il y a ${d} j` : `${d}d ago`;
 }
 
 export default function CustomersClient({
@@ -54,6 +55,7 @@ export default function CustomersClient({
   shopName: string;
 }) {
   const router = useRouter();
+  const { locale, tr } = usePublicLang();
   const [query, setQuery] = useState(initialQuery);
   const [rows, setRows] = useState(initialRows);
   const [selected, setSelected] = useState<Row | null>(null);
@@ -141,14 +143,18 @@ export default function CustomersClient({
   }, [rows, segmentFilter, sortBy]);
 
   function exportCSV() {
-    const headers = ["Nom", "Telephone", "Email", "Commandes", "Total depense", "Derniere commande", "Notes"];
+    const headers = locale === "fr"
+      ? ["Nom", "Téléphone", "E-mail", "Commandes", "Total dépensé", "Dernière commande", "Notes"]
+      : ["Name", "Phone", "Email", "Orders", "Total spent", "Last order", "Notes"];
     const csvRows = visible.map((c) => [
       `"${c.name.replace(/"/g, '""')}"`,
       `"${c.phone}"`,
       `"${c.email || ""}"`,
       c.orderCount,
       `${(c.totalSpentCents / 100).toFixed(2)} ${currency}`,
-      c.lastOrderAt ? new Date(c.lastOrderAt).toLocaleDateString() : "Jamais",
+      c.lastOrderAt
+        ? new Date(c.lastOrderAt).toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US")
+        : tr("Jamais", "Never"),
       `"${(c.notes || "").replace(/"/g, '""')}"`,
     ]);
     const csvContent = "\uFEFF" + [headers.join(","), ...csvRows.map((e) => e.join(","))].join("\n");
@@ -156,7 +162,7 @@ export default function CustomersClient({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `clients_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `${locale === "fr" ? "clients" : "customers"}_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -166,9 +172,9 @@ export default function CustomersClient({
     <div className="mx-auto max-w-6xl px-4 py-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="a-headline-md text-arctic-900">Customers</h1>
+          <h1 className="a-headline-md text-arctic-900">{tr("Clients", "Customers")}</h1>
           <p className="text-sm text-arctic-600">
-            {total} {total === 1 ? "buyer" : "buyers"} on record. Tap a row to open details.
+            {total} {locale === "fr" ? (total === 1 ? "acheteur enregistré." : "acheteurs enregistrés.") : (total === 1 ? "buyer" : "buyers")} {tr("Cliquez sur une ligne pour voir les détails.", "on record. Select a row to view details.")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -176,9 +182,9 @@ export default function CustomersClient({
             type="button"
             onClick={exportCSV}
             className="btn-ghost gap-1.5 text-xs font-semibold"
-            title="Exporter la liste client en CSV"
+            title={tr("Exporter la liste des clients en CSV", "Export customers as CSV")}
           >
-            📥 Exporter CSV
+            📥 {tr("Exporter CSV", "Export CSV")}
           </button>
         </div>
       </div>
@@ -188,7 +194,7 @@ export default function CustomersClient({
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Rechercher nom, téléphone, email…"
+          placeholder={tr("Rechercher un nom, téléphone ou e-mail…", "Search name, phone, or email…")}
           className="input min-w-[220px] flex-1 text-sm"
         />
 
@@ -201,7 +207,7 @@ export default function CustomersClient({
                 segmentFilter === "all" ? "bg-arctic-800 text-white" : "text-arctic-700 hover:text-arctic-900"
               }`}
             >
-              Tous ({rows.length})
+              {tr("Tous", "All")} ({rows.length})
             </button>
             <button
               type="button"
@@ -210,7 +216,7 @@ export default function CustomersClient({
                 segmentFilter === "vip" ? "bg-amber-600 text-white" : "text-arctic-700 hover:text-arctic-900"
               }`}
             >
-              ⭐ VIP (≥3 cmd)
+              ⭐ VIP (≥3 {tr("cmd", "orders")})
             </button>
             <button
               type="button"
@@ -219,7 +225,7 @@ export default function CustomersClient({
                 segmentFilter === "recent" ? "bg-emerald-600 text-white" : "text-arctic-700 hover:text-arctic-900"
               }`}
             >
-              Récents (30j)
+              {tr("Récents (30 j)", "Recent (30d)")}
             </button>
             <button
               type="button"
@@ -228,7 +234,7 @@ export default function CustomersClient({
                 segmentFilter === "inactive" ? "bg-rose-600 text-white" : "text-arctic-700 hover:text-arctic-900"
               }`}
             >
-              Inactifs (≥30j)
+              {tr("Inactifs (≥30 j)", "Inactive (≥30d)")}
             </button>
           </div>
 
@@ -237,9 +243,9 @@ export default function CustomersClient({
             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
             className="input !w-auto text-xs font-medium"
           >
-            <option value="spent">Tri : Total dépensé</option>
-            <option value="orders">Tri : Nb commandes</option>
-            <option value="recent">Tri : Dernière commande</option>
+            <option value="spent">{tr("Tri : total dépensé", "Sort: total spent")}</option>
+            <option value="orders">{tr("Tri : nombre de commandes", "Sort: order count")}</option>
+            <option value="recent">{tr("Tri : dernière commande", "Sort: last order")}</option>
           </select>
         </div>
       </div>
@@ -248,11 +254,11 @@ export default function CustomersClient({
         <table className="w-full text-sm">
           <thead className="bg-arctic-100/55 text-left text-xs font-semibold uppercase tracking-wide text-arctic-600">
             <tr>
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Phone</th>
-              <th className="px-4 py-3 text-right">Orders</th>
-              <th className="px-4 py-3 text-right">Total spent</th>
-              <th className="px-4 py-3">Last order</th>
+              <th className="px-4 py-3">{tr("Nom", "Name")}</th>
+              <th className="px-4 py-3">{tr("Téléphone", "Phone")}</th>
+              <th className="px-4 py-3 text-right">{tr("Commandes", "Orders")}</th>
+              <th className="px-4 py-3 text-right">{tr("Total dépensé", "Total spent")}</th>
+              <th className="px-4 py-3">{tr("Dernière commande", "Last order")}</th>
             </tr>
           </thead>
           <tbody>
@@ -261,8 +267,11 @@ export default function CustomersClient({
                 <td colSpan={5} className="px-4 py-6">
                   <AuroraIsoscout
                     variant="customers"
-                    title="No customers yet"
-                    body="They'll appear here automatically after the first order. Share your catalog link and the bot will start a Customer record from every new phone."
+                    title={tr("Aucun client pour le moment", "No customers yet")}
+                    body={tr(
+                      "Ils apparaîtront automatiquement après la première commande. Partagez votre catalogue : le bot créera une fiche client à chaque nouveau numéro.",
+                      "They'll appear automatically after the first order. Share your catalog link and the bot will create a customer record for each new phone number.",
+                    )}
                   />
                 </td>
               </tr>
@@ -293,7 +302,7 @@ export default function CustomersClient({
                   <td className="px-4 py-3 text-right tabular-nums font-semibold">
                     {formatMoney(r.totalSpentCents, currency)}
                   </td>
-                  <td className="px-4 py-3 text-arctic-600">{timeAgo(r.lastOrderAt)}</td>
+                  <td className="px-4 py-3 text-arctic-600">{timeAgo(r.lastOrderAt, locale)}</td>
                 </tr>
               ))
             )}
@@ -312,14 +321,14 @@ export default function CustomersClient({
               <div>
                 <h2 className="a-title-lg text-arctic-900">{selected.name}</h2>
                 <p className="text-xs text-arctic-600">
-                  Customer of {shopName} · {selected.orderCount} order
+                  {tr("Client de", "Customer of")} {shopName} · {selected.orderCount} {tr("commande", "order")}
                   {selected.orderCount === 1 ? "" : "s"}
                 </p>
               </div>
               <button
                 onClick={() => setSelected(null)}
                 className="text-arctic-500 hover:text-arctic-800"
-                aria-label="Close"
+                aria-label={tr("Fermer", "Close")}
               >
                 ✕
               </button>
@@ -327,23 +336,23 @@ export default function CustomersClient({
 
             <dl className="grid grid-cols-2 gap-3 rounded-lg bg-arctic-100/55 p-3 text-sm">
               <div>
-                <dt className="text-xs text-arctic-600">Phone</dt>
+                <dt className="text-xs text-arctic-600">{tr("Téléphone", "Phone")}</dt>
                 <dd className="font-medium text-arctic-900">{selected.phone || "—"}</dd>
               </div>
               <div>
-                <dt className="text-xs text-arctic-600">Total spent</dt>
+                <dt className="text-xs text-arctic-600">{tr("Total dépensé", "Total spent")}</dt>
                 <dd className="font-semibold text-arctic-900">
                   {formatMoney(selected.totalSpentCents, currency)}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-arctic-600">Email</dt>
+                <dt className="text-xs text-arctic-600">{tr("E-mail", "Email")}</dt>
                 <dd className="font-medium text-arctic-900">{selected.email || "—"}</dd>
               </div>
               <div>
-                <dt className="text-xs text-arctic-600">Last order</dt>
+                <dt className="text-xs text-arctic-600">{tr("Dernière commande", "Last order")}</dt>
                 <dd className="font-medium text-arctic-900">
-                  {timeAgo(selected.lastOrderAt)}
+                  {timeAgo(selected.lastOrderAt, locale)}
                 </dd>
               </div>
             </dl>
@@ -353,49 +362,52 @@ export default function CustomersClient({
                 <a
                   href={waMeLink(
                     selected.phone,
-                    `Hi ${selected.name}, this is ${shopName}.`,
+                    tr(
+                      `Bonjour ${selected.name}, c’est ${shopName}.`,
+                      `Hi ${selected.name}, this is ${shopName}.`,
+                    ),
                   )}
                   target="_blank"
                   rel="noreferrer"
                   className="flex-1 rounded-lg bg-brand px-3 py-2 text-center text-sm font-semibold text-white hover:bg-brand-dark"
                 >
-                  Send WhatsApp
+                  {tr("Envoyer un WhatsApp", "Send WhatsApp")}
                 </a>
               )}
               <button
                 onClick={() => router.push(`/dashboard/orders?phone=${digitsOnly(selected.phone)}`)}
                 className="flex-1 rounded-lg border border-arctic-400/30 px-3 py-2 text-sm font-semibold text-arctic-800 hover:bg-arctic-100/55"
               >
-                View orders
+                {tr("Voir les commandes", "View orders")}
               </button>
             </div>
 
             <div>
               <label className="text-xs font-semibold uppercase tracking-wide text-arctic-600">
-                Notes
+                {tr("Notes", "Notes")}
               </label>
               <textarea
                 value={draftNotes}
                 onChange={(e) => setDraftNotes(e.target.value)}
                 rows={5}
                 className="mt-1 w-full rounded-lg border border-arctic-400/30 p-2 text-sm focus:border-brand focus:outline-none"
-                placeholder="Preferred sizes, delivery quirks, allergies…"
+                placeholder={tr("Tailles préférées, consignes de livraison…", "Preferred sizes, delivery notes, allergies…")}
               />
               <button
                 onClick={saveNotes}
                 disabled={saving || draftNotes === selected.notes}
                 className="mt-2 w-full rounded-lg bg-arctic-800 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
               >
-                {saving ? "Saving…" : "Save notes"}
+                {saving ? tr("Enregistrement…", "Saving…") : tr("Enregistrer les notes", "Save notes")}
               </button>
             </div>
 
             <div>
               <h3 className="text-xs font-semibold uppercase tracking-wide text-arctic-600">
-                Recent orders
+                {tr("Commandes récentes", "Recent orders")}
               </h3>
               {recent.length === 0 ? (
-                <p className="mt-2 text-sm text-arctic-500">No orders linked yet.</p>
+                <p className="mt-2 text-sm text-arctic-500">{tr("Aucune commande associée pour le moment.", "No orders linked yet.")}</p>
               ) : (
                 <ul className="mt-2 space-y-1.5 text-sm">
                   {recent.map((o) => (

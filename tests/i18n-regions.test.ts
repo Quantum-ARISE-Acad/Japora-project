@@ -1,6 +1,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { t, detectLang, DEFAULT_LANG, LANG_NAMES } from "../src/lib/i18n";
+import { normalizePublicLocale } from "../src/lib/public-locale";
 import { REGIONS, CATEGORIES, findRegion, findCategory } from "../src/lib/regions";
 
 describe("i18n — translation & language detection", () => {
@@ -17,6 +18,13 @@ describe("i18n — translation & language detection", () => {
   test("preserves unmatched placeholders when variable is missing", () => {
     const rendered = t("Order {ref} for {buyer}", "en", { ref: "A102" });
     assert.equal(rendered, "Order A102 for {buyer}");
+  });
+
+  test("normalizes the persistent public preference to French or English", () => {
+    assert.equal(normalizePublicLocale("en"), "en");
+    assert.equal(normalizePublicLocale("fr"), "fr");
+    assert.equal(normalizePublicLocale("es"), "fr");
+    assert.equal(normalizePublicLocale(undefined), "fr");
   });
 
   test("detectLang respects explicit vendor preference when supported", () => {
