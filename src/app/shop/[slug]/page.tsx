@@ -85,7 +85,7 @@ export default async function PublicShopPage({ params }: Params) {
         {/* Main Identity Card */}
         <section className="glass glass-edge overflow-hidden rounded-shape-xl shadow-elev-2">
           <div
-            className="h-36 sm:h-44 relative"
+            className="h-36 sm:h-44 relative z-0"
             style={{
               background:
                 "linear-gradient(135deg, rgb(var(--c-800)) 0%, rgb(var(--c-700)) 48%, rgb(var(--gold-fill)) 100%)",
@@ -97,17 +97,17 @@ export default async function PublicShopPage({ params }: Params) {
             </div>
           </div>
 
-          <div className="px-6 pb-8 pt-0 sm:px-10">
+          <div className="relative z-10 px-6 pb-8 pt-0 sm:px-10">
             <div className="-mt-12 flex flex-wrap items-end justify-between gap-4 sm:gap-6">
               {shop.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={shop.avatarUrl}
                   alt={`${shop.shopName} avatar`}
-                  className="h-24 w-24 rounded-shape-lg border-4 border-white/90 object-cover shadow-elev-2 sm:h-28 sm:w-28"
+                  className="relative z-20 h-24 w-24 rounded-shape-lg border-4 border-white bg-white object-cover shadow-elev-2 sm:h-28 sm:w-28"
                 />
               ) : (
-                <div className="grid h-24 w-24 place-items-center rounded-shape-lg border-4 border-white/90 bg-arctic-200/90 text-3xl font-black text-arctic-900 shadow-elev-2 backdrop-blur-glass-thin sm:h-28 sm:w-28">
+                <div className="relative z-20 grid h-24 w-24 place-items-center rounded-shape-lg border-4 border-white bg-arctic-200 text-3xl font-black text-arctic-900 shadow-elev-2 sm:h-28 sm:w-28">
                   {initial}
                 </div>
               )}
