@@ -157,7 +157,7 @@ Rails are offered to buyers Togo-first (see `providersForCurrency`).
 | **Resend (email)**        | `RESEND_API_KEY` + `EMAIL_FROM`                                                         | Stub logs + persists to `EmailMessage` table                       |
 | **WhatsApp Cloud API**    | `WHATSAPP_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID` + `WHATSAPP_APP_SECRET` + `WHATSAPP_BUSINESS_ACCOUNT_ID` (for catalog import) | Stub provider; webhook signature check bypassed                    |
 | **Stripe (legacy / opt.)**| `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` + `STRIPE_PRICE_ID`, then `pnpm add stripe` | Commission-only billing is the default — Stripe path is optional   |
-| **S3-compatible storage** | `STORAGE_S3_*` + `pnpm add @aws-sdk/client-s3`                                          | Uploads go to `./public/uploads`                                   |
+| **S3-compatible storage** | `STORAGE_S3_*` (see `deploy/README.md`)                                                    | Uploads go to `./public/uploads`                                   |
 | **Image optimisation**    | `pnpm add sharp` (then ensure `sharp` is in `pnpm.onlyBuiltDependencies`)               | Uploads stored at original resolution + format                     |
 
 Each lib (`src/lib/{email,stripe,whatsapp,storage,image}.ts` and every file under `src/lib/payments/`) follows the same pattern: a provider interface, a stub default, a real impl that's lazy-imported and gracefully falls back.
@@ -273,7 +273,7 @@ The build is **ready for closed beta with real vendors**. Before opening signup 
 - [ ] **Set `CRON_SECRET`** and schedule `/api/cron/daily-summary` (Vercel Cron, Railway, or external scheduler) for the daily hustle summary
 - [ ] **Configure WhatsApp Cloud API** — `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET` (signature verification), and `WHATSAPP_BUSINESS_ACCOUNT_ID` (catalog import)
 - [ ] **Register WhatsApp templates** in Meta Business Manager for outbound notifications outside the 24h customer window
-- [ ] **Configure object storage** — set `STORAGE_S3_*` and `pnpm add @aws-sdk/client-s3`
+- [ ] **Configure object storage** — set `STORAGE_S3_*`, then move existing photos with `deploy/mvp.sh photos-s3 --apply`
 - [ ] **Configure email** — set `RESEND_API_KEY` + `EMAIL_FROM` (verified domain)
 - [ ] **(Optional) Configure Stripe** — only if you want a hosted subscription path alongside the default commission model
 - [ ] **Install `sharp`** for image optimization: `pnpm add sharp` + add to `pnpm.onlyBuiltDependencies`

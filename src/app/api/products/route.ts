@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentVendor } from "@/lib/auth";
-import { createProductForVendor } from "@/lib/products";
+import { createProductForVendor, priceFloorsForVendor } from "@/lib/products";
 
 export async function GET(req: NextRequest) {
   const vendor = await getCurrentVendor();
@@ -21,7 +21,14 @@ export async function GET(req: NextRequest) {
     }),
     prisma.product.count({ where }),
   ]);
-  return NextResponse.json({ products, page, pageSize, total });
+  // The vendor's own secret minimum prices, for the dashboard form.
+  const floors = await priceFloorsForVendor(vendor.id);
+  return NextResponse.json({
+    products: products.map((p) => ({ ...p, minPriceCents: floors.get(p.id) ?? null })),
+    page,
+    pageSize,
+    total,
+  });
 }
 
 export async function POST(req: NextRequest) {

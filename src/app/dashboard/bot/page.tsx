@@ -5,6 +5,8 @@ import { isLlmConfigured, llmProviderName } from "@/lib/llm";
 import { parseWhatsAppAssistantConfig } from "@/lib/whatsapp-config";
 import BotChatClient from "./BotChatClient";
 import DeliveryLog from "./DeliveryLog";
+import HandoffInbox, { type WaitingCustomer } from "./HandoffInbox";
+import { listOpenHandoffs } from "@/lib/handoff";
 import WhatsAppAssistantConfig from "./WhatsAppAssistantConfig";
 import Glyph from "@/components/Glyph";
 
@@ -24,6 +26,26 @@ export default async function BotPage() {
       createdAt: true,
     },
   });
+
+  const handoffs = await listOpenHandoffs(vendor.id);
+  const waiting: WaitingCustomer[] = await Promise.all(
+    handoffs.map(async (h) => {
+      const messages = await prisma.whatsAppMessage.findMany({
+        where: { vendorId: vendor.id, contact: h.contact },
+        orderBy: { createdAt: "desc" },
+        take: 6,
+        select: { id: true, direction: true, body: true, createdAt: true },
+      });
+      return {
+        id: h.id,
+        contact: h.contact,
+        lastMessage: h.lastMessage,
+        createdAt: h.createdAt.toISOString(),
+        expiresAt: h.expiresAt.toISOString(),
+        messages: messages.reverse().map((m) => ({ ...m, createdAt: m.createdAt.toISOString() })),
+      };
+    }),
+  );
 
   const waConfig = parseWhatsAppAssistantConfig(vendor.uiPrefs);
   const cloudLive = isLiveMode(vendor);
@@ -79,6 +101,8 @@ export default async function BotPage() {
             : "Mode simulation actif : testez toutes les fonctionnalités ci-dessous, puis renseignez votre Token Meta Cloud API & Phone Number ID pour passer en production."}
         </span>
       </div>
+
+      <HandoffInbox waiting={waiting} />
 
       {/* Configuration complète : QR Codes + Gemini IA + Meta WhatsApp Cloud API */}
       <WhatsAppAssistantConfig

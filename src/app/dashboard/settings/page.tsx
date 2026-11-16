@@ -1,6 +1,6 @@
 import { requireVendor } from "@/lib/auth";
 import { isLiveMode } from "@/lib/whatsapp";
-import { storageMode } from "@/lib/storage";
+import { storageMode, storageMissingSettings } from "@/lib/storage";
 import { ensureReferralCode, rewardCount } from "@/lib/referral";
 import { getCooperativeForVendor } from "@/lib/cooperative";
 import { verificationProgress, evaluateAndGrant } from "@/lib/trust";
@@ -87,6 +87,7 @@ export default async function SettingsPage() {
       }}
       whatsappLive={isLiveMode()}
       storageMode={storageMode()}
+      storageMissing={storageMissingSettings()}
     />
     </div>
   );

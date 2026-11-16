@@ -1,6 +1,7 @@
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
+import { logger } from "./logger";
 
 export type SaveInput = {
   buffer: Buffer;
@@ -55,14 +56,14 @@ class LocalStorageProvider implements StorageProvider {
  *
  * The @aws-sdk/client-s3 package is loaded lazily — install it with
  * `pnpm add @aws-sdk/client-s3` to enable this provider. Until then,
- * getStorageProvider() falls back to LocalStorageProvider.
+ * the upload fails with a clear message in the logs.
  *
  * STORAGE_S3_PUBLIC_URL is required so we can construct browser-reachable
  * image URLs (e.g. https://<bucket>.s3.<region>.amazonaws.com for AWS,
  * https://pub-<hash>.r2.dev for R2, or
  * https://<project>.supabase.co/storage/v1/object/public/<bucket> for Supabase).
  */
-class S3StorageProvider implements StorageProvider {
+export class S3StorageProvider implements StorageProvider {
   name = "s3";
   private clientPromise: Promise<{
     client: { send: (cmd: unknown) => Promise<unknown> };
@@ -86,10 +87,12 @@ class S3StorageProvider implements StorageProvider {
       let sdk: typeof import("@aws-sdk/client-s3");
       try {
         sdk = await import("@aws-sdk/client-s3");
-      } catch {
+      } catch (e) {
+        // Optional dependency: npm skips it on Node < 20 (the production image runs Node 20).
         throw new Error(
-          "S3 storage is configured (STORAGE_S3_BUCKET is set) but the " +
-            "@aws-sdk/client-s3 package is not installed. Run: pnpm add @aws-sdk/client-s3",
+          "S3 storage is configured but @aws-sdk/client-s3 could not be loaded " +
+            `(Node ${process.versions.node}; it needs Node 20+ and npm ci): ` +
+            (e instanceof Error ? e.message : String(e)),
         );
       }
       const client = new sdk.S3Client({
@@ -111,9 +114,9 @@ class S3StorageProvider implements StorageProvider {
     return this.clientPromise;
   }
 
-  async save({ buffer, contentType, ext }: SaveInput): Promise<SaveResult> {
+  /** Upload under a chosen key (the photo migration keeps the local file name). */
+  async put(key: string, buffer: Buffer, contentType: string): Promise<string> {
     const { client, PutObjectCommand } = await this.getClient();
-    const key = `${randomUUID()}.${ext}`;
     await client.send(
       new PutObjectCommand({
         Bucket: this.bucket,
@@ -123,34 +126,93 @@ class S3StorageProvider implements StorageProvider {
         CacheControl: "public, max-age=31536000, immutable",
       }),
     );
-    const base = this.publicUrlBase.replace(/\/$/, "");
-    return { url: `${base}/${key}`, key };
+    return this.publicUrl(key);
   }
+
+  publicUrl(key: string): string {
+    return `${this.publicUrlBase.replace(/\/$/, "")}/${key}`;
+  }
+
+  async save({ buffer, contentType, ext }: SaveInput): Promise<SaveResult> {
+    const key = `${randomUUID()}.${ext}`;
+    const url = await this.put(key, buffer, contentType);
+    return { url, key };
+  }
+}
+
+/** The six STORAGE_S3_* settings; `missing` lists the required ones left blank. */
+export function s3Settings(env: Record<string, string | undefined> = process.env) {
+  const v = (name: string) => (env[name] || "").trim();
+  const settings = {
+    bucket: v("STORAGE_S3_BUCKET"),
+    accessKeyId: v("STORAGE_S3_ACCESS_KEY_ID"),
+    secretAccessKey: v("STORAGE_S3_SECRET_ACCESS_KEY"),
+    publicUrl: v("STORAGE_S3_PUBLIC_URL"),
+    region: v("STORAGE_S3_REGION") || "auto",
+    endpoint: v("STORAGE_S3_ENDPOINT"),
+  };
+  const required: Array<[string, string]> = [
+    ["STORAGE_S3_BUCKET", settings.bucket],
+    ["STORAGE_S3_ACCESS_KEY_ID", settings.accessKeyId],
+    ["STORAGE_S3_SECRET_ACCESS_KEY", settings.secretAccessKey],
+    ["STORAGE_S3_PUBLIC_URL", settings.publicUrl],
+  ];
+  const missing = required.filter(([, value]) => !value).map(([name]) => name);
+  return { ...settings, missing };
+}
+
+/** The S3 provider, or null when the settings are incomplete. */
+export function createS3Provider(env: Record<string, string | undefined> = process.env): S3StorageProvider | null {
+  const s = s3Settings(env);
+  if (s.missing.length) return null;
+  return new S3StorageProvider(s.bucket, s.publicUrl, {
+    region: s.region,
+    endpoint: s.endpoint || undefined,
+    accessKeyId: s.accessKeyId,
+    secretAccessKey: s.secretAccessKey,
+  });
+}
+
+/**
+ * The file name of a photo stored on this server ("/uploads/<key>" or
+ * "https://<site>/uploads/<key>"), or null for anything else (an S3 link,
+ * an outside link, an empty value).
+ */
+export function localUploadKey(url: string, appUrl = ""): string | null {
+  let u = (url || "").trim();
+  const site = appUrl.trim().replace(/\/$/, "");
+  if (site && u.startsWith(`${site}/`)) u = u.slice(site.length);
+  const m = u.match(/^\/uploads\/([A-Za-z0-9][A-Za-z0-9._-]*)$/);
+  return m && !m[1].includes("..") ? m[1] : null;
 }
 
 let cached: StorageProvider | null = null;
 
 export function getStorageProvider(): StorageProvider {
   if (cached) return cached;
-
-  const bucket = process.env.STORAGE_S3_BUCKET;
-  const accessKeyId = process.env.STORAGE_S3_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.STORAGE_S3_SECRET_ACCESS_KEY;
-  const publicUrl = process.env.STORAGE_S3_PUBLIC_URL;
-
-  if (bucket && accessKeyId && secretAccessKey && publicUrl) {
-    cached = new S3StorageProvider(bucket, publicUrl, {
-      region: process.env.STORAGE_S3_REGION || "auto",
-      endpoint: process.env.STORAGE_S3_ENDPOINT || undefined,
-      accessKeyId,
-      secretAccessKey,
-    });
+  const s3 = createS3Provider();
+  if (s3) {
+    cached = s3;
   } else {
+    const { bucket, missing } = s3Settings();
+    if (bucket) {
+      // Half-configured: keep photos working on this server, but say why.
+      logger.error("storage.s3_incomplete", { missing });
+    }
     cached = new LocalStorageProvider();
   }
   return cached;
 }
 
-export function storageMode(): "local" | "s3" {
-  return process.env.STORAGE_S3_BUCKET ? "s3" : "local";
+/** "incomplete": a bucket is set but other required settings are blank (photos stay local). */
+export function storageMode(): "local" | "s3" | "incomplete" {
+  const { bucket, missing } = s3Settings();
+  if (!bucket) return "local";
+  return missing.length ? "incomplete" : "s3";
+}
+
+/** Required S3 settings left blank, for the settings page. */
+export function storageMissingSettings(): string[] {
+  const { bucket, missing } = s3Settings();
+  return bucket ? missing : [];
 }

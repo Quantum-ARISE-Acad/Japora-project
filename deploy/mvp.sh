@@ -125,6 +125,8 @@ case "${1:-}" in
   backup) dc exec -T backup backup.sh --once ;;
   restore) shift; restore "$@" ;;
   check-schema) check_schema ;;
+  # Copie les photos du serveur vers R2/S3 (réglages STORAGE_S3_* dans .env.keys). Sans --apply : essai.
+  photos-s3) shift; dc exec -T wcatalog npx tsx scripts/migrate-uploads-to-s3.ts "$@" ;;
   deploy) shift; deploy "$@" ;;
   update)
     git pull --ff-only
@@ -144,6 +146,7 @@ Usage : deploy/mvp.sh <commande>
   backup                   Sauvegarde immédiate
   restore <dossier>        Restaure une sauvegarde
   check-schema             Vérifie que le schéma a ses migrations
+  photos-s3 [--apply]      Copie les photos du serveur vers R2/S3 (sans --apply : essai)
   update                   git pull, vérifie, sauvegarde, puis remplace
   deploy <commit>          Installe une version précise ; retour arrière automatique (CD)
   down                     Arrête tout, sans effacer les données

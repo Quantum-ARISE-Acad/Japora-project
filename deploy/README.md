@@ -142,6 +142,45 @@ Le dépôt reste en SQLite pour le développement, et le serveur utilise Postgre
 Chaque changement de `schema.prisma` doit donc être accompagné d'une migration
 PostgreSQL dans `prisma/migrations/`.
 
+## Photos dans Cloudflare R2 (stockage externe)
+
+Par défaut, les photos des produits sont enregistrées sur le serveur. Pour libérer
+son disque et faire survivre les photos à une panne du serveur, placez-les dans
+Cloudflare R2. Jusqu'à 10 Go, R2 est gratuit et ne facture pas les téléchargements.
+
+1. Dans Cloudflare, ouvrez **R2**, puis créez un bucket, par exemple `japora-photos`.
+2. Dans les réglages du bucket, activez l'accès public : l'adresse `r2.dev` ou,
+   mieux, un sous-domaine à vous, comme `photos.votre-domaine`.
+3. Dans **R2 > Manage API tokens**, créez une clé avec le droit
+   « Object Read & Write » limitée à ce bucket. Notez l'Access Key ID et le Secret.
+4. Ajoutez dans `.env.keys`, sur le serveur :
+
+   ```bash
+   STORAGE_S3_BUCKET=japora-photos
+   STORAGE_S3_REGION=auto
+   STORAGE_S3_ENDPOINT=https://<ID_DU_COMPTE>.r2.cloudflarestorage.com
+   STORAGE_S3_ACCESS_KEY_ID=...
+   STORAGE_S3_SECRET_ACCESS_KEY=...
+   STORAGE_S3_PUBLIC_URL=https://photos.votre-domaine
+   ```
+
+5. Pour appliquer les réglages, lancez `deploy/mvp.sh up`. Dans Japora, **Réglages >
+   Stockage des photos** doit alors afficher « Stockage externe (S3 / R2) ». S'il
+   affiche « Configuration incomplète », la page liste les réglages manquants.
+6. Transférez les photos déjà présentes sur le serveur :
+
+   ```bash
+   deploy/mvp.sh photos-s3           # essai : affiche ce qui sera copié
+   deploy/mvp.sh photos-s3 --apply   # copie les photos et met à jour les liens
+   ```
+
+   Vous pouvez relancer la commande sans risque. Les fichiers restent sur le serveur
+   et dans ses sauvegardes jusqu'à ce que vous les effaciez vous-même.
+
+Les sauvegardes toutes les 6 heures ne copient pas les photos rangées dans R2.
+Cloudflare les conserve en plusieurs exemplaires. Pour garder une copie
+supplémentaire, activez une règle de réplication sur le bucket.
+
 ## Sauvegardes
 
 Toutes les 6 heures, un dossier `backups/japora-<date>` reçoit la base et les photos.
