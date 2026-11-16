@@ -14,6 +14,7 @@ import ShopWhatsAppQrBanner from "@/components/ShopWhatsAppQrBanner";
 import { formatConvertedPrice } from "@/lib/currency";
 import { telHref, directUssdCode } from "@/lib/payments/ussd";
 import { LanguageSwitcher, usePublicLang } from "@/components/PublicLanguageProvider";
+import { matchesSearch } from "@/lib/search-text";
 import {
   trackVisit,
   trackProductView,
@@ -171,13 +172,16 @@ export default function CatalogClient({
     }
 
     // Search query
+    // Accents, capitals and plurals ignored; every word must be found.
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      list = list.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          (p.condition && p.condition.toLowerCase().includes(q)),
+      list = list.filter((p) =>
+        matchesSearch(
+          searchQuery,
+          p.name,
+          p.description,
+          p.condition,
+          collections.find((c) => c.id === p.collectionId)?.name,
+        ),
       );
     }
 
@@ -199,7 +203,7 @@ export default function CatalogClient({
     }
 
     return list;
-  }, [products, selectedCollectionId, searchQuery, stockFilter, sortBy]);
+  }, [products, collections, selectedCollectionId, searchQuery, stockFilter, sortBy]);
 
   useEffect(() => {
     if (!directProductId) return;
