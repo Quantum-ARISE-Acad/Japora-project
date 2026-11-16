@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 interface ReviewItem {
   id: string;
@@ -17,6 +18,7 @@ interface ProductReviewsProps {
 }
 
 export function ProductReviews({ productId, productName }: ProductReviewsProps) {
+  const { locale, tr } = usePublicLang();
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [averageRating, setAverageRating] = useState(5.0);
   const [count, setCount] = useState(0);
@@ -54,7 +56,7 @@ export function ProductReviews({ productId, productName }: ProductReviewsProps) 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!customerName.trim()) {
-      setMessage({ type: "error", text: "Veuillez entrer votre nom." });
+      setMessage({ type: "error", text: tr("Veuillez entrer votre nom.", "Please enter your name.") });
       return;
     }
 
@@ -75,9 +77,9 @@ export function ProductReviews({ productId, productName }: ProductReviewsProps) 
 
       const data = await res.json();
       if (!res.ok) {
-        setMessage({ type: "error", text: data.error || "Erreur lors de l'envoi." });
+        setMessage({ type: "error", text: data.error || tr("Erreur lors de l'envoi.", "Could not submit your review.") });
       } else {
-        setMessage({ type: "success", text: "Merci ! Votre avis a été publié." });
+        setMessage({ type: "success", text: tr("Merci ! Votre avis a été publié.", "Thank you! Your review has been published.") });
         setCustomerName("");
         setComment("");
         setRating(5);
@@ -85,7 +87,7 @@ export function ProductReviews({ productId, productName }: ProductReviewsProps) 
         fetchReviews();
       }
     } catch {
-      setMessage({ type: "error", text: "Erreur réseau. Réessayez plus tard." });
+      setMessage({ type: "error", text: tr("Erreur réseau. Réessayez plus tard.", "Network error. Please try again later.") });
     } finally {
       setSubmitting(false);
     }
@@ -96,7 +98,7 @@ export function ProductReviews({ productId, productName }: ProductReviewsProps) 
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-            <span>Avis clients</span>
+            <span>{tr("Avis clients", "Customer reviews")}</span>
             {count > 0 && (
               <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-medium">
                 ★ {averageRating} ({count})
@@ -104,7 +106,7 @@ export function ProductReviews({ productId, productName }: ProductReviewsProps) 
             )}
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            {count === 0 ? "Soyez le premier à donner votre avis sur ce produit !" : `${count} avis vérifié${count > 1 ? "s" : ""}`}
+            {count === 0 ? tr("Soyez le premier à donner votre avis sur ce produit !", "Be the first to review this product!") : tr(`${count} avis vérifié${count > 1 ? "s" : ""}`, `${count} verified review${count > 1 ? "s" : ""}`)}
           </p>
         </div>
 
@@ -114,7 +116,7 @@ export function ProductReviews({ productId, productName }: ProductReviewsProps) 
             onClick={() => setShowForm(true)}
             className="px-3 py-1.5 text-xs font-medium bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg hover:opacity-90 transition-opacity"
           >
-            Donner mon avis
+            {tr("Donner mon avis", "Write a review")}
           </button>
         )}
       </div>
@@ -126,14 +128,14 @@ export function ProductReviews({ productId, productName }: ProductReviewsProps) 
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Note pour {productName}
+              {tr("Note pour", "Review for")} {productName}
             </span>
             <button
               type="button"
               onClick={() => setShowForm(false)}
               className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
             >
-              Annuler
+              {tr("Annuler", "Cancel")}
             </button>
           </div>
 
@@ -156,27 +158,27 @@ export function ProductReviews({ productId, productName }: ProductReviewsProps) 
 
           <div>
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Votre prénom / nom
+              {tr("Votre prénom / nom", "Your name")}
             </label>
             <input
               type="text"
               required
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="Ex: Koffi A."
+              placeholder={tr("Ex. : Koffi A.", "e.g. Koffi A.")}
               className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             />
           </div>
 
           <div>
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Commentaire (optionnel)
+              {tr("Commentaire (facultatif)", "Comment (optional)")}
             </label>
             <textarea
               rows={2}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="Qualité, livraison, conformité..."
+              placeholder={tr("Qualité, livraison, conformité…", "Quality, delivery, accuracy…")}
               className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             />
           </div>
@@ -197,7 +199,7 @@ export function ProductReviews({ productId, productName }: ProductReviewsProps) 
               disabled={submitting}
               className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
             >
-              {submitting ? "Publication..." : "Publier l'avis"}
+              {submitting ? tr("Publication…", "Submitting…") : tr("Publier l’avis", "Submit review")}
             </button>
           </div>
         </form>
@@ -205,9 +207,9 @@ export function ProductReviews({ productId, productName }: ProductReviewsProps) 
 
       {/* Reviews list */}
       {loading ? (
-        <div className="py-4 text-center text-xs text-slate-400">Chargement des avis...</div>
+        <div className="py-4 text-center text-xs text-slate-400">{tr("Chargement des avis…", "Loading reviews…")}</div>
       ) : reviews.length === 0 ? (
-        <p className="text-xs text-slate-400 italic py-2">Aucun avis pour l&apos;instant.</p>
+        <p className="text-xs text-slate-400 italic py-2">{tr("Aucun avis pour l’instant.", "No reviews yet.")}</p>
       ) : (
         <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
           {reviews.map((rev) => (
@@ -222,7 +224,7 @@ export function ProductReviews({ productId, productName }: ProductReviewsProps) 
                 <div className="flex items-center gap-1">
                   <span className="text-amber-500">{"★".repeat(rev.rating)}</span>
                   <span className="text-[10px] text-slate-400 ml-1">
-                    {new Date(rev.createdAt).toLocaleDateString()}
+                    {new Date(rev.createdAt).toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US")}
                   </span>
                 </div>
               </div>
@@ -232,7 +234,7 @@ export function ProductReviews({ productId, productName }: ProductReviewsProps) 
               {rev.reply && (
                 <div className="mt-1.5 pl-2.5 border-l-2 border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 py-1 rounded-r text-[11px] text-emerald-900 dark:text-emerald-200">
                   <span className="font-semibold block text-[10px] uppercase text-emerald-700 dark:text-emerald-400">
-                    Réponse du vendeur
+                    {tr("Réponse du vendeur", "Seller's reply")}
                   </span>
                   {rev.reply}
                 </div>

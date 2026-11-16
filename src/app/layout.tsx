@@ -5,6 +5,7 @@ import InstallPrompt from "@/components/InstallPrompt";
 import ThemeSync from "@/components/ThemeSync";
 import ClerkAuthProvider from "@/components/auth/ClerkAuthProvider";
 import { PublicLanguageProvider } from "@/components/PublicLanguageProvider";
+import { getPublicLocale } from "@/lib/public-locale";
 
 
 // Body / UI face — Inter, with the tabular-figure feature used by the ledger.
@@ -24,16 +25,24 @@ const jakarta = localFont({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "Japora — Sell on WhatsApp. Get paid. Grow your hustle.",
-  description:
-    "Your WhatsApp shop, quietly handled. A bot answers price-checks. T-Money and Flooz settle inline. A summary lands every evening.",
-  manifest: "/manifest.webmanifest",
-  appleWebApp: {
-    capable: true,
-    title: "Japora",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getPublicLocale();
+  return {
+    title:
+      locale === "fr"
+        ? "Japora — Vendez sur WhatsApp. Encaissez. Développez votre activité."
+        : "Japora — Sell on WhatsApp. Get paid. Grow your hustle.",
+    description:
+      locale === "fr"
+        ? "Votre boutique WhatsApp, simplement gérée. Un bot répond aux questions de prix, T-Money et Flooz encaissent en ligne, et vous recevez un résumé chaque soir."
+        : "Your WhatsApp shop, quietly handled. A bot answers price-checks. T-Money and Flooz settle inline. A summary lands every evening.",
+    manifest: "/manifest.webmanifest",
+    appleWebApp: {
+      capable: true,
+      title: "Japora",
+    },
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -49,19 +58,21 @@ export const viewport: Viewport = {
 // before first paint and never flashes the wrong theme.
 const themeScript = `(function(){try{var t=localStorage.getItem('japora-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}if(t==='dark'){document.documentElement.classList.add('dark');}}catch(e){}})();`;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getPublicLocale();
+
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${jakarta.variable}`}>
+    <html lang={locale} suppressHydrationWarning className={`${inter.variable} ${jakarta.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-screen font-sans antialiased">
         <ClerkAuthProvider>
-          <PublicLanguageProvider>
+          <PublicLanguageProvider initialLocale={locale}>
             <ThemeSync />
             {children}
             <InstallPrompt />
