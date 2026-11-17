@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { formatMoney } from "@/lib/utils";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 export interface PaymentLinkItem {
   id: string;
@@ -26,6 +27,7 @@ export default function PaymentLinksClient({
   currency,
   shopName,
 }: PaymentLinksClientProps) {
+  const { tr, locale } = usePublicLang();
   const [links, setLinks] = useState<PaymentLinkItem[]>(initialLinks);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filter, setFilter] = useState<"all" | "pending" | "paid">("all");
@@ -74,7 +76,7 @@ export default function PaymentLinksClient({
 
     const numAmount = parseFloat(amount.replace(/\s+/g, "").replace(",", "."));
     if (isNaN(numAmount) || numAmount <= 0) {
-      setError("Veuillez saisir un montant valide supérieur à 0.");
+      setError(tr("Veuillez saisir un montant valide supérieur à 0.", "Please enter a valid amount greater than 0."));
       return;
     }
 
@@ -105,7 +107,7 @@ export default function PaymentLinksClient({
 
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Erreur lors de la création.");
+        setError(data.error || tr("Erreur lors de la création.", "Could not create the payment link."));
       } else {
         setLinks([data.link, ...links]);
         setShowCreateModal(false);
@@ -114,13 +116,13 @@ export default function PaymentLinksClient({
         setCustomerName("");
         setCustomerPhone("");
         if (data.whatsappSent) {
-          showToast("✓ Lien créé et envoyé au client via WhatsApp Cloud API !");
+          showToast(tr("✓ Lien créé et envoyé au client via WhatsApp Cloud API !", "✓ Link created and sent to the customer via WhatsApp Cloud API!"));
         } else {
-          showToast("✓ Lien de paiement FedaPay créé avec succès !");
+          showToast(tr("✓ Lien de paiement FedaPay créé avec succès !", "✓ FedaPay payment link created successfully!"));
         }
       }
     } catch {
-      setError("Erreur réseau. Veuillez réessayer.");
+      setError(tr("Erreur réseau. Veuillez réessayer.", "Network error. Please try again."));
     } finally {
       setCreating(false);
     }
@@ -146,15 +148,16 @@ export default function PaymentLinksClient({
         setWaModalLink(null);
         setWaPhone("");
         setWaName("");
-        showToast(
-          `✓ Lien envoyé sur WhatsApp (${waPhone.trim()}) via ${data.provider === "cloud-api" ? "Meta Cloud API" : "WhatsApp Bot"} !`,
-        );
+        showToast(tr(
+          `✓ Lien envoyé sur WhatsApp (${waPhone.trim()}) via ${data.provider === "cloud-api" ? "Meta Cloud API" : "le bot WhatsApp"} !`,
+          `✓ Link sent on WhatsApp (${waPhone.trim()}) via ${data.provider === "cloud-api" ? "Meta Cloud API" : "WhatsApp Bot"}!`,
+        ));
       } else {
-        alert(data.error || "Erreur lors de l'envoi WhatsApp.");
+        alert(data.error || tr("Erreur lors de l’envoi WhatsApp.", "Could not send the WhatsApp message."));
       }
     } catch {
       setWaSending(false);
-      alert("Erreur réseau lors de l'envoi WhatsApp.");
+      alert(tr("Erreur réseau lors de l’envoi WhatsApp.", "Network error while sending WhatsApp message."));
     }
   }
 
@@ -175,7 +178,7 @@ export default function PaymentLinksClient({
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Voulez-vous vraiment supprimer ce lien de paiement ?")) return;
+    if (!confirm(tr("Voulez-vous vraiment supprimer ce lien de paiement ?", "Are you sure you want to delete this payment link?"))) return;
     try {
       const res = await fetch(`/api/payment-links/${id}`, { method: "DELETE" });
       if (res.ok) {
@@ -219,10 +222,13 @@ export default function PaymentLinksClient({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Liens de Paiement × FedaPay
+            {tr("Liens de paiement × FedaPay", "Payment links × FedaPay")}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Générez des liens de paiement instantanés avec FedaPay (T-Money, Flooz, Mobile Money & Carte) et envoyez-les directement via WhatsApp Cloud API.
+            {tr(
+              "Générez des liens de paiement FedaPay (T-Money, Flooz, Mobile Money et carte) et envoyez-les via WhatsApp Cloud API.",
+              "Generate FedaPay payment links (T-Money, Flooz, Mobile Money and cards) and send them via WhatsApp Cloud API.",
+            )}
           </p>
         </div>
 
@@ -231,7 +237,7 @@ export default function PaymentLinksClient({
             href="/dashboard/billing"
             className="btn-ghost text-xs px-3 py-2.5 rounded-xl"
           >
-            ⚙️ Config FedaPay Money
+            ⚙️ {tr("Configuration FedaPay", "FedaPay settings")}
           </Link>
           <button
             type="button"
@@ -239,7 +245,7 @@ export default function PaymentLinksClient({
             className="btn-primary flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl shadow-md"
           >
             <span>➕</span>
-            <span>Créer un lien de paiement</span>
+            <span>{tr("Créer un lien de paiement", "Create payment link")}</span>
           </button>
         </div>
       </div>
@@ -254,31 +260,31 @@ export default function PaymentLinksClient({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="card p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
           <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">
-            Total Encaissé
+            {tr("Total encaissé", "Total collected")}
           </span>
           <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
             {formatMoney(totalCollectedCents, currency)}
           </div>
           <span className="text-xs text-slate-400 mt-1 block">
-            {links.filter((l) => l.isPaid).length} paiement(s) confirmé(s)
+            {links.filter((l) => l.isPaid).length} {tr("paiement(s) confirmé(s)", "confirmed payment(s)")}
           </span>
         </div>
 
         <div className="card p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
           <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">
-            En Attente
+            {tr("En attente", "Pending")}
           </span>
           <div className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">
             {formatMoney(pendingCents, currency)}
           </div>
           <span className="text-xs text-slate-400 mt-1 block">
-            {links.filter((l) => !l.isPaid).length} lien(s) non réglé(s)
+            {links.filter((l) => !l.isPaid).length} {tr("lien(s) non réglé(s)", "unpaid link(s)")}
           </span>
         </div>
 
         <div className="card p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
           <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">
-            Total Liens Générés
+            {tr("Total des liens générés", "Total links generated")}
           </span>
           <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
             {links.length}
@@ -301,7 +307,7 @@ export default function PaymentLinksClient({
                 : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
-            {f === "all" ? "Tous les liens" : f === "pending" ? "En attente" : "Payés"}
+            {f === "all" ? tr("Tous les liens", "All links") : f === "pending" ? tr("En attente", "Pending") : tr("Payés", "Paid")}
           </button>
         ))}
       </div>
@@ -311,17 +317,20 @@ export default function PaymentLinksClient({
         <div className="card p-12 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
           <span className="text-4xl">🔗</span>
           <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mt-2">
-            Aucun lien de paiement trouvé
+            {tr("Aucun lien de paiement trouvé", "No payment links found")}
           </h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
-            Générez un lien direct pour demander un acompte ou faire payer un client à distance via FedaPay (T-Money, Flooz, Mobile Money).
+            {tr(
+              "Générez un lien pour demander un acompte ou recevoir un paiement à distance via FedaPay.",
+              "Create a link to request a deposit or receive remote payments through FedaPay.",
+            )}
           </p>
           <button
             type="button"
             onClick={() => setShowCreateModal(true)}
             className="btn-primary mt-4 text-xs px-4 py-2"
           >
-            Créer mon premier lien
+            {tr("Créer mon premier lien", "Create my first link")}
           </button>
         </div>
       ) : (
@@ -340,15 +349,15 @@ export default function PaymentLinksClient({
                     </span>
                     {l.isPaid ? (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
-                        ✓ Payé
+                        ✓ {tr("Payé", "Paid")}
                       </span>
                     ) : isExpired ? (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300">
-                        Expiré
+                        {tr("Expiré", "Expired")}
                       </span>
                     ) : (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
-                        En attente
+                        {tr("En attente", "Pending")}
                       </span>
                     )}
                   </div>
@@ -358,16 +367,16 @@ export default function PaymentLinksClient({
                       {l.description}
                     </p>
                   ) : (
-                    <p className="text-xs text-slate-400 italic">Sans description</p>
+                    <p className="text-xs text-slate-400 italic">{tr("Sans description", "No description")}</p>
                   )}
 
                   <div className="text-[11px] text-slate-400 flex items-center gap-3">
-                    <span>Créé le {new Date(l.createdAt).toLocaleDateString()}</span>
+                    <span>{tr("Créé le", "Created")} {new Date(l.createdAt).toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US")}</span>
                     {l.paidAt && (
-                      <span>• Réglé le {new Date(l.paidAt).toLocaleDateString()}</span>
+                      <span>• {tr("Réglé le", "Paid")} {new Date(l.paidAt).toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US")}</span>
                     )}
                     {l.expiresAt && !l.isPaid && (
-                      <span>• Expire le {new Date(l.expiresAt).toLocaleDateString()}</span>
+                      <span>• {tr("Expire le", "Expires")} {new Date(l.expiresAt).toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US")}</span>
                     )}
                   </div>
                 </div>
@@ -379,7 +388,7 @@ export default function PaymentLinksClient({
                     target="_blank"
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-light/40 text-brand-dark hover:bg-brand-light transition-colors"
                   >
-                    💳 Ouvrir & Payer ↗
+                    💳 {tr("Ouvrir et payer", "Open & pay")} ↗
                   </Link>
 
                   <button
@@ -387,7 +396,7 @@ export default function PaymentLinksClient({
                     onClick={() => copyLink(l.id)}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 transition-colors"
                   >
-                    {copiedId === l.id ? "✓ Copié !" : "📋 Copier"}
+                    {copiedId === l.id ? `✓ ${tr("Copié !", "Copied!")}` : `📋 ${tr("Copier", "Copy")}`}
                   </button>
 
                   <button
@@ -398,10 +407,10 @@ export default function PaymentLinksClient({
                       setWaName("");
                     }}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-1 transition-colors"
-                    title="Envoyer directement au numéro du client via Meta WhatsApp Cloud API"
+                    title={tr("Envoyer directement au client via Meta WhatsApp Cloud API", "Send directly to the customer via Meta WhatsApp Cloud API")}
                   >
                     <span>📲</span>
-                    <span>Cloud API WhatsApp</span>
+                    <span>WhatsApp Cloud API</span>
                   </button>
 
                   <a
@@ -411,7 +420,7 @@ export default function PaymentLinksClient({
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 flex items-center gap-1 transition-colors"
                   >
                     <span>💬</span>
-                    <span>Partager</span>
+                    <span>{tr("Partager", "Share")}</span>
                   </a>
 
                   <button
@@ -423,14 +432,14 @@ export default function PaymentLinksClient({
                         : "bg-slate-900 text-white hover:bg-slate-800"
                     }`}
                   >
-                    {l.isPaid ? "Marquer impayé" : "Marquer payé"}
+                    {l.isPaid ? tr("Marquer comme impayé", "Mark unpaid") : tr("Marquer comme payé", "Mark paid")}
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleDelete(l.id)}
                     className="p-1.5 text-xs text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors"
-                    title="Supprimer"
+                    title={tr("Supprimer", "Delete")}
                   >
                     🗑️
                   </button>
@@ -447,7 +456,7 @@ export default function PaymentLinksClient({
           <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                Nouveau Lien de Paiement (FedaPay)
+                {tr("Nouveau lien de paiement (FedaPay)", "New payment link (FedaPay)")}
               </h2>
               <button
                 type="button"
@@ -461,7 +470,7 @@ export default function PaymentLinksClient({
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Montant ({currency}) *
+                  {tr("Montant", "Amount")} ({currency}) *
                 </label>
                 <input
                   type="text"
@@ -475,28 +484,28 @@ export default function PaymentLinksClient({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Description / Motif *
+                  {tr("Description / Motif", "Description / Reason")} *
                 </label>
                 <input
                   type="text"
                   required
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Ex: Acompte commande robe de soirée"
+                  placeholder={tr("Ex. : acompte pour une robe de soirée", "E.g. evening dress order deposit")}
                   className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
               </div>
 
               <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 space-y-3">
                 <div className="text-xs font-bold text-emerald-900">
-                  📲 Envoi direct par WhatsApp Cloud API (Optionnel)
+                  📲 {tr("Envoi direct par WhatsApp Cloud API (facultatif)", "Send directly via WhatsApp Cloud API (optional)")}
                 </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <input
                     type="text"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="Nom du client"
+                    placeholder={tr("Nom du client", "Customer name")}
                     className="w-full px-3 py-1.5 text-xs rounded-lg border border-emerald-300 bg-white text-slate-900 focus:outline-none"
                   />
                   <input
@@ -508,24 +517,27 @@ export default function PaymentLinksClient({
                   />
                 </div>
                 <p className="text-[11px] text-emerald-700">
-                  Si renseigné, Japora envoie automatiquement le lien de paiement FedaPay sur le WhatsApp du client dès la création.
+                  {tr(
+                    "Si renseigné, Japora envoie automatiquement le lien de paiement au client dès sa création.",
+                    "If provided, Japora will automatically send the payment link to the customer when it is created.",
+                  )}
                 </p>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Validité du lien
+                  {tr("Validité du lien", "Link validity")}
                 </label>
                 <select
                   value={expiresInDays}
                   onChange={(e) => setExpiresInDays(e.target.value)}
                   className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 >
-                  <option value="1">24 heures</option>
-                  <option value="3">3 jours</option>
-                  <option value="7">7 jours</option>
-                  <option value="30">30 jours</option>
-                  <option value="never">Sans expiration</option>
+                  <option value="1">{tr("24 heures", "24 hours")}</option>
+                  <option value="3">{tr("3 jours", "3 days")}</option>
+                  <option value="7">{tr("7 jours", "7 days")}</option>
+                  <option value="30">{tr("30 jours", "30 days")}</option>
+                  <option value="never">{tr("Sans expiration", "No expiration")}</option>
                 </select>
               </div>
 
@@ -539,14 +551,14 @@ export default function PaymentLinksClient({
                   onClick={() => setShowCreateModal(false)}
                   className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
                 >
-                  Annuler
+                  {tr("Annuler", "Cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={creating}
                   className="btn-primary text-xs px-4 py-2 rounded-xl"
                 >
-                  {creating ? "Génération..." : "Créer le lien"}
+                  {creating ? tr("Génération…", "Creating…") : tr("Créer le lien", "Create link")}
                 </button>
               </div>
             </form>
@@ -560,7 +572,7 @@ export default function PaymentLinksClient({
           <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-slate-900">
-                📲 Envoyer via WhatsApp Cloud API
+                📲 {tr("Envoyer via WhatsApp Cloud API", "Send via WhatsApp Cloud API")}
               </h3>
               <button
                 type="button"
@@ -571,14 +583,14 @@ export default function PaymentLinksClient({
               </button>
             </div>
             <p className="text-xs text-slate-600">
-              Envoyer le lien de paiement de{" "}
+              {tr("Envoyer le lien de paiement de", "Send the payment link for")}{" "}
               <strong>{formatMoney(waModalLink.amountCents, waModalLink.currency || currency)}</strong>{" "}
-              directement sur le WhatsApp de votre client via l&apos;API WhatsApp Cloud de Japora.
+              {tr("directement sur le WhatsApp de votre client via l’API WhatsApp Cloud de Japora.", "directly to your customer's WhatsApp using Japora's WhatsApp Cloud API.")}
             </p>
             <form onSubmit={handleSendCloudWhatsApp} className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Nom du client (optionnel)
+                  {tr("Nom du client (facultatif)", "Customer name (optional)")}
                 </label>
                 <input
                   type="text"
@@ -590,7 +602,7 @@ export default function PaymentLinksClient({
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Numéro WhatsApp du client *
+                  {tr("Numéro WhatsApp du client", "Customer WhatsApp number")} *
                 </label>
                 <input
                   type="tel"
@@ -607,14 +619,14 @@ export default function PaymentLinksClient({
                   onClick={() => setWaModalLink(null)}
                   className="btn-ghost text-xs"
                 >
-                  Annuler
+                  {tr("Annuler", "Cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={waSending}
                   className="btn-primary text-xs"
                 >
-                  {waSending ? "Envoi en cours…" : "Envoyer maintenant"}
+                  {waSending ? tr("Envoi en cours…", "Sending…") : tr("Envoyer maintenant", "Send now")}
                 </button>
               </div>
             </form>

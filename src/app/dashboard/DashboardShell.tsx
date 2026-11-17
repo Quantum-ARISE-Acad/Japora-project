@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
 import { isClerkConfigured } from "@/components/auth/ClerkAuthProvider";
 import ThemeToggle from "@/components/ThemeToggle";
+import { LanguageSwitcher, usePublicLang } from "@/components/PublicLanguageProvider";
 
 /**
  * Lumière dashboard shell — the "orchestrator".
@@ -58,8 +59,6 @@ const NAV: Group[] = [
   { section: null, items: [{ href: "/dashboard/settings", label: "Settings", icon: "settings" }] },
 ];
 
-const FLAT = NAV.flatMap((g) => g.items);
-
 export default function DashboardShell({
   shopName,
   shopSlug, avatarUrl,
@@ -71,8 +70,46 @@ export default function DashboardShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { tr } = usePublicLang();
   const [drawer, setDrawer] = useState(false);
   const [palette, setPalette] = useState(false);
+  const localizedNav = useMemo(
+    () =>
+      NAV.map((group) => ({
+        ...group,
+        section: group.section
+          ? tr(
+              group.section === "Sell" ? "Vendre" : group.section === "Money" ? "Finances" : "Développer",
+              group.section,
+            )
+          : null,
+        items: group.items.map((item) => ({
+          ...item,
+          label: tr(
+            ({
+              Overview: "Vue d’ensemble",
+              Orders: "Commandes",
+              Products: "Produits",
+              Collections: "Collections",
+              Customers: "Clients",
+              Receivables: "Créances",
+              Bookkeeping: "Comptabilité",
+              "Payment Links": "Liens de paiement",
+              Money: "Finances",
+              Analytics: "Analyses",
+              Cooperative: "Coopérative",
+              Marketing: "Marketing",
+              Ads: "Publicités",
+              "Assistant WhatsApp": "Assistant WhatsApp",
+              Settings: "Paramètres",
+            } as Record<string, string>)[item.label] ?? item.label,
+            item.label,
+          ),
+        })),
+      })),
+    [tr],
+  );
+  const flatItems = useMemo(() => localizedNav.flatMap((group) => group.items), [localizedNav]);
 
   const clerkActive = isClerkConfigured();
   let clerk: ReturnType<typeof useClerk> | null = null;
@@ -103,8 +140,8 @@ export default function DashboardShell({
   const active = (it: Item) =>
     it.exact ? pathname === it.href : pathname === it.href || pathname.startsWith(it.href + "/");
   const current = useMemo(
-    () => [...FLAT].sort((a, b) => b.href.length - a.href.length).find((it) => active(it)),
-    [pathname], // eslint-disable-line react-hooks/exhaustive-deps
+    () => [...flatItems].sort((a, b) => b.href.length - a.href.length).find((it) => active(it)),
+    [pathname, flatItems], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   async function logout() {
@@ -123,7 +160,7 @@ export default function DashboardShell({
   }
 
   const sidebar = (
-    <nav aria-label="Primary" className="flex h-full flex-col gap-1 px-3 py-4">
+    <nav aria-label={tr("Navigation principale", "Primary navigation")} className="flex h-full flex-col gap-1 px-3 py-4">
       <Link href="/dashboard" className="mb-4 flex items-center gap-2.5 px-2">
         <span className="grid h-9 w-9 place-items-center rounded-shape-md bg-brand font-black text-white shadow-elev-1">
           {avatarUrl ? <Image src={avatarUrl} alt={shopName} width={36} height={36} unoptimized className="h-9 w-9 rounded-shape-md object-cover" /> : (shopName.charAt(0).toUpperCase() || "S")}
@@ -134,7 +171,7 @@ export default function DashboardShell({
       </Link>
 
       <div className="flex-1 space-y-4 overflow-y-auto">
-        {NAV.map((group, gi) => (
+        {localizedNav.map((group, gi) => (
           <div key={gi} className="space-y-0.5">
             {group.section && <div className="a-eyebrow px-3 pb-1 pt-2">{group.section}</div>}
             {group.items.map((it) => {
@@ -175,14 +212,14 @@ export default function DashboardShell({
           className="flex min-h-[44px] items-center gap-3 rounded-shape-md px-3 text-[14px] font-medium text-arctic-700 hover:bg-arctic-200/60 hover:text-arctic-900"
         >
           <Icon name="catalog" className="text-arctic-500" />
-          View catalog
+          {tr("Voir le catalogue", "View catalog")}
         </a>
         <button
           onClick={logout}
           className="flex min-h-[44px] w-full items-center gap-3 rounded-shape-md px-3 text-[14px] font-medium text-arctic-700 hover:bg-arctic-200/60 hover:text-arctic-900"
         >
           <Icon name="logout" className="text-arctic-500" />
-          Sign out
+          {tr("Se déconnecter", "Sign out")}
         </button>
       </div>
     </nav>
@@ -210,7 +247,7 @@ export default function DashboardShell({
         <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-arctic-300/50 bg-arctic-50/80 px-4 py-3 backdrop-blur-glass">
           <button
             onClick={() => setDrawer(true)}
-            aria-label="Open menu"
+            aria-label={tr("Ouvrir le menu", "Open menu")}
             className="grid h-10 w-10 place-items-center rounded-shape-md text-arctic-700 hover:bg-arctic-200/60 lg:hidden"
           >
             <Icon name="menu" />
@@ -218,7 +255,7 @@ export default function DashboardShell({
 
           <div className="min-w-0 flex-1">
             <div className="truncate font-display text-[18px] font-semibold leading-tight text-arctic-900">
-              {current?.label ?? "Dashboard"}
+              {current?.label ?? tr("Tableau de bord", "Dashboard")}
             </div>
           </div>
 
@@ -226,15 +263,16 @@ export default function DashboardShell({
             onClick={() => setPalette(true)}
             className="inline-flex h-10 items-center gap-2 rounded-shape-full border border-arctic-400/45 px-3 text-[13px] text-arctic-600 transition-colors hover:border-brand/50 hover:text-arctic-900"
             style={{ background: "var(--aurora-surface)" }}
-            aria-label="Search and quick navigation"
+            aria-label={tr("Rechercher et accéder rapidement", "Search and quick navigation")}
           >
             <Icon name="search" className="h-4 w-4" />
-            <span className="hidden sm:inline">Search</span>
+            <span className="hidden sm:inline">{tr("Rechercher", "Search")}</span>
             <kbd className="hidden rounded border border-arctic-400/50 px-1.5 py-0.5 text-[10px] font-semibold text-arctic-500 sm:inline">
               ⌘K
             </kbd>
           </button>
 
+          <LanguageSwitcher />
           <ThemeToggle />
         </header>
 
@@ -243,8 +281,9 @@ export default function DashboardShell({
 
       {palette && (
         <CommandPalette
-          items={FLAT}
+          items={flatItems}
           shopSlug={shopSlug}
+          tr={tr}
           onClose={() => setPalette(false)}
           onNavigate={(href) => {
             setPalette(false);
@@ -261,11 +300,13 @@ export default function DashboardShell({
 function CommandPalette({
   items,
   shopSlug,
+  tr,
   onClose,
   onNavigate,
 }: {
   items: Item[];
   shopSlug: string;
+  tr: (frVal: string, enVal: string) => string;
   onClose: () => void;
   onNavigate: (href: string) => void;
 }) {
@@ -274,13 +315,13 @@ function CommandPalette({
 
   const actions = useMemo(
     () => [
-      ...items.map((it) => ({ label: it.label, href: it.href, hint: "Go to" })),
-      { label: "Add product", href: "/dashboard/products", hint: "Action" },
-      { label: "New campaign", href: "/dashboard/campaigns", hint: "Action" },
-      { label: "View public catalog", href: `/c/${shopSlug}`, hint: "Open" },
-      { label: "How Japora works", href: "/how-to-use", hint: "Guide" },
+      ...items.map((it) => ({ label: it.label, href: it.href, hint: tr("Aller à", "Go to") })),
+      { label: tr("Ajouter un produit", "Add product"), href: "/dashboard/products", hint: tr("Action", "Action") },
+      { label: tr("Nouvelle campagne", "New campaign"), href: "/dashboard/campaigns", hint: tr("Action", "Action") },
+      { label: tr("Voir le catalogue public", "View public catalog"), href: `/c/${shopSlug}`, hint: tr("Ouvrir", "Open") },
+      { label: tr("Comment fonctionne Japora", "How Japora works"), href: "/how-to-use", hint: tr("Guide", "Guide") },
     ],
-    [items, shopSlug],
+    [items, shopSlug, tr],
   );
 
   const results = useMemo(() => {
@@ -309,14 +350,14 @@ function CommandPalette({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={onKey}
-            placeholder="Search pages and actions…"
+            placeholder={tr("Rechercher des pages et des actions…", "Search pages and actions…")}
             className="h-14 flex-1 bg-transparent text-[15px] text-arctic-900 outline-none placeholder:text-arctic-500"
           />
           <kbd className="rounded border border-arctic-400/50 px-1.5 py-0.5 text-[10px] font-semibold text-arctic-500">Esc</kbd>
         </div>
         <ul className="max-h-[50vh] overflow-y-auto p-2">
           {results.length === 0 && (
-            <li className="px-3 py-6 text-center text-sm text-arctic-500">No matches.</li>
+            <li className="px-3 py-6 text-center text-sm text-arctic-500">{tr("Aucun résultat.", "No matches.")}</li>
           )}
           {results.map((a, i) => (
             <li key={a.label}>

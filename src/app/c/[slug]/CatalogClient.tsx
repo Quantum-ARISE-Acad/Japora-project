@@ -13,6 +13,7 @@ import ShopAiAssistant from "@/components/ShopAiAssistant";
 import ShopWhatsAppQrBanner from "@/components/ShopWhatsAppQrBanner";
 import { formatConvertedPrice } from "@/lib/currency";
 import { telHref, directUssdCode } from "@/lib/payments/ussd";
+import { LanguageSwitcher, usePublicLang } from "@/components/PublicLanguageProvider";
 import {
   trackVisit,
   trackProductView,
@@ -106,6 +107,7 @@ export default function CatalogClient({
     showQrOnShop?: boolean;
   };
 }) {
+  const { tr } = usePublicLang();
   const [displayCurrency, setDisplayCurrency] = useState(currency || "XOF");
   const [cart, setCart] = useState<CartLine[]>([]);
   const [open, setOpen] = useState(false);
@@ -285,7 +287,7 @@ export default function CatalogClient({
 
   function quickOrderText(p: Product, size: string) {
     const sizeLabel = size ? ` (${size})` : "";
-    return `Hi ${shopName}, I'd like to order:\n• ${p.name}${sizeLabel} — ${formatMoney(p.priceCents, currency)}\n\nIs this still available?`;
+    return `${tr(`Bonjour ${shopName}, je souhaite commander :`, `Hi ${shopName}, I'd like to order:`)}\n• ${p.name}${sizeLabel} — ${formatMoney(p.priceCents, currency)}\n\n${tr("Est-ce toujours disponible ?", "Is this still available?")}`;
   }
 
   function cartOrderText() {
@@ -295,7 +297,7 @@ export default function CatalogClient({
         return `• ${l.qty}× ${l.name}${sizeLabel} — ${formatMoney(l.priceCents * l.qty, currency)}`;
       })
       .join("\n");
-    return `Bonjour ${shopName},\n\nJe souhaite commander les articles suivants :\n${lines}\n\nTotal : ${formatMoney(total, currency)}\n\nSont-ils disponibles ? Merci !`;
+    return `${tr(`Bonjour ${shopName}`, `Hello ${shopName}`)},\n\n${tr("Je souhaite commander les articles suivants :", "I'd like to order the following items:")}\n${lines}\n\n${tr("Total", "Total")} : ${formatMoney(total, currency)}\n\n${tr("Sont-ils disponibles ? Merci !", "Are these available? Thank you!")}`;
   }
 
   async function submitOrder(e: React.FormEvent) {
@@ -305,16 +307,16 @@ export default function CatalogClient({
 
     const paymentLabel =
       paymentMethod === "fedapay"
-        ? "FedaPay (T-Money, Flooz, Mobile Money & Carte)"
+        ? tr("FedaPay (T-Money, Flooz, Mobile Money & Carte)", "FedaPay (T-Money, Flooz, Mobile Money & card)")
         : paymentMethod === "tmoney"
-        ? "USSD T-Money (*145#)"
+        ? tr("USSD T-Money (*145#)", "T-Money USSD (*145#)")
         : paymentMethod === "flooz"
-        ? "USSD Flooz (*155#)"
+        ? tr("USSD Flooz (*155#)", "Flooz USSD (*155#)")
         : paymentMethod === "online"
-        ? "Paiement en ligne / Mobile Money automatique"
+        ? tr("Paiement en ligne / Mobile Money automatique", "Online payment / automatic Mobile Money")
         : paymentMethod === "wescrow"
-        ? "Paiement Garanti WEscrow (Safe Hands)"
-        : "Paiement en espèces";
+        ? tr("Paiement Garanti WEscrow (Safe Hands)", "WEscrow protected payment (Safe Hands)")
+        : tr("Paiement en espèces", "Cash payment");
 
     const fullNote = [
       `[PAIEMENT: ${paymentLabel}]`,
@@ -347,7 +349,7 @@ export default function CatalogClient({
     const data = await res.json().catch(() => ({}));
     setSubmitting(false);
     if (!res.ok) {
-      setError(data.error || "Could not place order.");
+      setError(data.error || tr("Impossible de passer la commande.", "Could not place the order."));
       return;
     }
 
@@ -426,6 +428,7 @@ export default function CatalogClient({
                 onCurrencyChange={setDisplayCurrency}
                 baseCurrency={currency}
               />
+              <LanguageSwitcher />
               <button
                 type="button"
                 onClick={() => {
@@ -438,9 +441,9 @@ export default function CatalogClient({
                     ? "bg-emerald-600 text-white hover:bg-emerald-700"
                     : "border border-arctic-300 bg-white text-arctic-700 hover:bg-arctic-100"
                 }`}
-                title="Ouvrir mon panier"
+                title={tr("Ouvrir mon panier", "Open my cart")}
               >
-                <span>🛒 Panier</span>
+                <span>🛒 {tr("Panier", "Cart")}</span>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${
                     itemCount > 0 ? "bg-white text-emerald-800" : "bg-arctic-200 text-arctic-700"
@@ -457,7 +460,7 @@ export default function CatalogClient({
                   rel="noreferrer"
                   className="btn-primary gap-1.5"
                 >
-                  <Glyph name="chat" size={16} /> Chat
+                  <Glyph name="chat" size={16} /> {tr("Discuter", "Chat")}
                 </a>
               )}
             </div>
@@ -475,7 +478,7 @@ export default function CatalogClient({
                   setSearchQuery(e.target.value);
                   setVisibleCount(PAGE_SIZE);
                 }}
-                placeholder="Search products..."
+                placeholder={tr("Rechercher des produits…", "Search products…")}
                 className="w-full rounded-shape-full border border-arctic-300/50 bg-white/90 py-1.5 pl-9 pr-8 text-sm text-arctic-900 placeholder:text-arctic-400 focus:border-arctic-600 focus:outline-none focus:ring-1 focus:ring-arctic-400"
               />
               {searchQuery && (
@@ -504,7 +507,7 @@ export default function CatalogClient({
                       : "bg-arctic-200/60 text-arctic-700 hover:bg-arctic-300/60"
                   }`}
                 >
-                  All ({products.length})
+                  {tr("Tout", "All")} ({products.length})
                 </button>
                 <button
                   type="button"
@@ -518,7 +521,7 @@ export default function CatalogClient({
                       : "bg-arctic-200/60 text-arctic-700 hover:bg-arctic-300/60"
                   }`}
                 >
-                  In stock
+                  {tr("En stock", "In stock")}
                 </button>
                 <button
                   type="button"
@@ -532,7 +535,7 @@ export default function CatalogClient({
                       : "bg-arctic-200/60 text-arctic-700 hover:bg-arctic-300/60"
                   }`}
                 >
-                  Low stock
+                  {tr("Stock faible", "Low stock")}
                 </button>
                 <button
                   type="button"
@@ -546,7 +549,7 @@ export default function CatalogClient({
                       : "bg-arctic-200/60 text-arctic-700 hover:bg-arctic-300/60"
                   }`}
                 >
-                  ✨ New
+                  ✨ {tr("Nouveautés", "New")}
                 </button>
               </div>
 
@@ -556,9 +559,9 @@ export default function CatalogClient({
                 onChange={(e) => setSortBy(e.target.value as "default" | "price_asc" | "price_desc")}
                 className="rounded-shape-md border border-arctic-300/50 bg-white/90 px-2 py-1 text-xs font-medium text-arctic-700 focus:outline-none"
               >
-                <option value="default">Sort: Default</option>
-                <option value="price_asc">Price: Low to High</option>
-                <option value="price_desc">Price: High to Low</option>
+                <option value="default">{tr("Trier : par défaut", "Sort: Default")}</option>
+                <option value="price_asc">{tr("Prix : croissant", "Price: Low to High")}</option>
+                <option value="price_desc">{tr("Prix : décroissant", "Price: High to Low")}</option>
               </select>
             </div>
           </div>
@@ -583,7 +586,7 @@ export default function CatalogClient({
           <section className="mb-6 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-extrabold uppercase tracking-wider text-arctic-600 flex items-center gap-1.5">
-                <span>📁</span> Collections de la boutique
+                <span>📁</span> {tr("Collections de la boutique", "Shop collections")}
               </h2>
               {selectedCollectionId && (
                 <button
@@ -594,7 +597,7 @@ export default function CatalogClient({
                   }}
                   className="text-xs font-semibold text-brand-dark hover:underline"
                 >
-                  Voir tout le catalogue ({products.length})
+                  {tr("Voir tout le catalogue", "View full catalog")} ({products.length})
                 </button>
               )}
             </div>
@@ -622,13 +625,13 @@ export default function CatalogClient({
                   🛍️
                 </div>
                 <div>
-                  <div className="text-sm font-bold leading-tight">Tout le catalogue</div>
+                  <div className="text-sm font-bold leading-tight">{tr("Tout le catalogue", "All products")}</div>
                   <div
                     className={`text-[11px] ${
                       selectedCollectionId === null ? "text-white/80" : "text-arctic-500"
                     }`}
                   >
-                    {products.length} article{products.length > 1 ? "s" : ""}
+                    {products.length} {tr(products.length > 1 ? "articles" : "article", products.length > 1 ? "items" : "item")}
                   </div>
                 </div>
               </button>
@@ -668,7 +671,7 @@ export default function CatalogClient({
                           active ? "text-emerald-100" : "text-arctic-500"
                         }`}
                       >
-                        {col.productCount} produit{col.productCount > 1 ? "s" : ""}
+                        {col.productCount} {tr(col.productCount > 1 ? "produits" : "produit", col.productCount > 1 ? "products" : "product")}
                       </div>
                     </div>
                   </button>
@@ -684,7 +687,7 @@ export default function CatalogClient({
                 <div className="rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-emerald-700 p-4 text-white shadow-sm flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-200">
-                      📁 Collection sélectionnée
+                      📁 {tr("Collection sélectionnée", "Selected collection")}
                     </div>
                     <h3 className="text-lg font-extrabold">{activeCol.name}</h3>
                     {activeCol.description && (
@@ -696,14 +699,14 @@ export default function CatalogClient({
                       href={`/c/${shopSlug}/collection/${activeCol.slug}`}
                       className="rounded-xl bg-white/15 hover:bg-white/25 px-3 py-1.5 text-xs font-semibold text-white transition"
                     >
-                      Lien dédié de la collection ↗
+                      {tr("Lien dédié de la collection", "Collection link")} ↗
                     </a>
                     <button
                       type="button"
                       onClick={() => setSelectedCollectionId(null)}
                       className="rounded-xl bg-white text-brand-dark px-3 py-1.5 text-xs font-bold hover:bg-emerald-50 transition"
                     >
-                      ✕ Tout afficher
+                      ✕ {tr("Tout afficher", "Show all")}
                     </button>
                   </div>
                 </div>
@@ -716,7 +719,7 @@ export default function CatalogClient({
         {(searchQuery || stockFilter !== "all" || selectedCollectionId) && (
           <div className="mb-4 flex items-center justify-between text-xs text-arctic-600">
             <span>
-              Affichage de <strong>{filteredProducts.length}</strong> article{filteredProducts.length === 1 ? "" : "s"}
+              {tr("Affichage de", "Showing")} <strong>{filteredProducts.length}</strong> {tr(filteredProducts.length === 1 ? "article" : "articles", filteredProducts.length === 1 ? "item" : "items")}
             </span>
             <button
               onClick={() => {
@@ -726,7 +729,7 @@ export default function CatalogClient({
               }}
               className="text-arctic-800 underline hover:text-black"
             >
-              Réinitialiser les filtres
+              {tr("Réinitialiser les filtres", "Reset filters")}
             </button>
           </div>
         )}
@@ -734,9 +737,9 @@ export default function CatalogClient({
         {filteredProducts.length === 0 ? (
           <div className="card grid place-items-center gap-3 p-12 text-center text-arctic-600">
             <span className="text-4xl">🔍</span>
-            <h3 className="text-base font-semibold text-arctic-800">No products found</h3>
+            <h3 className="text-base font-semibold text-arctic-800">{tr("Aucun produit trouvé", "No products found")}</h3>
             <p className="text-sm max-w-sm">
-              We couldn&apos;t find any items matching your criteria. Try adjusting your search query or filters.
+              {tr("Aucun article ne correspond à vos critères. Modifiez votre recherche ou vos filtres.", "We couldn’t find any items matching your criteria. Try adjusting your search or filters.")}
             </p>
             <button
               onClick={() => {
@@ -745,7 +748,7 @@ export default function CatalogClient({
               }}
               className="btn-ghost mt-2 text-xs"
             >
-              Clear filters
+              {tr("Effacer les filtres", "Clear filters")}
             </button>
           </div>
         ) : (
@@ -778,7 +781,7 @@ export default function CatalogClient({
               onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
               className="btn-ghost rounded-shape-full px-6 py-2.5 shadow-xs font-semibold text-arctic-800 hover:bg-arctic-200/50"
             >
-              Load more ({filteredProducts.length - visibleCount} remaining)
+              {tr("Afficher plus", "Load more")} ({filteredProducts.length - visibleCount} {tr("restants", "remaining")})
             </button>
           </div>
         )}
@@ -794,7 +797,7 @@ export default function CatalogClient({
               </span>
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-700">
-                  Votre panier ({itemCount} article{itemCount === 1 ? "" : "s"})
+                  {tr("Votre panier", "Your cart")} ({itemCount} {tr(itemCount === 1 ? "article" : "articles", itemCount === 1 ? "item" : "items")})
                 </div>
                 <div className="font-extrabold text-arctic-900 text-base">
                   {formatConvertedPrice(total, currency, displayCurrency).primary}
@@ -802,7 +805,7 @@ export default function CatalogClient({
               </div>
             </div>
             <button onClick={openCart} className="btn-primary !bg-emerald-600 hover:!bg-emerald-700 px-5 py-2.5 text-sm font-bold shadow-lg">
-              Ouvrir le panier & Commander →
+              {tr("Ouvrir le panier et commander", "Open cart & checkout")} →
             </button>
           </div>
         </div>
@@ -832,7 +835,7 @@ export default function CatalogClient({
                 )}
                 {selectedProduct.condition && selectedProduct.condition !== "new" && (
                   <span className="absolute bottom-3 left-3 rounded-full bg-arctic-900/80 px-3 py-1 text-xs font-semibold capitalize text-white backdrop-blur">
-                    {selectedProduct.condition === "used" ? "Occasion" : "Reconditionné"}
+                    {selectedProduct.condition === "used" ? tr("Occasion", "Used") : tr("Reconditionné", "Refurbished")}
                   </span>
                 )}
               </div>
@@ -845,8 +848,8 @@ export default function CatalogClient({
                     </h2>
                     <span className="text-xs text-arctic-500">
                       {selectedProduct.stock > 0
-                        ? `${selectedProduct.stock} unit${selectedProduct.stock > 1 ? "s" : ""} available`
-                        : "Out of stock"}
+                        ? `${selectedProduct.stock} ${tr(selectedProduct.stock > 1 ? "unités disponibles" : "unité disponible", selectedProduct.stock > 1 ? "units available" : "unit available")}`
+                        : tr("Rupture de stock", "Out of stock")}
                     </span>
                   </div>
                   <div className="text-right">
@@ -860,7 +863,7 @@ export default function CatalogClient({
                     )}
                     {selectedProduct.wholesalePriceCents && (
                       <div className="text-xs text-arctic-600">
-                        Gros: {formatConvertedPrice(selectedProduct.wholesalePriceCents, currency, displayCurrency).primary} (min. {selectedProduct.wholesaleMinQty})
+                        {tr("Prix de gros", "Wholesale")}: {formatConvertedPrice(selectedProduct.wholesalePriceCents, currency, displayCurrency).primary} ({tr("min.", "min.")} {selectedProduct.wholesaleMinQty})
                       </div>
                     )}
                   </div>
@@ -884,7 +887,7 @@ export default function CatalogClient({
                     }}
                     className="btn-primary w-full py-3"
                   >
-                    {selectedProduct.stock > 0 ? "Add to cart & Checkout" : "Out of stock"}
+                    {selectedProduct.stock > 0 ? tr("Ajouter au panier et commander", "Add to cart & checkout") : tr("Rupture de stock", "Out of stock")}
                   </button>
                 </div>
 
@@ -912,7 +915,7 @@ export default function CatalogClient({
                   >
                     {step === "cart" ? "1" : "✓"}
                   </span>
-                  <span className={step === "cart" ? "text-arctic-900 font-bold" : "text-arctic-600"}>Cart</span>
+                  <span className={step === "cart" ? "text-arctic-900 font-bold" : "text-arctic-600"}>{tr("Panier", "Cart")}</span>
                   <span className="text-arctic-400">→</span>
                   <span
                     className={`flex h-5 w-5 items-center justify-center rounded-full ${
@@ -925,7 +928,7 @@ export default function CatalogClient({
                   >
                     {step === "success" ? "✓" : "2"}
                   </span>
-                  <span className={step === "form" ? "text-arctic-900 font-bold" : "text-arctic-600"}>Details</span>
+                  <span className={step === "form" ? "text-arctic-900 font-bold" : "text-arctic-600"}>{tr("Coordonnées", "Details")}</span>
                   <span className="text-arctic-400">→</span>
                   <span
                     className={`flex h-5 w-5 items-center justify-center rounded-full ${
@@ -934,7 +937,7 @@ export default function CatalogClient({
                   >
                     3
                   </span>
-                  <span className={step === "success" ? "text-arctic-900 font-bold" : "text-arctic-600"}>Done</span>
+                  <span className={step === "success" ? "text-arctic-900 font-bold" : "text-arctic-600"}>{tr("Terminé", "Done")}</span>
                 </div>
                 <button onClick={() => setOpen(false)} className="text-arctic-500 hover:text-arctic-800">
                   ✕
@@ -960,7 +963,7 @@ export default function CatalogClient({
                         {l.size && <span className="ml-1 text-xs text-arctic-500">({l.size})</span>}
                       </div>
                       <div className="text-sm text-arctic-600">
-                        {formatConvertedPrice(l.priceCents, currency, displayCurrency).primary} each
+                        {formatConvertedPrice(l.priceCents, currency, displayCurrency).primary} {tr("l’unité", "each")}
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
@@ -989,7 +992,7 @@ export default function CatalogClient({
                 ))}
 
                 <div className="flex items-center justify-between border-t border-arctic-400/30 pt-3">
-                  <span className="text-sm text-arctic-600">Total</span>
+                  <span className="text-sm text-arctic-600">{tr("Total", "Total")}</span>
                   <div className="text-right">
                     <span className="text-lg font-bold text-arctic-900">
                       {formatConvertedPrice(total, currency, displayCurrency).primary}
@@ -1003,7 +1006,7 @@ export default function CatalogClient({
                 </div>
 
                 <button onClick={() => setStep("form")} className="btn-primary w-full">
-                  Continue to details
+                  {tr("Continuer", "Continue to details")}
                 </button>
                 {hasWhatsApp && (
                   <a
@@ -1012,7 +1015,7 @@ export default function CatalogClient({
                     rel="noreferrer"
                     className="btn-ghost w-full gap-1.5"
                   >
-                    <Glyph name="chat" size={16} /> Or send order on WhatsApp
+                    <Glyph name="chat" size={16} /> {tr("Ou envoyer la commande sur WhatsApp", "Or send order on WhatsApp")}
                   </a>
                 )}
               </div>
@@ -1021,17 +1024,17 @@ export default function CatalogClient({
             {step === "form" && (
               <form onSubmit={submitOrder} className="space-y-3.5 p-5">
                 <div>
-                  <label className="label">Your full name *</label>
+                  <label className="label">{tr("Nom complet *", "Your full name *")}</label>
                   <input
                     className="input"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="e.g. John Doe"
+                    placeholder={tr("ex. Kossi Amouzou", "e.g. John Doe")}
                     required
                   />
                 </div>
                 <div>
-                  <label className="label">WhatsApp phone number</label>
+                  <label className="label">{tr("Numéro WhatsApp", "WhatsApp phone number")}</label>
                   <input
                     className="input"
                     inputMode="tel"
@@ -1039,14 +1042,14 @@ export default function CatalogClient({
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                   />
-                  <span className="text-[11px] text-arctic-500">For delivery coordination & updates</span>
+                  <span className="text-[11px] text-arctic-500">{tr("Pour organiser la livraison et vous tenir informé", "For delivery coordination and updates")}</span>
                 </div>
                 <div>
-                  <label className="label">Email address (optional)</label>
+                  <label className="label">{tr("Adresse e-mail (facultatif)", "Email address (optional)")}</label>
                   <input
                     className="input"
                     type="email"
-                    placeholder="To receive your order receipt"
+                    placeholder={tr("Pour recevoir le reçu de commande", "To receive your order receipt")}
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
                   />
@@ -1055,7 +1058,7 @@ export default function CatalogClient({
                 {deliveryEnabled && (
                   <div className="rounded-xl border border-arctic-400/30 bg-arctic-100/30 p-3 space-y-2.5">
                     <label className="text-xs font-semibold text-arctic-800 block">
-                      Mode de récupération
+                      {tr("Mode de récupération", "Fulfillment method")}
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
@@ -1067,8 +1070,8 @@ export default function CatalogClient({
                             : "border-arctic-200 bg-white text-arctic-700 hover:bg-arctic-50"
                         }`}
                       >
-                        <span className="block font-bold">🏪 Retrait</span>
-                        <span className="text-[10px] text-arctic-500">Gratuit en boutique</span>
+                        <span className="block font-bold">🏪 {tr("Retrait", "Pickup")}</span>
+                        <span className="text-[10px] text-arctic-500">{tr("Gratuit en boutique", "Free at the shop")}</span>
                       </button>
 
                       <button
@@ -1080,8 +1083,8 @@ export default function CatalogClient({
                             : "border-arctic-200 bg-white text-arctic-700 hover:bg-arctic-50"
                         }`}
                       >
-                        <span className="block font-bold">🛵 Livraison</span>
-                        <span className="text-[10px] text-arctic-500">À votre adresse</span>
+                        <span className="block font-bold">🛵 {tr("Livraison", "Delivery")}</span>
+                        <span className="text-[10px] text-arctic-500">{tr("À votre adresse", "To your address")}</span>
                       </button>
                     </div>
 
@@ -1090,7 +1093,7 @@ export default function CatalogClient({
                         {zonesList.length > 0 && (
                           <div>
                             <label className="text-[11px] font-medium text-arctic-700 block mb-1">
-                              Zone de livraison
+                              {tr("Zone de livraison", "Delivery zone")}
                             </label>
                             <select
                               value={selectedZone}
@@ -1108,13 +1111,13 @@ export default function CatalogClient({
 
                         <div>
                           <label className="text-[11px] font-medium text-arctic-700 block mb-1">
-                            Adresse / Quartier de livraison *
+                            {tr("Adresse / Quartier de livraison *", "Delivery address / neighborhood *")}
                           </label>
                           <input
                             required
                             value={deliveryAddress}
                             onChange={(e) => setDeliveryAddress(e.target.value)}
-                            placeholder="Quartier, repère, ville..."
+                            placeholder={tr("Quartier, repère, ville…", "Neighborhood, landmark, city…")}
                             className="input text-xs py-1.5"
                           />
                         </div>
@@ -1124,10 +1127,10 @@ export default function CatalogClient({
                 )}
 
                 <div>
-                  <label className="label">Notes complémentaires (optionnel)</label>
+                  <label className="label">{tr("Notes complémentaires (facultatif)", "Additional notes (optional)")}</label>
                   <textarea
                     className="input min-h-[55px]"
-                    placeholder="Instructions particulières, détails taille ou couleur..."
+                    placeholder={tr("Instructions particulières, taille ou couleur…", "Special instructions, size, or color details…")}
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                   />
@@ -1137,10 +1140,10 @@ export default function CatalogClient({
                 <div className="rounded-xl border border-arctic-400/30 bg-arctic-100/30 p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold text-arctic-800 dark:text-arctic-100 block">
-                      Mode de règlement souhaité *
+                      {tr("Mode de paiement souhaité *", "Preferred payment method *")}
                     </label>
                     <span className="text-[10px] uppercase font-bold text-emerald-600 tracking-wide">
-                      Options flexibles
+                      {tr("Options flexibles", "Flexible options")}
                     </span>
                   </div>
 
@@ -1165,10 +1168,10 @@ export default function CatalogClient({
                         <div>
                           <div className="flex items-center gap-1.5">
                             <span className="text-sm font-bold text-arctic-900 dark:text-white">
-                              💳 FedaPay (Mobile Money & Carte)
+                              💳 {tr("FedaPay (Mobile Money et carte)", "FedaPay (Mobile Money & card)")}
                             </span>
                             <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-600 text-white">
-                              Sandbox Actif
+                              {tr("Mode test actif", "Sandbox active")}
                             </span>
                           </div>
                           <p className="text-[11px] text-arctic-500">
@@ -1177,7 +1180,7 @@ export default function CatalogClient({
                         </div>
                       </div>
                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                        Recommandé
+                        {tr("Recommandé", "Recommended")}
                       </span>
                     </label>
 
@@ -1208,7 +1211,7 @@ export default function CatalogClient({
                             </span>
                           </div>
                           <p className="text-[11px] text-arctic-500">
-                            Togocom Togo — Paiement direct par code USSD
+                            {tr("Togocom Togo — Paiement direct par code USSD", "Togocom Togo — Pay directly using a USSD code")}
                           </p>
                         </div>
                       </div>
@@ -1244,7 +1247,7 @@ export default function CatalogClient({
                             </span>
                           </div>
                           <p className="text-[11px] text-arctic-500">
-                            Moov Africa Togo — Virement mobile money direct
+                            {tr("Moov Africa Togo — Virement Mobile Money direct", "Moov Africa Togo — Direct Mobile Money transfer")}
                           </p>
                         </div>
                       </div>
@@ -1272,10 +1275,10 @@ export default function CatalogClient({
                         />
                         <div>
                           <span className="text-sm font-bold text-arctic-900 dark:text-white block">
-                            ⚡ Paiement en ligne / API
+                            ⚡ {tr("Paiement en ligne / API", "Online payment / API")}
                           </span>
                           <p className="text-[11px] text-arctic-500">
-                            CinetPay, PayGate, Carte bancaire ou Push direct
+                            {tr("CinetPay, PayGate, carte bancaire ou paiement direct", "CinetPay, PayGate, bank card, or direct push")}
                           </p>
                         </div>
                       </div>
@@ -1301,14 +1304,14 @@ export default function CatalogClient({
                         <div>
                           <div className="flex items-center gap-1.5">
                             <span className="text-sm font-bold text-indigo-900 dark:text-indigo-300">
-                              🛡️ Paiement Garanti WEscrow
+                              🛡️ {tr("Paiement garanti WEscrow", "WEscrow protected payment")}
                             </span>
                             <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-700">
                               Safe Hands
                             </span>
                           </div>
                           <p className="text-[11px] text-arctic-500">
-                            Fonds sous séquestre jusqu&apos;à réception confirmée
+                            {tr("Fonds conservés jusqu’à confirmation de réception", "Funds held until receipt is confirmed")}
                           </p>
                         </div>
                       </div>
@@ -1333,10 +1336,10 @@ export default function CatalogClient({
                         />
                         <div>
                           <span className="text-sm font-bold text-arctic-900 dark:text-white block">
-                            💵 Espèces / Remise en main propre
+                            💵 {tr("Espèces / Remise en main propre", "Cash / In-person handoff")}
                           </span>
                           <p className="text-[11px] text-arctic-500">
-                            Paiement à la livraison ou lors du retrait
+                            {tr("Paiement à la livraison ou lors du retrait", "Pay on delivery or pickup")}
                           </p>
                         </div>
                       </div>
@@ -1346,17 +1349,17 @@ export default function CatalogClient({
 
                 <div className="space-y-1 border-t border-arctic-400/30 pt-2.5 text-xs">
                   <div className="flex items-center justify-between text-arctic-600">
-                    <span>Sous-total articles</span>
+                    <span>{tr("Sous-total des articles", "Items subtotal")}</span>
                     <span>{formatConvertedPrice(total, currency, displayCurrency).primary}</span>
                   </div>
                   {deliveryFee > 0 && (
                     <div className="flex items-center justify-between text-arctic-600">
-                      <span>Frais de livraison</span>
+                      <span>{tr("Frais de livraison", "Delivery fee")}</span>
                       <span>+{formatConvertedPrice(deliveryFee, currency, displayCurrency).primary}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between font-bold text-arctic-900 text-base pt-1">
-                    <span>Total à payer</span>
+                    <span>{tr("Total à payer", "Total due")}</span>
                     <div className="text-right">
                       <span>{formatConvertedPrice(grandTotal, currency, displayCurrency).primary}</span>
                       {displayCurrency !== currency && (
@@ -1374,10 +1377,10 @@ export default function CatalogClient({
 
                 <div className="flex gap-2 pt-1">
                   <button type="button" onClick={() => setStep("cart")} className="btn-ghost flex-1">
-                    Retour
+                    {tr("Retour", "Back")}
                   </button>
                   <button className="btn-primary flex-1" disabled={submitting}>
-                    {submitting ? "Validation…" : "Confirmer la commande"}
+                    {submitting ? tr("Validation…", "Submitting…") : tr("Confirmer la commande", "Place order")}
                   </button>
                 </div>
               </form>
@@ -1403,14 +1406,14 @@ export default function CatalogClient({
                   </div>
                   <div>
                     <h3 className="font-bold text-arctic-900 text-lg">
-                      Merci pour votre commande, {customerName || "cher client"} !
+                      {tr(`Merci pour votre commande, ${customerName || "cher client"} !`, `Thank you for your order, ${customerName || "customer"}!`)}
                     </h3>
                     <p className="mt-1 text-sm text-arctic-600">
-                      Votre commande a bien été enregistrée chez <strong>{shopName}</strong>.
-                      {customerEmail ? " Un email récapitulatif vous a été envoyé." : ""}
+                      {tr("Votre commande a bien été enregistrée chez", "Your order has been placed with")} <strong>{shopName}</strong>.
+                      {customerEmail ? ` ${tr("Un email récapitulatif vous a été envoyé.", "A confirmation email has been sent.")}` : ""}
                     </p>
                     <p className="mt-1 text-xs text-arctic-500 font-mono">
-                      Réf : #{placedSummary.orderId.slice(0, 8)}
+                      {tr("Référence", "Ref.")} : #{placedSummary.orderId.slice(0, 8)}
                     </p>
                   </div>
 
@@ -1424,10 +1427,10 @@ export default function CatalogClient({
                           </span>
                           <div>
                             <h4 className="text-sm font-bold text-arctic-900 dark:text-white">
-                              Paiement {placedSummary.paymentMethod === "tmoney" ? "T-Money (Togocom)" : "Flooz (Moov Africa)"}
+                              {tr("Paiement", "Payment")} {placedSummary.paymentMethod === "tmoney" ? "T-Money (Togocom)" : "Flooz (Moov Africa)"}
                             </h4>
                             <span className="text-[11px] font-mono text-arctic-500">
-                              Code USSD : {ussdCode}
+                              {tr("Code USSD", "USSD code")} : {ussdCode}
                             </span>
                           </div>
                         </div>
@@ -1438,9 +1441,9 @@ export default function CatalogClient({
 
                       <dl className="space-y-2 text-xs">
                         <div className="flex items-center justify-between">
-                          <dt className="text-arctic-500">Numéro du vendeur :</dt>
+                          <dt className="text-arctic-500">{tr("Numéro du vendeur :", "Seller's number:")}</dt>
                           <dd className="flex items-center gap-1.5 font-bold text-arctic-900 dark:text-white">
-                            <span>{effectivePayee || "Non renseigné"}</span>
+                            <span>{effectivePayee || tr("Non renseigné", "Not provided")}</span>
                             {effectivePayee && (
                               <button
                                 type="button"
@@ -1453,13 +1456,13 @@ export default function CatalogClient({
                                 }}
                                 className="px-2 py-0.5 rounded border border-arctic-300 text-[10px] font-semibold hover:bg-arctic-200"
                               >
-                                {copiedMomo ? "Copié !" : "Copier"}
+                                {copiedMomo ? tr("Copié !", "Copied!") : tr("Copier", "Copy")}
                               </button>
                             )}
                           </dd>
                         </div>
                         <div className="flex items-center justify-between">
-                          <dt className="text-arctic-500">Montant exact :</dt>
+                          <dt className="text-arctic-500">{tr("Montant exact :", "Exact amount:")}</dt>
                           <dd className="flex items-center gap-1.5 font-bold text-emerald-600">
                             <span>{formatMoney(placedSummary.totalCents, currency)}</span>
                             <button
@@ -1473,7 +1476,7 @@ export default function CatalogClient({
                               }}
                               className="px-2 py-0.5 rounded border border-arctic-300 text-[10px] font-semibold hover:bg-arctic-200"
                             >
-                              {copiedAmount ? "Copié !" : "Copier"}
+                              {copiedAmount ? tr("Copié !", "Copied!") : tr("Copier", "Copy")}
                             </button>
                           </dd>
                         </div>
@@ -1486,38 +1489,38 @@ export default function CatalogClient({
                             href={telHref(directCode)}
                             className="btn-primary w-full justify-center gap-1.5 text-xs py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
                           >
-                            <Glyph name="phone" size={14} /> Composer le code direct ({directCode})
+                            <Glyph name="phone" size={14} /> {tr("Composer le code direct", "Dial direct code")} ({directCode})
                           </a>
                         )}
                         <a
                           href={telHref(ussdCode)}
                           className="btn-ghost w-full justify-center gap-1.5 text-xs py-1.5 border border-arctic-300 font-medium"
                         >
-                          <Glyph name="phone" size={13} /> Composer le menu standard ({ussdCode})
+                          <Glyph name="phone" size={13} /> {tr("Composer le menu standard", "Dial standard menu")} ({ussdCode})
                         </a>
                       </div>
 
                       {/* Instructions pas à pas */}
                       <details className="mt-2.5 text-xs text-arctic-600">
                         <summary className="cursor-pointer font-semibold hover:text-arctic-900 py-1">
-                          Instructions détaillées pas à pas
+                          {tr("Instructions détaillées étape par étape", "Detailed step-by-step instructions")}
                         </summary>
                         <ol className="mt-1.5 space-y-1 pl-4 list-decimal text-[11px] text-arctic-700 dark:text-arctic-300">
                           {placedSummary.paymentMethod === "tmoney" ? (
                             <>
-                              <li>Composez *145# sur votre ligne Togocel / T-Money</li>
-                              <li>Choisissez l&apos;option 1 « Transfert d&apos;argent »</li>
-                              <li>Entrez le numéro du vendeur : {effectivePayee}</li>
-                              <li>Entrez le montant : {formatMoney(placedSummary.totalCents, currency)}</li>
-                              <li>Entrez votre code secret T-Money pour valider</li>
+                              <li>{tr("Composez *145# sur votre ligne Togocel / T-Money", "Dial *145# on your Togocel / T-Money line")}</li>
+                              <li>{tr("Choisissez l’option 1 « Transfert d’argent »", "Choose option 1, “Money transfer”")}</li>
+                              <li>{tr("Entrez le numéro du vendeur :", "Enter the seller's number:")} {effectivePayee}</li>
+                              <li>{tr("Entrez le montant :", "Enter the amount:")} {formatMoney(placedSummary.totalCents, currency)}</li>
+                              <li>{tr("Entrez votre code secret T-Money pour valider", "Enter your T-Money PIN to confirm")}</li>
                             </>
                           ) : (
                             <>
-                              <li>Composez *155# sur votre ligne Moov Africa / Flooz</li>
-                              <li>Choisissez l&apos;option 1 « Transfert d&apos;argent »</li>
-                              <li>Entrez le numéro Moov du vendeur : {effectivePayee}</li>
-                              <li>Entrez le montant : {formatMoney(placedSummary.totalCents, currency)}</li>
-                              <li>Confirmez avec votre code PIN secret Flooz</li>
+                              <li>{tr("Composez *155# sur votre ligne Moov Africa / Flooz", "Dial *155# on your Moov Africa / Flooz line")}</li>
+                              <li>{tr("Choisissez l’option 1 « Transfert d’argent »", "Choose option 1, “Money transfer”")}</li>
+                              <li>{tr("Entrez le numéro Moov du vendeur :", "Enter the seller's Moov number:")} {effectivePayee}</li>
+                              <li>{tr("Entrez le montant :", "Enter the amount:")} {formatMoney(placedSummary.totalCents, currency)}</li>
+                              <li>{tr("Confirmez avec votre code PIN secret Flooz", "Confirm using your Flooz PIN")}</li>
                             </>
                           )}
                         </ol>
@@ -1529,14 +1532,14 @@ export default function CatalogClient({
                   <div className="rounded-xl border-2 border-emerald-500/80 bg-emerald-50/70 p-3.5 text-left space-y-2.5 shadow-xs">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
-                        <span>💳</span> Règlement instantané FedaPay
+                        <span>💳</span> {tr("Paiement instantané FedaPay", "Instant FedaPay payment")}
                       </span>
                       <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
                         Sandbox
                       </span>
                     </div>
                     <p className="text-[11px] text-arctic-700">
-                      Payez votre commande de <strong>{formatMoney(placedSummary.totalCents, currency)}</strong> maintenant par T-Money, Flooz, Mobile Money ou Carte et recevez votre reçu sur WhatsApp.
+                      {tr("Payez votre commande de", "Pay for your order of")} <strong>{formatMoney(placedSummary.totalCents, currency)}</strong> {tr("maintenant par T-Money, Flooz, Mobile Money ou carte et recevez votre reçu sur WhatsApp.", "now using T-Money, Flooz, Mobile Money, or card and receive your receipt on WhatsApp.")}
                     </p>
                     <button
                       type="button"
@@ -1566,8 +1569,8 @@ export default function CatalogClient({
                       className="btn-primary w-full justify-center gap-2 py-3 !bg-emerald-600 hover:!bg-emerald-700 !text-white text-sm font-bold shadow-md"
                     >
                       {launchingFeda
-                        ? "Ouverture de FedaPay Sandbox…"
-                        : `💳 Payer ${formatMoney(placedSummary.totalCents, currency)} avec FedaPay →`}
+                        ? tr("Ouverture de FedaPay Sandbox…", "Opening FedaPay Sandbox…")
+                        : `💳 ${tr("Payer", "Pay")} ${formatMoney(placedSummary.totalCents, currency)} ${tr("avec FedaPay", "with FedaPay")} →`}
                     </button>
                   </div>
 
@@ -1579,7 +1582,7 @@ export default function CatalogClient({
                       rel="noreferrer"
                       className="btn-ghost w-full justify-center gap-2 py-2.5 border border-emerald-600 text-emerald-800 hover:bg-emerald-50 text-xs font-bold"
                     >
-                      <Glyph name="chat" size={16} /> Confirmer aussi sur WhatsApp 💬
+                      <Glyph name="chat" size={16} /> {tr("Confirmer aussi sur WhatsApp", "Also confirm on WhatsApp")} 💬
                     </a>
                   )}
 
@@ -1588,7 +1591,7 @@ export default function CatalogClient({
                     href={`/pay/${placedSummary.orderId}`}
                     className="btn-ghost w-full justify-center gap-1.5 py-2.5 border border-arctic-300/80 text-xs font-semibold"
                   >
-                    <Glyph name="phone" size={15} /> Voir toutes les options de paiement (WEscrow, etc.)
+                    <Glyph name="phone" size={15} /> {tr("Voir toutes les options de paiement (WEscrow, etc.)", "See all payment options (WEscrow, etc.)")}
                   </a>
 
                   <button
@@ -1598,7 +1601,7 @@ export default function CatalogClient({
                     }}
                     className="btn-ghost w-full text-xs text-arctic-500"
                   >
-                    Continuer mes achats
+                    {tr("Continuer mes achats", "Continue shopping")}
                   </button>
                 </div>
               );
@@ -1668,6 +1671,7 @@ function ProductCard({
   onClickPreview: () => void;
   waMeOrderLink: ((size: string) => string) | null;
 }) {
+  const { tr } = usePublicLang();
   const sizes = parseSizes(p.sizes);
   const [size, setSize] = useState(sizes[0] ?? "");
   const [qty, setQty] = useState(1);
@@ -1705,12 +1709,12 @@ function ProductCard({
           )}
           {isNew && (
             <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-bold text-white shadow-xs">
-              Nouveau
+              {tr("Nouveau", "New")}
             </span>
           )}
           {p.condition && p.condition !== "new" && (
             <span className="rounded-full bg-arctic-900/80 px-2 py-0.5 text-[11px] font-semibold capitalize text-white backdrop-blur">
-              {p.condition === "used" ? "Occasion" : "Reconditionné"}
+              {p.condition === "used" ? tr("Occasion", "Used") : tr("Reconditionné", "Refurbished")}
             </span>
           )}
         </div>
@@ -1718,13 +1722,13 @@ function ProductCard({
         {outOfStock && (
           <div className="absolute inset-0 grid place-items-center bg-arctic-900/60 backdrop-blur-xs">
             <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-arctic-900 shadow">
-              Épuisé
+              {tr("Épuisé", "Sold out")}
             </span>
           </div>
         )}
         {!outOfStock && p.stock <= 3 && (
           <span className="absolute right-2 top-2 rounded-full bg-amber-500 px-2 py-0.5 text-[11px] font-semibold text-white shadow-xs">
-            Plus que {p.stock}
+            {tr("Plus que", "Only")} {p.stock}
           </span>
         )}
       </div>
@@ -1755,7 +1759,7 @@ function ProductCard({
 
         {sizes.length > 0 && (
           <div>
-            <label className="label !mb-1 !text-xs">Taille / Variante</label>
+            <label className="label !mb-1 !text-xs">{tr("Taille / Variante", "Size / Variant")}</label>
             <select
               className="input !py-1 text-xs"
               value={size}
@@ -1797,7 +1801,7 @@ function ProductCard({
             disabled={outOfStock}
             className="btn-primary flex-1 !py-1.5 text-xs"
           >
-            {outOfStock ? "Indisponible" : "Ajouter au panier"}
+            {outOfStock ? tr("Indisponible", "Unavailable") : tr("Ajouter au panier", "Add to cart")}
           </button>
         </div>
 
@@ -1808,7 +1812,7 @@ function ProductCard({
             rel="noreferrer"
             className="inline-flex w-full items-center justify-center gap-1 text-center text-[11px] font-medium text-brand-dark hover:underline pt-0.5"
           >
-            <Glyph name="chat" size={12} /> Commander sur WhatsApp
+            <Glyph name="chat" size={12} /> {tr("Commander sur WhatsApp", "Order on WhatsApp")}
           </a>
         )}
       </div>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatMoney } from "@/lib/utils";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 type TransactionRow = {
   id: string;
@@ -64,6 +65,7 @@ export default function MoneyDashboardClient({
   queryStatus?: { ok?: string; canceled?: string; ref?: string };
 }) {
   const router = useRouter();
+  const { tr, locale } = usePublicLang();
   const [fedaConfig, setFedaConfig] = useState<FedaPayConfigState>(initialFedaConfig);
   const [savingConfig, setSavingConfig] = useState(false);
   const [configMsg, setConfigMsg] = useState("");
@@ -98,14 +100,14 @@ export default function MoneyDashboardClient({
       const data = await res.json().catch(() => ({}));
       setSavingConfig(false);
       if (res.ok) {
-        setConfigMsg("✓ Configuration API FedaPay enregistrée avec succès !");
+        setConfigMsg(tr("✓ Configuration API FedaPay enregistrée avec succès !", "✓ FedaPay API configuration saved successfully!"));
         router.refresh();
       } else {
-        setConfigMsg(`⚠️ ${data.error || "Erreur lors de la sauvegarde."}`);
+        setConfigMsg(`⚠️ ${data.error || tr("Erreur lors de la sauvegarde.", "Could not save settings.")}`);
       }
     } catch {
       setSavingConfig(false);
-      setConfigMsg("⚠️ Erreur réseau lors de la sauvegarde.");
+      setConfigMsg(tr("⚠️ Erreur réseau lors de la sauvegarde.", "⚠️ Network error while saving settings."));
     }
   }
 
@@ -130,10 +132,10 @@ export default function MoneyDashboardClient({
         return;
       }
       setLaunchingTest(false);
-      alert(data.error || "Impossible de lancer le test FedaPay.");
+      alert(data.error || tr("Impossible de lancer le test FedaPay.", "Could not start the FedaPay test."));
     } catch {
       setLaunchingTest(false);
-      alert("Erreur réseau.");
+      alert(tr("Erreur réseau.", "Network error."));
     }
   }
 
@@ -164,25 +166,28 @@ export default function MoneyDashboardClient({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="a-headline-md text-arctic-900">Japora Money × FedaPay</h1>
+            <h1 className="a-headline-md text-arctic-900">{tr("Japora Money × FedaPay", "Japora Money × FedaPay")}</h1>
             <span className="rounded-full bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
-              ● {fedaConfig.environment === "live" ? "FedaPay Live" : "FedaPay Sandbox Actif"}
+              ● {fedaConfig.environment === "live" ? "FedaPay Live" : tr("FedaPay Sandbox actif", "FedaPay Sandbox active")}
             </span>
           </div>
           <p className="text-sm text-arctic-600 mt-1">
-            Gérez vos encaissements Mobile Money & Carte via FedaPay, vos liens de paiement WhatsApp Cloud API et votre portefeuille marchand.
+            {tr(
+              "Gérez vos encaissements Mobile Money et carte via FedaPay, vos liens de paiement WhatsApp et votre portefeuille marchand.",
+              "Manage Mobile Money and card payments through FedaPay, WhatsApp payment links and your merchant wallet.",
+            )}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <Link href="/dashboard/payment-links" className="btn-ghost text-xs">
-            🔗 Liens de paiement WhatsApp
+            🔗 {tr("Liens de paiement WhatsApp", "WhatsApp payment links")}
           </Link>
           <Link href="/dashboard/receivables" className="btn-ghost text-xs">
-            📒 Créances & Relances
+            📒 {tr("Créances et relances", "Receivables & reminders")}
           </Link>
           <Link href={`/c/${shopSlug}`} target="_blank" className="btn-primary text-xs">
-            🛍️ Tester le panier boutique ↗
+            🛍️ {tr("Tester le panier boutique", "Test shop checkout")} ↗
           </Link>
         </div>
       </div>
@@ -191,20 +196,20 @@ export default function MoneyDashboardClient({
       {queryStatus?.ok === "1" && (
         <div className="rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm text-emerald-950 flex items-center justify-between gap-3 shadow-sm">
           <div>
-            <strong className="font-bold">✅ Paiement FedaPay Sandbox confirmé !</strong>
+            <strong className="font-bold">{tr("✅ Paiement FedaPay Sandbox confirmé !", "✅ FedaPay Sandbox payment confirmed!")}</strong>
             <p className="text-xs text-emerald-800 mt-0.5">
-              La transaction {queryStatus.ref ? `(${queryStatus.ref})` : ""} a été réglée et ajoutée à votre journal financier.
+              {tr("La transaction", "Transaction")} {queryStatus.ref ? `(${queryStatus.ref})` : ""} {tr("a été réglée et ajoutée à votre journal financier.", "was paid and added to your financial log.")}
             </p>
           </div>
           <Link href="/dashboard/billing" className="text-xs font-semibold text-emerald-900 underline">
-            Fermer
+            {tr("Fermer", "Close")}
           </Link>
         </div>
       )}
 
       {queryStatus?.canceled === "1" && (
         <div className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-3.5 text-sm text-amber-900">
-          ⚠️ La transaction de test a été annulée ou refusée en mode Sandbox.
+          {tr("⚠️ La transaction de test a été annulée ou refusée en mode Sandbox.", "⚠️ The test transaction was cancelled or declined in Sandbox mode.")}
         </div>
       )}
 
@@ -212,25 +217,25 @@ export default function MoneyDashboardClient({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="card p-5 border-l-4 border-l-emerald-500">
           <div className="text-xs font-semibold uppercase tracking-wider text-arctic-500">
-            Total Encaissé
+            {tr("Total encaissé", "Total collected")}
           </div>
           <div className="mt-2 text-2xl font-extrabold text-emerald-700">
             {formatMoney(stats.totalCollectedCents, currency)}
           </div>
           <div className="mt-1 text-xs text-arctic-500">
-            {stats.paidOrdersCount} commande(s) + {stats.paidLinksCount} lien(s) payé(s)
+            {stats.paidOrdersCount} {tr("commande(s)", "order(s)")} + {stats.paidLinksCount} {tr("lien(s) payé(s)", "paid link(s)")}
           </div>
         </div>
 
         <div className="card p-5 border-l-4 border-l-amber-500">
           <div className="text-xs font-semibold uppercase tracking-wider text-arctic-500">
-            En Attente d&apos;Encaissement
+            {tr("En attente d’encaissement", "Pending collection")}
           </div>
           <div className="mt-2 text-2xl font-extrabold text-amber-700">
             {formatMoney(stats.pendingCents, currency)}
           </div>
           <div className="mt-1 text-xs text-arctic-500">
-            Commandes & liens non réglés
+            {tr("Commandes et liens non réglés", "Unpaid orders & links")}
           </div>
         </div>
 
@@ -239,7 +244,7 @@ export default function MoneyDashboardClient({
             Transactions FedaPay
           </div>
           <div className="mt-2 text-2xl font-extrabold text-arctic-900">
-            {stats.fedaSuccessCount} réussie{stats.fedaSuccessCount > 1 ? "s" : ""}
+            {stats.fedaSuccessCount} {tr(stats.fedaSuccessCount > 1 ? "réussites" : "réussite", stats.fedaSuccessCount > 1 ? "successful" : "successful")}
           </div>
           <div className="mt-1 text-xs text-arctic-500">
             T-Money, Flooz, MoMo & Carte
@@ -249,7 +254,7 @@ export default function MoneyDashboardClient({
         <div className="card p-5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-arctic-500">
-              Commission ce mois
+              {tr("Commission ce mois", "Commission this month")}
             </span>
             <span className="rounded-full bg-arctic-200/70 px-2 py-0.5 text-[10px] font-bold text-arctic-700">
               {(stats.commissionPct * 100).toFixed(1)}%
@@ -259,7 +264,7 @@ export default function MoneyDashboardClient({
             {formatMoney(stats.commissionCents, currency)}
           </div>
           <div className="mt-1 text-xs text-arctic-500">
-            Prélevée uniquement sur ventes encaissées
+            {tr("Prélevée uniquement sur les ventes encaissées", "Charged only on collected sales")}
           </div>
         </div>
       </div>
@@ -271,10 +276,10 @@ export default function MoneyDashboardClient({
           <div className="flex items-start justify-between gap-3 border-b border-arctic-200 pb-3">
             <div>
               <h2 className="text-base font-bold text-arctic-900 flex items-center gap-2">
-                <span>⚡</span> Configuration API FedaPay (Sandbox / Live)
+                <span>⚡</span> {tr("Configuration API FedaPay (Sandbox / Live)", "FedaPay API configuration (Sandbox / Live)")}
               </h2>
               <p className="text-xs text-arctic-600 mt-0.5">
-                Connectez vos clés API FedaPay ou utilisez directement le simulateur Sandbox intégré pour vos tests de bout en bout.
+                {tr("Connectez vos clés API FedaPay ou utilisez le simulateur Sandbox pour vos tests de bout en bout.", "Connect your FedaPay API keys or use the built-in Sandbox simulator for end-to-end testing.")}
               </p>
             </div>
             <div className="flex rounded-lg border border-arctic-300/60 bg-arctic-100 p-0.5 text-xs font-semibold">
@@ -306,7 +311,7 @@ export default function MoneyDashboardClient({
           <form onSubmit={handleSaveFedaConfig} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="label">Clé Publique FedaPay (Public Key)</label>
+                <label className="label">{tr("Clé publique FedaPay", "FedaPay public key")}</label>
                 <input
                   type="text"
                   className="input font-mono text-xs"
@@ -321,13 +326,13 @@ export default function MoneyDashboardClient({
               </div>
 
               <div>
-                <label className="label">Clé Secrète FedaPay (Secret Key)</label>
+                <label className="label">{tr("Clé secrète FedaPay", "FedaPay secret key")}</label>
                 <input
                   type="password"
                   className="input font-mono text-xs"
                   placeholder={
                     fedaConfig.environment === "sandbox"
-                      ? "sk_sandbox_... (optionnel en démo)"
+                      ? `sk_sandbox_... (${tr("facultatif en démo", "optional in demo")})`
                       : "sk_live_..."
                   }
                   value={fedaConfig.secretKey}
@@ -339,7 +344,7 @@ export default function MoneyDashboardClient({
             <div className="rounded-xl border border-arctic-300/60 bg-arctic-50 p-3 text-xs space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-arctic-800">
-                  URL de Webhook FedaPay (Notifications instantanées) :
+                  {tr("URL du webhook FedaPay (notifications instantanées) :", "FedaPay webhook URL (instant notifications):")}
                 </span>
                 <button
                   type="button"
@@ -350,15 +355,15 @@ export default function MoneyDashboardClient({
                   }}
                   className="font-semibold text-brand-dark hover:underline"
                 >
-                  {copiedWebhook ? "✓ Copié !" : "📋 Copier"}
+                  {copiedWebhook ? `✓ ${tr("Copié !", "Copied!")}` : `📋 ${tr("Copier", "Copy")}`}
                 </button>
               </div>
               <div className="font-mono text-[11px] text-arctic-600 truncate bg-white px-2.5 py-1.5 rounded border border-arctic-200">
                 {webhookUrl}
               </div>
               <p className="text-[11px] text-arctic-500">
-                Intégré sur votre boutique <strong>{shopName}</strong> (panier, validation de commande et liens de paiement WhatsApp). Numéro de reversement :{" "}
-                <strong>{momoNumber || whatsappNumber || "Non renseigné"}</strong>.
+                {tr("Intégré sur votre boutique", "Integrated with your shop")} <strong>{shopName}</strong> ({tr("panier, validation de commande et liens de paiement WhatsApp. Numéro de reversement :", "checkout, order confirmation and WhatsApp payment links. Payout number:")}{" "}
+                <strong>{momoNumber || whatsappNumber || tr("Non renseigné", "Not provided")}</strong>.
               </p>
             </div>
 
@@ -370,11 +375,11 @@ export default function MoneyDashboardClient({
 
             <div className="flex items-center justify-between pt-1">
               <span className="text-xs text-arctic-500">
-                Mode actif :{" "}
+                {tr("Mode actif", "Active mode")}:{" "}
                 <strong className="text-emerald-700 uppercase">{fedaConfig.environment}</strong>
               </span>
               <button type="submit" disabled={savingConfig} className="btn-primary text-xs">
-                {savingConfig ? "Enregistrement…" : "Enregistrer la configuration FedaPay"}
+                {savingConfig ? tr("Enregistrement…", "Saving…") : tr("Enregistrer la configuration FedaPay", "Save FedaPay settings")}
               </button>
             </div>
           </form>
@@ -385,24 +390,27 @@ export default function MoneyDashboardClient({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 px-3 py-1 text-xs font-bold text-emerald-300">
-                🧪 Simulateur FedaPay Sandbox
+                🧪 {tr("Simulateur FedaPay Sandbox", "FedaPay Sandbox simulator")}
               </span>
               <span className="text-xs font-mono text-slate-400">API v1</span>
             </div>
 
             <div>
               <h3 className="text-lg font-bold text-white">
-                Tester un encaissement maintenant
+                {tr("Tester un encaissement maintenant", "Test a payment now")}
               </h3>
               <p className="text-xs text-slate-300 mt-1">
-                Lancez une transaction de test pour vérifier le tunnel complet FedaPay (T-Money, Flooz, MTN MoMo, Carte) et la réception de notification WhatsApp Cloud API.
+                {tr(
+                  "Lancez une transaction de test pour vérifier le parcours FedaPay et la réception des notifications WhatsApp.",
+                  "Run a test transaction to verify the FedaPay checkout and WhatsApp notifications.",
+                )}
               </p>
             </div>
 
             <div className="space-y-3 pt-1">
               <div>
                 <label className="block text-xs font-semibold text-emerald-200 mb-1">
-                  Montant du test ({currency})
+                  {tr("Montant du test", "Test amount")} ({currency})
                 </label>
                 <input
                   type="text"
@@ -414,7 +422,7 @@ export default function MoneyDashboardClient({
 
               <div>
                 <label className="block text-xs font-semibold text-emerald-200 mb-1">
-                  Motif de la transaction
+                  {tr("Motif de la transaction", "Transaction description")}
                 </label>
                 <input
                   type="text"
@@ -434,11 +442,11 @@ export default function MoneyDashboardClient({
               className="w-full rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm py-3 px-4 shadow-lg transition disabled:opacity-50"
             >
               {launchingTest
-                ? "Ouverture de FedaPay Sandbox…"
-                : "💳 Lancer le paiement test FedaPay →"}
+                ? tr("Ouverture de FedaPay Sandbox…", "Opening FedaPay Sandbox…")
+                : `💳 ${tr("Lancer le paiement test FedaPay", "Start FedaPay test payment")} →`}
             </button>
             <p className="text-[11px] text-center text-slate-400">
-              Aucun débit réel en mode Sandbox · Confirmation instantanée
+              {tr("Aucun débit réel en mode Sandbox · Confirmation instantanée", "No real charge in Sandbox mode · Instant confirmation")}
             </p>
           </div>
         </div>
@@ -449,14 +457,14 @@ export default function MoneyDashboardClient({
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-arctic-200 px-6 py-4">
           <div>
             <h2 className="text-base font-bold text-arctic-900">
-              Journal des Transactions (FedaPay & Mobile Money)
+              {tr("Journal des transactions (FedaPay et Mobile Money)", "Transaction ledger (FedaPay & Mobile Money)")}
             </h2>
             <p className="text-xs text-arctic-500">
-              Historique en temps réel des paiements du panier boutique, des liens WhatsApp et des tests Sandbox.
+              {tr("Historique des paiements du panier boutique, des liens WhatsApp et des tests Sandbox.", "Payment history for shop checkout, WhatsApp links and Sandbox tests.")}
             </p>
           </div>
           <span className="rounded-full bg-arctic-100 px-3 py-1 text-xs font-semibold text-arctic-700">
-            {transactions.length} transaction{transactions.length > 1 ? "s" : ""}
+            {transactions.length} {tr(transactions.length === 1 ? "transaction" : "transactions", transactions.length === 1 ? "transaction" : "transactions")}
           </span>
         </div>
 
@@ -464,10 +472,10 @@ export default function MoneyDashboardClient({
           <div className="p-10 text-center text-arctic-500 space-y-2">
             <div className="text-3xl">💳</div>
             <p className="text-sm font-semibold text-arctic-800">
-              Aucune transaction enregistrée pour le moment
+              {tr("Aucune transaction enregistrée pour le moment", "No transactions recorded yet")}
             </p>
             <p className="text-xs max-w-md mx-auto">
-              Utilisez le bouton &laquo; Lancer le paiement test FedaPay &raquo; ci-dessus ou passez une commande sur votre boutique pour voir les transactions apparaître ici.
+              {tr("Lancez un paiement test FedaPay ou passez une commande dans votre boutique pour voir les transactions ici.", "Run a FedaPay test payment or place an order in your shop to see transactions here.")}
             </p>
           </div>
         ) : (
@@ -475,13 +483,13 @@ export default function MoneyDashboardClient({
             <table className="w-full text-left text-xs">
               <thead className="bg-arctic-50 text-arctic-600 uppercase tracking-wider border-b border-arctic-200">
                 <tr>
-                  <th className="px-5 py-3 font-semibold">Référence</th>
-                  <th className="px-5 py-3 font-semibold">Objet / Client</th>
-                  <th className="px-5 py-3 font-semibold">Moyen (Rail)</th>
-                  <th className="px-5 py-3 font-semibold">Montant</th>
-                  <th className="px-5 py-3 font-semibold">Statut</th>
-                  <th className="px-5 py-3 font-semibold">Date</th>
-                  <th className="px-5 py-3 font-semibold text-right">Action</th>
+                  <th className="px-5 py-3 font-semibold">{tr("Référence", "Reference")}</th>
+                  <th className="px-5 py-3 font-semibold">{tr("Objet / Client", "Description / Customer")}</th>
+                  <th className="px-5 py-3 font-semibold">{tr("Moyen", "Method")}</th>
+                  <th className="px-5 py-3 font-semibold">{tr("Montant", "Amount")}</th>
+                  <th className="px-5 py-3 font-semibold">{tr("Statut", "Status")}</th>
+                  <th className="px-5 py-3 font-semibold">{tr("Date", "Date")}</th>
+                  <th className="px-5 py-3 font-semibold text-right">{tr("Action", "Action")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-arctic-200/60">
@@ -510,20 +518,20 @@ export default function MoneyDashboardClient({
                     <td className="px-5 py-3.5">
                       {tx.status === "succeeded" ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
-                          ✓ Payé
+                          ✓ {tr("Payé", "Paid")}
                         </span>
                       ) : tx.status === "failed" ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-700">
-                          ✕ Échoué
+                          ✕ {tr("Échoué", "Failed")}
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-800">
-                          ⏳ En attente
+                          ⏳ {tr("En attente", "Pending")}
                         </span>
                       )}
                     </td>
                     <td className="px-5 py-3.5 text-arctic-500">
-                      {new Date(tx.createdAt).toLocaleString("fr-FR", {
+                      {new Date(tx.createdAt).toLocaleString(locale === "fr" ? "fr-FR" : "en-US", {
                         day: "2-digit",
                         month: "short",
                         hour: "2-digit",
@@ -536,17 +544,17 @@ export default function MoneyDashboardClient({
                           href={`/pay/fedapay-sandbox/${tx.providerRef}`}
                           className="font-semibold text-brand-dark hover:underline"
                         >
-                          Payer (Sandbox) →
+                          {tr("Payer (Sandbox)", "Pay (Sandbox)")} →
                         </Link>
                       ) : tx.orderId ? (
                         <Link
                           href={`/pay/${tx.orderId}`}
                           className="font-medium text-arctic-600 hover:underline"
                         >
-                          Reçu commande ↗
+                          {tr("Reçu de commande", "Order receipt")} ↗
                         </Link>
                       ) : (
-                        <span className="text-arctic-400">Réglé</span>
+                        <span className="text-arctic-400">{tr("Réglé", "Settled")}</span>
                       )}
                     </td>
                   </tr>
@@ -561,7 +569,7 @@ export default function MoneyDashboardClient({
       <div className="card p-5 flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-bold text-arctic-900">Abonnement Japora Pro</h2>
+            <h2 className="text-sm font-bold text-arctic-900">{tr("Abonnement Japora Pro", "Japora Pro subscription")}</h2>
             <span
               className={
                 "rounded-full px-2.5 py-0.5 text-xs font-semibold " +
@@ -583,10 +591,10 @@ export default function MoneyDashboardClient({
           className="btn-primary text-xs"
         >
           {launchingSub
-            ? "Ouverture FedaPay…"
+            ? tr("Ouverture FedaPay…", "Opening FedaPay…")
             : entitlement.status === "active"
-              ? "Renouveler via FedaPay Sandbox"
-              : "Activer Japora Pro avec FedaPay Sandbox"}
+              ? tr("Renouveler via FedaPay Sandbox", "Renew with FedaPay Sandbox")
+              : tr("Activer Japora Pro avec FedaPay Sandbox", "Activate Japora Pro with FedaPay Sandbox")}
         </button>
       </div>
     </div>

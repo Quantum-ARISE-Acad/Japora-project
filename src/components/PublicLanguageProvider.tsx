@@ -1,8 +1,10 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { PublicLocale } from "@/lib/public-locale";
 
-export type PublicLocale = "fr" | "en";
+export type { PublicLocale } from "@/lib/public-locale";
 
 type LanguageContextType = {
   locale: PublicLocale;
@@ -20,37 +22,51 @@ const LanguageContext = createContext<LanguageContextType>({
 
 const STORAGE_KEY = "japora-lang";
 
-export function PublicLanguageProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<PublicLocale>("fr");
+export function PublicLanguageProvider({
+  children,
+  initialLocale = "fr",
+}: {
+  children: React.ReactNode;
+  initialLocale?: PublicLocale;
+}) {
+  const [locale, setLocaleState] = useState<PublicLocale>(initialLocale);
+  const router = useRouter();
 
   useEffect(() => {
+    let saved: PublicLocale | null = null;
+    const match = document.cookie.match(/(?:^|;\s*)japora-lang=(fr|en)/);
+    if (match && (match[1] === "fr" || match[1] === "en")) {
+      saved = match[1];
+    }
+
     try {
-      const saved = localStorage.getItem(STORAGE_KEY) as PublicLocale | null;
-      if (saved === "fr" || saved === "en") {
-        setLocaleState(saved);
-        document.documentElement.lang = saved;
-        return;
-      }
-      // Match cookie if present
-      const match = document.cookie.match(/(?:^|;\s*)japora-lang=(fr|en)/);
-      if (match && (match[1] === "fr" || match[1] === "en")) {
-        setLocaleState(match[1]);
-        document.documentElement.lang = match[1];
+      if (!saved) {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored === "fr" || stored === "en") {
+          saved = stored;
+        }
       }
     } catch {
-      // ignore storage errors
+      // Cookie preference remains available when local storage is blocked.
     }
-  }, []);
+
+    if (saved && saved !== initialLocale) {
+      setLocaleState(saved);
+    }
+    document.documentElement.lang = saved ?? initialLocale;
+  }, [initialLocale]);
 
   const setLocale = (lang: PublicLocale) => {
+    if (lang === locale) return;
     setLocaleState(lang);
     try {
       localStorage.setItem(STORAGE_KEY, lang);
-      document.cookie = `${STORAGE_KEY}=${lang}; path=/; max-age=31536000; SameSite=Lax`;
-      document.documentElement.lang = lang;
     } catch {
-      // ignore
+      // The cookie remains the cross-route source of truth.
     }
+    document.cookie = `${STORAGE_KEY}=${lang}; path=/; max-age=31536000; SameSite=Lax`;
+    document.documentElement.lang = lang;
+    router.refresh();
   };
 
   const toggleLocale = () => {
@@ -79,7 +95,7 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
     <div
       className={`inline-flex items-center rounded-shape-full border border-arctic-300/70 bg-white/80 p-0.5 text-xs font-semibold shadow-xs backdrop-blur-sm ${className}`}
       role="group"
-      aria-label="Language switcher / Sélecteur de langue"
+      aria-label={locale === "fr" ? "Sélecteur de langue" : "Language selector"}
     >
       <button
         type="button"
