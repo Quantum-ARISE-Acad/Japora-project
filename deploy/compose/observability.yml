@@ -43,6 +43,9 @@ services:
       - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
+    # Accès sans passer par Internet, par un tunnel SSH : ssh -L 3000:127.0.0.1:3000 <serveur>
+    ports:
+      - "127.0.0.1:${GRAFANA_LOCAL_PORT:-3000}:3000"
     networks: [edge, monitoring]
     security_opt: ["no-new-privileges:true"]
     mem_limit: 384m

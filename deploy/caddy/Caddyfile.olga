@@ -1,0 +1,24 @@
+# VM sur Olga : le serveur frontal d'Olga reçoit les visiteurs en HTTPS (son certificat,
+# son adresse publique) et les transmet en HTTP à un seul port de la VM.
+# Caddy écoute donc en HTTP simple, sans Let's Encrypt (deploy/mvp.sh init-olga).
+{
+	auto_https off
+	metrics
+	servers {
+		# Seul le proxy d'Olga peut joindre ce port : on garde ses en-têtes X-Forwarded-*
+		# (vraie adresse du visiteur pour les limites de requêtes, https pour les liens).
+		trusted_proxies static private_ranges
+		client_ip_headers X-Forwarded-For
+	}
+}
+
+import /etc/caddy/common.caddy
+
+:80 {
+	import japora
+}
+
+# Métriques internes pour Prometheus : ce port n'est pas publié.
+:9180 {
+	metrics /metrics
+}

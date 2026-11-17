@@ -1,0 +1,42 @@
+# Règles communes aux deux modes (Caddyfile et Caddyfile.olga) : un seul endroit à modifier.
+
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=86400"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+		-X-Powered-By
+	}
+}
+
+(japora) {
+	import security_headers
+	encode zstd gzip
+	request_body {
+		max_size 25MB
+	}
+
+	# Annuaire public qui expose e-mails et téléphones ; ses clients (Soko, WEscrow) sont en pause.
+	handle /api/ecosystem/* {
+		respond 404
+	}
+
+	# Compteurs métier lus par Prometheus sur le réseau interne uniquement.
+	handle /api/metrics* {
+		respond 404
+	}
+
+	# Les photos ajoutées après le démarrage : `next start` ne les servirait pas.
+	# Le CSP empêche un fichier déposé d'exécuter du code sur le domaine.
+	handle /uploads/* {
+		root * /srv/public
+		header Cache-Control "public, max-age=604800"
+		header Content-Security-Policy "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox"
+		file_server
+	}
+
+	handle {
+		reverse_proxy wcatalog:5174
+	}
+}
