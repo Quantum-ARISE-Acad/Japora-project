@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 const PRESETS = [1500, 5000, 15000, 35000, 75000];
 
 export default function PricingCalculator() {
+  const { tr } = usePublicLang();
   const [orderAmountXof, setOrderAmountXof] = useState<number>(15000);
 
   // Compute fee following computeCommissionCents rules:
@@ -24,13 +26,13 @@ export default function PricingCalculator() {
     <div className="glass glass-edge rounded-shape-xl p-6 sm:p-8 shadow-elev-2">
       <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
         <div>
-          <span className="a-eyebrow">Simulateur de Commission en Direct</span>
+          <span className="a-eyebrow">{tr("Simulateur de commission en direct", "Live commission calculator")}</span>
           <h2 className="a-title-lg mt-1 font-display text-arctic-900">
-            Calculez exactement ce que vous gardez sur chaque vente
+            {tr("Calculez exactement ce que vous gardez sur chaque vente", "Calculate exactly what you keep from every sale")}
           </h2>
         </div>
         <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-800">
-          Frais Mobile Money inclus
+          {tr("Frais Mobile Money inclus", "Mobile Money fees included")}
         </span>
       </div>
 
@@ -41,7 +43,7 @@ export default function PricingCalculator() {
             htmlFor="order-amount-range"
             className="text-xs font-semibold text-arctic-700"
           >
-            Montant de la commande client :
+            {tr("Montant de la commande client :", "Customer order amount:")}
           </label>
           <div className="flex flex-wrap gap-1.5">
             {PRESETS.map((p) => (
@@ -73,8 +75,8 @@ export default function PricingCalculator() {
         />
 
         <div className="flex justify-between text-[11px] text-arctic-500">
-          <span>500 FCFA (Petite commande)</span>
-          <span>35 000 FCFA (Seuil du plafond)</span>
+          <span>{tr("500 FCFA (Petite commande)", "500 XOF (Small order)")}</span>
+          <span>{tr("35 000 FCFA (Seuil du plafond)", "35,000 XOF (Cap threshold)")}</span>
           <span>100 000 FCFA</span>
         </div>
       </div>
@@ -82,18 +84,18 @@ export default function PricingCalculator() {
       {/* Results Breakdown */}
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <div className="rounded-shape-lg border border-arctic-200/80 bg-white/80 p-4">
-          <div className="text-xs text-arctic-600">Prix payé par le client</div>
+          <div className="text-xs text-arctic-600">{tr("Prix payé par le client", "Price paid by customer")}</div>
           <div className="a-num mt-1 font-display text-2xl font-bold text-arctic-900">
             {fmt(orderAmountXof)}
           </div>
           <div className="mt-1 text-[11px] text-arctic-500">
-            Via T-Money, Flooz, Wave ou Orange
+            {tr("Via T-Money, Flooz, Wave ou Orange", "Via T-Money, Flooz, Wave, or Orange")}
           </div>
         </div>
 
         <div className="rounded-shape-lg border border-arctic-200/80 bg-white/80 p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-arctic-600">Frais Japora tout compris</span>
+            <span className="text-xs text-arctic-600">{tr("Frais Japora tout compris", "All-in Japora fee")}</span>
             <span className="rounded-full bg-brand/15 px-2 py-0.5 text-[10px] font-bold text-brand-dark">
               {effectivePct}%
             </span>
@@ -103,22 +105,22 @@ export default function PricingCalculator() {
           </div>
           <div className="mt-1 text-[11px] font-medium text-arctic-600">
             {isFreeUnderFloor
-              ? "🎉 0 FCFA sous 2 000 FCFA !"
+              ? tr("🎉 0 FCFA sous 2 000 FCFA !", "🎉 0 XOF under 2,000 XOF!")
               : isCapped
-              ? "🔒 Plafonné au maximum de 1 000 FCFA"
-              : "3% standard (frais opérateur inclus)"}
+              ? tr("🔒 Plafonné au maximum de 1 000 FCFA", "🔒 Capped at 1,000 XOF maximum")
+              : tr("3% standard (frais opérateur inclus)", "Standard 3% (operator fees included)")}
           </div>
         </div>
 
         <div className="rounded-shape-lg border border-emerald-500/35 bg-emerald-500/10 p-4">
           <div className="text-xs font-semibold text-emerald-900">
-            Net reversé au commerçant
+            {tr("Net reversé au commerçant", "Net paid to merchant")}
           </div>
           <div className="a-num mt-1 font-display text-2xl font-extrabold text-emerald-800">
             {fmt(vendorKeepsXof)}
           </div>
           <div className="mt-1 text-[11px] font-medium text-emerald-800">
-            ✓ En mode Starter (paiement direct) : {fmt(orderAmountXof)}
+            ✓ {tr("En mode Starter (paiement direct) :", "With Starter (direct payment):")} {fmt(orderAmountXof)}
           </div>
         </div>
       </div>

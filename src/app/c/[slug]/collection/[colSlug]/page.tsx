@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import CatalogClient from "../../CatalogClient";
+import { getPublicLocale, publicText } from "@/lib/public-locale";
 
 type Params = { params: Promise<{ slug: string; colSlug: string }> };
 
@@ -25,6 +26,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default async function PublicCollectionPage({ params }: Params) {
   const { slug, colSlug } = await params;
+  const locale = await getPublicLocale();
+  const t = (fr: string, en: string) => publicText(fr, en, locale);
 
   const vendor = await prisma.vendor.findUnique({ where: { shopSlug: slug } });
   if (!vendor) notFound();
@@ -56,10 +59,10 @@ export default async function PublicCollectionPage({ params }: Params) {
     <div>
       <div className="bg-gradient-to-r from-brand-dark via-brand to-emerald-700 text-white py-2.5 px-4 text-center text-xs font-medium shadow-xs">
         <span>
-          📁 Collection : <strong className="font-bold">{collection.name}</strong> ({collection.products.length} article{collection.products.length > 1 ? "s" : ""})
+          📁 {t("Collection", "Collection")}: <strong className="font-bold">{collection.name}</strong> ({collection.products.length} {t(collection.products.length > 1 ? "articles" : "article", collection.products.length > 1 ? "items" : "item")})
         </span>
         <Link href={`/c/${vendor.shopSlug}`} className="ml-3 rounded-full bg-white/20 px-2.5 py-0.5 font-semibold hover:bg-white/30 transition">
-          ← Voir toute la boutique
+          ← {t("Voir toute la boutique", "View the whole shop")}
         </Link>
       </div>
 
