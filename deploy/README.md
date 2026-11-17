@@ -7,10 +7,39 @@ Caddy, les sauvegardes et la supervision.
 
 | Module | Fichier | Services |
 |---|---|---|
-| Proxy | `compose/proxy.yml` | Caddy : seul service ouvert sur Internet (80 et 443) |
+| Proxy | `compose/proxy.yml` | Caddy : seul service ouvert sur Internet (80 et 443, ou 8080 sur Olga) |
 | Données | `compose/data.yml` | PostgreSQL, sauvegarde toutes les 6 heures |
 | Application | `compose/app.yml` | Japora, planificateur des tâches |
 | Supervision | `compose/observability.yml` | Prometheus, Grafana, collecteurs de mesures |
+
+## Sur une VM Olga (cas de l'équipe)
+
+Sur Olga, c'est le serveur frontal d'Olga qui reçoit les visiteurs en HTTPS, avec son
+certificat et l'adresse publique qu'il donne (par exemple `https://wataru.quantum-arise.com`).
+Il transmet en HTTP à **un seul port** de la VM. Pas de nom de domaine à acheter, pas
+de Cloudflare, pas de Let's Encrypt : Caddy écoute simplement sur le port 8080
+(`caddy/Caddyfile.olga`). Les sections « Premier déploiement » 1 et 2 ne s'appliquent pas.
+
+```bash
+ssh -J wataru-jump@192.168.105.250 wataru@10.77.0.12
+curl -fsSL https://get.docker.com | sudo sh && sudo usermod -aG docker wataru   # puis se reconnecter
+git clone https://github.com/Quantum-ARISE-Acad/Japora-project.git japora && cd japora
+deploy/mvp.sh init-olga wataru.quantum-arise.com   # adresse provisoire si elle n'est pas encore connue
+# copier .env.keys depuis votre ordinateur (scp), puis :
+deploy/mvp.sh up
+curl -I http://10.77.0.12:8080/                     # doit répondre depuis la VM
+```
+
+Puis demandez à l'administrateur d'Olga de publier le port 8080. Quand il donne
+l'adresse publique : `deploy/mvp.sh set-url <adresse>` puis `deploy/mvp.sh update`
+(l'adresse est inscrite dans Japora à la construction). Déclarez ensuite cette adresse
+dans Meta (webhook WhatsApp) et dans Clerk.
+
+- Grafana n'est pas publié : `ssh -L 3000:127.0.0.1:3000 -J wataru-jump@192.168.105.250 wataru@10.77.0.12`,
+  puis http://localhost:3000 sur votre ordinateur.
+- Olga ne sauvegarde pas la VM : copiez régulièrement `~/japora/backups` sur une autre
+  machine (`scp -r -J wataru-jump@192.168.105.250 wataru@10.77.0.12:japora/backups .`).
+- Pas de vrais clients ni de clients payants sans l'accord de l'administrateur d'Olga.
 
 ## Premier déploiement
 
@@ -142,9 +171,9 @@ Le dépôt reste en SQLite pour le développement, et le serveur utilise Postgre
 Chaque changement de `schema.prisma` doit donc être accompagné d'une migration
 PostgreSQL dans `prisma/migrations/`.
 
-## Photos dans Cloudflare R2 (stockage externe)
+## Photos dans Cloudflare R2 (stockage externe, facultatif)
 
-Par défaut, les photos des produits sont enregistrées sur le serveur. Pour libérer
+Facultatif : il faut un compte Cloudflare, que l'équipe n'a pas encore. Par défaut, les photos des produits sont enregistrées sur le serveur. Pour libérer
 son disque et faire survivre les photos à une panne du serveur, placez-les dans
 Cloudflare R2. Jusqu'à 10 Go, R2 est gratuit et ne facture pas les téléchargements.
 
