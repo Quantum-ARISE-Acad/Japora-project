@@ -2,7 +2,7 @@ import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { parseIntent, __testing } from "../src/lib/bot";
 
-const { levenshtein, tokens, scoreTokens } = __testing;
+const { levenshtein, tokens, scoreTokens, asksOrderProcedure, productInfoLines } = __testing;
 
 describe("parseIntent — multilingual keyword routing", () => {
   test("English greeting", () => {
@@ -23,6 +23,41 @@ describe("parseIntent — multilingual keyword routing", () => {
   });
   test("French price check", () => {
     assert.equal(parseIntent("c'est combien le senateur?").intent, "price_check");
+  });
+  test("French question about the assistant's scope is help, not a product lookup", () => {
+    assert.equal(
+      parseIntent("Tu réponds juste aux questions concernant Japora ou tu réponds à tout genre de question ?").intent,
+      "help",
+    );
+  });
+  test("French order how-to is not an order", () => {
+    assert.equal(parseIntent("Comment lancer une commande ?").intent, "help");
+  });
+  test("non-native English order wording receives the order procedure", () => {
+    const message = "I want to know how to command a product";
+    assert.equal(parseIntent(message).intent, "help");
+    assert.equal(asksOrderProcedure(message), true);
+  });
+  test("common English and French order-procedure phrases are recognized", () => {
+    assert.equal(asksOrderProcedure("How do I place an order?"), true);
+    assert.equal(asksOrderProcedure("Comment faire une commande ?"), true);
+  });
+  test("missing requested size is stated clearly and directs customer to seller", () => {
+    const parsed = parseIntent("Tu connais la taille de DRONE ?");
+    assert.equal(parsed.intent, "price_check");
+    assert.deepEqual(tokens(parsed.productMatches[0]), ["drone"]);
+    const lines = productInfoLines("Tu connais la taille de DRONE ?", {
+      name: "DRONE", sizes: "", description: "Quadcopter",
+    }, true);
+    assert.match(lines[0], /taille de DRONE n'est pas précisée/i);
+    assert.match(lines[0], /contactez le vendeur/i);
+  });
+  test("recorded sizes are returned instead of asking the customer to contact seller", () => {
+    const lines = productInfoLines("What sizes does DRONE have?", {
+      name: "DRONE", sizes: "S, M, L", description: "",
+    }, false);
+    assert.match(lines[0], /S, M, L/);
+    assert.equal(lines.length, 1);
   });
   test("Pidgin order intent", () => {
     assert.equal(parseIntent("I wan buy ankara").intent, "order");

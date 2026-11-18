@@ -134,7 +134,7 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
               >
                 <div
                   className={
-                    "bot-chat-message max-w-[78%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm shadow " +
+                    "bot-chat-message max-w-[78%] whitespace-pre-wrap rounded-lg px-3 py-2 text-[15px] leading-relaxed shadow " +
                     (isCustomer
                       ? "bot-chat-message-customer self-end bg-[#dcf8c6] text-arctic-900 dark:border dark:border-emerald-700 dark:bg-[#174b3a] dark:text-white"
                       : "bot-chat-message-bot border border-arctic-300 bg-white text-arctic-900 dark:border-arctic-600 dark:bg-[#293330] dark:text-arctic-50")

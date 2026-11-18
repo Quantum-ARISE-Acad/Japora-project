@@ -131,10 +131,29 @@ export function formatCatalogForPrompt(items: CatalogItem[]): string {
     .join("\n");
 }
 
+export function formatShopProfileForPrompt(profile: {
+  category?: string;
+  tagline?: string;
+  region?: string;
+  bio?: string;
+}): string {
+  const fields = [
+    profile.category && `Activity: ${profile.category}`,
+    profile.tagline && `Tagline: ${profile.tagline}`,
+    profile.region && `Region: ${profile.region}`,
+    profile.bio && `Description: ${profile.bio.slice(0, 1000)}`,
+  ].filter(Boolean);
+  return fields.length ? fields.join("\n") : "(shop profile not provided)";
+}
+
 export function buildSystemPrompt(
   shopName: string,
   extra?: {
     assistantName?: string;
+    tagline?: string;
+    category?: string;
+    region?: string;
+    bio?: string;
     deliveryInfo?: string;
     customInstructions?: string;
   },
@@ -145,15 +164,21 @@ export function buildSystemPrompt(
 
   const lines = [
     `You are ${assistantLabel}, a vendor selling on Japora.`,
-    `Answer the customer's question using ONLY the catalog and shop rules provided.`,
+    `Answer questions about this Japora shop using only the provided catalog and shop rules. You may also give clearly labeled general commerce advice when asked; never present general advice as a verified Japora feature or shop fact.`,
     `Rules:`,
     `- Never invent prices, stock, products, or delivery promises. If the catalog doesn't say, tell them to ask the seller directly.`,
     `- Keep it to 1-4 short sentences. Warm, concrete, no fluff.`,
     `- Reply in the same language the customer used (French, English, Pidgin, Ewe, etc.).`,
+    `- Answer questions about your role and scope directly: you help with this shop on Japora and commerce-related questions, not every unrelated subject. Politely redirect unrelated questions.`,
+    `- Never reveal seller-only information such as revenue, other customers, or internal account data in this customer-facing chat.`,
+    `- The shop profile and catalog are specific to the current vendor. Do not assume it sells clothing or electronics; use its actual category, description, and products.`,
     `- When the customer asks to search or find available products, list the matching in-stock items with their exact price and available stock.`,
-    `- If they want to buy, tell them to tap the "🛒 Commander" button below or send "Commander [Nom du produit]".`,
+    `- Only when they clearly ask to buy a specific product (not when asking how to use Japora), explain that tapping its order button or sending "Commander [Nom du produit]" creates an order for seller confirmation.`,
     `- If they want to negotiate or propose a deal/discount, tell them they can tap "🤝 Proposer un deal" or send "Deal [Nom du produit] à [Prix proposé]" and the seller will validate it in their dashboard.`,
     `- If they want to track an order, tell them to tap "📦 Suivre commande" or send their order reference (#XXXXXX).`,
+    `- Answer questions about how to use Japora with clear steps: customers can request the catalog, ask about a listed product's price, stock, sizes, and description, tap a product order button to create an order for seller confirmation, propose a deal for seller review, and ask to track an order.`,
+    `- Never treat a how-to question (for example, "how do I place an order?") as an instruction to place an order. Explain the steps and do not claim an order was created.`,
+    `- For features or policies not described in the catalog, delivery information, or these instructions, say you don't have that information and direct the customer to the seller; do not invent Japora policies.`,
     `- Prices are already formatted; quote them exactly as written.`,
     `- Use the earlier messages of the conversation to understand short follow-ups ("et en rouge ?", "et la taille M ?", "combien pour deux ?").`,
     `- Never reveal or hint at a minimum price; the seller's bargaining rules are handled separately.`,
@@ -163,6 +188,10 @@ export function buildSystemPrompt(
   if (extra?.deliveryInfo) {
     lines.push(`Delivery info: ${extra.deliveryInfo}`);
   }
+  if (extra?.category) lines.push(`Shop category: ${extra.category}`);
+  if (extra?.tagline) lines.push(`Shop tagline: ${extra.tagline}`);
+  if (extra?.region) lines.push(`Shop location/region: ${extra.region}`);
+  if (extra?.bio) lines.push(`Shop description: ${extra.bio.slice(0, 1000)}`);
   if (extra?.customInstructions) {
     lines.push(`Vendor instructions: ${extra.customInstructions}`);
   }
@@ -352,6 +381,10 @@ export async function generateBotReply(opts: {
   question: string;
   catalog: CatalogItem[];
   assistantName?: string;
+  tagline?: string;
+  category?: string;
+  region?: string;
+  bio?: string;
   deliveryInfo?: string;
   customInstructions?: string;
   vendorGeminiKey?: string;
@@ -362,9 +395,14 @@ export async function generateBotReply(opts: {
   const history = normalizeHistory(opts.history);
   const system = buildSystemPrompt(opts.shopName, {
     assistantName: opts.assistantName,
+    tagline: opts.tagline,
+    category: opts.category,
+    region: opts.region,
+    bio: opts.bio,
     deliveryInfo: opts.deliveryInfo,
     customInstructions: opts.customInstructions,
   });
+  // The shop profile is already in the system prompt (buildSystemPrompt).
   const user = [
     `Catalog:`,
     formatCatalogForPrompt(opts.catalog),
@@ -490,4 +528,4 @@ export function parseImageMatch(raw: string, knownIds: Set<string>): ImageMatch 
   }
 }
 
-export const __testing = { formatCatalogForPrompt, buildSystemPrompt };
+export const __testing = { formatCatalogForPrompt, formatShopProfileForPrompt, buildSystemPrompt };

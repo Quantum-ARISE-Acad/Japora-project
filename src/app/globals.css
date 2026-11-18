@@ -30,6 +30,7 @@
 /* Pale status tints → translucent warm-dark equivalents (kanban, badges). */
 .dark .bg-emerald-50 { background-color: rgb(16 70 52 / 0.35) !important; }
 .dark .bg-amber-50   { background-color: rgb(120 90 20 / 0.26) !important; }
+.dark .bg-amber-50\/70 { background-color: rgb(120 90 20 / 0.34) !important; }
 .dark .bg-sky-50,
 .dark .bg-blue-50    { background-color: rgb(30 64 110 / 0.30) !important; }
 .dark .bg-indigo-50  { background-color: rgb(54 50 110 / 0.30) !important; }
@@ -58,6 +59,32 @@
 .dark .text-sky-700,
 .dark .text-blue-700    { color: #7dd3fc !important; }
 
+/* Segmented controls with a pale selected chip need dark text on dark mode. */
+.dark .orders-status-filter-inactive,
+.dark .customers-filter-inactive {
+  background-color: rgb(var(--c-300) / 0.82) !important;
+  color: rgb(var(--c-900)) !important;
+  text-decoration-color: rgb(var(--c-700) / 0.75);
+}
+.dark .orders-filter-toolbar {
+  background-color: rgb(var(--c-100)) !important;
+}
+.dark .customers-filter-track {
+  background-color: rgb(var(--c-200)) !important;
+}
+.dark .orders-status-filter-inactive:hover,
+.dark .customers-filter-inactive:hover {
+  background-color: rgb(var(--c-400) / 0.8) !important;
+  color: #fff !important;
+}
+.dark .products-view-toggle-inactive {
+  color: rgb(var(--c-800)) !important;
+}
+.dark .products-view-toggle-inactive:hover {
+  color: #fff !important;
+  background-color: rgb(var(--c-300) / 0.7) !important;
+}
+
 /* Keep WhatsApp preview content readable over its dark transcript surface. */
 .dark .bot-chat-transcript { background-color: #111916 !important; color: #f5f3ef !important; }
 .dark .bot-chat-system,
@@ -67,6 +94,25 @@
   background-color: #293330 !important;
   border-color: #66736d !important;
   color: #f5f3ef !important;
+}
+.dark .bot-chat-message-bot {
+  background-color: #263b34 !important;
+  border-color: #71877d !important;
+  color: #ffffff !important;
+}
+.dark .broadcast-simulation-preview {
+  background-color: #211d2b !important;
+  border-color: #8b7aa8 !important;
+  color: #f8f5ff !important;
+}
+.dark .broadcast-simulation-badge {
+  background-color: #453765 !important;
+  color: #ffffff !important;
+}
+.dark .broadcast-simulation-message {
+  background-color: #302a3c !important;
+  border-color: #8b7aa8 !important;
+  color: #ffffff !important;
 }
 .dark .bot-chat-message-customer {
   background-color: #174b3a !important;

@@ -287,12 +287,12 @@ export default function BroadcastComposer({
         )}
 
         {demoPreview && (
-          <section aria-live="polite" className="rounded-xl border border-violet-300 bg-violet-50 p-4 text-violet-950">
+          <section aria-live="polite" className="broadcast-simulation-preview rounded-xl border border-violet-300 bg-violet-50 p-4 text-violet-950">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-sm font-semibold">Aperçu de la simulation</h2>
-              <span className="rounded-full bg-violet-200 px-2 py-1 text-xs font-medium">Client fictif · aucun envoi</span>
+              <span className="broadcast-simulation-badge rounded-full bg-violet-200 px-2 py-1 text-xs font-medium">Client fictif · aucun envoi</span>
             </div>
-            <p className="mt-3 whitespace-pre-wrap rounded-lg border border-violet-200 bg-white p-3 text-sm">{demoPreview}</p>
+            <p className="broadcast-simulation-message mt-3 whitespace-pre-wrap rounded-lg border border-violet-200 bg-white p-3 text-sm">{demoPreview}</p>
           </section>
         )}
 

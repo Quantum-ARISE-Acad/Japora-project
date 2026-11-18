@@ -71,6 +71,7 @@ export type BotIntent =
   | "track_order"
   | "handoff"
   | "photo_search"
+  | "help"
   | "unknown";
 
 export type ParsedIntent = {
@@ -82,6 +83,31 @@ export type ParsedIntent = {
 };
 
 /* ------------------------------- Vocabulary ------------------------------- */
+
+const HELP_QUESTION_WORDS = [
+  // French: usage questions must never be treated as purchase commands.
+  "comment", "pourquoi", "explique", "expliquer", "aide", "besoin d'aide", "comment faire",
+  "comment lancer", "comment passer", "comment utiliser", "comment fonctionne", "c'est quoi",
+  "qu'est-ce", "quelle est la procedure", "quelle est la procédure", "est-ce que", "est ce que",
+  "puis-je", "peux-je", "je voudrais savoir", "je veux savoir", "je veux connaitre", "je veux connaître",
+  // English and common West African phrasing
+  "how do i", "how can i", "how to", "how does", "how does it work", "what is",
+  "why", "explain", "help me", "i need help", "can i", "could i", "should i",
+  "i want to know", "i'd like to know", "i would like to know", "i need to know", "can you tell me",
+  "abeg how", "how i go", "how i fit", "wetin i fit",
+  "tu reponds", "tu réponds", "vous repondez", "vous répondez", "tout genre de question",
+  "toute question", "que peux tu faire", "que peux-tu faire", "quelles questions",
+  "what can you do", "what can i ask", "what do you help", "anything you can help",
+  // Swahili
+  "jinsi", "nawezaje", "kwa nini",
+];
+
+const PRODUCT_INFO_WORDS = [
+  "size", "sizes", "taille", "tailles", "pointure", "pointures", "dimension", "dimensions",
+  "color", "colors", "colour", "colours", "couleur", "couleurs", "matiere", "matieres", "material", "materials",
+  "description", "details", "detail", "specification", "specifications", "stock", "available",
+  "availability", "disponible", "disponibilite", "en stock", "in stock", "quantite", "quantité",
+];
 
 const GREETINGS = [
   // English
@@ -144,15 +170,16 @@ const DEAL_WORDS = [
 
 const PRICE_WORDS = [
   // English
-  "price", "cost", "how much", "available", "in stock", "stock", "got",
+  "price", "cost", "how much", "available", "in stock", "stock",
   "do you have", "you have", "search", "find me", "looking for",
   // Pidgin
   "wetin be di price", "na how much", "price be", "you get",
   // Swahili
   "bei gani", "ngapi", "shilingi ngapi", "iko", "una", "upo",
   // French
-  "c'est combien", "combien", "quel prix", "le prix", "disponible", "vous avez",
+  "c'est combien", "combien", "prix", "quel prix", "le prix", "disponible", "vous avez",
   "cherche", "chercher", "trouve", "trouver", "en stock", "recherche",
+  ...PRODUCT_INFO_WORDS,
 ];
 
 const ORDER_WORDS = [
@@ -164,7 +191,7 @@ const ORDER_WORDS = [
   // Swahili
   "nataka", "ninataka", "nipe", "leta", "agiza",
   // French
-  "je veux", "je voudrais", "je commande", "commander", "acheter", "j'achète",
+  "je veux", "je voudrais", "je commande", "commande", "commander", "acheter", "j'achète",
   "j achete", "envoyer", "envoyez", "prendre", "je prends",
 ];
 
@@ -178,10 +205,21 @@ const COLOR_WORDS = [
   "nyekundu", "bluu", "kijani", "manjano", "nyeusi", "nyeupe",
 ];
 
+const QUERY_FILLER_WORDS = [
+  "comment", "pourquoi", "how do i", "how can i", "how to", "what is", "what are", "what color is",
+  "je veux savoir", "je voudrais savoir", "i want to know", "i'd like to know", "i would like to know",
+  "i need to know", "connaitre", "connaître", "savoir", "know", "tell me", "can you tell me",
+  "please", "est-ce que", "est ce que", "does the", "does it", "do you", "is it", "is there",
+  "come in", "what sizes", "what colors", "the", "about",
+  "tu connais", "connais", "do you know", "know the size of", "what is the size of",
+  "what size is", "what sizes does",
+];
+
 const STRIP_INTENT_RE = new RegExp(
   "\\b(" +
-    [...ORDER_WORDS, ...PRICE_WORDS, ...MENU_WORDS, ...TRACK_WORDS, ...DEAL_WORDS]
-      .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    [...ORDER_WORDS, ...PRICE_WORDS, ...PRODUCT_INFO_WORDS, ...MENU_WORDS, ...TRACK_WORDS, ...DEAL_WORDS, ...QUERY_FILLER_WORDS]
+      .map((w) => normalizeIntentText(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .sort((a, b) => b.length - a.length)
       .join("|") +
     ")\\b",
   "g",
@@ -189,12 +227,75 @@ const STRIP_INTENT_RE = new RegExp(
 
 /* --------------------------------- Parser --------------------------------- */
 
+function normalizeIntentText(text: string): string {
+  return (text || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[’‘]/g, "'")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function tokenize(text: string): string {
-  return (text || "").trim().toLowerCase();
+  return normalizeIntentText(text);
 }
 
 function containsAny(text: string, needles: string[]): boolean {
-  return needles.some((n) => text.includes(n));
+  const normalizedText = normalizeIntentText(text);
+  return needles.some((needle) => normalizedText.includes(normalizeIntentText(needle)));
+}
+
+function containsAnyWord(text: string, words: string[]): boolean {
+  const messageWords = new Set(normalizeIntentText(text).split(/[^a-z0-9]+/).filter(Boolean));
+  return words.some((word) => messageWords.has(normalizeIntentText(word)));
+}
+
+function isFrenchMessage(text: string): boolean {
+  const normalized = normalizeIntentText(text);
+  return /[àâçéèêëîïôùûüÿœ]/i.test(text) ||
+    /\b(je|tu|vous|juste|concernant|question|questions|reponds|repondez|comment|pourquoi|commander|commande|acheter|taille|prix|catalogue|stock|aide|suivre|proposer|bonjour|tout|toute)\b/.test(normalized);
+}
+
+function productInfoLines(
+  question: string,
+  product: { name: string; sizes: string; description: string },
+  french: boolean,
+): string[] {
+  const asksSize = containsAny(question, [
+    "size", "sizes", "taille", "tailles", "pointure", "pointures", "dimension", "dimensions",
+  ]);
+  const asksOtherDetails = containsAny(question, [
+    "color", "colors", "colour", "couleur", "matiere", "material", "description",
+    "details", "composition", "fabric", "tissu",
+  ]) || containsAnyWord(question, COLOR_WORDS);
+  const lines: string[] = [];
+
+  if (asksSize) {
+    if (product.sizes.trim()) {
+      lines.push(french
+        ? `Tailles indiquées pour ${product.name} : ${product.sizes}.`
+        : `Sizes listed for ${product.name}: ${product.sizes}.`);
+    } else {
+      lines.push(french
+        ? `La taille de ${product.name} n'est pas précisée dans sa fiche produit. Contactez le vendeur dans cette conversation pour la confirmer avant de commander.`
+        : `The size of ${product.name} isn't specified in its product listing. Please contact the seller in this chat to confirm it before ordering.`);
+    }
+  }
+
+  if (asksOtherDetails) {
+    lines.push(product.description.trim()
+      ? `${french ? "Détails" : "Details"} : ${product.description.slice(0, 220)}`
+      : french
+        ? "Ces détails ne sont pas renseignés dans la fiche produit. Demandez confirmation au vendeur dans cette conversation."
+        : "Those details aren't listed for this product. Please ask the seller in this chat to confirm them.");
+  }
+  return lines;
+}
+
+function asksOrderProcedure(text: string): boolean {
+  return /\b(?:order|ordering|purchase|buy|command|commande|commander|acheter|place (?:an? )?order|make an order|make a purchase|passer commande|lancer une commande|faire une commande|faire un achat)\b/i
+    .test(normalizeIntentText(text));
 }
 
 /**
@@ -276,6 +377,39 @@ export function parseIntent(text: string): ParsedIntent {
     return { intent: "track_order", productMatches: [], orderRef };
   }
 
+  // Do not treat generic questions as product searches merely because they
+  // contain a vague term. A product lookup needs a product signal, or a bare
+  // short product-name phrase handled below.
+  const asksPriceOrProductInfo =
+    containsAny(t, [...PRICE_WORDS, ...PRODUCT_INFO_WORDS]) || containsAnyWord(t, COLOR_WORDS);
+  const hasPurchaseOrDealLanguage = containsAny(t, [...ORDER_WORDS, ...DEAL_WORDS]);
+  if (asksPriceOrProductInfo && containsAny(t, ORDER_WORDS)) {
+    const productQuery = t
+      .replace(STRIP_INTENT_RE, " ")
+      .replace(/\b(?:mais|dabord|d'abord)\b/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const { qty, cleaned } = extractQuantity(productQuery);
+    return { intent: "price_check", productMatches: cleaned ? [cleaned] : productQuery ? [productQuery] : [], quantity: qty };
+  }
+
+  const negatesPurchaseOrDeal =
+    /\b(?:je ne veux pas|je ne souhaite pas|ne veux pas|n'achete pas|n'achète pas|i don't want|i do not want|don't|do not|not|never|no)\b.{0,50}\b(?:order|buy|purchase|commander|commande|acheter|deal|proposer|bargain)\b/i.test(t);
+  if (negatesPurchaseOrDeal) return { intent: "help", productMatches: [] };
+
+  const hasQuestionMark = /[?？]/.test(text);
+  const shortGreeting = t.replace(/[?!.。]+$/g, "").trim();
+  if (GREETINGS.some((greeting) => normalizeIntentText(greeting) === shortGreeting)) {
+    return { intent: "greeting", productMatches: [] };
+  }
+  const asksGeneralQuestion = hasQuestionMark || containsAny(t, HELP_QUESTION_WORDS);
+  if (
+    asksGeneralQuestion &&
+    hasPurchaseOrDealLanguage
+  ) {
+    return { intent: "help", productMatches: [] };
+  }
+
   // Deal / price negotiation intent
   if (containsAny(t, DEAL_WORDS)) {
     const { price, cleaned: withoutPrice } = extractProposedPrice(t);
@@ -295,9 +429,12 @@ export function parseIntent(text: string): ParsedIntent {
   const productMatches = cleaned ? [cleaned] : strippedRaw ? [strippedRaw] : [];
 
   if (containsAny(t, UNPAID_WORDS)) return { intent: "unpaid", productMatches };
+  const asksHowTo = asksGeneralQuestion;
+  if (asksHowTo && !asksPriceOrProductInfo) return { intent: "help", productMatches: [] };
   if (containsAny(t, ORDER_WORDS)) return { intent: "order", productMatches, quantity: qty };
   if (containsAny(t, MENU_WORDS)) return { intent: "menu", productMatches };
-  if (containsAny(t, PRICE_WORDS)) return { intent: "price_check", productMatches };
+  if (asksPriceOrProductInfo) return { intent: "price_check", productMatches };
+  if (asksHowTo) return { intent: "help", productMatches: [] };
 
   // Bare greeting only if it's a short hello with nothing else interesting.
   if (containsWord(t, GREETINGS) && t.split(/\s+/).length <= 4) {
@@ -346,7 +483,9 @@ const STOP_WORDS = new Set([
   "the", "this", "that", "these", "those", "one", "ones", "a", "an", "and",
   "of", "for", "with", "without", "to", "from", "in", "on", "is", "are", "was",
   "were", "be", "your", "my", "our", "their", "or", "any", "some", "do", "you",
-  "have", "has", "had", "que", "le", "la", "les", "un", "une", "des", "du",
+  "have", "has", "had", "does", "did", "what", "which", "how", "quelle", "quelles", "quel", "quels",
+  "connaitre", "connais", "connait", "savoir", "know", "tell", "please", "about", "there", "it", "can", "could", "would",
+  "want", "need", "que", "le", "la", "les", "un", "une", "des", "du",
   "de", "au", "aux", "je", "tu", "il", "nous", "vous", "ils", "pour", "sur",
   "dans", "avec", "est", "sont", "avez", "moi", "me", "disponible", "disponibles",
   "boutique", "produit", "produits", "article", "articles", "fcfa", "cfa", "xof",
@@ -529,6 +668,10 @@ async function tryLlmAnswer(opts: {
   currency: string;
   question: string;
   assistantName?: string;
+  tagline?: string;
+  category?: string;
+  region?: string;
+  bio?: string;
   deliveryInfo?: string;
   customInstructions?: string;
   vendorGeminiKey?: string;
@@ -552,6 +695,10 @@ async function tryLlmAnswer(opts: {
       question: opts.question,
       catalog,
       assistantName: opts.assistantName,
+      tagline: opts.tagline,
+      category: opts.category,
+      region: opts.region,
+      bio: opts.bio,
       deliveryInfo: opts.deliveryInfo,
       customInstructions: opts.customInstructions,
       vendorGeminiKey: opts.vendorGeminiKey,
@@ -626,7 +773,13 @@ function formatOrderTimeline(status: string, isDeal: boolean): string {
 
 export async function findTrackedOrdersForVendor(
   vendorId: string,
-  opts: { orderRef?: string; phone?: string; limit?: number },
+  opts: {
+    orderRef?: string;
+    phone?: string;
+    limit?: number;
+    /** WhatsApp bot: the sender's number is verified, so only their own orders are returned. */
+    requirePhoneMatch?: boolean;
+  },
 ) {
   if (!vendorId || typeof vendorId !== "string") {
     return [];
@@ -634,11 +787,16 @@ export async function findTrackedOrdersForVendor(
 
   const cleanNeedle = (opts.orderRef || "").replace(/^#/, "").trim().toLowerCase();
   const cleanDigits = digitsOnly(opts.phone || "");
-  const hasValidRef = cleanNeedle.length >= 3;
+  // A reference is shown to customers as 6 characters (#AB12CD): shorter pieces
+  // would let anyone guess other customers' orders.
+  const hasValidRef = cleanNeedle.length >= 6;
   const hasValidPhone = cleanDigits.length >= 6;
 
   // An empty tracking query must never return arbitrary recent orders.
   if (!hasValidRef && !hasValidPhone) {
+    return [];
+  }
+  if (opts.requirePhoneMatch && !hasValidPhone) {
     return [];
   }
 
@@ -655,41 +813,31 @@ export async function findTrackedOrdersForVendor(
 
   const phoneTail = cleanDigits.length >= 8 ? cleanDigits.slice(-8) : cleanDigits;
 
+  const samePhone = (customerPhone: string | null): boolean => {
+    if (!hasValidPhone || !customerPhone) return false;
+    const orderDigits = digitsOnly(customerPhone);
+    if (orderDigits.length < 6) return false;
+    return (
+      orderDigits === cleanDigits ||
+      (phoneTail.length >= 8 && orderDigits.endsWith(phoneTail)) ||
+      (orderDigits.length >= 8 && cleanDigits.endsWith(orderDigits.slice(-8)))
+    );
+  };
+
+  const sameRef = (id: string): boolean => {
+    const idLower = id.toLowerCase();
+    return idLower === cleanNeedle || idLower.endsWith(cleanNeedle) || idLower.startsWith(cleanNeedle);
+  };
+
   const matches = recentOrders.filter((o) => {
     if (o.vendorId !== vendorId) return false;
-
-    const idLower = o.id.toLowerCase();
-    if (hasValidRef) {
-      const refEnd = idLower.slice(-6);
-      const refStart = idLower.slice(0, 8);
-      if (
-        idLower === cleanNeedle ||
-        refEnd === cleanNeedle ||
-        refStart === cleanNeedle ||
-        idLower.endsWith(cleanNeedle) ||
-        idLower.startsWith(cleanNeedle) ||
-        idLower.includes(cleanNeedle)
-      ) {
-        return true;
-      }
-      if (!hasValidPhone || opts.orderRef !== opts.phone) {
-        return false;
-      }
+    if (opts.requirePhoneMatch) {
+      if (!samePhone(o.customerPhone)) return false;
+      return hasValidRef ? sameRef(o.id) : true;
     }
-
-    if (hasValidPhone && o.customerPhone) {
-      const orderDigits = digitsOnly(o.customerPhone);
-      if (
-        orderDigits === cleanDigits ||
-        (phoneTail.length >= 8 && orderDigits.endsWith(phoneTail)) ||
-        (orderDigits.length >= 8 && cleanDigits.endsWith(orderDigits.slice(-8))) ||
-        orderDigits.includes(cleanDigits)
-      ) {
-        return true;
-      }
-    }
-
-    return false;
+    // Someone may type their phone number in the reference field.
+    if (hasValidRef) return sameRef(o.id) || (opts.orderRef === opts.phone && samePhone(o.customerPhone));
+    return samePhone(o.customerPhone);
   });
 
   return matches.slice(0, opts.limit ?? 5);
@@ -709,10 +857,13 @@ export async function trackCustomerOrders(
     "http://localhost:5174"
   ).replace(/\/$/, "");
 
+  // Customer order history is private: on WhatsApp the sender's number is
+  // verified, so a reference only filters the sender's own orders.
   const orders = await findTrackedOrdersForVendor(vendorId, {
     orderRef,
     phone: cleanPhone,
     limit: 5,
+    requirePhoneMatch: true,
   });
 
   if (orders.length === 0) {
@@ -1390,6 +1541,10 @@ export async function respondTo(
       shopName: true,
       shopSlug: true,
       currency: true,
+      tagline: true,
+      category: true,
+      region: true,
+      bio: true,
       awayMessage: true,
       businessHours: true,
       tzOffsetMinutes: true,
@@ -1417,18 +1572,9 @@ export async function respondTo(
 
   // Helper to resolve a product by button ID (preferring active vendor's catalog, or matching by name if button came from an earlier chat)
   async function findProductForButton(id: string) {
-    let p = await prisma.product.findFirst({
+    const p = await prisma.product.findFirst({
       where: { id, vendorId, isActive: true },
     });
-    if (!p) {
-      const anyP = await prisma.product.findUnique({ where: { id } });
-      if (anyP) {
-        const sameNameInVendor = await prisma.product.findFirst({
-          where: { vendorId, isActive: true, name: anyP.name },
-        });
-        p = sameNameInVendor || anyP;
-      }
-    }
     return p;
   }
 
@@ -1550,6 +1696,14 @@ export async function respondTo(
         buttons: [MENU_BUTTON],
       });
     }
+    const orderPhone = digitsOnly(order.customerPhone || "");
+    const senderPhone = digitsOnly(fromPhone);
+    if (!orderPhone || !senderPhone || orderPhone !== senderPhone) {
+      return withAway({
+        reply: `Pour protéger votre commande, envoyez votre demande depuis le numéro utilisé lors de l'achat.`,
+        intent: "track_order",
+      });
+    }
     if (order.status !== "NEW") {
       return withAway({
         reply: `La commande #${order.id.slice(-6).toUpperCase()} est déjà au statut ${order.status} et ne peut plus être annulée automatiquement. Contactez ${shopName}.`,
@@ -1622,7 +1776,9 @@ export async function respondTo(
       const products = await topActiveProducts(vendorId, 8);
       if (products.length === 0) {
         return withAway({
-          reply: `${shopName} n'a pas encore ajouté de produits. Revenez bientôt !`,
+          reply: isFrenchMessage(raw)
+            ? `${shopName} n'a pas encore ajouté de produits à son catalogue. Contactez le vendeur pour connaître les articles disponibles.`
+            : `${shopName} hasn't added products to its catalog yet. Contact the seller to ask what is available.`,
           intent: parsed.intent,
         });
       }
@@ -1634,8 +1790,10 @@ export async function respondTo(
       );
       return withAway({
         reply:
-          `🛍️ Catalogue ${shopName} — Produits disponibles :\n\n${lines.join("\n")}\n\n` +
-          `Appuyez sur un produit pour le commander, ou écrivez "Deal [Produit] à [Prix]" pour proposer un deal :`,
+          `🛍️ ${isFrenchMessage(raw) ? `Catalogue de ${shopName} — articles disponibles` : `${shopName} catalog — available items`} :\n\n${lines.join("\n")}\n\n` +
+          (isFrenchMessage(raw)
+            ? `Appuyez sur un article pour le commander, ou choisissez « Proposer deal » pour faire une offre.`
+            : `Tap an item to order, or choose “Propose deal” to make an offer.`),
         intent: parsed.intent,
         // Top 3 as one-tap order buttons (WhatsApp caps button rows at 3).
         buttons: products.slice(0, 3).map((p) => ({
@@ -1703,7 +1861,7 @@ export async function respondTo(
     case "price_check": {
       const phrase = parsed.productMatches[0] || "";
       const isBroadSearch =
-        /cherche|trouve|disponible|en stock|moins de|max|budget|recommand|quel|quoi/i.test(raw);
+        /moins de|max|budget|recommand|under|below|cheapest|best|recommend/i.test(normalizeIntentText(raw));
       const product = !isBroadSearch ? await findBestProductMatch(vendorId, phrase) : null;
 
       if (!product) {
@@ -1714,11 +1872,16 @@ export async function respondTo(
           currency,
           question: raw,
           assistantName: waConfig.assistantName,
+          tagline: vendor?.tagline,
+          category: vendor?.category,
+          region: vendor?.region,
+          bio: vendor?.bio,
           deliveryInfo,
           customInstructions: waConfig.customInstructions,
           vendorGeminiKey: waConfig.geminiApiKey,
           aiEnabled: waConfig.aiEnabled,
         });
+        const frenchMessage = isFrenchMessage(raw);
         const actionButtons: BotButton[] = [];
         const firstInStock = topProducts.find((tp) => tp.id && tp.stock > 0);
         if (firstInStock?.id) {
@@ -1736,22 +1899,38 @@ export async function respondTo(
         return withAway({
           reply:
             ai ||
-            `Je n'ai pas trouvé « ${phrase} » chez ${shopName}. ` +
-              `Regardez le catalogue, ou demandez directement au vendeur.`,
+            (frenchMessage
+              ? `Je n'ai pas trouvé « ${phrase} » chez ${shopName}. Envoyez le nom exact du produit, regardez le catalogue, ou demandez directement au vendeur.`
+              : `I couldn't find "${phrase}" at ${shopName}. Send the exact product name, look at the catalog, or ask the seller directly.`),
           intent: parsed.intent,
-          buttons: actionButtons.slice(0, 3),
+          buttons: [{ id: "MENU", title: frenchMessage ? "Voir catalogue" : "See menu" }],
         });
       }
-      const stockLine = product.stock > 0 ? `${product.stock} disponibles` : `épuisé`;
-      const sizesLine = product.sizes ? ` | Tailles: ${product.sizes}` : "";
+      const frenchMessage = isFrenchMessage(raw);
+      const asksSize = containsAny(raw, [
+        "size", "sizes", "taille", "tailles", "pointure", "pointures", "dimension", "dimensions",
+      ]);
+      const stockLine = frenchMessage
+        ? product.stock > 0
+          ? `${product.stock} en stock`
+          : "indisponible"
+        : product.stock > 0
+          ? `${product.stock} in stock`
+          : "out of stock";
+      const sizesLine = product.sizes && !asksSize
+        ? ` | ${frenchMessage ? "Tailles" : "Sizes"}: ${product.sizes}`
+        : "";
+      const detailsLines = productInfoLines(raw, product, frenchMessage);
       return withAway({
-        reply: `${product.name} — ${formatMoney(product.priceCents, currency)}. ${stockLine}${sizesLine}.`,
+        reply: `${product.name} — ${formatMoney(product.priceCents, currency)}. ${stockLine}${sizesLine}.${detailsLines.length ? ` ${detailsLines.join(" ")}` : ""}`,
         intent: parsed.intent,
-        buttons: [
-          { id: `ORDER:${product.id}`, title: "Commander" },
-          { id: `DEAL_PROMPT:${product.id}`, title: "🤝 Proposer deal" },
-          MENU_BUTTON,
-        ],
+        buttons: asksSize && !product.sizes.trim()
+          ? [{ id: "MENU", title: frenchMessage ? "Voir catalogue" : "See menu" }]
+          : [
+              { id: `ORDER:${product.id}`, title: frenchMessage ? "Commander" : "Order this" },
+              { id: `DEAL_PROMPT:${product.id}`, title: frenchMessage ? "🤝 Proposer deal" : "🤝 Propose deal" },
+              { id: "MENU", title: frenchMessage ? "Voir catalogue" : "See menu" },
+            ],
       });
     }
 
@@ -1759,12 +1938,14 @@ export async function respondTo(
       const phrase = parsed.productMatches[0] || "";
       const product = await findBestProductMatch(vendorId, phrase);
       if (!product) {
+        const frenchMessage = isFrenchMessage(raw);
         const products = await topActiveProducts(vendorId, 3);
         return withAway({
-          reply:
-            products.length > 0
-              ? `Je n'ai pas trouvé « ${phrase} » à commander. Touchez un produit ci-dessous pour le commander :`
-              : `Je n'ai pas trouvé « ${phrase} » à commander.`,
+          reply: frenchMessage
+            ? `Je n'ai pas reconnu l'article « ${phrase} ». Aucune commande n'a été créée.` +
+              (products.length > 0 ? ` Touchez un produit ci-dessous pour le commander :` : ` Demandez le catalogue ou envoyez le nom exact d'un produit disponible.`)
+            : `I couldn't identify "${phrase}". No order was created.` +
+              (products.length > 0 ? ` Tap a product below to order it:` : ` Ask for the catalog or send the exact name of an available product.`),
           intent: parsed.intent,
           buttons:
             products.length > 0
@@ -1772,7 +1953,7 @@ export async function respondTo(
                   id: `ORDER:${p.id}`,
                   title: clampTitle(p.name),
                 }))
-              : [MENU_BUTTON],
+              : [{ id: "MENU", title: frenchMessage ? "Voir catalogue" : "See menu" }],
         });
       }
       return withAway(
@@ -1786,6 +1967,62 @@ export async function respondTo(
           parsed.quantity ?? 1,
         ),
       );
+    }
+
+    case "help": {
+      const asksAssistantScope = /\b(?:tu reponds|vous repondez|toute? question|tout genre de question|quelles questions|que peux.?tu faire|what can you do|what can i ask|do you answer everything|any question)\b/i.test(normalizeIntentText(raw));
+      const { reply: ai } = await tryLlmAnswer({
+        vendorId,
+        shopName,
+        currency,
+        question: raw,
+        assistantName: waConfig.assistantName,
+        tagline: vendor?.tagline,
+        category: vendor?.category,
+        region: vendor?.region,
+        bio: vendor?.bio,
+        deliveryInfo,
+        customInstructions: waConfig.customInstructions,
+        vendorGeminiKey: waConfig.geminiApiKey,
+        aiEnabled: waConfig.aiEnabled,
+      });
+      const frenchQuestion = isFrenchMessage(raw);
+      const asksOrderHelp = asksOrderProcedure(raw);
+      const asksDealHelp = /\b(deal|negocier|négocier|remise|reduction|réduction)\b/i.test(raw);
+      const negatesAction = /\b(?:je ne veux pas|je ne souhaite pas|ne veux pas|n'achete pas|n'achète pas|i don't want|i do not want|don't|do not|not|never|no)\b.{0,50}\b(?:order|buy|purchase|commander|commande|acheter|deal|proposer|bargain)\b/i.test(raw);
+      let fallback: string;
+      if (asksAssistantScope) {
+        fallback = frenchQuestion
+          ? `Je suis spécialisé dans l'aide sur Japora et votre boutique : consulter le catalogue, vérifier les informations enregistrées sur les produits, demander une commande, proposer un deal et suivre une commande depuis le numéro utilisé. Je peux aussi répondre aux questions générales liées au commerce. Pour un sujet sans rapport ou une information privée que je ne peux pas vérifier, je vous le dirai clairement.`
+          : `I'm focused on Japora and your shop: browsing the catalog, checking product information on file, requesting an order, proposing a deal, and tracking an order from the number used to place it. I can also help with general commerce questions. If a topic is unrelated or private information cannot be verified, I'll say so clearly.`;
+      } else if (negatesAction) {
+        fallback = frenchQuestion
+          ? `Compris : je n'ai créé ni commande ni deal. Vous pouvez consulter le catalogue ou me poser une question sur un article.`
+          : `Understood: I haven't created an order or deal. You can browse the catalog or ask me about a product.`;
+      } else if (asksOrderHelp) {
+        fallback = frenchQuestion
+          ? `Pour passer commande : 1) appuyez sur « Voir catalogue » ; 2) choisissez un article ou demandez son prix ; 3) appuyez sur « Commander » sous l'article. La commande sera enregistrée et transmise au vendeur pour confirmation. Vous recevrez sa référence et un lien de suivi et de paiement.`
+          : `To place an order: 1) tap “See menu”; 2) choose a product or ask for its price; 3) tap “Order this” below that product. The order is recorded and sent to the seller for confirmation. You'll receive an order reference and a tracking and payment link.`;
+      } else if (asksDealHelp) {
+        fallback = frenchQuestion
+          ? `Pour proposer un deal, choisissez un article du catalogue, appuyez sur « Proposer un deal », puis sélectionnez une offre ou indiquez votre prix. Le vendeur doit accepter le deal avant qu'il soit confirmé.`
+          : `To propose a deal, choose a catalog item, tap “Propose a deal,” then select an offer or enter your price. The seller must accept the offer before it is confirmed.`;
+      } else {
+        fallback = frenchQuestion
+          ? `Je peux vous aider à consulter le catalogue, vérifier les prix, stocks et tailles indiqués, commander, suivre une commande ou proposer un deal. Pour votre question sur Japora, précisez l'étape concernée ; je ne veux pas inventer une règle sur le compte ou le paiement.`
+          : `I can help browse the catalog, check listed prices, stock and sizes, place or track an order, or propose a deal. Please specify the Japora step you mean; I won't guess about account or payment rules.`;
+      }
+      return withAway({
+        // Scope questions have a deterministic answer so they remain useful
+        // even when the optional AI provider is disabled or unavailable.
+        reply: asksAssistantScope || (asksOrderHelp && !negatesAction) ? fallback : ai || fallback,
+        intent: parsed.intent,
+        buttons: [
+          { id: "MENU", title: frenchQuestion ? "Voir catalogue" : "See menu" },
+          { id: "TRACK", title: frenchQuestion ? "Suivre commande" : "Track order" },
+          { id: "DEAL", title: frenchQuestion ? "Proposer un deal" : "Propose a deal" },
+        ],
+      });
     }
 
     case "unpaid": {
@@ -1837,6 +2074,10 @@ export async function respondTo(
         currency,
         question: raw,
         assistantName: waConfig.assistantName,
+        tagline: vendor?.tagline,
+        category: vendor?.category,
+        region: vendor?.region,
+        bio: vendor?.bio,
         deliveryInfo,
         customInstructions: waConfig.customInstructions,
         vendorGeminiKey: waConfig.geminiApiKey,
@@ -1859,10 +2100,9 @@ export async function respondTo(
         actionButtons.push(ai ? { id: "TRACK", title: "📦 Suivre commande" } : HANDOFF_BUTTON);
       }
       return withAway({
-        reply:
-          ai ||
-          `Je n'ai pas bien compris. Vous pouvez voir le catalogue, proposer un prix, ` +
-            `ou parler directement au vendeur.`,
+        reply: ai || (isFrenchMessage(raw)
+          ? `Je n'ai pas bien compris votre demande. Je peux vous aider avec le catalogue, les informations disponibles sur les produits, les commandes, les deals et leur suivi. Reformulez votre question ou choisissez une action ci-dessous.`
+          : `I didn't understand that request. I can help with the catalog, listed product information, orders, deals, and order tracking. Please rephrase or choose an action below.`),
         intent: parsed.intent,
         buttons: actionButtons.slice(0, 3),
       });
@@ -1893,4 +2133,4 @@ export async function logBotEvent(
 }
 
 /* ----------------------------- Test helpers ------------------------------- */
-export const __testing = { levenshtein, tokens, scoreTokens, normalize };
+export const __testing = { levenshtein, tokens, scoreTokens, normalize, asksOrderProcedure, productInfoLines };

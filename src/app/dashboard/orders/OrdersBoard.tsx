@@ -370,7 +370,7 @@ export default function OrdersBoard({
         </div>
       )}
 
-      <div className="card flex flex-wrap items-center gap-3 p-3">
+      <div className="orders-filter-toolbar card flex flex-wrap items-center gap-3 p-3">
         <input
           className="input min-w-[200px] flex-1"
           placeholder={tr("Rechercher un client, un téléphone ou un produit…", "Search customer name, phone, or product…")}
@@ -408,7 +408,7 @@ export default function OrdersBoard({
                   "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition " +
                   (active
                     ? "bg-arctic-800 text-white hover:bg-arctic-700"
-                    : "bg-arctic-200/65 text-arctic-600 line-through hover:bg-arctic-300")
+                    : "orders-status-filter-inactive bg-arctic-200/65 text-arctic-600 line-through hover:bg-arctic-300")
                 }
               >
                 <span>{columnTitle(col.key)}</span>
