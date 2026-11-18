@@ -56,6 +56,8 @@ ENV
 CADDYFILE=Caddyfile.olga
 CADDY_HTTP_PORT=8080
 CADDY_HTTPS_BIND=127.0.0.1
+# Disque de 20 Go : les mesures de supervision gardent au plus 2 Go (5 Go ailleurs).
+PROMETHEUS_RETENTION_SIZE=2GB
 ENV
     fi
   )
@@ -102,6 +104,14 @@ wait_healthy() {
   return 1
 }
 
+# Après une mise à jour : supprime le cache de construction inutilisé et les anciennes
+# images de Japora (aucun conteneur ne s'en sert). Ne fait jamais échouer le déploiement.
+clean_docker() {
+  docker builder prune -f >/dev/null 2>&1 || true
+  docker image prune -f >/dev/null 2>&1 || true
+  echo "Nettoyage Docker fait. Espace libre : $(df -h --output=avail / | tail -1 | tr -d ' ')"
+}
+
 release() {
   # Ordre important : rien n'est remplacé tant que l'image n'est pas construite et le schéma vérifié.
   # Chaque étape est vérifiée : « set -e » ne s'applique pas dans un « if ».
@@ -129,6 +139,7 @@ deploy() {
   if ( release ); then
     echo "$(date -u +%FT%TZ) $(git rev-parse HEAD)" >> deploy/.deployed
     echo "Déploiement réussi."
+    clean_docker
     return 0
   fi
   echo "ECHEC : retour à ${previous:0:7}." >&2
@@ -175,6 +186,7 @@ case "${1:-}" in
     dc exec -T backup backup.sh --once
     dc up -d --remove-orphans
     dc ps
+    clean_docker
     ;;
   *)
     cat <<USAGE
@@ -189,7 +201,7 @@ Usage : deploy/mvp.sh <commande>
   restore <dossier>        Restaure une sauvegarde
   check-schema             Vérifie que le schéma a ses migrations
   photos-s3 [--apply]      Copie les photos du serveur vers R2/S3 (sans --apply : essai)
-  update                   git pull, vérifie, sauvegarde, puis remplace
+  update                   git pull, vérifie, sauvegarde, remplace, puis nettoie Docker
   deploy <commit>          Installe une version précise ; retour arrière automatique (CD)
   down                     Arrête tout, sans effacer les données
 USAGE
