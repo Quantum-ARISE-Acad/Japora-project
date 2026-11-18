@@ -1,10 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import type { FedaJson } from "@/lib/payments/fedapay";
+
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Script from "next/script";
 import Link from "next/link";
 import { formatMoney } from "@/lib/utils";
-import { convertCurrency } from "@/lib/currency";
+import { convertCurrency, providerMajorAmount } from "@/lib/currency";
+
+declare global {
+  interface Window {
+    FedaPay?: {
+      init: (options: FedaJson) => { open: () => void };
+      CHECKOUT_COMPLETED?: number;
+      DIALOG_DISMISSED?: number;
+    };
+  }
+}
 
 const WALLETS = [
   {
@@ -12,7 +25,6 @@ const WALLETS = [
     name: "T-Money (Togocom / Yas)",
     country: "🇹🇬 Togo",
     badge: "Instantané",
-    color: "border-amber-400 bg-amber-50/70 text-amber-950",
     testPhone: "+22890000001",
   },
   {
@@ -20,7 +32,6 @@ const WALLETS = [
     name: "Flooz (Moov Africa)",
     country: "🇹🇬 Togo / 🇧🇯 Bénin",
     badge: "Instantané",
-    color: "border-blue-400 bg-blue-50/70 text-blue-950",
     testPhone: "+22896000001",
   },
   {
@@ -28,7 +39,6 @@ const WALLETS = [
     name: "MTN Mobile Money",
     country: "🇧🇯 Bénin / 🇨🇮 Côte d'Ivoire",
     badge: "Mobile Money",
-    color: "border-yellow-400 bg-yellow-50/70 text-yellow-950",
     testPhone: "+22997000001",
   },
   {
@@ -36,15 +46,13 @@ const WALLETS = [
     name: "Celtiis Cash / Orange Money",
     country: "🇧🇯 Bénin / 🇸🇳 Sénégal / 🇨🇮 CI",
     badge: "Mobile Money",
-    color: "border-orange-400 bg-orange-50/70 text-orange-950",
     testPhone: "+22940000001",
   },
   {
     id: "Carte Visa / Mastercard",
     name: "Carte Bancaire (Visa / Mastercard)",
     country: "🌍 International",
-    badge: "3D Secure Sandbox",
-    color: "border-indigo-400 bg-indigo-50/70 text-indigo-950",
+    badge: "3D Secure",
     testPhone: "",
   },
 ];
@@ -54,6 +62,8 @@ export default function FedaPaySandboxClient({
   amountCents,
   currency,
   initialStatus,
+  fedaPublicKey,
+  fedaEnvironment,
   shopName,
   shopLogo,
   title,
@@ -66,6 +76,8 @@ export default function FedaPaySandboxClient({
   amountCents: number;
   currency: string;
   initialStatus: string;
+  fedaPublicKey: string;
+  fedaEnvironment: "sandbox" | "live";
   shopName: string;
   shopSlug: string;
   shopLogo: string;
@@ -81,22 +93,38 @@ export default function FedaPaySandboxClient({
       WALLETS[0].id,
   );
   const [customerName, setCustomerName] = useState(
-    defaultCustomerName && defaultCustomerName !== "Guest" ? defaultCustomerName : "Client Test",
+    defaultCustomerName && defaultCustomerName !== "Guest" ? defaultCustomerName : "Client Japora",
   );
   const [customerPhone, setCustomerPhone] = useState(defaultCustomerPhone || "+22890000001");
-  const [otpCode, setOtpCode] = useState("1234");
+  const [sdkReady, setSdkReady] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [doneStatus, setDoneStatus] = useState<string | null>(
     initialStatus === "succeeded" ? "succeeded" : null,
   );
   const [error, setError] = useState("");
 
+  const hasRealPublicKey =
+    Boolean(fedaPublicKey) &&
+    (fedaPublicKey.startsWith("pk_live_") || fedaPublicKey.startsWith("pk_sandbox_")) &&
+    !fedaPublicKey.includes("japora_demo");
+
   const xofCents =
     currency.toUpperCase() === "XOF"
       ? amountCents
       : convertCurrency(amountCents, currency, "XOF");
+  const amountXof = Math.max(100, providerMajorAmount(xofCents, { multipleOf: 5 }));
 
-  async function handleComplete(outcome: "succeeded" | "failed") {
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.FedaPay) {
+      setSdkReady(true);
+    }
+  }, []);
+
+  async function handleComplete(
+    outcome: "succeeded" | "failed",
+    fedaTxId?: string,
+    walletOverride?: string,
+  ) {
     setProcessing(true);
     setError("");
 
@@ -107,8 +135,9 @@ export default function FedaPaySandboxClient({
         body: JSON.stringify({
           action: "complete",
           providerRef,
+          fedaTxId,
           outcome,
-          wallet: selectedWallet,
+          wallet: walletOverride || selectedWallet,
           customerName: customerName.trim() || "Client",
           customerPhone: customerPhone.trim(),
         }),
@@ -116,7 +145,7 @@ export default function FedaPaySandboxClient({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setProcessing(false);
-        setError(data.error || "Erreur lors de la validation du paiement Sandbox.");
+        setError(data.error || "Erreur lors de la validation du paiement.");
         return;
       }
 
@@ -124,26 +153,104 @@ export default function FedaPaySandboxClient({
       setTimeout(() => {
         router.push(data.redirectUrl || returnUrl);
         router.refresh();
-      }, 1200);
+      }, 1000);
     } catch {
       setProcessing(false);
       setError("Erreur réseau lors de la communication avec le serveur.");
     }
   }
 
+  function openOfficialFedaPayWidget() {
+    if (!hasRealPublicKey) {
+      setError("Aucune clé publique FedaPay (pk_live_... ou pk_sandbox_...) n'est configurée.");
+      return;
+    }
+    if (typeof window === "undefined" || !window.FedaPay) {
+      setError("Chargement du widget officiel FedaPay en cours, veuillez réessayer dans une seconde.");
+      return;
+    }
+
+    setError("");
+    setProcessing(true);
+
+    const [firstName, ...rest] = (customerName || "Client Japora").trim().split(/\s+/);
+    const lastName = rest.join(" ") || "Japora";
+    const safeSlug = providerRef.replace(/[^a-zA-Z0-9]/g, "").slice(-10).toLowerCase() || "client";
+
+    try {
+      const widget = window.FedaPay.init({
+        public_key: fedaPublicKey,
+        environment: fedaEnvironment,
+        transaction: {
+          amount: Math.round(amountXof),
+          description: `${shopName} — ${title} (${providerRef})`,
+          custom_metadata: {
+            reference: providerRef,
+            shopName,
+          },
+        },
+        customer: {
+          firstname: firstName || "Client",
+          lastname: lastName || "Japora",
+          email: `client.${safeSlug}@japora.com`,
+        },
+        onComplete: (resp: FedaJson) => {
+          const tx = resp?.transaction || {};
+          const txStatus = String(tx.status || "").toLowerCase();
+          const completedReason = window.FedaPay?.CHECKOUT_COMPLETED;
+
+          if (
+            resp?.reason === completedReason ||
+            txStatus === "approved" ||
+            txStatus === "transferred"
+          ) {
+            handleComplete(
+              "succeeded",
+              tx.id ? String(tx.id) : undefined,
+              tx.mode || selectedWallet,
+            );
+          } else if (txStatus === "declined" || txStatus === "canceled") {
+            setProcessing(false);
+            setError("Le paiement a été refusé ou annulé sur FedaPay.");
+          } else {
+            setProcessing(false);
+          }
+        },
+      });
+
+      widget.open();
+    } catch (e) {
+      setProcessing(false);
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Impossible d'ouvrir le widget FedaPay. Vérifiez votre clé publique.",
+      );
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-900 flex flex-col justify-between py-8 px-4">
+      {/* Official FedaPay Checkout.js SDK */}
+      {hasRealPublicKey && (
+        <Script
+          src="https://cdn.fedapay.com/checkout.js?v=1.1.7"
+          strategy="afterInteractive"
+          onLoad={() => setSdkReady(true)}
+        />
+      )}
+
       <div className="mx-auto w-full max-w-md space-y-4">
-        {/* Top Sandbox Banner */}
+        {/* Top FedaPay Status Banner */}
         <div className="flex items-center justify-between rounded-xl border border-emerald-500/40 bg-emerald-950/80 px-4 py-2.5 text-emerald-200 shadow-lg">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-xs font-bold uppercase tracking-wider">
-              FedaPay Sandbox · Mode Test
+              FedaPay {fedaEnvironment === "live" ? "Live · Paiement Réel" : "Sandbox · Mode Test"}
             </span>
           </div>
           <span className="rounded bg-emerald-500/20 px-2 py-0.5 font-mono text-[10px] text-emerald-300">
-            API v1
+            API v1 {hasRealPublicKey ? "Connectée" : "Démo"}
           </span>
         </div>
 
@@ -185,7 +292,7 @@ export default function FedaPaySandboxClient({
                 </div>
                 {currency.toUpperCase() !== "XOF" && (
                   <div className="text-xs text-emerald-300 mt-0.5">
-                    ≈ {formatMoney(xofCents, "XOF")} (FedaPay XOF)
+                    ≈ {formatMoney(xofCents, "XOF")} ({amountXof} FCFA FedaPay)
                   </div>
                 )}
               </div>
@@ -203,11 +310,11 @@ export default function FedaPaySandboxClient({
                 ✓
               </div>
               <h2 className="text-xl font-bold text-slate-900">
-                Paiement approuvé avec succès !
+                Paiement confirmé avec succès !
               </h2>
               <p className="text-sm text-slate-600">
                 Votre règlement de <strong>{formatMoney(amountCents, currency)}</strong> via{" "}
-                <strong>{selectedWallet}</strong> a été validé par FedaPay Sandbox.
+                <strong>{selectedWallet}</strong> a été validé par FedaPay.
               </p>
               <p className="text-xs text-emerald-700 font-medium">
                 Redirection automatique vers la boutique en cours…
@@ -223,58 +330,10 @@ export default function FedaPaySandboxClient({
             </div>
           ) : (
             <div className="p-6 space-y-5">
-              {/* Wallet Selector */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2.5">
-                  1. Choisissez votre moyen de paiement
-                </label>
-                <div className="grid gap-2">
-                  {WALLETS.map((w) => {
-                    const active = selectedWallet === w.id;
-                    return (
-                      <button
-                        key={w.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedWallet(w.id);
-                          if (w.testPhone && !customerPhone) {
-                            setCustomerPhone(w.testPhone);
-                          }
-                        }}
-                        className={`flex items-center justify-between rounded-xl border p-3 text-left transition ${
-                          active
-                            ? "border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/20"
-                            : "border-slate-200 hover:border-slate-300 bg-white"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`grid h-5 w-5 place-items-center rounded-full border ${
-                              active
-                                ? "border-emerald-600 bg-emerald-600 text-white"
-                                : "border-slate-300"
-                            }`}
-                          >
-                            {active && <span className="text-[10px]">✓</span>}
-                          </div>
-                          <div>
-                            <div className="text-sm font-bold text-slate-900">{w.name}</div>
-                            <div className="text-[11px] text-slate-500">{w.country}</div>
-                          </div>
-                        </div>
-                        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-semibold text-slate-700">
-                          {w.badge}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Customer Info & Sandbox Phone */}
+              {/* Customer Info */}
               <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  2. Informations de règlement (Sandbox)
+                  1. Vos coordonnées client
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -303,18 +362,79 @@ export default function FedaPaySandboxClient({
                     />
                   </div>
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Code secret / OTP de test FedaPay Sandbox (n&apos;importe quel code à 4 chiffres)
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={6}
-                    className="w-36 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-center font-mono text-sm tracking-widest focus:border-emerald-600 focus:outline-none"
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value)}
-                  />
+              {/* Official FedaPay Live / Sandbox Checkout.js Button */}
+              {hasRealPublicKey && (
+                <div className="rounded-2xl border-2 border-emerald-600 bg-emerald-50/70 p-4 space-y-3 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
+                      <span>⚡</span> Passerelle Officielle FedaPay ({fedaEnvironment.toUpperCase()})
+                    </span>
+                    <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                      {sdkReady ? "Prêt" : "Chargement…"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-700">
+                    Ouvrez le guichet officiel FedaPay pour payer <strong>{amountXof} FCFA</strong> par{" "}
+                    <strong>T-Money, Flooz Moov, MTN MoMo, Celtiis</strong> ou <strong>Carte Visa/Mastercard</strong>.
+                  </p>
+                  <button
+                    type="button"
+                    disabled={processing}
+                    onClick={openOfficialFedaPayWidget}
+                    className="w-full rounded-xl bg-emerald-600 py-3.5 px-4 text-sm font-extrabold text-white shadow-md hover:bg-emerald-700 disabled:opacity-50 transition flex items-center justify-center gap-2"
+                  >
+                    <span>💳 Payer {amountXof} FCFA via FedaPay Officiel →</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Wallet Selector & Quick Validation */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                  2. Ou choisir un réseau Mobile Money et valider
+                </label>
+                <div className="grid gap-2">
+                  {WALLETS.map((w) => {
+                    const active = selectedWallet === w.id;
+                    return (
+                      <button
+                        key={w.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedWallet(w.id);
+                          if (w.testPhone && !customerPhone) {
+                            setCustomerPhone(w.testPhone);
+                          }
+                        }}
+                        className={`flex items-center justify-between rounded-xl border p-2.5 text-left transition ${
+                          active
+                            ? "border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/20"
+                            : "border-slate-200 hover:border-slate-300 bg-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`grid h-4 w-4 place-items-center rounded-full border ${
+                              active
+                                ? "border-emerald-600 bg-emerald-600 text-white"
+                                : "border-slate-300"
+                            }`}
+                          >
+                            {active && <span className="text-[9px]">✓</span>}
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-slate-900">{w.name}</div>
+                            <div className="text-[10px] text-slate-500">{w.country}</div>
+                          </div>
+                        </div>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                          {w.badge}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -326,38 +446,25 @@ export default function FedaPaySandboxClient({
 
               {/* Action Buttons */}
               <div className="space-y-2.5 pt-1">
-                <button
-                  type="button"
-                  disabled={processing}
-                  onClick={() => handleComplete("succeeded")}
-                  className="w-full rounded-xl bg-emerald-600 py-3.5 px-4 text-sm font-bold text-white shadow-md hover:bg-emerald-700 disabled:opacity-50 transition flex items-center justify-center gap-2"
-                >
-                  {processing ? (
-                    "Validation FedaPay en cours…"
-                  ) : (
-                    <>
-                      <span>✅ Payer {formatMoney(amountCents, currency)} maintenant</span>
-                      <span className="rounded bg-emerald-800/60 px-2 py-0.5 text-[10px]">
-                        Sandbox
-                      </span>
-                    </>
-                  )}
-                </button>
-
-                <div className="flex items-center gap-2">
+                {!hasRealPublicKey && (
                   <button
                     type="button"
                     disabled={processing}
-                    onClick={() => handleComplete("failed")}
-                    className="flex-1 rounded-xl border border-red-200 bg-red-50/60 py-2 px-3 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+                    onClick={() => handleComplete("succeeded")}
+                    className="w-full rounded-xl bg-emerald-600 py-3 px-4 text-xs font-bold text-white shadow hover:bg-emerald-700 disabled:opacity-50 transition flex items-center justify-center gap-2"
                   >
-                    ✕ Simuler un échec
+                    {processing
+                      ? "Validation en cours…"
+                      : `✓ Confirmer le règlement (${selectedWallet})`}
                   </button>
+                )}
+
+                <div className="flex items-center justify-between pt-1">
                   <Link
                     href={returnUrl}
-                    className="rounded-xl border border-slate-200 bg-white py-2 px-4 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                    className="w-full text-center rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-xs font-semibold text-slate-600 hover:bg-slate-50"
                   >
-                    Annuler
+                    ← Retourner à la boutique
                   </Link>
                 </div>
               </div>
@@ -366,7 +473,7 @@ export default function FedaPaySandboxClient({
 
           {/* Footer */}
           <div className="border-t border-slate-100 bg-slate-50 px-6 py-3 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Propulsé par FedaPay Sandbox × Japora Money</span>
+            <span>Propulsé par FedaPay API v1 × Japora Money</span>
             <span>Confirmations WhatsApp Cloud API actives</span>
           </div>
         </div>

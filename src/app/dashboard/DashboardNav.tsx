@@ -13,7 +13,6 @@ const LINKS = [
   { href: "/dashboard/bookkeeping", label: "Bookkeeping" },
   { href: "/dashboard/payment-links", label: "Payment Links" },
   { href: "/dashboard/analytics", label: "Analytics" },
-  { href: "/dashboard/cooperative", label: "Cooperative" },
   { href: "/dashboard/bot", label: "Bot" },
   { href: "/dashboard/broadcasts", label: "Marketing" },
   { href: "/dashboard/campaigns", label: "Ads" },

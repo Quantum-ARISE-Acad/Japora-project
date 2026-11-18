@@ -1,7 +1,8 @@
 import { getCurrentVendor } from "@/lib/auth";
-import { redirect } from "next/navigation";
 import { listShops } from "@/lib/directory";
 import LandingClient from "./LandingClient";
+
+export const dynamic = "force-dynamic";
 
 /**
  * Aurora landing — server entry point fetching live featured shops
@@ -9,7 +10,6 @@ import LandingClient from "./LandingClient";
  */
 export default async function LandingPage() {
   const vendor = await getCurrentVendor();
-  if (vendor) redirect("/dashboard");
 
   let featuredShops: Awaited<ReturnType<typeof listShops>> = [];
   try {
@@ -18,5 +18,11 @@ export default async function LandingPage() {
     console.warn("Could not list shops on homepage", e);
   }
 
-  return <LandingClient featuredShops={featuredShops} />;
+  return (
+    <LandingClient
+      featuredShops={featuredShops}
+      isAuthenticated={Boolean(vendor)}
+      shopSlug={vendor?.shopSlug}
+    />
+  );
 }

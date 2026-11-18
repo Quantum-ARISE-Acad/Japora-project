@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { getVendorFedaPayConfig } from "@/lib/payments/fedapay";
 import FedaPaySandboxClient from "./FedaPaySandboxClient";
 
 type Params = { params: Promise<{ ref: string }> };
@@ -8,22 +9,31 @@ export default async function FedaPaySandboxPage({ params }: Params) {
   const { ref } = await params;
 
   const intent = await prisma.paymentIntent.findFirst({
-    where: { providerRef: ref },
+    where: {
+      OR: [
+        { providerRef: ref },
+        { metadata: { contains: ref } },
+      ],
+    },
+    orderBy: { createdAt: "desc" },
   });
 
   if (!intent) notFound();
 
-  const vendor = await prisma.vendor.findUnique({
-    where: { id: intent.vendorId },
-    select: {
-      id: true,
-      shopName: true,
-      shopSlug: true,
-      currency: true,
-      avatarUrl: true,
-      whatsappNumber: true,
-    },
-  });
+  const [vendor, fedaConfig] = await Promise.all([
+    prisma.vendor.findUnique({
+      where: { id: intent.vendorId },
+      select: {
+        id: true,
+        shopName: true,
+        shopSlug: true,
+        currency: true,
+        avatarUrl: true,
+        whatsappNumber: true,
+      },
+    }),
+    getVendorFedaPayConfig(intent.vendorId),
+  ]);
 
   let orderSummary: {
     id: string;
@@ -60,6 +70,8 @@ export default async function FedaPaySandboxPage({ params }: Params) {
       amountCents={intent.amountCents}
       currency={intent.currency || vendor?.currency || "XOF"}
       initialStatus={intent.status}
+      fedaPublicKey={fedaConfig.publicKey}
+      fedaEnvironment={fedaConfig.environment}
       shopName={vendor?.shopName || "Boutique Japora"}
       shopSlug={vendor?.shopSlug || ""}
       shopLogo={vendor?.avatarUrl || ""}
@@ -74,7 +86,7 @@ export default async function FedaPaySandboxPage({ params }: Params) {
       defaultWallet={meta.network || "T-Money Togo"}
       returnUrl={
         meta.returnUrl ||
-        (orderSummary ? `/pay/${orderSummary.id}` : "/dashboard/billing")
+        (orderSummary ? `/pay/${orderSummary.id}?paid=1` : "/dashboard/billing?ok=1")
       }
     />
   );

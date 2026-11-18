@@ -5,15 +5,8 @@ import { evaluateAndGrant } from "@/lib/trust";
 import { notifyOrderPaid } from "@/lib/order-notifications";
 
 /**
- * Dev-only payment simulator. The stub providers (momo/orange/wave/chipper/
- * cash) emit checkout URLs like /dev/pay-stub/<provider>/<ref> — this endpoint
- * is what those pages POST to when a tester clicks "Mark paid". It runs the
- * same state transitions the real webhook does (without signature verification)
- * so the entire order → payment → receivable settled flow is demoable without
- * any external credentials.
- *
- * Guarded by NODE_ENV !== "production" + an explicit opt-in env var. Even with
- * both, providerRef is a CUID so it can't be enumerated.
+ * Simulated dev payment endpoint has been disabled.
+ * All payments use the real FedaPay API (`/api/payments/checkout`, `/api/payments/fedapay/callback`, `/api/payments/webhook/fedapay`).
  */
 export async function POST(req: NextRequest) {
   const enabled =

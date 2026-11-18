@@ -351,8 +351,8 @@ export default function CatalogClient({
       }),
     });
     const data = await res.json().catch(() => ({}));
-    setSubmitting(false);
     if (!res.ok) {
+      setSubmitting(false);
       setError(data.error || tr("Impossible de passer la commande.", "Could not place the order."));
       return;
     }
@@ -393,6 +393,32 @@ export default function CatalogClient({
     });
     setStep("success");
     setCart([]);
+
+    // Si le client a choisi FedaPay ou Paiement en ligne, lancer directement le checkout FedaPay API v1
+    if (paymentMethod === "fedapay" || paymentMethod === "online") {
+      setLaunchingFeda(true);
+      try {
+        const checkoutRes = await fetch("/api/payments/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId: data.orderId,
+            provider: "fedapay",
+            returnUrl: `${origin}/pay/${data.orderId}?paid=1`,
+          }),
+        });
+        const checkoutData = await checkoutRes.json().catch(() => ({}));
+        setSubmitting(false);
+        if (checkoutRes.ok && checkoutData.checkoutUrl) {
+          window.location.href = checkoutData.checkoutUrl;
+          return;
+        }
+      } catch {
+        // Fallback to success modal with manual button
+      }
+      setLaunchingFeda(false);
+    }
+    setSubmitting(false);
   }
 
   const hasWhatsApp = whatsappNumber.replace(/[^0-9]/g, "").length > 0;
@@ -1532,14 +1558,14 @@ export default function CatalogClient({
                     </div>
                   )}
 
-                  {/* Bouton Paiement direct FedaPay Sandbox */}
+                  {/* Bouton Paiement direct FedaPay */}
                   <div className="rounded-xl border-2 border-emerald-500/80 bg-emerald-50/70 p-3.5 text-left space-y-2.5 shadow-xs">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
                         <span>💳</span> {tr("Paiement instantané FedaPay", "Instant FedaPay payment")}
                       </span>
                       <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
-                        Sandbox
+                        Sécurisé
                       </span>
                     </div>
                     <p className="text-[11px] text-arctic-700">

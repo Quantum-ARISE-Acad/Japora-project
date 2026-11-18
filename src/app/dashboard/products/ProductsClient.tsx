@@ -219,6 +219,7 @@ export default function ProductsClient({
     }
     const fd = new FormData();
     fd.append("file", toUpload);
+    fd.append("folder", "products");
     const res = await fetch("/api/upload", { method: "POST", body: fd });
     const data = await res.json().catch(() => ({}));
     setUploading(false);
@@ -427,7 +428,9 @@ export default function ProductsClient({
                     )}
                     {p.condition && p.condition !== "new" && (
                       <span className="rounded bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white capitalize backdrop-blur">
-                        {p.condition === "used" ? "Occasion" : "Reconditionné"}
+                        {p.condition === "used"
+                          ? tr("Occasion", "Used")
+                          : tr("Reconditionné", "Refurbished")}
                       </span>
                     )}
                   </div>

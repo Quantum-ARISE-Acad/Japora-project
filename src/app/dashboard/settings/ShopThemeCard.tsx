@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { SHOP_THEMES, type ShopThemeId } from "@/components/ShopThemeSelector";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 import {
   PaletteIcon,
   ArcticIcon,
@@ -33,6 +34,7 @@ function ThemeIcon({ id }: { id: string }) {
 }
 
 export default function ShopThemeCard({ shopSlug }: ShopThemeCardProps) {
+  const { tr } = usePublicLang();
   const [currentTheme, setCurrentTheme] = useState<ShopThemeId>("arctic");
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -78,17 +80,20 @@ export default function ShopThemeCard({ shopSlug }: ShopThemeCardProps) {
           <div className="flex items-center gap-2.5">
             <PaletteIcon size={22} className="text-brand-600 dark:text-brand-400" />
             <h2 className="a-title-lg font-bold text-arctic-900">
-              Thème Visuel Officiel de Votre Boutique
+              {tr("Thème Visuel Officiel de Votre Boutique", "Official Storefront Visual Theme")}
             </h2>
           </div>
           <p className="mt-1 text-xs text-arctic-600">
-            Ce thème s&apos;applique directement à tous les visiteurs et clients qui accèdent à votre vitrine publique.
+            {tr(
+              "Ce thème s'applique directement à tous les visiteurs et clients qui accèdent à votre vitrine publique.",
+              "This theme applies directly to all visitors and customers browsing your public storefront.",
+            )}
           </p>
         </div>
 
         {saved && (
           <span className="inline-flex items-center gap-1 rounded-shape-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-            ✓ Thème appliqué à la boutique
+            {tr("✓ Thème appliqué à la boutique", "✓ Theme applied to storefront")}
           </span>
         )}
       </div>
@@ -114,7 +119,7 @@ export default function ShopThemeCard({ shopSlug }: ShopThemeCardProps) {
                 </div>
                 {isSelected ? (
                   <span className="rounded-shape-full bg-brand-500 text-white px-2 py-0.5 text-[10px] font-bold">
-                    Actif
+                    {tr("Actif", "Active")}
                   </span>
                 ) : (
                   <span className="text-[10px] text-arctic-500 uppercase font-semibold">
@@ -126,11 +131,11 @@ export default function ShopThemeCard({ shopSlug }: ShopThemeCardProps) {
               <div className="mt-3">
                 <div className="font-bold text-sm text-arctic-900">{theme.name}</div>
                 <div className="text-[11px] text-arctic-600 mt-0.5">
-                  {theme.id === "arctic" && "Verre givré clair et moderne (Par défaut)"}
-                  {theme.id === "sunset" && "Tons chauds ocre et terracotta d'Afrique"}
-                  {theme.id === "emerald" && "Vert émeraude vibrant et style marché frais"}
-                  {theme.id === "midnight" && "Thème sombre luxueux avec contrastes dorés"}
-                  {theme.id === "indigo" && "Indigo royal profond et finitions prestige"}
+                  {theme.id === "arctic" && tr("Verre givré clair et moderne (Par défaut)", "Clean modern frosted glass (Default)")}
+                  {theme.id === "sunset" && tr("Tons chauds ocre et terracotta d'Afrique", "Warm African ochre and terracotta tones")}
+                  {theme.id === "emerald" && tr("Vert émeraude vibrant et style marché frais", "Vibrant emerald green and fresh market style")}
+                  {theme.id === "midnight" && tr("Thème sombre luxueux avec contrastes dorés", "Luxurious dark theme with golden contrasts")}
+                  {theme.id === "indigo" && tr("Indigo royal profond et finitions prestige", "Deep royal indigo and prestige finishes")}
                 </div>
               </div>
             </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 /**
  * Per-product share kit. WhatsApp has no API to post to Status for you, so the
@@ -24,6 +25,7 @@ const FORMATS: Array<{ key: "status" | "ig" | "tiktok"; label: string; hint: str
 ];
 
 export default function AssetDownloads({ productId, productName, priceText, shopSlug }: Props) {
+  const { tr } = usePublicLang();
   const [copied, setCopied] = useState(false);
   const safeSlug =
     productName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) ||
@@ -50,7 +52,7 @@ export default function AssetDownloads({ productId, productName, priceText, shop
   return (
     <div className="mt-2 space-y-1.5">
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="self-center a-label-md text-arctic-600">Share</span>
+        <span className="self-center a-label-md text-arctic-600">{tr("Partager", "Share")}</span>
         {FORMATS.map((f) => (
           <a
             key={f.key}
@@ -71,11 +73,14 @@ export default function AssetDownloads({ productId, productName, priceText, shop
           onClick={copyCaption}
           className="rounded-full border border-arctic-400/45 bg-white/70 px-2.5 py-1 text-xs font-semibold text-arctic-800 hover:bg-arctic-100/70"
         >
-          {copied ? "Caption copied ✓" : "Copy caption"}
+          {copied ? tr("Légende copiée ✓", "Caption copied ✓") : tr("Copier légende", "Copy caption")}
         </button>
       </div>
       <p className="a-label-md text-arctic-500">
-        Download → open WhatsApp → Status → add the image &amp; paste the caption.
+        {tr(
+          "Télécharger → ouvrir WhatsApp → Statut → ajouter l'image et coller la légende.",
+          "Download → open WhatsApp → Status → add the image & paste the caption.",
+        )}
       </p>
     </div>
   );

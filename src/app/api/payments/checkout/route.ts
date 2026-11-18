@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
 
   // Create the intent up-front so we always have an audit row even if the
   // provider call later throws.
+  const effectiveReturnUrl = returnUrl || `/pay/${order.id}?paid=1`;
   const intent = await prisma.paymentIntent.create({
     data: {
       orderId: order.id,
@@ -77,7 +78,16 @@ export async function POST(req: NextRequest) {
       amountCents: balanceCents,
       currency: order.vendor.currency || "XOF",
       status: "created",
-      metadata: JSON.stringify({ ip, returnUrl: returnUrl ?? null }),
+      metadata: JSON.stringify({
+        ip,
+        reference,
+        orderId: order.id,
+        title: `Commande #${order.id.slice(-6).toUpperCase()}`,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        network: network ?? null,
+        returnUrl: effectiveReturnUrl,
+      }),
     },
   });
 
@@ -90,10 +100,10 @@ export async function POST(req: NextRequest) {
       customerEmail: undefined,
       customerPhone: order.customerPhone || undefined,
       customerName: order.customerName,
-      returnUrl,
+      returnUrl: effectiveReturnUrl,
       reference,
       network,
-      metadata: { orderId: order.id, vendorId: order.vendorId },
+      metadata: { orderId: order.id, vendorId: order.vendorId, reference },
     });
 
     await prisma.paymentIntent.update({

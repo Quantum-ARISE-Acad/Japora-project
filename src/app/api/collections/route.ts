@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentVendor } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/utils";
+import { recordVendorActivity } from "@/lib/clerk-vendor-sync";
 
 export async function GET() {
   const vendor = await getCurrentVendor();
@@ -33,6 +34,7 @@ export async function POST(req: NextRequest) {
 
   const baseSlug = slugify(String(body.slug || "").trim() || name) || `collection-${Date.now().toString(36)}`;
   const description = String(body.description || "").trim();
+  const imageUrl = typeof body.imageUrl === "string" ? body.imageUrl.trim() : "";
 
   // Ensure unique slug per vendor (if custom slug was not forced, auto-suffix; if forced, check conflict)
   let finalSlug = baseSlug;
@@ -60,6 +62,7 @@ export async function POST(req: NextRequest) {
       name,
       slug: finalSlug,
       description,
+      imageUrl,
     },
   });
 
@@ -86,6 +89,18 @@ export async function POST(req: NextRequest) {
   revalidatePath("/dashboard/collections");
   revalidatePath("/dashboard/products");
   revalidatePath(`/c/${vendor.shopSlug}`);
+
+  await recordVendorActivity({
+    vendorId: vendor.id,
+    type: "catalog.collection.created",
+    subjectType: "collection",
+    subjectId: created.id,
+    data: {
+      name: created.name,
+      slug: created.slug,
+      productsCount: collection?.products.length ?? 0,
+    },
+  });
 
   return NextResponse.json({ ok: true, collection });
 }
