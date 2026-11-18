@@ -19,18 +19,17 @@ The app is a multi-vendor marketplace with a public directory (`/marketplace`), 
 > - Consultez également [`GIT_WORKFLOW.md`](./GIT_WORKFLOW.md) pour le fonctionnement des branches d'équipe (`develop`, `staging`, `main`).
 
 ```bash
-# 1. Start local Postgres (one-time per machine boot)
-colima start                 # if you're using Colima; skip on Docker Desktop
-docker-compose up -d         # spins up the wcatalog-db container
-
-# 2. Install + initialise
+# 1. Install dependencies
 pnpm install                 # install + auto-generates the Prisma client
-pnpm db:push                 # apply schema to local database
-pnpm db:seed                 # populate the demo shop
+
+# 2. Initialise local database and demo shop
+pnpm setup                   # apply schema and populate the demo shop
+
+# 3. Start the app
 pnpm dev                     # http://localhost:5174
 ```
 
-After the first time, day-to-day is just `docker-compose up -d && pnpm dev`.
+For a Postgres setup, start Docker first with `docker-compose up -d`. With the default local SQLite setup, no database service is needed. After initial setup, day-to-day is just `pnpm dev`.
 
 ### Demo login
 

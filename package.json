@@ -9,11 +9,11 @@
     "db:migrate": "tsx scripts/prisma-cli.ts migrate dev",
     "db:deploy": "tsx scripts/prisma-cli.ts migrate deploy",
     "db:push": "tsx scripts/prisma-cli.ts db push",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:seed": "tsx scripts/seed.ts",
     "db:studio": "tsx scripts/prisma-cli.ts studio",
     "db:reset": "tsx scripts/prisma-cli.ts migrate reset --force",
     "db:synthetic-recovery": "tsx scripts/synthetic-recovery-demo.ts",
-    "setup": "tsx scripts/prisma-cli.ts db push && tsx prisma/seed.ts",
+    "setup": "pnpm db:push && pnpm db:seed",
     "test": "node --import tsx scripts/run-tests.ts",
     "lh:mobile": "pnpm dlx lighthouse@latest http://localhost:5174/ --quiet --chrome-flags='--headless=new --no-sandbox' --only-categories=performance --view",
     "postinstall": "prisma generate",
@@ -21,7 +21,7 @@
     "lint:fix": "eslint . --fix --max-warnings=0"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.4",

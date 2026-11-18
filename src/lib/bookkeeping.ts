@@ -10,6 +10,7 @@
 import type { Vendor } from "@prisma/client";
 import { prisma } from "./db";
 import { CATEGORIES, REGIONS } from "./regions";
+import { isZeroDecimal } from "./currency";
 
 export type TopProduct = {
   productId: string | null;
@@ -62,16 +63,19 @@ function monthRange(year: number, month: number): { start: Date; end: Date } {
 
 function formatMoney(cents: number, currency: string): string {
   const amount = cents / 100;
+  const code = (currency || "XOF").toUpperCase();
+  const fractionDigits = isZeroDecimal(code) ? 0 : 2;
   // toLocaleString with currency falls back gracefully for unknown codes.
   try {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: currency || "XOF",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      currency: code,
+      currencyDisplay: isZeroDecimal(code) ? "code" : "symbol",
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
     }).format(amount);
   } catch {
-    return `${currency || ""} ${amount.toFixed(2)}`.trim();
+    return `${code} ${amount.toFixed(fractionDigits)}`.trim();
   }
 }
 
