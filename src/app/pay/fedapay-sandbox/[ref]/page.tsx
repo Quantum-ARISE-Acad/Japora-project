@@ -32,7 +32,7 @@ export default async function FedaPaySandboxPage({ params }: Params) {
         whatsappNumber: true,
       },
     }),
-    getVendorFedaPayConfig(intent.vendorId),
+    getVendorFedaPayConfig(intent.vendorId, "sandbox"),
   ]);
 
   let orderSummary: {
@@ -87,6 +87,13 @@ export default async function FedaPaySandboxPage({ params }: Params) {
       returnUrl={
         meta.returnUrl ||
         (orderSummary ? `/pay/${orderSummary.id}?paid=1` : "/dashboard/billing?ok=1")
+      }
+      cancelUrl={
+        orderSummary
+          ? `/pay/${orderSummary.id}?failed=1`
+          : meta.paymentLinkId
+            ? `/pay/link/${meta.paymentLinkId}`
+            : "/dashboard/billing?canceled=1"
       }
     />
   );

@@ -130,6 +130,10 @@ export default async function BillingPage({
         environment: fedaConfig.environment,
         publicKey: fedaConfig.publicKey,
         secretKey: fedaConfig.secretKey,
+        sandboxPublicKey: fedaConfig.sandboxPublicKey || "",
+        sandboxSecretKey: fedaConfig.sandboxSecretKey || "",
+        livePublicKey: fedaConfig.livePublicKey || "",
+        liveSecretKey: fedaConfig.liveSecretKey || "",
         webhookSecret: fedaConfig.webhookSecret || "",
         enabled: fedaConfig.enabled,
       }}

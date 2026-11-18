@@ -51,6 +51,7 @@ export type InitiateOptions = {
   customerPhone?: string;
   customerName?: string;
   returnUrl?: string;
+  appBaseUrl?: string;
   reference: string; // unique provider reference we generate (e.g. "japora_xxx")
   /** Optional wallet hint, e.g. "T-Money" / "Flooz" / "Orange Money". */
   network?: string;
@@ -153,40 +154,20 @@ export function isProviderConfigured(name: PaymentProviderName): boolean {
 }
 
 /**
- * Ordered list of rails to offer for a shop's currency. West-African mobile
- * money leads (Togo-first); cash always closes the list. Configured (live)
- * rails sort ahead of unconfigured (stub) ones.
+ * Ordered list of rails to offer for a shop's currency.
+ * Japora supports two clean checkout methods:
+ *   1. FedaPay (T-Money, Flooz, MTN MoMo, Celtiis, Visa/Mastercard)
+ *   2. Cash on delivery (Paiement à la livraison)
  */
-export function providersForCurrency(currency: string): PaymentProviderName[] {
-  const cur = (currency || "").toUpperCase();
-  const PRIORITY: PaymentProviderName[] = [
-    "fedapay", "ussd", "paygate", "cinetpay", "flutterwave", "orange", "wave", "momo",
-    "paystack", "mpesa", "chipper", "cash",
-  ];
-  const fits = (p: PaymentProviderName) =>
-    PROVIDER_CURRENCIES[p].includes("*") || PROVIDER_CURRENCIES[p].includes(cur);
-  return PRIORITY.filter(fits).sort((a, b) => {
-    if (a === "fedapay") return -1;
-    if (b === "fedapay") return 1;
-    if (a === "ussd") return -1;
-    if (b === "ussd") return 1;
-    if (a === "cash") return 1;
-    if (b === "cash") return -1;
-    return Number(isProviderConfigured(b)) - Number(isProviderConfigured(a));
-  });
+export function providersForCurrency(_currency: string): PaymentProviderName[] {
+  return ["fedapay", "cash"];
 }
 
 /**
- * The first hosted-API rail that's actually configured for this currency, or
- * null. This is the "pay automatically" fallback we offer alongside USSD — only
- * surfaced where a provider's credentials are present.
+ * Primary hosted-API payment handler for Japora storefronts: FedaPay REST API v1.
  */
-export function apiFallbackForCurrency(currency: string): PaymentProviderName | null {
-  const cur = (currency || "").toUpperCase();
-  const fits = (p: PaymentProviderName) =>
-    PROVIDER_CURRENCIES[p].includes("*") || PROVIDER_CURRENCIES[p].includes(cur);
-  const apiRails: PaymentProviderName[] = ["fedapay", "paygate", "cinetpay", "flutterwave", "paystack", "mpesa"];
-  return apiRails.find((p) => fits(p) && isProviderConfigured(p)) ?? "fedapay";
+export function apiFallbackForCurrency(_currency: string): PaymentProviderName {
+  return "fedapay";
 }
 
 /** Providers whose required envs are currently configured (real, not stub). */

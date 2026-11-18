@@ -213,16 +213,43 @@ export async function PATCH(req: NextRequest) {
       currentUiPrefs.fedapayConfig && typeof currentUiPrefs.fedapayConfig === "object"
         ? (currentUiPrefs.fedapayConfig as Record<string, unknown>)
         : {};
+    const env: "sandbox" | "live" = fc.environment === "live" ? "live" : "sandbox";
+
+    const cleanKey = (val: unknown, fallback: unknown) => {
+      if (typeof val === "string") {
+        const trimmed = val.trim();
+        if (trimmed.includes("••••")) return typeof fallback === "string" ? fallback : "";
+        return trimmed;
+      }
+      return typeof fallback === "string" ? fallback : "";
+    };
+
+    const sandboxPublicKey = cleanKey(
+      fc.sandboxPublicKey !== undefined ? fc.sandboxPublicKey : env === "sandbox" ? fc.publicKey : undefined,
+      existingFc.sandboxPublicKey ?? (typeof existingFc.publicKey === "string" && existingFc.publicKey.startsWith("pk_sandbox_") ? existingFc.publicKey : ""),
+    );
+    const sandboxSecretKey = cleanKey(
+      fc.sandboxSecretKey !== undefined ? fc.sandboxSecretKey : env === "sandbox" ? fc.secretKey : undefined,
+      existingFc.sandboxSecretKey ?? (typeof existingFc.secretKey === "string" && existingFc.secretKey.startsWith("sk_sandbox_") ? existingFc.secretKey : ""),
+    );
+    const livePublicKey = cleanKey(
+      fc.livePublicKey !== undefined ? fc.livePublicKey : env === "live" ? fc.publicKey : undefined,
+      existingFc.livePublicKey ?? (typeof existingFc.publicKey === "string" && existingFc.publicKey.startsWith("pk_live_") ? existingFc.publicKey : ""),
+    );
+    const liveSecretKey = cleanKey(
+      fc.liveSecretKey !== undefined ? fc.liveSecretKey : env === "live" ? fc.secretKey : undefined,
+      existingFc.liveSecretKey ?? (typeof existingFc.secretKey === "string" && existingFc.secretKey.startsWith("sk_live_") ? existingFc.secretKey : ""),
+    );
+
     currentUiPrefs.fedapayConfig = {
-      environment: fc.environment === "live" ? "live" : "sandbox",
-      publicKey:
-        typeof fc.publicKey === "string"
-          ? fc.publicKey.trim()
-          : (existingFc.publicKey ?? ""),
-      secretKey:
-        typeof fc.secretKey === "string" && !fc.secretKey.includes("••••")
-          ? fc.secretKey.trim()
-          : (existingFc.secretKey ?? ""),
+      environment: env,
+      publicKey: env === "live" ? livePublicKey : sandboxPublicKey,
+      secretKey: env === "live" ? liveSecretKey : sandboxSecretKey,
+      sandboxPublicKey,
+      sandboxSecretKey,
+      livePublicKey,
+      liveSecretKey,
+      webhookSecret: cleanKey(fc.webhookSecret, existingFc.webhookSecret ?? ""),
       enabled: typeof fc.enabled === "boolean" ? fc.enabled : true,
     };
     uiPrefsChanged = true;

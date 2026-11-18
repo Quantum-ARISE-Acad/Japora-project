@@ -8,7 +8,12 @@ import {
 } from "@/lib/payments";
 import { evaluateAndGrant } from "@/lib/trust";
 import { recordConfirmedOrder } from "@/lib/funnel";
-import { settleFedaPayPaymentIntent } from "@/lib/payments/fedapay";
+import {
+  settleFedaPayPaymentIntent,
+  extractFedaWebhookEntity,
+  getVendorFedaPayConfig,
+  verifyFedaPaySignatureWithSecret,
+} from "@/lib/payments/fedapay";
 
 /**
  * POST /api/payments/webhook/[provider]
@@ -86,7 +91,19 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
 
   // Dedicated FedaPay webhook handling (covers Orders, PaymentLinks, and Subscriptions + WhatsApp notification)
   if (providerName === "fedapay") {
-    const obj = (payload.object ?? payload.transaction ?? payload.data ?? {}) as Record<string, any>;
+    const obj = extractFedaWebhookEntity(payload as Record<string, any>);
+    // Also check per-vendor webhookSecret if configured in dashboard
+    const vendorCfg = await getVendorFedaPayConfig(intent.vendorId);
+    if (
+      vendorCfg.webhookSecret &&
+      !verifyFedaPaySignatureWithSecret(rawBody, req.headers, vendorCfg.webhookSecret)
+    ) {
+      logger.warn("payments.webhook.fedapay_vendor_bad_signature", {
+        vendorId: intent.vendorId,
+        paymentIntentId: intent.id,
+      });
+      return NextResponse.json({ error: "Invalid signature." }, { status: 401 });
+    }
     const fedaId = obj.id !== undefined ? String(obj.id) : intent.providerRef || "";
     let verifiedOutcome = parsed.status;
     try {
@@ -202,29 +219,33 @@ function extractEvent(
   provider: PaymentProviderName,
   payload: Record<string, unknown>,
 ): { providerRef?: string; status: "pending" | "succeeded" | "failed"; amountCents?: number } {
-  // FedaPay webhook: { entity: "event", name: "transaction.approved", object: { id, status, amount, custom_metadata } }
+  // FedaPay webhook: { class_name: "Event", name: "transaction.approved", entity: { id, status, amount, custom_metadata } }
   if (provider === "fedapay") {
-    const obj = (payload.object ?? payload.transaction ?? payload.data ?? {}) as Record<string, unknown>;
+    const obj = extractFedaWebhookEntity(payload as Record<string, any>);
     const customMeta = (obj.custom_metadata ?? {}) as Record<string, unknown>;
     const ref =
-      typeof customMeta.reference === "string"
-        ? customMeta.reference
-        : obj.id !== undefined
-          ? String(obj.id)
+      obj.id !== undefined
+        ? String(obj.id)
+        : typeof customMeta.reference === "string"
+          ? customMeta.reference
           : typeof payload.providerRef === "string"
             ? payload.providerRef
             : undefined;
-    const eventName = String(payload.name ?? "");
+    const eventName = String(payload.name ?? "").toLowerCase();
     const status = String(obj.status ?? payload.status ?? "").toLowerCase();
     const mapped =
       eventName.includes("approved") ||
       eventName.includes("transferred") ||
       status === "approved" ||
+      status === "transferred" ||
       status === "succeeded"
         ? "succeeded"
         : eventName.includes("declined") ||
             eventName.includes("canceled") ||
+            eventName.includes("cancelled") ||
             status === "declined" ||
+            status === "canceled" ||
+            status === "cancelled" ||
             status === "failed"
           ? "failed"
           : "pending";

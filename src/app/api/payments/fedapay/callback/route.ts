@@ -4,7 +4,10 @@ import { logger } from "@/lib/logger";
 import {
   fedapayProvider,
   settleFedaPayPaymentIntent,
-  getAppBaseUrl,
+  resolveRequestOrigin,
+  extractFedaWebhookEntity,
+  getVendorFedaPayConfig,
+  verifyFedaPaySignatureWithSecret,
 } from "@/lib/payments/fedapay";
 
 /**
@@ -23,7 +26,7 @@ export async function GET(req: NextRequest) {
   const statusParam = (searchParams.get("status") || "").toLowerCase().trim();
   const returnUrlParam = searchParams.get("returnUrl")?.trim() || "";
 
-  const baseUrl = getAppBaseUrl();
+  const baseUrl = resolveRequestOrigin(req.headers, req.url);
   const toAbsoluteUrl = (pathOrUrl: string) => {
     if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
       return pathOrUrl;
@@ -124,10 +127,7 @@ export async function POST(req: NextRequest) {
     }
 
     const payload = JSON.parse(rawBody || "{}") as Record<string, any>;
-    const obj = (payload.object || payload.transaction || payload.data || payload) as Record<
-      string,
-      any
-    >;
+    const obj = extractFedaWebhookEntity(payload);
     const customMeta = (obj.custom_metadata || {}) as Record<string, any>;
     const fedaTxId = obj.id ? String(obj.id) : "";
     const ref = typeof customMeta.reference === "string" ? customMeta.reference : "";
@@ -149,6 +149,14 @@ export async function POST(req: NextRequest) {
 
     if (!intent) {
       return NextResponse.json({ ok: true, note: "intent_not_found" });
+    }
+
+    const vendorCfg = await getVendorFedaPayConfig(intent.vendorId);
+    if (
+      vendorCfg.webhookSecret &&
+      !verifyFedaPaySignatureWithSecret(rawBody, req.headers, vendorCfg.webhookSecret)
+    ) {
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
     const verifyRes = await fedapayProvider.verify(fedaTxId || intent.providerRef || "");
