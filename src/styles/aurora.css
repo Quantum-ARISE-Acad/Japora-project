@@ -366,7 +366,7 @@ body {
   background: var(--aurora-primary-container);
   color: var(--aurora-on-primary-container);
   backdrop-filter: blur(10px);
-  border-color: rgba(255, 255, 255, 0.45);
+  border-color: var(--glass-border);
 }
 .a-btn--tonal:not(:disabled):hover {
   background: rgb(var(--gold) / 0.18);

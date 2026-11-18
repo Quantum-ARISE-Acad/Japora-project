@@ -110,6 +110,7 @@ export default function ShopOnboardingModal({
     try {
       const fd = new FormData();
       fd.append("file", file);
+      fd.append("folder", "avatars");
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.url) {

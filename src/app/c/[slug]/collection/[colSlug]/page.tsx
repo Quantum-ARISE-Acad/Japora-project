@@ -85,7 +85,7 @@ export default async function PublicCollectionPage({ params }: Params) {
           slug: c.slug,
           description: c.description,
           productCount: c.products.length,
-          coverImageUrl: c.products.find((p) => p.imageUrl)?.imageUrl || "",
+          coverImageUrl: c.imageUrl || c.products.find((p) => p.imageUrl)?.imageUrl || "",
         }))}
         initialCollectionId={collection.id}
         products={collection.products.map((p) => ({

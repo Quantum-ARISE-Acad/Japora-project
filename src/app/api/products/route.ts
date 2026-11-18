@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentVendor } from "@/lib/auth";
 import { createProductForVendor, priceFloorsForVendor } from "@/lib/products";
+import { recordVendorActivity } from "@/lib/clerk-vendor-sync";
 
 export async function GET(req: NextRequest) {
   const vendor = await getCurrentVendor();
@@ -45,5 +46,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
 
+  await recordVendorActivity({
+    vendorId: vendor.id,
+    type: "catalog.product.created",
+    subjectType: "product",
+    subjectId: result.product.id,
+    data: {
+      name: result.product.name,
+      priceCents: result.product.priceCents,
+      stock: result.product.stock,
+      collectionId: result.product.collectionId,
+    },
+  });
   return NextResponse.json({ ok: true, product: result.product });
 }

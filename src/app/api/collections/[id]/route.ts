@@ -37,6 +37,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (typeof body.description === "string") {
     data.description = body.description.trim();
   }
+  if (typeof body.imageUrl === "string") {
+    data.imageUrl = body.imageUrl.trim();
+  }
 
   // Handle product associations if passed
   if (Array.isArray(body.productIds)) {

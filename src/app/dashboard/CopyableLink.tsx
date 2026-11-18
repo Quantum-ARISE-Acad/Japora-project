@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 export default function CopyableLink({ slug }: { slug: string }) {
+  const { tr } = usePublicLang();
   const [copied, setCopied] = useState(false);
   const base =
     process.env.NEXT_PUBLIC_APP_URL ||
@@ -26,7 +28,7 @@ export default function CopyableLink({ slug }: { slug: string }) {
       </code>
       <div className="flex gap-2">
         <button onClick={copy} className="btn-primary whitespace-nowrap">
-          {copied ? "Copied!" : "Copy link"}
+          {copied ? tr("Copié !", "Copied!") : tr("Copier le lien", "Copy link")}
         </button>
         <a
           href={`/c/${slug}`}
@@ -34,7 +36,7 @@ export default function CopyableLink({ slug }: { slug: string }) {
           rel="noreferrer"
           className="btn-ghost whitespace-nowrap"
         >
-          Open ↗
+          {tr("Ouvrir ↗", "Open ↗")}
         </a>
       </div>
     </div>

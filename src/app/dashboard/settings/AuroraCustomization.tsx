@@ -152,7 +152,6 @@ export default function AuroraCustomization({ initial, currency }: Props) {
           <div
             className="space-y-3"
             style={{
-              // The accent shift translates to a hue rotation on a tinted band.
               filter: "hue-rotate(var(--aurora-accent-hue, 0deg))",
             }}
           >
@@ -168,7 +167,6 @@ export default function AuroraCustomization({ initial, currency }: Props) {
             <button
               className="btn-primary w-full"
               style={{
-                // M3-Expressive duration token — uses the user's chosen multiplier.
                 transitionDuration: "var(--aurora-dur-short)",
               }}
               onClick={(e) => e.preventDefault()}
