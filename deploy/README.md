@@ -25,6 +25,8 @@ ssh -J wataru-jump@192.168.105.250 wataru@10.77.0.12
 curl -fsSL https://get.docker.com | sudo sh && sudo usermod -aG docker wataru   # puis se reconnecter
 git clone https://github.com/Quantum-ARISE-Acad/Japora-project.git japora && cd japora
 deploy/mvp.sh init-olga wataru.quantum-arise.com   # adresse provisoire si elle n'est pas encore connue
+sudo deploy/host/split-disk.sh 11G                 # espace séparé pour Docker et les sauvegardes (voir « Espace disque »)
+sudo deploy/host/install-disk-alert.sh             # alerte e-mail si un disque se remplit
 # copier .env.keys depuis votre ordinateur (scp), puis :
 deploy/mvp.sh up
 curl -I http://10.77.0.12:8080/                     # doit répondre depuis la VM
@@ -40,6 +42,43 @@ dans Meta (webhook WhatsApp) et dans Clerk.
 - Olga ne sauvegarde pas la VM : copiez régulièrement `~/japora/backups` sur une autre
   machine (`scp -r -J wataru-jump@192.168.105.250 wataru@10.77.0.12:japora/backups .`).
 - Pas de vrais clients ni de clients payants sans l'accord de l'administrateur d'Olga.
+
+## Espace disque : système et Japora séparés
+
+Sur une petite VM (20 Go sur Olga), tout ce qui grossit est mis à part, pour que le
+système reste utilisable même si Japora remplit son espace :
+
+| Espace | Contenu | Si plein |
+|---|---|---|
+| `/` (système) | Ubuntu, SSH, journaux, mises à jour | — |
+| `/srv/japora-data` | Docker (images, base, photos, supervision) et `backups/` | seul Japora s'arrête ; SSH marche toujours |
+
+`/srv/japora-data` est un fichier de taille fixe (`/srv/japora-data.img`) formaté et
+monté : aucune partition n'est modifiée. `sudo deploy/host/split-disk.sh <taille>`
+le crée **avant le premier `up`** (le script refuse si Docker contient déjà des
+données), y place Docker et les sauvegardes, et empêche Docker de démarrer tant que
+cet espace n'est pas monté. Le script laisse au moins 5 Go libres au système.
+
+**Alertes.** `sudo deploy/host/install-disk-alert.sh` installe une vérification toutes
+les 5 minutes, hors de Docker : e-mail à 80 % d'espace utilisé, « URGENT » à 90 %,
+rappel toutes les 12 heures tant que ça reste plein, et un e-mail quand c'est revenu
+à la normale. Remplissez `/etc/japora/alerts.env` (identifiants SMTP, modèle :
+`host/alerts.env.example`), puis testez : `sudo /usr/local/sbin/japora-disk-alert --test`.
+Les mêmes seuils apparaissent dans Prometheus/Grafana (`DisquePresquePlein`, `DisquePlein`).
+
+**Si l'espace de Japora se remplit** : `docker builder prune -f && docker image prune -f`,
+puis vérifier les sauvegardes (`du -sh ~/japora/backups/* | sort -h | tail`).
+
+**Agrandir** (exemple : +2 Go, s'il reste assez de place sur `/`) :
+
+```bash
+deploy/mvp.sh down && sudo systemctl stop docker docker.socket
+sudo umount ~/japora/backups /srv/japora-data
+sudo truncate -s +2G /srv/japora-data.img
+sudo e2fsck -f /srv/japora-data.img && sudo resize2fs /srv/japora-data.img
+sudo mount /srv/japora-data && sudo mount ~/japora/backups && sudo systemctl start docker
+deploy/mvp.sh up
+```
 
 ## Premier déploiement
 
