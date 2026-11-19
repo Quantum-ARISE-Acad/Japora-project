@@ -6,6 +6,8 @@ import { rateLimit, getClientIp, tooManyRequests } from "@/lib/ratelimit";
 
 const ALLOWED_CLIENT_STAGES = new Set(["visit", "product_view", "cart", "ussd_intent"]);
 
+// cs
+
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
   const rl = rateLimit({ key: `beacon:${ip}`, limit: 120, windowMs: 60_000 });
