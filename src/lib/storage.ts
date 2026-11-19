@@ -7,6 +7,8 @@ export type SaveInput = {
   buffer: Buffer;
   contentType: string;
   ext: string;
+  /** Sub-folder used by Firebase and S3 (e.g. "products/<vendorId>"). Local files stay flat. */
+  folder?: string;
 };
 
 export type SaveResult = {
@@ -44,6 +46,74 @@ class LocalStorageProvider implements StorageProvider {
     await mkdir(dir, { recursive: true });
     await writeFile(path.join(dir, key), buffer);
     return { url: `/uploads/${key}`, key };
+  }
+}
+
+/**
+ * Firebase Cloud Storage provider (Google Cloud Storage for Firebase).
+ *
+ * Uses the official Firebase Storage v0 REST API with `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+ * (or `FIREBASE_STORAGE_BUCKET`) so it works on both Node.js and serverless runtimes
+ * (Vercel) with zero native binary dependencies.
+ *
+ * Uploaded objects receive a permanent public download URL (`alt=media&token=...`)
+ * suitable for `<img src>`, WhatsApp Cloud API media messages, Meta catalogs,
+ * and downloadable documents.
+ */
+class FirebaseStorageProvider implements StorageProvider {
+  name = "firebase";
+
+  constructor(
+    private bucket: string,
+    private apiKey?: string,
+  ) {}
+
+  async save({ buffer, contentType, ext, folder }: SaveInput): Promise<SaveResult> {
+    const cleanBucket = this.bucket.replace(/^gs:\/\//i, "").replace(/\/+$/, "").trim();
+    const subFolder = folder
+      ? folder.replace(/[^a-z0-9/_-]/gi, "").replace(/^\/+|\/+$/g, "")
+      : "uploads";
+    const key = `japora/${subFolder}/${randomUUID()}.${ext}`;
+
+    const endpoint = new URL(
+      `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(cleanBucket)}/o`,
+    );
+    endpoint.searchParams.set("uploadType", "media");
+    endpoint.searchParams.set("name", key);
+    if (this.apiKey) {
+      endpoint.searchParams.set("key", this.apiKey);
+    }
+
+    const res = await fetch(endpoint.toString(), {
+      method: "POST",
+      headers: {
+        "Content-Type": contentType || "application/octet-stream",
+        "Cache-Control": "public, max-age=31536000, immutable",
+      },
+      body: new Uint8Array(buffer),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      throw new Error(
+        `Firebase Storage upload failed (${res.status}): ${errText.slice(0, 300)}`,
+      );
+    }
+
+    const meta = (await res.json().catch(() => ({}))) as {
+      name?: string;
+      bucket?: string;
+      downloadTokens?: string;
+    };
+
+    const objectName = meta.name || key;
+    const token = meta.downloadTokens?.split(",")[0]?.trim();
+    const encodedPath = encodeURIComponent(objectName);
+    const url = token
+      ? `https://firebasestorage.googleapis.com/v0/b/${cleanBucket}/o/${encodedPath}?alt=media&token=${encodeURIComponent(token)}`
+      : `https://firebasestorage.googleapis.com/v0/b/${cleanBucket}/o/${encodedPath}?alt=media`;
+
+    return { url, key: objectName };
   }
 }
 
@@ -133,8 +203,10 @@ export class S3StorageProvider implements StorageProvider {
     return `${this.publicUrlBase.replace(/\/$/, "")}/${key}`;
   }
 
-  async save({ buffer, contentType, ext }: SaveInput): Promise<SaveResult> {
-    const key = `${randomUUID()}.${ext}`;
+  async save({ buffer, contentType, ext, folder }: SaveInput): Promise<SaveResult> {
+    const cleanFolder = folder ? folder.replace(/[^a-z0-9/_-]/gi, "").replace(/^\/+|\/+$/g, "") : "";
+    const filename = `${randomUUID()}.${ext}`;
+    const key = cleanFolder ? `${cleanFolder}/${filename}` : filename;
     const url = await this.put(key, buffer, contentType);
     return { url, key };
   }
@@ -188,8 +260,20 @@ export function localUploadKey(url: string, appUrl = ""): string | null {
 
 let cached: StorageProvider | null = null;
 
+/** Firebase Storage bucket (FIREBASE_STORAGE_BUCKET or NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET), or "". */
+export function getFirebaseBucket(): string {
+  return (process.env.FIREBASE_STORAGE_BUCKET || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "").trim();
+}
+
+/** Order: Firebase Storage, then S3 / R2, then this server (UPLOADS_DIR). */
 export function getStorageProvider(): StorageProvider {
   if (cached) return cached;
+  const firebaseBucket = getFirebaseBucket();
+  if (firebaseBucket) {
+    const apiKey = (process.env.FIREBASE_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "").trim();
+    cached = new FirebaseStorageProvider(firebaseBucket, apiKey || undefined);
+    return cached;
+  }
   const s3 = createS3Provider();
   if (s3) {
     cached = s3;
@@ -205,7 +289,8 @@ export function getStorageProvider(): StorageProvider {
 }
 
 /** "incomplete": a bucket is set but other required settings are blank (photos stay local). */
-export function storageMode(): "local" | "s3" | "incomplete" {
+export function storageMode(): "firebase" | "local" | "s3" | "incomplete" {
+  if (getFirebaseBucket()) return "firebase";
   const { bucket, missing } = s3Settings();
   if (!bucket) return "local";
   return missing.length ? "incomplete" : "s3";
@@ -213,6 +298,7 @@ export function storageMode(): "local" | "s3" | "incomplete" {
 
 /** Required S3 settings left blank, for the settings page. */
 export function storageMissingSettings(): string[] {
+  if (getFirebaseBucket()) return [];
   const { bucket, missing } = s3Settings();
   return bucket ? missing : [];
 }

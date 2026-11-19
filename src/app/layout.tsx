@@ -9,18 +9,21 @@ import { getPublicLocale } from "@/lib/public-locale";
 
 
 // Body / UI face — Inter, with the tabular-figure feature used by the ledger.
-// Bundled from google/fonts (SIL OFL licenses in ./fonts): no network at build time.
+// Self-hosted variable woff2, latin subset (Seth's version, SIL OFL licenses in ./fonts):
+// no network at build time. Characters outside the subset fall back to the system font.
 const inter = localFont({
-  src: "./fonts/Inter.ttf",
-  weight: "300 700",
+  src: "./fonts/Inter-Variable.woff2",
+  weight: "100 900",
+  style: "normal",
   variable: "--font-sans",
   display: "swap",
 });
 
 // Modern display face — Plus Jakarta Sans for crisp, contemporary headings.
 const jakarta = localFont({
-  src: "./fonts/PlusJakartaSans.ttf",
-  weight: "500 800",
+  src: "./fonts/PlusJakartaSans-Variable.woff2",
+  weight: "200 800",
+  style: "normal",
   variable: "--font-display",
   display: "swap",
 });

@@ -56,7 +56,7 @@ export default function SettingsForm({
 }: {
   initial: Initial;
   whatsappLive: boolean;
-  storageMode: "local" | "s3" | "incomplete";
+  storageMode: "firebase" | "local" | "s3" | "incomplete";
   storageMissing?: string[];
 }) {
   const { tr } = usePublicLang();
@@ -609,12 +609,14 @@ export default function SettingsForm({
           <span
             className={
               "rounded-full px-2 py-0.5 text-xs font-semibold " +
-              (storageMode === "s3"
+              (storageMode === "s3" || storageMode === "firebase"
                 ? "bg-brand/10 text-brand-dark"
                 : "bg-arctic-200/65 text-arctic-700")
             }
           >
-            {storageMode === "s3"
+            {storageMode === "firebase"
+              ? tr("Firebase Storage", "Firebase Storage")
+              : storageMode === "s3"
               ? tr("Stockage externe (S3 / R2)", "External storage (S3 / R2)")
               : storageMode === "incomplete"
                 ? tr("Configuration incomplète", "Incomplete settings")
@@ -622,7 +624,9 @@ export default function SettingsForm({
           </span>
         </div>
         <p className="mt-2 text-sm text-arctic-600">
-          {storageMode === "s3"
+          {storageMode === "firebase"
+            ? tr("Les photos et documents sont envoyés dans Firebase Storage. Le serveur ne les garde plus.", "Photos and documents are sent to Firebase Storage. The server no longer keeps them.")
+            : storageMode === "s3"
             ? tr("Les photos des produits sont envoyées dans votre espace de stockage externe (Cloudflare R2, AWS S3 ou Supabase). Le serveur ne les garde plus.", "Product photos are sent to your external storage (Cloudflare R2, AWS S3 or Supabase). The server no longer keeps them.")
             : storageMode === "incomplete"
               ? tr(`Un espace de stockage est indiqué, mais il manque : ${storageMissing.join(", ")}. En attendant, les photos restent enregistrées sur ce serveur.`, `A storage space is set, but this is missing: ${storageMissing.join(", ")}. Until then, photos stay on this server.`)
