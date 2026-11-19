@@ -168,6 +168,9 @@ const INTEREST_SUGGESTIONS = [
   "Livraison rapide",
 ];
 
+
+const RECOVERY_STATUSES = ["draft", "approved", "sent", "stubbed", "blocked", "failed", "cancelled"];
+
 export default function CampaignsClient({
   initialCampaigns,
   products,
@@ -322,20 +325,26 @@ export default function CampaignsClient({
     setDrafting(true);
     setErr("");
     try {
-      const r = await fetch("/api/campaigns/draft", {
+      // Same ad writer as the rest of the dashboard: Gemini when the key is set,
+      // otherwise a simple text built from the shop and the product.
+      const r = await fetch("/api/ai/ad-copy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId: productId || null }),
+        body: JSON.stringify({ productId: productId || undefined, platform: "meta" }),
       });
-      const d = await r.json();
-      if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || typeof d.headline !== "string") {
         setErr(d.error || "Impossible de générer le texte publicitaire.");
         return;
       }
-      setHeadline(d.draft.headline || "");
-      setBody(d.draft.body || "");
-      setCta(d.draft.cta || "Commander sur WhatsApp");
-      showToastMessage("✨ Copywriting publicitaire généré avec Gemini IA !");
+      setHeadline(d.headline);
+      setBody(d.body || "");
+      setCta(d.cta || "Commander sur WhatsApp");
+      showToastMessage(
+        d.mode === "ai"
+          ? "✨ Texte publicitaire rédigé par Gemini IA !"
+          : "Texte publicitaire proposé (modèle simple, sans IA). Vous pouvez le modifier.",
+      );
     } catch {
       setErr("Erreur réseau lors de la génération IA.");
     } finally {
@@ -494,8 +503,14 @@ export default function CampaignsClient({
         method: "POST",
       });
       const runData = await runRes.json().catch(() => ({}));
-      if (!runRes.ok && runRes.status !== 409) {
+      if (!runRes.ok) {
         setErr(runData.error || "Impossible d'envoyer le message.");
+      } else {
+        showToastMessage(
+          runData.status === "stubbed"
+            ? "Message de relance enregistré (WhatsApp n'est pas encore configuré : rien n'a été envoyé)."
+            : "Message de relance envoyé sur WhatsApp.",
+        );
       }
       const listRes = await fetch("/api/campaigns");
       if (listRes.ok) {
@@ -1649,11 +1664,9 @@ export default function CampaignsClient({
           <div className="space-y-3">
             {filteredCampaigns.map((c) => {
               const meta = c.metaDetails;
-              const isRecovery =
-                c.status === "draft" ||
-                c.status === "approved" ||
-                c.status === "sent" ||
-                c.status === "cancelled";
+              // Recovery messages (abandoned cart, reactivation) go through these statuses.
+              const isRecovery = RECOVERY_STATUSES.includes(c.status);
+              const canSend = ["draft", "approved", "blocked", "failed"].includes(c.status);
               const isActive = c.status === "active";
               const isBusy = busyCampaignId === c.id;
 
@@ -1861,9 +1874,7 @@ export default function CampaignsClient({
                   </div>
 
                   {/* Recovery / Reactivation Approval Box (preserved for abandoned cart drafts) */}
-                  {(c.status === "draft" ||
-                    c.status === "approved" ||
-                    c.status === "sent") && (
+                  {isRecovery && (
                     <div className="mt-3 rounded-xl border border-arctic-400/25 bg-arctic-100/55 p-3 text-xs text-arctic-600">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
@@ -1877,8 +1888,14 @@ export default function CampaignsClient({
                             `Envoyée${
                               c.approvedForPhone ? ` à ${c.approvedForPhone}` : ""
                             }.`}
+                          {c.status === "stubbed" &&
+                            "Enregistrée, mais WhatsApp n'est pas encore configuré : rien n'a été envoyé."}
+                          {c.status === "blocked" &&
+                            "Bloquée : le message ou le client a changé, ou ce client a reçu trop de messages. Vous pouvez réessayer."}
+                          {c.status === "failed" && "L'envoi a échoué. Vous pouvez réessayer."}
+                          {c.status === "cancelled" && "Annulée : ce message ne sera pas envoyé."}
                         </div>
-                        {(c.status === "draft" || c.status === "approved") && (
+                        {canSend && (
                           <div className="flex gap-2">
                             <button
                               type="button"
@@ -1886,9 +1903,9 @@ export default function CampaignsClient({
                               onClick={() => approveAndRun(c.id)}
                               className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
                             >
-                              {c.status === "draft"
-                                ? "Approuver & Envoyer"
-                                : "Envoyer maintenant"}
+                              {c.status === "approved"
+                                ? "Envoyer maintenant"
+                                : "Approuver & Envoyer"}
                             </button>
                             <button
                               type="button"
