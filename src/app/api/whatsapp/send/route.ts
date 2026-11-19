@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentVendor } from "@/lib/auth";
 import { sendCustomerUpdate, sendWhatsAppTemplate } from "@/lib/whatsapp";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
  * Vendor-triggered customer update (the orders board "Update" action & Bot test button).
@@ -9,14 +10,15 @@ import { sendCustomerUpdate, sendWhatsAppTemplate } from "@/lib/whatsapp";
  * before or while saving.
  */
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const b = await req.json().catch(() => ({}));
   const to = String(b.to || "").trim();
   const body = String(b.body || "").trim();
   if (!to || !body) {
-    return NextResponse.json({ error: "Recipient and message are required." }, { status: 400 });
+    return NextResponse.json({ error: tr("Le destinataire et le message sont obligatoires.", "Recipient and message are required.") }, { status: 400 });
   }
 
   const overrideToken =

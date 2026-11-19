@@ -4,8 +4,10 @@ import { hashPassword, validatePassword } from "@/lib/auth";
 import { hashToken } from "@/lib/token";
 import { getClientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
 import { logger } from "@/lib/logger";
+import { getServerTr } from "@/lib/public-locale";
 
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const ip = getClientIp(req);
   const rl = rateLimit({ key: `reset:${ip}`, limit: 10, windowMs: 60 * 60_000 });
   if (!rl.allowed) {
@@ -16,7 +18,7 @@ export async function POST(req: NextRequest) {
   const token = String(body?.token || "").trim();
   const password = String(body?.password || "");
 
-  if (!token) return NextResponse.json({ error: "Missing token." }, { status: 400 });
+  if (!token) return NextResponse.json({ error: tr("Jeton manquant.", "Missing token.") }, { status: 400 });
   const pwCheck = validatePassword(password);
   if (!pwCheck.ok) return NextResponse.json({ error: pwCheck.reason }, { status: 400 });
 
@@ -26,7 +28,7 @@ export async function POST(req: NextRequest) {
 
   if (!record || record.usedAt || record.expiresAt < new Date()) {
     return NextResponse.json(
-      { error: "This reset link is invalid or has expired. Request a new one." },
+      { error: tr("Ce lien de réinitialisation est invalide ou a expiré. Demandez-en un nouveau.", "This reset link is invalid or has expired. Request a new one.") },
       { status: 400 },
     );
   }

@@ -3,10 +3,12 @@ import { prisma } from "@/lib/db";
 import { getCurrentVendor } from "@/lib/auth";
 import { createProductForVendor, priceFloorsForVendor } from "@/lib/products";
 import { recordVendorActivity } from "@/lib/clerk-vendor-sync";
+import { getServerTr } from "@/lib/public-locale";
 
 export async function GET(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const sp = req.nextUrl.searchParams;
   const page = Math.max(1, parseInt(sp.get("page") || "1", 10) || 1);
@@ -33,12 +35,13 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const b = await req.json().catch(() => null);
   if (!b || typeof b !== "object" || Array.isArray(b)) {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    return NextResponse.json({ error: tr("Requête invalide.", "Invalid request") }, { status: 400 });
   }
 
   const result = await createProductForVendor(vendor, b as Record<string, unknown>);

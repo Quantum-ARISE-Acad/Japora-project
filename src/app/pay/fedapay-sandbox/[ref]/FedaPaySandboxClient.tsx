@@ -8,6 +8,7 @@ import Script from "next/script";
 import Link from "next/link";
 import { formatMoney } from "@/lib/utils";
 import { convertCurrency, providerMajorAmount } from "@/lib/currency";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 declare global {
   interface Window {
@@ -89,6 +90,7 @@ export default function FedaPaySandboxClient({
   returnUrl: string;
   cancelUrl: string;
 }) {
+  const { tr } = usePublicLang();
   const router = useRouter();
   const [selectedWallet, setSelectedWallet] = useState(
     WALLETS.find((w) => w.id.toLowerCase().includes(defaultWallet.toLowerCase()))?.id ||
@@ -147,7 +149,7 @@ export default function FedaPaySandboxClient({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setProcessing(false);
-        setError(data.error || "Erreur lors de la validation du paiement.");
+        setError(data.error || tr("Erreur lors de la validation du paiement.", "Error while confirming the payment."));
         return;
       }
 
@@ -158,17 +160,17 @@ export default function FedaPaySandboxClient({
       }, 1000);
     } catch {
       setProcessing(false);
-      setError("Erreur réseau lors de la communication avec le serveur.");
+      setError(tr("Erreur réseau lors de la communication avec le serveur.", "Network error while talking to the server."));
     }
   }
 
   function openOfficialFedaPayWidget() {
     if (!hasRealPublicKey) {
-      setError("Aucune clé publique FedaPay (pk_live_... ou pk_sandbox_...) n'est configurée.");
+      setError(tr("Aucune clé publique FedaPay (pk_live_... ou pk_sandbox_...) n'est configurée.", "No FedaPay public key (pk_live_... or pk_sandbox_...) is set."));
       return;
     }
     if (typeof window === "undefined" || !window.FedaPay) {
-      setError("Chargement du widget officiel FedaPay en cours, veuillez réessayer dans une seconde.");
+      setError(tr("Chargement du widget officiel FedaPay en cours, veuillez réessayer dans une seconde.", "The official FedaPay widget is loading, please try again in a second."));
       return;
     }
 
@@ -213,7 +215,7 @@ export default function FedaPaySandboxClient({
             );
           } else if (txStatus === "declined" || txStatus === "canceled") {
             setProcessing(false);
-            setError("Le paiement a été refusé ou annulé sur FedaPay.");
+            setError(tr("Le paiement a été refusé ou annulé sur FedaPay.", "The payment was refused or cancelled on FedaPay."));
           } else {
             setProcessing(false);
           }
@@ -226,7 +228,7 @@ export default function FedaPaySandboxClient({
       setError(
         e instanceof Error
           ? e.message
-          : "Impossible d'ouvrir le widget FedaPay. Vérifiez votre clé publique.",
+          : tr("Impossible d'ouvrir le widget FedaPay. Vérifiez votre clé publique.", "Could not open the FedaPay widget. Check your public key."),
       );
     }
   }
@@ -248,11 +250,11 @@ export default function FedaPaySandboxClient({
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-xs font-bold uppercase tracking-wider">
-              FedaPay {fedaEnvironment === "live" ? "Live · Paiement Réel" : "Sandbox · Mode Test"}
+              FedaPay {fedaEnvironment === "live" ? tr("Live · Paiement Réel", "Live · Real payment") : tr("Sandbox · Mode Test", "Sandbox · Test mode")}
             </span>
           </div>
           <span className="rounded bg-emerald-500/20 px-2 py-0.5 font-mono text-[10px] text-emerald-300">
-            API v1 {hasRealPublicKey ? "Connectée" : "Démo"}
+            API v1 {hasRealPublicKey ? tr("Connectée", "Connected") : tr("Démo", "Demo")}
           </span>
         </div>
 
@@ -275,7 +277,7 @@ export default function FedaPaySandboxClient({
                   </div>
                 )}
                 <div className="min-w-0">
-                  <div className="text-xs text-emerald-300 font-medium">Paiement sécurisé pour</div>
+                  <div className="text-xs text-emerald-300 font-medium">{tr("Paiement sécurisé pour", "Secure payment for")}</div>
                   <h1 className="font-bold text-base truncate">{shopName}</h1>
                 </div>
               </div>
@@ -312,21 +314,21 @@ export default function FedaPaySandboxClient({
                 ✓
               </div>
               <h2 className="text-xl font-bold text-slate-900">
-                Paiement confirmé avec succès !
+                {tr("Paiement confirmé avec succès !", "Payment confirmed!")}
               </h2>
               <p className="text-sm text-slate-600">
-                Votre règlement de <strong>{formatMoney(amountCents, currency)}</strong> via{" "}
-                <strong>{selectedWallet}</strong> a été validé par FedaPay.
+                {tr("Votre règlement de", "Your payment of")} <strong>{formatMoney(amountCents, currency)}</strong> via{" "}
+                <strong>{selectedWallet}</strong> {tr("a été validé par FedaPay.", "was confirmed by FedaPay.")}
               </p>
               <p className="text-xs text-emerald-700 font-medium">
-                Redirection automatique vers la boutique en cours…
+                {tr("Redirection automatique vers la boutique en cours…", "Redirecting to the shop…")}
               </p>
               <div className="pt-2">
                 <Link
                   href={returnUrl}
                   className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-700"
                 >
-                  Continuer maintenant →
+                  {tr("Continuer maintenant →", "Continue now →")}
                 </Link>
               </div>
             </div>
@@ -341,19 +343,19 @@ export default function FedaPaySandboxClient({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Nom complet
+                      {tr("Nom complet", "Full name")}
                     </label>
                     <input
                       type="text"
                       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none"
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="Votre nom"
+                      placeholder={tr("Votre nom", "Your name")}
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Numéro WhatsApp / Mobile Money
+                      {tr("Numéro WhatsApp / Mobile Money", "WhatsApp / Mobile Money number")}
                     </label>
                     <input
                       type="tel"
@@ -371,15 +373,15 @@ export default function FedaPaySandboxClient({
                 <div className="rounded-2xl border-2 border-emerald-600 bg-emerald-50/70 p-4 space-y-3 shadow-sm">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
-                      <span>⚡</span> Passerelle Officielle FedaPay ({fedaEnvironment.toUpperCase()})
+                      <span>⚡</span> {tr("Passerelle Officielle FedaPay (", "Official FedaPay gateway (")}{fedaEnvironment.toUpperCase()})
                     </span>
                     <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
-                      {sdkReady ? "Prêt" : "Chargement…"}
+                      {sdkReady ? tr("Prêt", "Ready") : tr("Chargement…", "Loading…")}
                     </span>
                   </div>
                   <p className="text-xs text-slate-700">
-                    Ouvrez le guichet officiel FedaPay pour payer <strong>{amountXof} FCFA</strong> par{" "}
-                    <strong>T-Money, Flooz Moov, MTN MoMo, Celtiis</strong> ou <strong>Carte Visa/Mastercard</strong>.
+                    {tr("Ouvrez le guichet officiel FedaPay pour payer", "Open the official FedaPay counter to pay")} <strong>{amountXof} FCFA</strong> {tr("par", "with")}{" "}
+                    <strong>T-Money, Flooz Moov, MTN MoMo, Celtiis</strong> {tr("ou", "or")} <strong>{tr("Carte Visa/Mastercard", "Visa/Mastercard card")}</strong>.
                   </p>
                   <button
                     type="button"
@@ -387,7 +389,7 @@ export default function FedaPaySandboxClient({
                     onClick={openOfficialFedaPayWidget}
                     className="w-full rounded-xl bg-emerald-600 py-3.5 px-4 text-sm font-extrabold text-white shadow-md hover:bg-emerald-700 disabled:opacity-50 transition flex items-center justify-center gap-2"
                   >
-                    <span>💳 Payer {amountXof} FCFA via FedaPay Officiel →</span>
+                    <span>{tr("💳 Payer", "💳 Pay")} {amountXof} {tr("FCFA via FedaPay Officiel →", "FCFA via official FedaPay →")}</span>
                   </button>
                 </div>
               )}
@@ -457,8 +459,8 @@ export default function FedaPaySandboxClient({
                       className="w-full rounded-xl bg-emerald-600 py-3 px-4 text-xs font-bold text-white shadow hover:bg-emerald-700 disabled:opacity-50 transition flex items-center justify-center gap-2"
                     >
                       {processing
-                        ? "Validation Sandbox en cours…"
-                        : `✓ Valider le paiement test (${selectedWallet})`}
+                        ? tr("Validation Sandbox en cours…", "Sandbox confirmation in progress…")
+                        : tr(`✓ Valider le paiement test (${selectedWallet})`, `✓ Confirm the test payment (${selectedWallet})`)}
                     </button>
 
                     <button
@@ -467,7 +469,7 @@ export default function FedaPaySandboxClient({
                       onClick={() => handleComplete("failed")}
                       className="w-full rounded-xl border border-rose-300 bg-rose-50 py-2.5 px-4 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50 transition"
                     >
-                      ✕ Simuler un paiement refusé / annulé
+                      {tr("✕ Simuler un paiement refusé / annulé", "✕ Simulate a refused / cancelled payment")}
                     </button>
                   </>
                 )}
@@ -477,7 +479,7 @@ export default function FedaPaySandboxClient({
                     href={cancelUrl}
                     className="w-full text-center rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-xs font-semibold text-slate-600 hover:bg-slate-50"
                   >
-                    ← Annuler et retourner à la boutique
+                    {tr("← Annuler et retourner à la boutique", "← Cancel and go back to the shop")}
                   </Link>
                 </div>
               </div>
@@ -486,8 +488,8 @@ export default function FedaPaySandboxClient({
 
           {/* Footer */}
           <div className="border-t border-slate-100 bg-slate-50 px-6 py-3 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Propulsé par FedaPay API v1 × Japora Money</span>
-            <span>Confirmations WhatsApp Cloud API actives</span>
+            <span>{tr("Propulsé par FedaPay API v1 × Japora Money", "Powered by FedaPay API v1 × Japora Money")}</span>
+            <span>{tr("Confirmations WhatsApp Cloud API actives", "WhatsApp Cloud API confirmations active")}</span>
           </div>
         </div>
       </div>

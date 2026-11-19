@@ -117,6 +117,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Lint React and TypeScript
         run: npm run lint
+      - name: Every visible text exists in French and English
+        run: npm run i18n:check
 
   typecheck:
     name: Stage 1 · Typecheck & Prisma Schema

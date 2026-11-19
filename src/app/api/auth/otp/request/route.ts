@@ -5,6 +5,7 @@ import { getProvider } from "@/lib/whatsapp";
 import { getClientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
 import { logger } from "@/lib/logger";
 import { phoneSignupEnabled } from "@/lib/otp";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
  * POST /api/auth/otp/request  { phone }
@@ -14,9 +15,10 @@ import { phoneSignupEnabled } from "@/lib/otp";
  * returned as `devCode` so the flow is testable without live credentials.
  */
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   if (!phoneSignupEnabled()) {
     return NextResponse.json(
-      { error: "Phone sign-up is not available yet. Please sign up with your email." },
+      { error: tr("L'inscription par téléphone n'est pas encore disponible. Inscrivez-vous avec votre e-mail.", "Phone sign-up is not available yet. Please sign up with your email.") },
       { status: 503 },
     );
   }
@@ -30,7 +32,7 @@ export async function POST(req: NextRequest) {
   const phone = waCheck.ok ? waCheck.digits : normalizePhone(String(body?.phone || ""));
   if (!waCheck.ok || !isValidPhone(phone)) {
     return NextResponse.json(
-      { error: waCheck.ok ? "Numéro invalide." : waCheck.error },
+      { error: waCheck.ok ? tr("Numéro invalide.", "Invalid number.") : tr(waCheck.error, waCheck.errorEn) },
       { status: 400 },
     );
   }

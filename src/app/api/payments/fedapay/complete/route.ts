@@ -11,6 +11,7 @@ import {
   testFedaPayConnection,
   verifyFedaPayIntentOutcome,
 } from "@/lib/payments/fedapay";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
  * POST /api/payments/fedapay/complete
@@ -22,9 +23,10 @@ import {
  * 4. `action: "complete"` (default) — completes/settles a FedaPay PaymentIntent, updates linked Order / PaymentLink / Subscription, and sends WhatsApp Cloud API confirmation.
  */
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const body = await req.json().catch(() => null);
   if (!body) {
-    return NextResponse.json({ error: "Corps de requête invalide." }, { status: 400 });
+    return NextResponse.json({ error: tr("Corps de requête invalide.", "Invalid request body.") }, { status: 400 });
   }
 
   const action = String(body.action || "complete");
@@ -34,7 +36,7 @@ export async function POST(req: NextRequest) {
   if (action === "test_connection") {
     const vendor = await getCurrentVendor();
     if (!vendor) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+      return NextResponse.json({ error: tr("Non autorisé", "Unauthorized") }, { status: 401 });
     }
     const env = body.environment === "live" ? "live" : "sandbox";
     const cfg = await getVendorFedaPayConfig(vendor.id, env);
@@ -55,7 +57,7 @@ export async function POST(req: NextRequest) {
     const network = String(body.network || "T-Money").trim();
 
     if (!paymentLinkId) {
-      return NextResponse.json({ error: "paymentLinkId requis." }, { status: 400 });
+      return NextResponse.json({ error: tr("paymentLinkId requis.", "paymentLinkId is required.") }, { status: 400 });
     }
 
     const link = await prisma.paymentLink.findUnique({
@@ -63,10 +65,10 @@ export async function POST(req: NextRequest) {
       include: { vendor: { select: { id: true, shopName: true, currency: true } } },
     });
     if (!link) {
-      return NextResponse.json({ error: "Lien de paiement introuvable." }, { status: 404 });
+      return NextResponse.json({ error: tr("Lien de paiement introuvable.", "Payment link not found.") }, { status: 404 });
     }
     if (link.isPaid) {
-      return NextResponse.json({ error: "Ce lien de paiement a déjà été réglé." }, { status: 409 });
+      return NextResponse.json({ error: tr("Ce lien de paiement a déjà été réglé.", "This payment link has already been paid.") }, { status: 409 });
     }
 
     const reference = newReference();
@@ -160,7 +162,7 @@ export async function POST(req: NextRequest) {
   if (action === "initiate_test" || action === "initiate_subscription") {
     const vendor = await getCurrentVendor();
     if (!vendor) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+      return NextResponse.json({ error: tr("Non autorisé", "Unauthorized") }, { status: 401 });
     }
 
     const isSub = action === "initiate_subscription";
@@ -272,7 +274,7 @@ export async function POST(req: NextRequest) {
   const customerName = String(body.customerName || "").trim();
 
   if (!providerRef) {
-    return NextResponse.json({ error: "Référence de transaction manquante." }, { status: 400 });
+    return NextResponse.json({ error: tr("Référence de transaction manquante.", "Missing transaction reference.") }, { status: 400 });
   }
 
   const intent = await prisma.paymentIntent.findFirst({
@@ -287,7 +289,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (!intent) {
-    return NextResponse.json({ error: "Transaction introuvable." }, { status: 404 });
+    return NextResponse.json({ error: tr("Transaction introuvable.", "Transaction not found.") }, { status: 404 });
   }
 
   // The browser only reports what it saw. A real FedaPay payment is checked with
@@ -310,7 +312,7 @@ export async function POST(req: NextRequest) {
   } else if (devPaymentSimulatorEnabled()) {
     verifiedOutcome = outcome;
   } else {
-    return NextResponse.json({ error: "Paiement simulé désactivé sur ce serveur." }, { status: 403 });
+    return NextResponse.json({ error: tr("Paiement simulé désactivé sur ce serveur.", "Simulated payment is disabled on this server.") }, { status: 403 });
   }
 
   const settled = await settleFedaPayPaymentIntent({

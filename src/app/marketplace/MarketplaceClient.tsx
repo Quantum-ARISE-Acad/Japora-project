@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { ShopCard as ShopCardType } from "@/lib/directory";
 import type { ProductHit, SearchType } from "@/lib/search";
-import { REGIONS, CATEGORIES, CATEGORY_LABEL_FR, findRegion, findCategory } from "@/lib/regions";
+import { REGIONS, CATEGORIES, CATEGORY_LABEL_FR, findRegion, findCategory, countryName } from "@/lib/regions";
 import { formatMoney } from "@/lib/utils";
 import { AuroraIsoscout } from "@/components/aurora";
 import VerifiedBadge from "@/components/VerifiedBadge";
@@ -127,7 +127,7 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
             >
               <SaasIcon name="map-pin" size={12} className="text-brand-dark" />
               <span>
-                {region.label}, {region.country}
+                {region.label}, {tr(...countryName(region.country))}
               </span>
             </Link>
           ) : null}
@@ -450,7 +450,7 @@ export default function MarketplaceClient({
               <span className="font-bold text-emerald-700">
                 {tr("Paiement direct", "Inline Payment")}
               </span>
-              <span>T-Money, Flooz, Wave &amp; Cash</span>
+              <span>{tr("T-Money, Flooz, Wave & Cash", "T-Money, Flooz, Wave & cash")}</span>
             </div>
           </div>
         </div>

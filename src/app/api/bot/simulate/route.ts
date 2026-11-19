@@ -6,6 +6,7 @@ import { sendWhatsApp } from "@/lib/whatsapp";
 import { recordTouchFromText } from "@/lib/campaigns";
 import { recordVendorActivity } from "@/lib/clerk-vendor-sync";
 import { logger } from "@/lib/logger";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
  * Live WhatsApp Cloud API & Gemini AI Console endpoint.
@@ -14,6 +15,7 @@ import { logger } from "@/lib/logger";
  * the message to the recipient's WhatsApp via Meta Cloud API.
  */
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await requireVendor();
 
   const body = await req.json().catch(() => null);
@@ -24,11 +26,11 @@ export async function POST(req: NextRequest) {
   const dispatchWhatsApp = Boolean(body?.dispatchWhatsApp);
 
   if (!text) {
-    return NextResponse.json({ error: "Veuillez saisir un message." }, { status: 400 });
+    return NextResponse.json({ error: tr("Veuillez saisir un message.", "Please enter a message.") }, { status: 400 });
   }
   if (text.length > 1000) {
     return NextResponse.json(
-      { error: "Message trop long (1000 caractères max)." },
+      { error: tr("Message trop long (1000 caractères max).", "Message too long (1000 characters max).") },
       { status: 400 },
     );
   }
@@ -95,7 +97,7 @@ export async function POST(req: NextRequest) {
       error: e instanceof Error ? e.message : String(e),
     });
     return NextResponse.json(
-      { error: "Erreur lors du traitement par l'assistant WhatsApp." },
+      { error: tr("Erreur lors du traitement par l'assistant WhatsApp.", "Error while the WhatsApp assistant was processing.") },
       { status: 500 },
     );
   }

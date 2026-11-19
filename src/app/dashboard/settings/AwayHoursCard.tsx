@@ -53,7 +53,7 @@ export default function AwayHoursCard({
     const data = await res.json().catch(() => ({}));
     setSaving(false);
     if (!res.ok) {
-      setError(data.error || "Could not save.");
+      setError(data.error || tr("Impossible d'enregistrer.", "Could not save."));
       return;
     }
     setSavedAt(Date.now());

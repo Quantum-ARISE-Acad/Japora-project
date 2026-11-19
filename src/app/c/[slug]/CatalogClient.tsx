@@ -1516,7 +1516,7 @@ export default function CatalogClient({
                         <span>💳</span> {tr("Paiement instantané FedaPay", "Instant FedaPay payment")}
                       </span>
                       <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
-                        Sécurisé
+                        {tr("Sécurisé", "Secure")}
                       </span>
                     </div>
                     <p className="text-[11px] text-arctic-700">
@@ -1639,7 +1639,7 @@ export default function CatalogClient({
       )}
 
       <footer className="mx-auto mt-8 max-w-5xl px-4 pb-6 text-center text-xs text-arctic-500">
-        Powered by <span className="font-semibold">Japora</span>
+        {tr("Propulsé par", "Powered by")} <span className="font-semibold">Japora</span>
       </footer>
     </div>
   );

@@ -94,7 +94,7 @@ export default function CollectionsClient({
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
-      setError("L'image de la collection ne doit pas dépasser 10 Mo.");
+      setError(tr("L'image de la collection ne doit pas dépasser 10 Mo.", "The collection image must not be larger than 10 MB."));
       return;
     }
     setUploadingImage(true);
@@ -106,12 +106,12 @@ export default function CollectionsClient({
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.url) {
-        setError(data.error || "Échec du téléversement de l'image.");
+        setError(data.error || tr("Échec du téléversement de l'image.", "Image upload failed."));
       } else {
         setImageUrl(data.url);
       }
     } catch {
-      setError("Erreur réseau lors du téléversement de l'image.");
+      setError(tr("Erreur réseau lors du téléversement de l'image.", "Network error while uploading the image."));
     } finally {
       setUploadingImage(false);
       e.target.value = "";
@@ -470,7 +470,7 @@ export default function CollectionsClient({
                   {imageUrl && (
                     <div className="relative h-14 w-20 overflow-hidden rounded-lg border border-arctic-300 bg-arctic-100">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={imageUrl} alt="Aperçu couverture" className="h-full w-full object-cover" />
+                      <img src={imageUrl} alt={tr("Aperçu couverture", "Cover preview")} className="h-full w-full object-cover" />
                     </div>
                   )}
                   <label className="btn-ghost cursor-pointer text-xs !py-2 px-3">

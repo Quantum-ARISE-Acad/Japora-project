@@ -3,13 +3,15 @@ import { prisma } from "@/lib/db";
 import { getCurrentVendor } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { buildOrdersCsv } from "@/lib/orders-csv";
+import { getServerTr } from "@/lib/public-locale";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
   if (!vendor) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
   }
 
   const { searchParams } = new URL(req.url);

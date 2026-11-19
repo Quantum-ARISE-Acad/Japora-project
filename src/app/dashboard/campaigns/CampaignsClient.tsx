@@ -41,131 +41,134 @@ type MetaConfigDTO = MetaMarketingConfig & {
 const PLACEMENT_OPTIONS: {
   id: MetaPlacementId;
   label: string;
-  badge: string;
+  /** [français, English] */
+  badge: [string, string];
   platform: "whatsapp" | "facebook" | "instagram";
 }[] = [
   {
     id: "whatsapp_status",
     label: "WhatsApp Status Ads",
-    badge: "Nouveau v27.0",
+    badge: ["Nouveau v27.0", "New v27.0"],
     platform: "whatsapp",
   },
   {
     id: "whatsapp_ctwa",
     label: "Click-to-WhatsApp",
-    badge: "Conversion directe",
+    badge: ["Conversion directe", "Direct conversion"],
     platform: "whatsapp",
   },
   {
     id: "facebook_feed",
     label: "Facebook Feed",
-    badge: "Fil d'actualité",
+    badge: ["Fil d'actualité", "News feed"],
     platform: "facebook",
   },
   {
     id: "facebook_stories",
     label: "Facebook Stories",
-    badge: "Format 9:16",
+    badge: ["Format 9:16", "9:16 format"],
     platform: "facebook",
   },
   {
     id: "instagram_feed",
     label: "Instagram Feed",
-    badge: "Carrousel / Photo",
+    badge: ["Carrousel / Photo", "Carousel / photo"],
     platform: "instagram",
   },
   {
     id: "instagram_stories",
     label: "Instagram Stories",
-    badge: "Plein écran",
+    badge: ["Plein écran", "Full screen"],
     platform: "instagram",
   },
   {
     id: "instagram_reels",
     label: "Instagram Reels",
-    badge: "Découverte",
+    badge: ["Découverte", "Discovery"],
     platform: "instagram",
   },
 ];
 
-const COUNTRY_OPTIONS: { code: string; name: string; flag: string }[] = [
+const COUNTRY_OPTIONS: { code: string; name: string; nameEn?: string; flag: string }[] = [
   { code: "TG", name: "Togo", flag: "🇹🇬" },
-  { code: "BJ", name: "Bénin", flag: "🇧🇯" },
-  { code: "CI", name: "Côte d'Ivoire", flag: "🇨🇮" },
-  { code: "SN", name: "Sénégal", flag: "🇸🇳" },
+  { code: "BJ", name: "Bénin", nameEn: "Benin", flag: "🇧🇯" },
+  { code: "CI", name: "Côte d'Ivoire", nameEn: "Côte d'Ivoire", flag: "🇨🇮" },
+  { code: "SN", name: "Sénégal", nameEn: "Senegal", flag: "🇸🇳" },
   { code: "BF", name: "Burkina Faso", flag: "🇧🇫" },
   { code: "ML", name: "Mali", flag: "🇲🇱" },
-  { code: "CM", name: "Cameroun", flag: "🇨🇲" },
+  { code: "CM", name: "Cameroun", nameEn: "Cameroon", flag: "🇨🇲" },
   { code: "GA", name: "Gabon", flag: "🇬🇦" },
   { code: "GH", name: "Ghana", flag: "🇬🇭" },
   { code: "NG", name: "Nigeria", flag: "🇳🇬" },
   { code: "FR", name: "France", flag: "🇫🇷" },
-  { code: "US", name: "États-Unis", flag: "🇺🇸" },
+  { code: "US", name: "États-Unis", nameEn: "United States", flag: "🇺🇸" },
 ];
 
 const OBJECTIVE_OPTIONS: {
   id: MetaAdObjective;
-  label: string;
-  desc: string;
+  /** [français, English] */
+  label: [string, string];
+  desc: [string, string];
 }[] = [
   {
     id: "LINK_CLICKS",
-    label: "LINK_CLICKS (Trafic & Clics WhatsApp)",
-    desc: "Optimise pour un maximum de clics vers WhatsApp ou votre produit.",
+    label: ["LINK_CLICKS (Trafic & Clics WhatsApp)", "LINK_CLICKS (traffic & WhatsApp clicks)"],
+    desc: ["Optimise pour un maximum de clics vers WhatsApp ou votre produit.", "Optimises for the most clicks to WhatsApp or your product."],
   },
   {
     id: "OUTCOME_SALES",
-    label: "OUTCOME_SALES (Ventes & Conversions Catalogue)",
-    desc: "Cible les acheteurs les plus susceptibles de passer commande.",
+    label: ["OUTCOME_SALES (Ventes & Conversions Catalogue)", "OUTCOME_SALES (sales & catalog conversions)"],
+    desc: ["Cible les acheteurs les plus susceptibles de passer commande.", "Targets the buyers most likely to order."],
   },
   {
     id: "OUTCOME_ENGAGEMENT",
-    label: "OUTCOME_ENGAGEMENT (Messages WhatsApp & Interactions)",
-    desc: "Maximise les discussions démarrées sur WhatsApp Business.",
+    label: ["OUTCOME_ENGAGEMENT (Messages WhatsApp & Interactions)", "OUTCOME_ENGAGEMENT (WhatsApp messages & interactions)"],
+    desc: ["Maximise les discussions démarrées sur WhatsApp Business.", "Maximises the chats started on WhatsApp Business."],
   },
   {
     id: "OUTCOME_TRAFFIC",
-    label: "OUTCOME_TRAFFIC (Visites Boutique Japora)",
-    desc: "Attire de nouveaux visiteurs qualifiés sur votre vitrine.",
+    label: ["OUTCOME_TRAFFIC (Visites Boutique Japora)", "OUTCOME_TRAFFIC (Japora shop visits)"],
+    desc: ["Attire de nouveaux visiteurs qualifiés sur votre vitrine.", "Brings new qualified visitors to your storefront."],
   },
   {
     id: "OUTCOME_AWARENESS",
-    label: "OUTCOME_AWARENESS (Notoriété & WhatsApp Status)",
-    desc: "Diffuse largement votre marque dans les statuts WhatsApp et Stories.",
+    label: ["OUTCOME_AWARENESS (Notoriété & WhatsApp Status)", "OUTCOME_AWARENESS (awareness & WhatsApp Status)"],
+    desc: ["Diffuse largement votre marque dans les statuts WhatsApp et Stories.", "Spreads your brand widely in WhatsApp statuses and Stories."],
   },
 ];
 
-const CTA_OPTIONS: { id: MetaCtaType; label: string; defaultText: string }[] = [
+const CTA_OPTIONS: { id: MetaCtaType; label: string; defaultText: [string, string] }[] = [
   {
     id: "WHATSAPP_MESSAGE",
     label: "WHATSAPP_MESSAGE",
-    defaultText: "Commander sur WhatsApp",
+    defaultText: ["Commander sur WhatsApp", "Order on WhatsApp"],
   },
   {
     id: "SHOP_NOW",
     label: "SHOP_NOW",
-    defaultText: "Acheter maintenant",
+    defaultText: ["Acheter maintenant", "Shop now"],
   },
   {
     id: "ORDER_NOW",
     label: "ORDER_NOW",
-    defaultText: "Passer commande",
+    defaultText: ["Passer commande", "Order now"],
   },
   {
     id: "LEARN_MORE",
     label: "LEARN_MORE",
-    defaultText: "Voir les détails",
+    defaultText: ["Voir les détails", "See details"],
   },
 ];
 
-const INTEREST_SUGGESTIONS = [
-  "Shopping en ligne",
-  "Mode & Vêtements",
-  "Beauté & Cosmétiques",
-  "Électronique & Smartphones",
-  "Maison & Décoration",
-  "Entrepreneuriat",
-  "Livraison rapide",
+// The French value is what is saved and sent; English is only shown.
+const INTEREST_SUGGESTIONS: [string, string][] = [
+  ["Shopping en ligne", "Online shopping"],
+  ["Mode & Vêtements", "Fashion & clothing"],
+  ["Beauté & Cosmétiques", "Beauty & cosmetics"],
+  ["Électronique & Smartphones", "Electronics & smartphones"],
+  ["Maison & Décoration", "Home & decor"],
+  ["Entrepreneuriat", "Entrepreneurship"],
+  ["Livraison rapide", "Fast delivery"],
 ];
 
 
@@ -210,7 +213,7 @@ export default function CampaignsClient({
   const firstProduct = products[0] ?? null;
   const [productId, setProductId] = useState<string>(firstProduct?.id ?? "");
   const [name, setName] = useState<string>(
-    firstProduct ? `Promo WhatsApp Status — ${firstProduct.name}` : "",
+    firstProduct ? tr(`Promo WhatsApp Status — ${firstProduct.name}`, `WhatsApp Status promo — ${firstProduct.name}`) : "",
   );
   const [objective, setObjective] = useState<MetaAdObjective>("LINK_CLICKS");
   const [placements, setPlacements] = useState<MetaPlacementId[]>([
@@ -229,15 +232,18 @@ export default function CampaignsClient({
   const [dailyBudget, setDailyBudget] = useState<string>("2500");
   const [durationDays, setDurationDays] = useState<number>(7);
   const [headline, setHeadline] = useState<string>(
-    firstProduct ? `${firstProduct.name} — Disponible dès maintenant !` : "",
+    firstProduct ? tr(`${firstProduct.name} — Disponible dès maintenant !`, `${firstProduct.name} — Available now!`) : "",
   );
   const [body, setBody] = useState<string>(
     firstProduct
-      ? `🔥 Découvrez ${firstProduct.name} chez ${shopName}.\n✅ Qualité garantie • Livraison rapide • Paiement sécurisé.\nCliquez ci-dessous pour commander directement sur WhatsApp !`
+      ? tr(
+          `🔥 Découvrez ${firstProduct.name} chez ${shopName}.\n✅ Qualité garantie • Livraison rapide • Paiement sécurisé.\nCliquez ci-dessous pour commander directement sur WhatsApp !`,
+          `🔥 Discover ${firstProduct.name} at ${shopName}.\n✅ Guaranteed quality • Fast delivery • Secure payment.\nTap below to order directly on WhatsApp!`,
+        )
       : "",
   );
   const [ctaType, setCtaType] = useState<MetaCtaType>("WHATSAPP_MESSAGE");
-  const [cta, setCta] = useState<string>("Commander sur WhatsApp");
+  const [cta, setCta] = useState<string>(tr("Commander sur WhatsApp", "Order on WhatsApp"));
   const [destinationType, setDestinationType] = useState<"whatsapp" | "shop_product">(
     "whatsapp",
   );
@@ -283,12 +289,15 @@ export default function CampaignsClient({
     setProductId(nextProductId);
     const prod = products.find((p) => p.id === nextProductId);
     if (prod) {
-      setName(`Campagne Meta — ${prod.name}`);
+      setName(tr(`Campagne Meta — ${prod.name}`, `Meta campaign — ${prod.name}`));
       setHeadline(
         `${prod.name} • ${formatMoney(prod.priceCents, currency)}`,
       );
       setBody(
-        `🔥 Offre spéciale chez ${shopName} : ${prod.name} à seulement ${formatMoney(prod.priceCents, currency)} !\n${prod.description ? prod.description.slice(0, 120) + "\n" : ""}✅ Stock disponible (${prod.stock} unités) • Cliquez pour commander sur WhatsApp.`,
+        tr(
+          `🔥 Offre spéciale chez ${shopName} : ${prod.name} à seulement ${formatMoney(prod.priceCents, currency)} !\n${prod.description ? prod.description.slice(0, 120) + "\n" : ""}✅ Stock disponible (${prod.stock} unités) • Cliquez pour commander sur WhatsApp.`,
+          `🔥 Special offer at ${shopName}: ${prod.name} for only ${formatMoney(prod.priceCents, currency)}!\n${prod.description ? prod.description.slice(0, 120) + "\n" : ""}✅ In stock (${prod.stock} units) • Tap to order on WhatsApp.`,
+        ),
       );
     }
   }
@@ -334,7 +343,7 @@ export default function CampaignsClient({
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok || typeof d.headline !== "string") {
-        setErr(d.error || "Impossible de générer le texte publicitaire.");
+        setErr(d.error || tr("Impossible de générer le texte publicitaire.", "Could not generate the ad text."));
         return;
       }
       setHeadline(d.headline);
@@ -342,11 +351,11 @@ export default function CampaignsClient({
       setCta(d.cta || "Commander sur WhatsApp");
       showToastMessage(
         d.mode === "ai"
-          ? "✨ Texte publicitaire rédigé par Gemini IA !"
-          : "Texte publicitaire proposé (modèle simple, sans IA). Vous pouvez le modifier.",
+          ? tr("✨ Texte publicitaire rédigé par Gemini IA !", "✨ Ad text written by Gemini AI!")
+          : tr("Texte publicitaire proposé (modèle simple, sans IA). Vous pouvez le modifier.", "Suggested ad text (simple template, no AI). You can edit it."),
       );
     } catch {
-      setErr("Erreur réseau lors de la génération IA.");
+      setErr(tr("Erreur réseau lors de la génération IA.", "Network error during AI generation."));
     } finally {
       setDrafting(false);
     }
@@ -355,7 +364,7 @@ export default function CampaignsClient({
   async function createMetaAdCampaign(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
-      setErr("Veuillez renseigner un nom de campagne.");
+      setErr(tr("Veuillez renseigner un nom de campagne.", "Please enter a campaign name."));
       return;
     }
     setCreating(true);
@@ -389,16 +398,16 @@ export default function CampaignsClient({
       });
       const d = await r.json();
       if (!r.ok) {
-        setErr(d.error || "Erreur lors de la création sur Meta Marketing API.");
+        setErr(d.error || tr("Erreur lors de la création sur Meta Marketing API.", "Error while creating on the Meta Marketing API."));
         return;
       }
       setCampaigns((prev) => [d.campaign, ...prev]);
       setInspectedCampaign(d.campaign);
       showToastMessage(
-        `🚀 Publicité "${d.campaign.name}" créée via Meta Marketing API v27.0 (${initialStatus}) !`,
+        tr(`🚀 Publicité "${d.campaign.name}" créée via Meta Marketing API v27.0 (${initialStatus}) !`, `🚀 Ad "${d.campaign.name}" created via Meta Marketing API v27.0 (${initialStatus})!`),
       );
     } catch {
-      setErr("Erreur réseau lors de l'appel à Meta Marketing API.");
+      setErr(tr("Erreur réseau lors de l'appel à Meta Marketing API.", "Network error while calling the Meta Marketing API."));
     } finally {
       setCreating(false);
     }
@@ -421,7 +430,7 @@ export default function CampaignsClient({
       });
       const d = await r.json();
       if (!r.ok || !d.campaign) {
-        setErr(d.error || "Impossible de modifier le statut de la publicité.");
+        setErr(d.error || tr("Impossible de modifier le statut de la publicité.", "Could not change the ad status."));
         return;
       }
       setCampaigns((prev) =>
@@ -432,8 +441,8 @@ export default function CampaignsClient({
       }
       showToastMessage(
         nextStatus === "ACTIVE"
-          ? `▶️ Campagne "${campaign.name}" activée sur Meta Marketing API.`
-          : `⏸️ Campagne "${campaign.name}" mise en pause.`,
+          ? tr(`▶️ Campagne "${campaign.name}" activée sur Meta Marketing API.`, `▶️ Campaign "${campaign.name}" activated on the Meta Marketing API.`)
+          : tr(`⏸️ Campagne "${campaign.name}" mise en pause.`, `⏸️ Campaign "${campaign.name}" paused.`),
       );
     } finally {
       setBusyCampaignId(null);
@@ -454,7 +463,7 @@ export default function CampaignsClient({
       });
       const d = await r.json();
       if (!r.ok || !d.campaign) {
-        setErr(d.error || "Impossible de synchroniser les statistiques Meta.");
+        setErr(d.error || tr("Impossible de synchroniser les statistiques Meta.", "Could not sync Meta statistics."));
         return;
       }
       setCampaigns((prev) =>
@@ -464,7 +473,7 @@ export default function CampaignsClient({
         setInspectedCampaign(d.campaign);
       }
       showToastMessage(
-        `📊 Insights Meta synchronisés pour "${campaign.name}" (Impressions, Clics WhatsApp & Conversions mis à jour).`,
+        tr(`📊 Insights Meta synchronisés pour "${campaign.name}" (Impressions, Clics WhatsApp & Conversions mis à jour).`, `📊 Meta insights synced for "${campaign.name}" (impressions, WhatsApp clicks and conversions updated).`),
       );
     } finally {
       setBusyCampaignId(null);
@@ -478,7 +487,7 @@ export default function CampaignsClient({
       if (r.ok) {
         setCampaigns((prev) => prev.filter((c) => c.id !== id));
         if (inspectedCampaign?.id === id) setInspectedCampaign(null);
-        showToastMessage("🗑️ Campagne arrêtée et archivée.");
+        showToastMessage(tr("🗑️ Campagne arrêtée et archivée.", "🗑️ Campaign stopped and archived."));
       }
     } finally {
       setBusyCampaignId(null);
@@ -496,7 +505,7 @@ export default function CampaignsClient({
       });
       const approveData = await approveRes.json().catch(() => ({}));
       if (!approveRes.ok) {
-        setErr(approveData.error || "Impossible d'approuver la campagne.");
+        setErr(approveData.error || tr("Impossible d'approuver la campagne.", "Could not approve the campaign."));
         return;
       }
       const runRes = await fetch(`/api/campaigns/${id}/run`, {
@@ -504,12 +513,12 @@ export default function CampaignsClient({
       });
       const runData = await runRes.json().catch(() => ({}));
       if (!runRes.ok) {
-        setErr(runData.error || "Impossible d'envoyer le message.");
+        setErr(runData.error || tr("Impossible d'envoyer le message.", "Could not send the message."));
       } else {
         showToastMessage(
           runData.status === "stubbed"
-            ? "Message de relance enregistré (WhatsApp n'est pas encore configuré : rien n'a été envoyé)."
-            : "Message de relance envoyé sur WhatsApp.",
+            ? tr("Message de relance enregistré (WhatsApp n'est pas encore configuré : rien n'a été envoyé).", "Follow-up message saved (WhatsApp is not configured yet: nothing was sent).")
+            : tr("Message de relance envoyé sur WhatsApp.", "Follow-up message sent on WhatsApp."),
         );
       }
       const listRes = await fetch("/api/campaigns");
@@ -529,7 +538,7 @@ export default function CampaignsClient({
       const r = await fetch(`/api/campaigns/${id}/cancel`, { method: "POST" });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) {
-        setErr(d.error || "Impossible d'annuler la campagne.");
+        setErr(d.error || tr("Impossible d'annuler la campagne.", "Could not cancel the campaign."));
         return;
       }
       setCampaigns((prev) =>
@@ -570,7 +579,7 @@ export default function CampaignsClient({
         d.verification?.message ||
           "Configuration Meta Marketing API v27.0 enregistrée avec succès.",
       );
-      showToastMessage("✅ Configuration Meta Marketing API mise à jour !");
+      showToastMessage(tr("✅ Configuration Meta Marketing API mise à jour !", "✅ Meta Marketing API settings updated!"));
     } finally {
       setSavingConfig(false);
     }
@@ -960,10 +969,10 @@ export default function CampaignsClient({
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-arctic-400/20 pb-4">
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
-                Studio Publicitaire Meta Graph API v27.0
+                {tr("Studio Publicitaire Meta Graph API v27.0", "Meta Graph API v27.0 ad studio")}
               </span>
               <h2 className="text-lg font-bold text-arctic-900">
-                Lancer une publicité avec un produit de votre boutique
+                {tr("Lancer une publicité avec un produit de votre boutique", "Launch an ad with a product from your shop")}
               </h2>
             </div>
             <div className="flex items-center gap-2 text-xs text-arctic-600">
@@ -995,10 +1004,10 @@ export default function CampaignsClient({
               <div className="rounded-xl border border-arctic-400/20 bg-arctic-50/50 p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-arctic-900">
-                    Étape 1 — Produit de la boutique & Objectif Meta (`/campaigns`)
+                    {tr("Étape 1 — Produit de la boutique & Objectif Meta (`/campaigns`)", "Step 1 — Shop product & Meta objective (`/campaigns`)")}
                   </h3>
                   <span className="text-[11px] font-medium text-emerald-700">
-                    Catalogue Japora ({products.length} produits)
+                    {tr("Catalogue Japora (", "Japora catalog (")}{products.length} {tr("produits)", "products)")}
                   </span>
                 </div>
 
@@ -1006,7 +1015,7 @@ export default function CampaignsClient({
                 {products.length > 0 ? (
                   <div>
                     <label className="label">
-                      Choisissez le produit à promouvoir dans la publicité
+                      {tr("Choisissez le produit à promouvoir dans la publicité", "Choose the product to promote in the ad")}
                     </label>
                     <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 max-h-56 overflow-y-auto pr-1">
                       {products.map((p) => {
@@ -1044,7 +1053,7 @@ export default function CampaignsClient({
                                 {formatMoney(p.priceCents, currency)}
                               </div>
                               <div className="text-[10px] text-arctic-500">
-                                Stock : {p.stock} • {p.category || "Catalogue"}
+                                {tr("Stock :", "Stock:")} {p.stock} • {p.category || tr("Catalogue", "Catalog")}
                               </div>
                             </div>
                           </button>
@@ -1054,27 +1063,27 @@ export default function CampaignsClient({
                   </div>
                 ) : (
                   <div className="rounded-lg border border-amber-500/30 bg-amber-50 p-3 text-xs text-amber-800">
-                    Aucun produit dans votre catalogue.{" "}
+                    {tr("Aucun produit dans votre catalogue.", "No products in your catalog.")}{" "}
                     <Link href="/dashboard/products" className="font-semibold underline">
-                      Ajoutez un produit ici
+                      {tr("Ajoutez un produit ici", "Add a product here")}
                     </Link>{" "}
-                    ou créez une publicité générale pour votre boutique.
+                    {tr("ou créez une publicité générale pour votre boutique.", "or create a general ad for your shop.")}
                   </div>
                 )}
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="label">Nom de la campagne Meta *</label>
+                    <label className="label">{tr("Nom de la campagne Meta *", "Meta campaign name *")}</label>
                     <input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
-                      placeholder="Ex: Promo Tabaski — Robe Bazin"
+                      placeholder={tr("Ex: Promo Tabaski — Robe Bazin", "e.g. Tabaski promo — Bazin dress")}
                       className="input"
                     />
                   </div>
                   <div>
-                    <label className="label">Objectif Marketing API (`objective`)</label>
+                    <label className="label">{tr("Objectif Marketing API (`objective`)", "Marketing API objective (`objective`)")}</label>
                     <select
                       value={objective}
                       onChange={(e) => setObjective(e.target.value as MetaAdObjective)}
@@ -1082,7 +1091,7 @@ export default function CampaignsClient({
                     >
                       {OBJECTIVE_OPTIONS.map((o) => (
                         <option key={o.id} value={o.id}>
-                          {o.label}
+                          {tr(...o.label)}
                         </option>
                       ))}
                     </select>
@@ -1092,7 +1101,7 @@ export default function CampaignsClient({
                 {/* Placements (WhatsApp Status, CTWA, FB, IG) */}
                 <div>
                   <label className="label">
-                    Emplacements de diffusion (`publisher_platforms` & WhatsApp Status)
+                    {tr("Emplacements de diffusion (`publisher_platforms` & WhatsApp Status)", "Placements (`publisher_platforms` & WhatsApp Status)")}
                   </label>
                   <div className="flex flex-wrap gap-2">
                     {PLACEMENT_OPTIONS.map((pl) => {
@@ -1123,7 +1132,7 @@ export default function CampaignsClient({
                                 : "bg-arctic-100 text-arctic-600"
                             }`}
                           >
-                            {pl.badge}
+                            {tr(...pl.badge)}
                           </span>
                         </button>
                       );
@@ -1136,17 +1145,17 @@ export default function CampaignsClient({
               <div className="rounded-xl border border-arctic-400/20 bg-arctic-50/50 p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-arctic-900">
-                    Étape 2 — Ensemble de Publicités : Ciblage & Budget (`/adsets`)
+                    {tr("Étape 2 — Ensemble de Publicités : Ciblage & Budget (`/adsets`)", "Step 2 — Ad set: targeting & budget (`/adsets`)")}
                   </h3>
                   <span className="text-[11px] text-arctic-500">
-                    Portée estimée : {estimatedDailyReachMin.toLocaleString("fr-FR")} –{" "}
-                    {estimatedDailyReachMax.toLocaleString("fr-FR")} pers./jour
+                    {tr("Portée estimée :", "Estimated reach:")} {estimatedDailyReachMin.toLocaleString("fr-FR")} –{" "}
+                    {estimatedDailyReachMax.toLocaleString("fr-FR")} {tr("pers./jour", "people/day")}
                   </span>
                 </div>
 
                 <div>
                   <label className="label">
-                    Pays ciblés (`targeting.geo_locations.countries`)
+                    {tr("Pays ciblés (`targeting.geo_locations.countries`)", "Target countries (`targeting.geo_locations.countries`)")}
                   </label>
                   <div className="flex flex-wrap gap-1.5">
                     {COUNTRY_OPTIONS.map((c) => {
@@ -1162,7 +1171,7 @@ export default function CampaignsClient({
                               : "border-arctic-400/30 bg-white text-arctic-700 hover:bg-arctic-100"
                           }`}
                         >
-                          {c.flag} {c.name} ({c.code})
+                          {c.flag} {tr(c.name, c.nameEn ?? c.name)} ({c.code})
                         </button>
                       );
                     })}
@@ -1171,7 +1180,7 @@ export default function CampaignsClient({
 
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   <div>
-                    <label className="label">Budget / jour ({currency})</label>
+                    <label className="label">{tr("Budget / jour (", "Budget / day (")}{currency})</label>
                     <input
                       type="number"
                       min="1"
@@ -1182,7 +1191,7 @@ export default function CampaignsClient({
                     />
                   </div>
                   <div>
-                    <label className="label">Durée (jours)</label>
+                    <label className="label">{tr("Durée (jours)", "Duration (days)")}</label>
                     <input
                       type="number"
                       min="1"
@@ -1195,7 +1204,7 @@ export default function CampaignsClient({
                     />
                   </div>
                   <div>
-                    <label className="label">Âge min</label>
+                    <label className="label">{tr("Âge min", "Min age")}</label>
                     <input
                       type="number"
                       min="18"
@@ -1206,7 +1215,7 @@ export default function CampaignsClient({
                     />
                   </div>
                   <div>
-                    <label className="label">Âge max</label>
+                    <label className="label">{tr("Âge max", "Max age")}</label>
                     <input
                       type="number"
                       min="18"
@@ -1219,9 +1228,9 @@ export default function CampaignsClient({
                 </div>
 
                 <div>
-                  <label className="label">Centres d&apos;intérêt de l&apos;audience</label>
+                  <label className="label">{tr("Centres d'intérêt de l'audience", "Audience interests")}</label>
                   <div className="flex flex-wrap gap-1.5">
-                    {INTEREST_SUGGESTIONS.map((interest) => {
+                    {INTEREST_SUGGESTIONS.map(([interest, interestEn]) => {
                       const active = selectedInterests.includes(interest);
                       return (
                         <button
@@ -1235,7 +1244,7 @@ export default function CampaignsClient({
                           }`}
                         >
                           {active ? "✓ " : "+ "}
-                          {interest}
+                          {tr(interest, interestEn)}
                         </button>
                       );
                     })}
@@ -1247,7 +1256,7 @@ export default function CampaignsClient({
               <div className="rounded-xl border border-arctic-400/20 bg-arctic-50/50 p-4 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-sm font-bold text-arctic-900">
-                    Étape 3 — Créatif Publicitaire (`object_story_spec` • `/adcreatives`)
+                    {tr("Étape 3 — Créatif Publicitaire (`object_story_spec` • `/adcreatives`)", "Step 3 — Ad creative (`object_story_spec` • `/adcreatives`)")}
                   </h3>
                   <button
                     type="button"
@@ -1256,44 +1265,44 @@ export default function CampaignsClient({
                     className="rounded-lg border border-emerald-600/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-500/20 disabled:opacity-50"
                   >
                     {drafting
-                      ? "✨ Génération IA en cours…"
-                      : "✨ Rédiger avec Gemini IA"}
+                      ? tr("✨ Génération IA en cours…", "✨ AI generation in progress…")
+                      : tr("✨ Rédiger avec Gemini IA", "✨ Write with Gemini AI")}
                   </button>
                 </div>
 
                 <div>
-                  <label className="label">Accroche / Titre (`link_data.name`)</label>
+                  <label className="label">{tr("Accroche / Titre (`link_data.name`)", "Headline (`link_data.name`)")}</label>
                   <input
                     value={headline}
                     onChange={(e) => setHeadline(e.target.value)}
-                    placeholder="Ex: Nouvelle Collection Disponible — Livraison 24h"
+                    placeholder={tr("Ex: Nouvelle Collection Disponible — Livraison 24h", "e.g. New collection available — 24h delivery")}
                     className="input"
                   />
                 </div>
 
                 <div>
                   <label className="label">
-                    Texte de la publicité (`link_data.message`)
+                    {tr("Texte de la publicité (`link_data.message`)", "Ad text (`link_data.message`)")}
                   </label>
                   <textarea
                     rows={3}
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
-                    placeholder="Présentez les avantages du produit, le prix et l'appel à l'action..."
+                    placeholder={tr("Présentez les avantages du produit, le prix et l'appel à l'action...", "Describe the product's benefits, the price and the call to action...")}
                     className="input"
                   />
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div>
-                    <label className="label">Type de bouton (`call_to_action`)</label>
+                    <label className="label">{tr("Type de bouton (`call_to_action`)", "Button type (`call_to_action`)")}</label>
                     <select
                       value={ctaType}
                       onChange={(e) => {
                         const nextType = e.target.value as MetaCtaType;
                         setCtaType(nextType);
                         const match = CTA_OPTIONS.find((o) => o.id === nextType);
-                        if (match) setCta(match.defaultText);
+                        if (match) setCta(tr(...match.defaultText));
                       }}
                       className="input"
                     >
@@ -1305,7 +1314,7 @@ export default function CampaignsClient({
                     </select>
                   </div>
                   <div>
-                    <label className="label">Texte du bouton CTA</label>
+                    <label className="label">{tr("Texte du bouton CTA", "CTA button text")}</label>
                     <input
                       value={cta}
                       onChange={(e) => setCta(e.target.value)}
@@ -1313,7 +1322,7 @@ export default function CampaignsClient({
                     />
                   </div>
                   <div>
-                    <label className="label">Destination du clic</label>
+                    <label className="label">{tr("Destination du clic", "Click destination")}</label>
                     <select
                       value={destinationType}
                       onChange={(e) =>
@@ -1326,10 +1335,10 @@ export default function CampaignsClient({
                       className="input"
                     >
                       <option value="whatsapp">
-                        💬 WhatsApp Direct (/go/ref)
+                        {tr("💬 WhatsApp Direct (/go/ref)", "💬 WhatsApp direct (/go/ref)")}
                       </option>
                       <option value="shop_product">
-                        🛍️ Fiche Produit Boutique (/c/{shopSlug || "boutique"})
+                        {tr("🛍️ Fiche Produit Boutique (/c/", "🛍️ Shop product page (/c/")}{shopSlug || tr("boutique", "shop")})
                       </option>
                     </select>
                   </div>
@@ -1340,7 +1349,7 @@ export default function CampaignsClient({
               <div className="rounded-xl border border-arctic-400/20 bg-arctic-50/50 p-4 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-sm font-bold text-arctic-900">
-                    Étape 4 — Lancement & Idempotence (`/ads`)
+                    {tr("Étape 4 — Lancement & Idempotence (`/ads`)", "Step 4 — Launch & idempotency (`/ads`)")}
                   </h3>
                   <span className="font-mono text-[11px] text-arctic-500">
                     Header: X-Client-Idempotent-Key
@@ -1359,11 +1368,10 @@ export default function CampaignsClient({
                   >
                     <div className="flex items-center gap-2 text-xs font-bold text-arctic-900">
                       <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                      status = ACTIVE (Diffuser immédiatement)
+                      {tr("status = ACTIVE (Diffuser immédiatement)", "status = ACTIVE (start delivering now)")}
                     </div>
                     <p className="mt-1 text-[11px] text-arctic-600">
-                      Active la campagne, l&apos;ensemble de publicités et la publicité
-                      dès la création.
+                      {tr("Active la campagne, l'ensemble de publicités et la publicité dès la création.", "Activates the campaign, the ad set and the ad as soon as they are created.")}
                     </p>
                   </button>
 
@@ -1378,18 +1386,17 @@ export default function CampaignsClient({
                   >
                     <div className="flex items-center gap-2 text-xs font-bold text-arctic-900">
                       <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
-                      status = PAUSED (Créer en pause)
+                      {tr("status = PAUSED (Créer en pause)", "status = PAUSED (create paused)")}
                     </div>
                     <p className="mt-1 text-[11px] text-arctic-600">
-                      Prépare les 4 objets sur Meta sans dépenser le budget avant votre
-                      validation finale.
+                      {tr("Prépare les 4 objets sur Meta sans dépenser le budget avant votre validation finale.", "Prepares the 4 objects on Meta without spending budget before your final approval.")}
                     </p>
                   </button>
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
                   <div className="text-xs text-arctic-600">
-                    Budget total estimé sur {durationDays}j :{" "}
+                    {tr("Budget total estimé sur", "Estimated total budget over")} {durationDays}j :{" "}
                     <strong className="text-arctic-900">
                       {formatMoney(estimatedTotalSpendCents, currency)}
                     </strong>
@@ -1400,8 +1407,8 @@ export default function CampaignsClient({
                     className="btn-primary px-6 py-2.5 text-sm font-semibold"
                   >
                     {creating
-                      ? "Exécution du pipeline Meta v27.0 (4/4)…"
-                      : `🚀 Créer et Lancer sur Meta (${initialStatus})`}
+                      ? tr("Exécution du pipeline Meta v27.0 (4/4)…", "Running the Meta v27.0 pipeline (4/4)…")
+                      : tr(`🚀 Créer et Lancer sur Meta (${initialStatus})`, `🚀 Create and launch on Meta (${initialStatus})`)}
                   </button>
                 </div>
               </div>
@@ -1412,7 +1419,7 @@ export default function CampaignsClient({
               <div className="rounded-2xl border border-arctic-400/25 bg-arctic-50/70 p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-arctic-600">
-                    Aperçu Temps Réel de la Publicité
+                    {tr("Aperçu Temps Réel de la Publicité", "Live ad preview")}
                   </span>
                   <div className="flex rounded-lg border border-arctic-400/30 bg-white p-0.5 text-xs">
                     <button
@@ -1459,7 +1466,7 @@ export default function CampaignsClient({
                             {shopName}
                           </div>
                           <div className="text-[10px] text-emerald-300">
-                            Sponsorisé • WhatsApp Status
+                            {tr("Sponsorisé • WhatsApp Status", "Sponsored • WhatsApp Status")}
                           </div>
                         </div>
                       </div>
@@ -1493,16 +1500,16 @@ export default function CampaignsClient({
                     {/* Status Caption & CTA */}
                     <div className="space-y-3 bg-gradient-to-t from-black via-arctic-950 to-arctic-950 p-4">
                       <div className="text-xs font-bold text-emerald-300">
-                        {headline || selectedProduct?.name || "Titre de votre publicité"}
+                        {headline || selectedProduct?.name || tr("Titre de votre publicité", "Your ad headline")}
                       </div>
                       <p className="line-clamp-3 whitespace-pre-line text-[11px] leading-relaxed text-white/85">
                         {body ||
-                          "Votre texte publicitaire apparaîtra ici dans les statuts WhatsApp de votre audience cible."}
+                          tr("Votre texte publicitaire apparaîtra ici dans les statuts WhatsApp de votre audience cible.", "Your ad text will appear here in your target audience's WhatsApp statuses.")}
                       </p>
                       <div className="pt-1">
                         <div className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-500 py-2 text-xs font-bold text-white shadow-md">
                           <span>💬</span>
-                          <span>{cta || "Commander sur WhatsApp"}</span>
+                          <span>{cta || tr("Commander sur WhatsApp", "Order on WhatsApp")}</span>
                         </div>
                       </div>
                     </div>
@@ -1520,7 +1527,7 @@ export default function CampaignsClient({
                             {shopName}
                           </div>
                           <div className="text-[10px] text-arctic-500">
-                            Sponsorisé • 🌍 {countries.join(", ")}
+                            {tr("Sponsorisé • 🌍", "Sponsored • 🌍")} {countries.join(", ")}
                           </div>
                         </div>
                       </div>
@@ -1528,7 +1535,7 @@ export default function CampaignsClient({
                     </div>
 
                     <div className="px-3.5 pb-2.5 text-xs text-arctic-800 whitespace-pre-line line-clamp-3">
-                      {body || "Texte principal de votre publicité Facebook & Instagram."}
+                      {body || tr("Texte principal de votre publicité Facebook & Instagram.", "Main text of your Facebook & Instagram ad.")}
                     </div>
 
                     <div className="relative aspect-square w-full bg-arctic-100">
@@ -1558,7 +1565,7 @@ export default function CampaignsClient({
                         </div>
                       </div>
                       <span className="shrink-0 rounded-lg bg-arctic-900 px-3 py-1.5 text-xs font-semibold text-white">
-                        {cta || "Acheter"}
+                        {cta || tr("Acheter", "Buy")}
                       </span>
                     </div>
                   </div>
@@ -1569,7 +1576,7 @@ export default function CampaignsClient({
               <div className="rounded-2xl border border-arctic-400/25 bg-arctic-950 p-4 text-arctic-100">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-emerald-400">
-                    Requêtes Graph API v27.0 générées
+                    {tr("Requêtes Graph API v27.0 générées", "Generated Graph API v27.0 requests")}
                   </span>
                   <span className="rounded bg-emerald-500/20 px-2 py-0.5 font-mono text-[10px] text-emerald-300">
                     Idempotent
@@ -1634,7 +1641,7 @@ export default function CampaignsClient({
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Rechercher par nom, ID Meta, réf…"
+              placeholder={tr("Rechercher par nom, ID Meta, réf…", "Search by name, Meta ID, ref…")}
               className="input text-xs"
             />
           </div>
@@ -1644,11 +1651,10 @@ export default function CampaignsClient({
           <div className="card p-10 text-center space-y-3">
             <div className="text-3xl">📢</div>
             <div className="text-base font-bold text-arctic-900">
-              Aucune campagne publicitaire dans cette vue
+              {tr("Aucune campagne publicitaire dans cette vue", "No ad campaigns in this view")}
             </div>
             <p className="mx-auto max-w-md text-xs text-arctic-600">
-              Sélectionnez un produit de votre boutique Japora et lancez votre première
-              publicité sur WhatsApp Status, Facebook et Instagram via Meta Marketing API.
+              {tr("Sélectionnez un produit de votre boutique Japora et lancez votre première publicité sur WhatsApp Status, Facebook et Instagram via Meta Marketing API.", "Pick a product from your Japora shop and launch your first ad on WhatsApp Status, Facebook and Instagram through the Meta Marketing API.")}
             </p>
             <div>
               <button
@@ -1656,7 +1662,7 @@ export default function CampaignsClient({
                 onClick={() => setShowStudio(true)}
                 className="btn-primary text-xs"
               >
-                + Créer ma première publicité produit
+                {tr("+ Créer ma première publicité produit", "+ Create my first product ad")}
               </button>
             </div>
           </div>
@@ -1757,7 +1763,7 @@ export default function CampaignsClient({
                             ))}
                             <span className="rounded-full bg-arctic-100 px-2 py-0.5 text-[10px] text-arctic-600">
                               🌍 {meta.targeting.countries.join(", ")} •{" "}
-                              {meta.targeting.ageMin}-{meta.targeting.ageMax} ans
+                              {meta.targeting.ageMin}-{meta.targeting.ageMax} {tr("ans", "years")}
                             </span>
                             <span className="font-mono text-[10px] text-arctic-500">
                               Campaign ID: {meta.metaCampaignId} • Ad ID:{" "}
@@ -1779,7 +1785,7 @@ export default function CampaignsClient({
                               onClick={() => toggleCampaignStatus(c, "PAUSED")}
                               className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-500/20 disabled:opacity-50"
                             >
-                              ⏸️ Mettre en pause
+                              {tr("⏸️ Mettre en pause", "⏸️ Pause")}
                             </button>
                           ) : (
                             <button
@@ -1788,7 +1794,7 @@ export default function CampaignsClient({
                               onClick={() => toggleCampaignStatus(c, "ACTIVE")}
                               className="rounded-xl border border-emerald-600/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-500/25 disabled:opacity-50"
                             >
-                              ▶️ Relancer (ACTIVE)
+                              {tr("▶️ Relancer (ACTIVE)", "▶️ Restart (ACTIVE)")}
                             </button>
                           )}
 
@@ -1797,9 +1803,9 @@ export default function CampaignsClient({
                             disabled={isBusy}
                             onClick={() => syncCampaignInsights(c)}
                             className="rounded-xl border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-800 hover:bg-blue-500/20 disabled:opacity-50"
-                            title="Synchroniser les performances Meta Graph API et les ventes réelles enregistrées dans la base de données"
+                            title={tr("Synchroniser les performances Meta Graph API et les ventes réelles enregistrées dans la base de données", "Sync Meta Graph API performance and the real sales recorded in the database")}
                           >
-                            {isBusy ? "Sync…" : "🔄 Synchroniser Insights"}
+                            {isBusy ? tr("Sync…", "Syncing…") : tr("🔄 Synchroniser Insights", "🔄 Sync insights")}
                           </button>
                         </>
                       )}
@@ -1809,7 +1815,7 @@ export default function CampaignsClient({
                         onClick={() => copyLink(c)}
                         className="rounded-xl border border-arctic-400/30 bg-white px-3 py-1.5 text-xs font-medium text-arctic-700 hover:bg-arctic-50"
                       >
-                        {copiedId === c.id ? "✓ Lien copié" : "🔗 Lien /go/"}
+                        {copiedId === c.id ? tr("✓ Lien copié", "✓ Link copied") : tr("🔗 Lien /go/", "🔗 /go/ link")}
                       </button>
 
                       {meta && (
@@ -1818,7 +1824,7 @@ export default function CampaignsClient({
                           onClick={() => setInspectedCampaign(c)}
                           className="rounded-xl border border-arctic-400/30 bg-arctic-50 px-3 py-1.5 text-xs font-medium text-arctic-800 hover:bg-arctic-100"
                         >
-                          💻 Logs API Meta
+                          {tr("💻 Logs API Meta", "💻 Meta API logs")}
                         </button>
                       )}
 
@@ -1827,9 +1833,9 @@ export default function CampaignsClient({
                         disabled={isBusy}
                         onClick={() => archiveCampaign(c.id)}
                         className="rounded-xl border border-rose-500/25 bg-rose-500/5 px-2.5 py-1.5 text-xs text-rose-700 hover:bg-rose-500/15"
-                        title="Arrêter et archiver la campagne"
+                        title={tr("Arrêter et archiver la campagne", "Stop and archive the campaign")}
                       >
-                        🛑 Arrêter
+                        {tr("🛑 Arrêter", "🛑 Stop")}
                       </button>
                     </div>
                   </div>
@@ -1841,31 +1847,31 @@ export default function CampaignsClient({
                       value={impressions.toLocaleString("fr-FR")}
                     />
                     <MiniMetric
-                      label="Portée (Reach)"
+                      label={tr("Portée (Reach)", "Reach")}
                       value={reach.toLocaleString("fr-FR")}
                     />
                     <MiniMetric
-                      label="Vues Status WA"
+                      label={tr("Vues Status WA", "WA Status views")}
                       value={statusViews.toLocaleString("fr-FR")}
                     />
                     <MiniMetric
-                      label="Clics & CTR"
+                      label={tr("Clics & CTR", "Clicks & CTR")}
                       value={`${totalClicks} (${ctr}%)`}
                     />
                     <MiniMetric
-                      label="CPC Moyen"
+                      label={tr("CPC Moyen", "Avg. CPC")}
                       value={formatMoney(cpcCents, currency)}
                     />
                     <MiniMetric
-                      label="Chats WhatsApp"
+                      label={tr("Chats WhatsApp", "WhatsApp chats")}
                       value={String(whatsappChats)}
                     />
                     <MiniMetric
-                      label="Commandes (CVR)"
+                      label={tr("Commandes (CVR)", "Orders (CVR)")}
                       value={`${c.orders} (${c.cvr}%)`}
                     />
                     <MiniMetric
-                      label="Revenu / ROAS"
+                      label={tr("Revenu / ROAS", "Revenue / ROAS")}
                       value={`${formatMoney(c.revenueCents, currency)} (${
                         c.roas !== null ? `${c.roas}×` : "—"
                       })`}
@@ -1879,21 +1885,21 @@ export default function CampaignsClient({
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                           {c.status === "draft" &&
-                            "En attente d'approbation vendeur avant envoi WhatsApp."}
+                            tr("En attente d'approbation vendeur avant envoi WhatsApp.", "Waiting for the vendor's approval before sending on WhatsApp.")}
                           {c.status === "approved" &&
-                            `Approuvée${
-                              c.approvedForPhone ? ` pour ${c.approvedForPhone}` : ""
-                            } · prête à envoyer.`}
+                            (c.approvedForPhone
+                              ? tr(`Approuvée pour ${c.approvedForPhone} · prête à envoyer.`, `Approved for ${c.approvedForPhone} · ready to send.`)
+                              : tr("Approuvée · prête à envoyer.", "Approved · ready to send."))}
                           {c.status === "sent" &&
-                            `Envoyée${
-                              c.approvedForPhone ? ` à ${c.approvedForPhone}` : ""
-                            }.`}
+                            (c.approvedForPhone
+                              ? tr(`Envoyée à ${c.approvedForPhone}.`, `Sent to ${c.approvedForPhone}.`)
+                              : tr("Envoyée.", "Sent."))}
                           {c.status === "stubbed" &&
-                            "Enregistrée, mais WhatsApp n'est pas encore configuré : rien n'a été envoyé."}
+                            tr("Enregistrée, mais WhatsApp n'est pas encore configuré : rien n'a été envoyé.", "Saved, but WhatsApp is not configured yet: nothing was sent.")}
                           {c.status === "blocked" &&
-                            "Bloquée : le message ou le client a changé, ou ce client a reçu trop de messages. Vous pouvez réessayer."}
-                          {c.status === "failed" && "L'envoi a échoué. Vous pouvez réessayer."}
-                          {c.status === "cancelled" && "Annulée : ce message ne sera pas envoyé."}
+                            tr("Bloquée : le message ou le client a changé, ou ce client a reçu trop de messages. Vous pouvez réessayer.", "Blocked: the message or the customer changed, or this customer received too many messages. You can try again.")}
+                          {c.status === "failed" && tr("L'envoi a échoué. Vous pouvez réessayer.", "Sending failed. You can try again.")}
+                          {c.status === "cancelled" && tr("Annulée : ce message ne sera pas envoyé.", "Cancelled: this message will not be sent.")}
                         </div>
                         {canSend && (
                           <div className="flex gap-2">
@@ -1904,8 +1910,8 @@ export default function CampaignsClient({
                               className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
                             >
                               {c.status === "approved"
-                                ? "Envoyer maintenant"
-                                : "Approuver & Envoyer"}
+                                ? tr("Envoyer maintenant", "Send now")
+                                : tr("Approuver & Envoyer", "Approve & send")}
                             </button>
                             <button
                               type="button"
@@ -1913,7 +1919,7 @@ export default function CampaignsClient({
                               onClick={() => cancelRecoveryCampaign(c.id)}
                               className="rounded-lg border border-arctic-400/35 px-2.5 py-1 text-xs text-arctic-600"
                             >
-                              Annuler
+                              {tr("Annuler", "Cancel")}
                             </button>
                           </div>
                         )}
@@ -1936,10 +1942,10 @@ export default function CampaignsClient({
             <div className="flex items-start justify-between gap-3 border-b border-arctic-200 pb-4">
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
-                  Authentification & Autorisations Meta Graph API v27.0
+                  {tr("Authentification & Autorisations Meta Graph API v27.0", "Meta Graph API v27.0 authentication & permissions")}
                 </span>
                 <h3 className="text-lg font-bold text-arctic-900">
-                  Configuration Meta Marketing API & Jetons d&apos;Accès
+                  {tr("Configuration Meta Marketing API & Jetons d'Accès", "Meta Marketing API settings & access tokens")}
                 </h3>
               </div>
               <button
@@ -1954,18 +1960,17 @@ export default function CampaignsClient({
             <form onSubmit={handleSaveMetaConfig} className="space-y-4">
               <div className="rounded-xl border border-blue-600 bg-blue-50/70 p-3.5 text-left">
                 <div className="text-xs font-bold text-arctic-900">
-                  🟢 Connexion Directe Meta Graph API (`graph.facebook.com/v27.0`)
+                  {tr("🟢 Connexion Directe Meta Graph API (`graph.facebook.com/v27.0`)", "🟢 Direct Meta Graph API connection (`graph.facebook.com/v27.0`)")}
                 </div>
                 <p className="mt-1 text-[11px] text-arctic-600">
-                  Exécute les appels HTTP POST en direct sur votre compte
-                  publicitaire Meta (`/campaigns`, `/adsets`, `/adcreatives`, `/ads`) avec votre jeton `ads_management` et enregistre toutes les campagnes dans MySQL.
+                  {tr("Exécute les appels HTTP POST en direct sur votre compte publicitaire Meta (`/campaigns`, `/adsets`, `/adcreatives`, `/ads`) avec votre jeton `ads_management` et enregistre toutes les campagnes dans MySQL.", "Makes live HTTP POST calls on your Meta ad account (`/campaigns`, `/adsets`, `/adcreatives`, `/ads`) with your `ads_management` token and saves every campaign in the database.")}
                 </p>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="label">
-                    ID du Compte Publicitaire (`act_&lt;AD_ACCOUNT_ID&gt;`)
+                    {tr("ID du Compte Publicitaire (`act_<AD_ACCOUNT_ID>`)", "Ad account ID (`act_<AD_ACCOUNT_ID>`)")}
                   </label>
                   <input
                     value={cfgAdAccountId}
@@ -1975,7 +1980,7 @@ export default function CampaignsClient({
                   />
                 </div>
                 <div>
-                  <label className="label">ID de la Page Facebook (`PAGE_ID`)</label>
+                  <label className="label">{tr("ID de la Page Facebook (`PAGE_ID`)", "Facebook Page ID (`PAGE_ID`)")}</label>
                   <input
                     value={cfgPageId}
                     onChange={(e) => setCfgPageId(e.target.value)}
@@ -1996,7 +2001,7 @@ export default function CampaignsClient({
                   />
                 </div>
                 <div>
-                  <label className="label">Type de Jeton (`Access Token`)</label>
+                  <label className="label">{tr("Type de Jeton (`Access Token`)", "Token type (`Access Token`)")}</label>
                   <select
                     value={cfgTokenType}
                     onChange={(e) =>
@@ -2010,13 +2015,13 @@ export default function CampaignsClient({
                     className="input text-xs"
                   >
                     <option value="SYSTEM_USER_TOKEN">
-                      System User Access Token (Serveur / Production)
+                      {tr("System User Access Token (Serveur / Production)", "System User Access Token (server / production)")}
                     </option>
                     <option value="LONG_LIVED_TOKEN">
-                      Long-Lived Access Token (60 jours)
+                      {tr("Long-Lived Access Token (60 jours)", "Long-Lived Access Token (60 days)")}
                     </option>
                     <option value="USER_TOKEN">
-                      User Access Token (Session OAuth)
+                      {tr("User Access Token (Session OAuth)", "User Access Token (OAuth session)")}
                     </option>
                   </select>
                 </div>
@@ -2024,7 +2029,7 @@ export default function CampaignsClient({
 
               <div>
                 <label className="label">
-                  Jeton d&apos;Accès Meta (`ACCESS_TOKEN` avec scopes{" "}
+                  {tr("Jeton d'Accès Meta (`ACCESS_TOKEN` avec scopes", "Meta access token (`ACCESS_TOKEN` with scopes")}{" "}
                   <code>ads_management,ads_read</code>)
                 </label>
                 <input
@@ -2033,8 +2038,8 @@ export default function CampaignsClient({
                   onChange={(e) => setCfgAccessToken(e.target.value)}
                   placeholder={
                     metaConfig.maskedToken
-                      ? `Jeton actuel : ${metaConfig.maskedToken} (laisser vide pour conserver)`
-                      : "Collez votre jeton EAAB... (ou laissez vide en mode Sandbox)"
+                      ? tr(`Jeton actuel : ${metaConfig.maskedToken} (laisser vide pour conserver)`, `Current token: ${metaConfig.maskedToken} (leave empty to keep it)`)
+                      : tr("Collez votre jeton EAAB... (ou laissez vide en mode Sandbox)", "Paste your EAAB... token (or leave empty in Sandbox mode)")
                   }
                   className="input font-mono text-xs"
                 />
@@ -2043,11 +2048,10 @@ export default function CampaignsClient({
               {/* OAuth Helper Box from Meta Documentation */}
               <div className="rounded-xl border border-arctic-200 bg-arctic-50 p-3.5 text-xs space-y-2">
                 <div className="font-bold text-arctic-900">
-                  🔗 URL d&apos;Autorisation OAuth Meta (`ads_management,ads_read`)
+                  {tr("🔗 URL d'Autorisation OAuth Meta (`ads_management,ads_read`)", "🔗 Meta OAuth authorization URL (`ads_management,ads_read`)")}
                 </div>
                 <p className="text-[11px] text-arctic-600">
-                  Conformément à la documentation Meta Marketing API, utilisez ce lien
-                  pour demander les permissions <code>ads_management</code> et{" "}
+                  {tr("Conformément à la documentation Meta Marketing API, utilisez ce lien pour demander les permissions", "As described in the Meta Marketing API documentation, use this link to request the permissions")} <code>ads_management</code> {tr("et", "and")}{" "}
                   <code>ads_read</code> :
                 </p>
                 <code className="block break-all rounded-lg bg-arctic-900 p-2.5 font-mono text-[10px] text-emerald-300">
@@ -2071,7 +2075,7 @@ export default function CampaignsClient({
                   onClick={() => setShowConfigModal(false)}
                   className="rounded-xl border border-arctic-300 px-4 py-2 text-xs font-semibold text-arctic-700"
                 >
-                  Fermer
+                  {tr("Fermer", "Close")}
                 </button>
                 <button
                   type="submit"
@@ -2079,8 +2083,8 @@ export default function CampaignsClient({
                   className="btn-primary text-xs"
                 >
                   {savingConfig
-                    ? "Vérification & Sauvegarde…"
-                    : "Enregistrer & Vérifier le Token"}
+                    ? tr("Vérification & Sauvegarde…", "Checking & saving…")
+                    : tr("Enregistrer & Vérifier le Token", "Save & check the token")}
                 </button>
               </div>
             </form>
@@ -2097,7 +2101,7 @@ export default function CampaignsClient({
             <div className="flex items-start justify-between gap-3 border-b border-arctic-200 pb-3">
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
-                  Journal d&apos;Exécution Meta Marketing API v27.0
+                  {tr("Journal d'Exécution Meta Marketing API v27.0", "Meta Marketing API v27.0 run log")}
                 </span>
                 <h3 className="text-lg font-bold text-arctic-900">
                   {inspectedCampaign.name}
@@ -2169,7 +2173,7 @@ export default function CampaignsClient({
                     {log.curlPreview}
                   </pre>
                   <div className="border-t border-arctic-800 pt-2 font-mono text-[10px] text-emerald-300">
-                    Réponse : {JSON.stringify(log.responsePayload)}
+                    {tr("Réponse :", "Response:")} {JSON.stringify(log.responsePayload)}
                   </div>
                 </div>
               ))}
@@ -2181,7 +2185,7 @@ export default function CampaignsClient({
                 onClick={() => setInspectedCampaign(null)}
                 className="btn-primary text-xs"
               >
-                Fermer l&apos;inspecteur
+                {tr("Fermer l'inspecteur", "Close the inspector")}
               </button>
             </div>
           </div>

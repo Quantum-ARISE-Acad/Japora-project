@@ -33,7 +33,7 @@ export default function DangerZone({ shopName }: { shopName: string }) {
     const data = await res.json().catch(() => ({}));
     setDeleting(false);
     if (!res.ok) {
-      setError(data.error || "Could not delete account.");
+      setError(data.error || tr("Impossible de supprimer le compte.", "Could not delete account."));
       return;
     }
     router.push("/");

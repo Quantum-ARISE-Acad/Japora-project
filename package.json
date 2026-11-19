@@ -18,6 +18,7 @@
     "lh:mobile": "pnpm dlx lighthouse@latest http://localhost:5174/ --quiet --chrome-flags='--headless=new --no-sandbox' --only-categories=performance --view",
     "postinstall": "prisma generate",
     "lint": "eslint . --max-warnings=0",
+    "i18n:check": "tsx scripts/i18n-audit.ts",
     "lint:fix": "eslint . --fix --max-warnings=0"
   },
   "prisma": {

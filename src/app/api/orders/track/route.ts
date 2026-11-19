@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { digitsOnly } from "@/lib/utils";
 import { findTrackedOrdersForVendor, parseDealNote } from "@/lib/bot";
 import { publicOrigin } from "@/lib/public-origin";
+import { getServerTr } from "@/lib/public-locale";
 
 const STATUS_LABELS: Record<string, { label: string; progress: number }> = {
   NEW: { label: "🕒 Nouvelle — En attente de confirmation par le vendeur", progress: 25 },
@@ -21,6 +22,7 @@ const STATUS_LABELS: Record<string, { label: string; progress: number }> = {
  * non-empty reference or phone query.
  */
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   try {
     const body = await req.json().catch(() => ({}));
     const shopSlug = String(body.shopSlug || "").trim();
@@ -29,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     if (!shopSlug) {
       return NextResponse.json(
-        { error: "Veuillez fournir la boutique (shopSlug)." },
+        { error: tr("Veuillez fournir la boutique (shopSlug).", "Please provide the shop (shopSlug).") },
         { status: 400 },
       );
     }
@@ -40,7 +42,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!vendor) {
-      return NextResponse.json({ error: "Boutique introuvable." }, { status: 404 });
+      return NextResponse.json({ error: tr("Boutique introuvable.", "Shop not found.") }, { status: 404 });
     }
 
     const cleanQuery = rawRef.replace(/^#/, "").trim().toLowerCase();
@@ -107,7 +109,7 @@ export async function POST(req: NextRequest) {
     });
   } catch {
     return NextResponse.json(
-      { error: "Erreur lors de la recherche de votre commande." },
+      { error: tr("Erreur lors de la recherche de votre commande.", "Error while looking up your order.") },
       { status: 500 },
     );
   }

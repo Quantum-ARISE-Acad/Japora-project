@@ -1,6 +1,7 @@
 "use client";
 
 import { getCountries, getCountryCallingCode, type CountryCode } from "libphonenumber-js";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 const PHONE_COUNTRIES = getCountries();
 
@@ -21,6 +22,7 @@ export default function PhoneNumberInput({
   onCountryChange: (country: CountryCode) => void;
   required?: boolean;
 }) {
+  const { tr } = usePublicLang();
   return (
     <div>
       <label htmlFor={id} className="label">
@@ -29,7 +31,7 @@ export default function PhoneNumberInput({
       <div className="grid grid-cols-[minmax(132px,0.9fr)_minmax(0,1.4fr)] gap-2">
         <select
           className="input"
-          aria-label="Country calling code"
+          aria-label={tr("Indicatif du pays", "Country calling code")}
           autoComplete="tel-country-code"
           value={country}
           onChange={(event) => onCountryChange(event.target.value as CountryCode)}
@@ -53,7 +55,7 @@ export default function PhoneNumberInput({
         />
       </div>
       <span className="mt-1 block text-[11px] text-arctic-500">
-        Enter a local number for the selected country, or an international number beginning with +.
+        {tr("Saisissez un numéro local pour le pays choisi, ou un numéro international commençant par +.", "Enter a local number for the selected country, or an international number beginning with +.")}
       </span>
     </div>
   );

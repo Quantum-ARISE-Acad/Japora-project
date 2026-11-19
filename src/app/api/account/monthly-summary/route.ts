@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentVendor } from "@/lib/auth";
 import { computeMonth, defaultPeriod, renderHtml } from "@/lib/bookkeeping";
 import { logger } from "@/lib/logger";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
  * GET /api/account/monthly-summary?year=YYYY&month=MM
@@ -12,8 +13,9 @@ import { logger } from "@/lib/logger";
  * recently *completed* month when params are missing or invalid.
  */
 export async function GET(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const url = new URL(req.url);
   const yearRaw = url.searchParams.get("year");

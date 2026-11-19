@@ -5,6 +5,7 @@ import { sendWhatsApp } from "@/lib/whatsapp";
 import { checkBroadcastQuota } from "@/lib/broadcast";
 import { rateLimit, tooManyRequests } from "@/lib/ratelimit";
 import { logger } from "@/lib/logger";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
  * POST /api/followers/notify  { message }
@@ -14,15 +15,16 @@ import { logger } from "@/lib/logger";
  * use a Marketing-category template for out-of-window sends). Throttled.
  */
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const rl = rateLimit({ key: `followers.notify:${vendor.id}`, limit: 6, windowMs: 60 * 60_000 });
   if (!rl.allowed) return tooManyRequests(rl, "You've sent a few blasts recently. Try again later.");
 
   const body = await req.json().catch(() => ({}));
   const message = String(body?.message || "").trim().slice(0, 1000);
-  if (!message) return NextResponse.json({ error: "Write a message first." }, { status: 400 });
+  if (!message) return NextResponse.json({ error: tr("Écrivez d'abord un message.", "Write a message first.") }, { status: 400 });
 
   const followers = await prisma.follower.findMany({
     where: { vendorId: vendor.id, unsubscribedAt: null },

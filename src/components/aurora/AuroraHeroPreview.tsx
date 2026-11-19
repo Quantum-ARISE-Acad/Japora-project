@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Glyph from "@/components/Glyph";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 /**
  * Hero preview — a stylized "live WhatsApp shop + order coming in" showcase.
@@ -11,6 +12,7 @@ import Glyph from "@/components/Glyph";
  *  3) 6 PM Hustle Summary (Bilan du soir)
  */
 export default function AuroraHeroPreview() {
+  const { tr } = usePublicLang();
   const ref = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<"orders" | "bot" | "summary">("orders");
 
@@ -61,7 +63,7 @@ export default function AuroraHeroPreview() {
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 animate-ping rounded-full bg-emerald-500" />
           <span className="text-xs font-bold text-arctic-900">
-            Paiement T-Money confirmé
+            {tr("Paiement T-Money confirmé", "T-Money payment confirmed")}
           </span>
         </div>
         <span className="a-num text-xs font-bold text-emerald-700">
@@ -134,7 +136,7 @@ export default function AuroraHeroPreview() {
                 <div className="a-num a-label-lg font-display font-bold text-brand-dark">
                   24 500 FCFA
                 </div>
-                <div className="a-body-sm text-emerald-700 font-medium">✓ Payé T-Money</div>
+                <div className="a-body-sm text-emerald-700 font-medium">{tr("✓ Payé T-Money", "✓ Paid with T-Money")}</div>
               </div>
             </div>
 
@@ -162,7 +164,7 @@ export default function AuroraHeroPreview() {
               </div>
               <div className="text-right">
                 <div className="a-num text-xs font-bold text-arctic-900">12 000 FCFA</div>
-                <div className="text-[10px] text-arctic-500">il y a 4 min</div>
+                <div className="text-[10px] text-arctic-500">{tr("il y a 4 min", "4 min ago")}</div>
               </div>
             </div>
 
@@ -195,28 +197,27 @@ export default function AuroraHeroPreview() {
           <div className="space-y-2.5 a-fade-in">
             <div className="rounded-shape-md bg-arctic-100/80 p-3 text-xs text-arctic-800">
               <div className="text-[10px] font-bold text-arctic-500 mb-1">
-                Cliente (+228 90 •• •• 42)
+                {tr("Cliente (+228 90 •• •• 42)", "Customer (+228 90 •• •• 42)")}
               </div>
-              Bonjour ! C&apos;est combien la robe Ankara Maxi en taille M ?
+              {tr("Bonjour ! C'est combien la robe Ankara Maxi en taille M ?", "Hello! How much is the Ankara Maxi dress in size M?")}
             </div>
             <div className="ml-4 rounded-shape-md border border-brand/30 bg-brand/10 p-3 text-xs text-arctic-900">
               <div className="flex items-center justify-between text-[10px] font-bold text-brand-dark mb-1">
-                <span>🤖 Bot Japora · Réponse instantanée</span>
+                <span>{tr("🤖 Bot Japora · Réponse instantanée", "🤖 Japora bot · Instant reply")}</span>
                 <span>00:01s</span>
               </div>
-              Bonjour ! La <strong>Robe Ankara Maxi</strong> est à <strong>12 250 FCFA</strong>.
-              Il reste <strong>4 pièces en taille M</strong>. Souhaitez-vous commander avec livraison à Lomé ?
+              {tr("Bonjour ! La", "Hello! The")} <strong>{tr("Robe Ankara Maxi", "Ankara Maxi dress")}</strong> {tr("est à", "is")} <strong>12 250 FCFA</strong>{tr(". Il reste", ". There are")} <strong>4 pièces en taille M</strong>{tr(". Souhaitez-vous commander avec livraison à Lomé ?", " left. Would you like to order with delivery in Lomé?")}
               <div className="mt-2 flex flex-wrap gap-1.5">
                 <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-arctic-900 shadow-xs">
-                  🛒 Commander (Taille M)
+                  {tr("🛒 Commander (Taille M)", "🛒 Order (size M)")}
                 </span>
                 <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold text-arctic-700 shadow-xs">
-                  📖 Voir tout le catalogue
+                  {tr("📖 Voir tout le catalogue", "📖 See the whole catalog")}
                 </span>
               </div>
             </div>
             <div className="flex items-center justify-between rounded-shape-sm bg-emerald-500/10 px-3 py-2 text-[11px] font-medium text-emerald-800">
-              <span>✓ Lien de paiement T-Money / Flooz envoyé automatiquement</span>
+              <span>{tr("✓ Lien de paiement T-Money / Flooz envoyé automatiquement", "✓ T-Money / Flooz payment link sent automatically")}</span>
               <span className="font-bold">24h/24</span>
             </div>
           </div>
@@ -226,34 +227,34 @@ export default function AuroraHeroPreview() {
           <div className="space-y-3 a-fade-in">
             <div className="rounded-shape-md border border-brand/30 bg-white/80 p-4">
               <div className="flex items-center justify-between">
-                <span className="a-eyebrow">Récapitulatif WhatsApp · 18h00</span>
+                <span className="a-eyebrow">{tr("Récapitulatif WhatsApp · 18h00", "WhatsApp summary · 6:00 pm")}</span>
                 <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                  Envoyé sur WhatsApp
+                  {tr("Envoyé sur WhatsApp", "Sent on WhatsApp")}
                 </span>
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-shape-sm bg-arctic-100/70 p-2.5">
-                  <div className="text-[10px] text-arctic-600">Ventes du jour</div>
+                  <div className="text-[10px] text-arctic-600">{tr("Ventes du jour", "Today's sales")}</div>
                   <div className="a-num mt-0.5 text-sm font-bold text-arctic-900">
                     148 500 F
                   </div>
                 </div>
                 <div className="rounded-shape-sm bg-arctic-100/70 p-2.5">
-                  <div className="text-[10px] text-arctic-600">Commandes</div>
+                  <div className="text-[10px] text-arctic-600">{tr("Commandes", "Orders")}</div>
                   <div className="a-num mt-0.5 text-sm font-bold text-arctic-900">
                     14 payées
                   </div>
                 </div>
                 <div className="rounded-shape-sm bg-arctic-100/70 p-2.5">
-                  <div className="text-[10px] text-arctic-600">Top Produit</div>
+                  <div className="text-[10px] text-arctic-600">{tr("Top Produit", "Top product")}</div>
                   <div className="mt-0.5 truncate text-xs font-bold text-brand-dark">
-                    Robe Ankara
+                    {tr("Robe Ankara", "Ankara dress")}
                   </div>
                 </div>
               </div>
               <div className="mt-3 flex items-center justify-between border-t border-arctic-200/60 pt-2.5 text-[11px] text-arctic-700">
-                <span>⚠️ Alerte stock : Sac Bogolan (plus que 2 en stock)</span>
-                <span className="font-semibold text-brand-dark">Gérer →</span>
+                <span>{tr("⚠️ Alerte stock : Sac Bogolan (plus que 2 en stock)", "⚠️ Stock alert: Bogolan bag (only 2 left)")}</span>
+                <span className="font-semibold text-brand-dark">{tr("Gérer →", "Manage →")}</span>
               </div>
             </div>
           </div>
@@ -266,9 +267,9 @@ export default function AuroraHeroPreview() {
         >
           <div className="a-body-sm inline-flex items-center gap-1.5 text-arctic-800">
             <Glyph name="moon" size={15} className="text-brand-dark" />
-            <span>Bilan quotidien envoyé à 18h sur votre WhatsApp</span>
+            <span>{tr("Bilan quotidien envoyé à 18h sur votre WhatsApp", "Daily summary sent at 6 pm on your WhatsApp")}</span>
           </div>
-          <div className="a-label-md text-brand-dark">Actif ✓</div>
+          <div className="a-label-md text-brand-dark">{tr("Actif ✓", "Active ✓")}</div>
         </div>
       </div>
     </div>

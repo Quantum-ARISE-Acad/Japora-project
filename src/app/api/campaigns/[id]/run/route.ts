@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentVendor } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { dispatchRecoveryCampaign } from "@/lib/campaigns";
+import { getServerTr } from "@/lib/public-locale";
 
 /** Why a recovery message was not sent, in words the vendor understands. */
 const REASONS: Record<string, string> = {
@@ -19,23 +20,24 @@ const REASONS: Record<string, string> = {
  * cart or reactivation) once. The approval itself happens in /approve.
  */
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Veuillez vous connecter." }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const { id } = await params;
   const campaign = await prisma.campaign.findFirst({
     where: { id, vendorId: vendor.id, deletedAt: null },
     select: { id: true, kind: true, status: true },
   });
-  if (!campaign) return NextResponse.json({ error: "Campagne introuvable." }, { status: 404 });
+  if (!campaign) return NextResponse.json({ error: tr("Campagne introuvable.", "Campaign not found.") }, { status: 404 });
   if (!["abandoned_cart", "reactivation"].includes(campaign.kind)) {
     return NextResponse.json({ error: REASONS.unsupported_campaign_kind }, { status: 409 });
   }
   if (["sent", "stubbed"].includes(campaign.status)) {
-    return NextResponse.json({ error: "Ce message a déjà été envoyé." }, { status: 409 });
+    return NextResponse.json({ error: tr("Ce message a déjà été envoyé.", "This message has already been sent.") }, { status: 409 });
   }
   if (campaign.status === "cancelled") {
-    return NextResponse.json({ error: "Cette relance a été annulée." }, { status: 409 });
+    return NextResponse.json({ error: tr("Cette relance a été annulée.", "This follow-up was cancelled.") }, { status: 409 });
   }
 
   const result = await dispatchRecoveryCampaign(vendor.id, id);

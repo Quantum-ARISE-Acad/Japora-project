@@ -89,10 +89,10 @@ export default function ShopWhatsAppQrBanner({
 
             <div>
               <h2 className="text-base sm:text-lg font-extrabold text-white">
-                {assistantName} de {shopName}
+                {assistantName} {tr("de", "of")} {shopName}
               </h2>
               <p className="mt-1 text-xs sm:text-sm text-slate-300 leading-relaxed max-w-2xl">
-                {tr("Scannez le", "Scan the")} <strong>QR Code WhatsApp</strong> {tr("ci-contre pour discuter avec notre assistant IA directement dans votre WhatsApp (voir le catalogue, chercher un produit disponible, commander et suivre votre colis), ou ouvrez l’assistant directement ici sur le site :", "to chat with our AI assistant in WhatsApp (browse the catalog, find available products, place an order, and track your delivery), or open the assistant right here on the website:")}
+                {tr("Scannez le", "Scan the")} <strong>{tr("QR Code WhatsApp", "WhatsApp QR code")}</strong> {tr("ci-contre pour discuter avec notre assistant IA directement dans votre WhatsApp (voir le catalogue, chercher un produit disponible, commander et suivre votre colis), ou ouvrez l’assistant directement ici sur le site :", "to chat with our AI assistant in WhatsApp (browse the catalog, find available products, place an order, and track your delivery), or open the assistant right here on the website:")}
               </p>
             </div>
 

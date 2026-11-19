@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { shopWhatsAppLink } from "@/lib/shop-picker";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 /**
  * Printable shop & WhatsApp Assistant QR codes.
@@ -23,6 +24,7 @@ export default function ShopQrCard({
   whatsappNumber?: string;
   whatsappPrefillMessage?: string;
 }) {
+  const { tr } = usePublicLang();
   const [open, setOpen] = useState(true);
   const [qrType, setQrType] = useState<"whatsapp_ai" | "shop_ai" | "catalog">("whatsapp_ai");
 
@@ -96,14 +98,14 @@ export default function ShopQrCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-arctic-900">
-            📲 QR Codes de votre Boutique & Assistant WhatsApp IA
+            {tr("📲 QR Codes de votre Boutique & Assistant WhatsApp IA", "📲 QR codes for your shop & WhatsApp AI assistant")}
           </h2>
           <p className="mt-1 text-sm text-arctic-600">
-            Ces QR codes sont également affichés automatiquement sur votre boutique publique. Téléchargez-les ou imprimez-les pour vos clients.
+            {tr("Ces QR codes sont également affichés automatiquement sur votre boutique publique. Téléchargez-les ou imprimez-les pour vos clients.", "These QR codes are also shown automatically on your public shop. Download or print them for your customers.")}
           </p>
         </div>
         <button type="button" onClick={() => setOpen((v) => !v)} className="btn-ghost shrink-0 text-xs">
-          {open ? "Masquer" : "Afficher QR"}
+          {open ? tr("Masquer", "Hide") : tr("Afficher QR", "Show QR")}
         </button>
       </div>
 
@@ -120,7 +122,7 @@ export default function ShopQrCard({
                   : "bg-arctic-100 text-arctic-700 hover:bg-arctic-200"
               }`}
             >
-              💬 1. QR Assistant sur WhatsApp (wa.me)
+              {tr("💬 1. QR Assistant sur WhatsApp (wa.me)", "💬 1. WhatsApp assistant QR (wa.me)")}
             </button>
             <button
               type="button"
@@ -131,7 +133,7 @@ export default function ShopQrCard({
                   : "bg-arctic-100 text-arctic-700 hover:bg-arctic-200"
               }`}
             >
-              ✨ 2. QR Assistant IA sur la Boutique
+              {tr("✨ 2. QR Assistant IA sur la Boutique", "✨ 2. AI assistant QR on the shop")}
             </button>
             <button
               type="button"
@@ -142,42 +144,42 @@ export default function ShopQrCard({
                   : "bg-arctic-100 text-arctic-700 hover:bg-arctic-200"
               }`}
             >
-              🛍️ 3. QR Catalogue Standard
+              {tr("🛍️ 3. QR Catalogue Standard", "🛍️ 3. Standard catalog QR")}
             </button>
           </div>
 
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center rounded-xl border border-arctic-300/60 bg-arctic-50/50 p-4">
             <div className="grid h-40 w-40 shrink-0 place-items-center rounded-shape-md border-2 border-emerald-500/30 bg-white p-2 shadow-xs">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrSrc} alt={`QR for ${shopName}`} className="h-full w-full" />
+              <img src={qrSrc} alt={tr(`QR de ${shopName}`, `QR for ${shopName}`)} className="h-full w-full" />
             </div>
             <div className="space-y-2.5 flex-1">
               <div className="text-xs font-bold text-arctic-900">
                 {qrType === "whatsapp_ai"
-                  ? "Redirige directement le client vers l'Assistant IA sur WhatsApp"
+                  ? tr("Redirige directement le client vers l'Assistant IA sur WhatsApp", "Takes the customer straight to the AI assistant on WhatsApp")
                   : qrType === "shop_ai"
-                  ? "Ouvre votre boutique avec l'Assistant IA Gemini ouvert et prêt à répondre"
-                  : "Ouvre le catalogue public de votre boutique"}
+                  ? tr("Ouvre votre boutique avec l'Assistant IA Gemini ouvert et prêt à répondre", "Opens your shop with the Gemini AI assistant open and ready to answer")
+                  : tr("Ouvre le catalogue public de votre boutique", "Opens your shop's public catalog")}
               </div>
               <p className="text-xs text-arctic-600 break-all font-mono bg-white/80 p-2 rounded border border-arctic-200">
                 {targetUrl}
               </p>
               {qrType === "whatsapp_ai" && viaJaporaNumber && (
                 <p className="text-xs text-arctic-600">
-                  Ce QR code ouvre le numéro WhatsApp de Japora avec le nom de votre boutique déjà écrit : l&apos;assistant répond automatiquement au nom de votre boutique, et les commandes arrivent dans votre tableau de bord.
+                  {tr("Ce QR code ouvre le numéro WhatsApp de Japora avec le nom de votre boutique déjà écrit : l'assistant répond automatiquement au nom de votre boutique, et les commandes arrivent dans votre tableau de bord.", "This QR code opens Japora's WhatsApp number with your shop name already written: the assistant answers automatically on behalf of your shop, and orders arrive in your dashboard.")}
                 </p>
               )}
               {qrType === "whatsapp_ai" && !hasWhatsApp && (
                 <p className="text-xs text-amber-700 bg-amber-50 px-2.5 py-1.5 rounded border border-amber-200">
-                  ⚠️ Renseignez votre numéro WhatsApp ci-dessous pour que ce QR code pointe vers votre numéro WhatsApp.
+                  {tr("⚠️ Renseignez votre numéro WhatsApp ci-dessous pour que ce QR code pointe vers votre numéro WhatsApp.", "⚠️ Enter your WhatsApp number below so this QR code points to your WhatsApp number.")}
                 </p>
               )}
               <div className="flex flex-wrap gap-2 pt-1">
                 <a href={downloadSrc} className="btn-primary text-xs">
-                  📥 Télécharger SVG
+                  {tr("📥 Télécharger SVG", "📥 Download SVG")}
                 </a>
                 <button type="button" onClick={print} className="btn-ghost text-xs border border-arctic-300">
-                  🖨️ Imprimer l&apos;affiche QR
+                  {tr("🖨️ Imprimer l'affiche QR", "🖨️ Print the QR poster")}
                 </button>
                 <a
                   href={targetUrl}
@@ -185,7 +187,7 @@ export default function ShopQrCard({
                   rel="noreferrer"
                   className="btn-ghost text-xs text-emerald-700 hover:underline"
                 >
-                  Tester le lien ↗
+                  {tr("Tester le lien ↗", "Test the link ↗")}
                 </a>
               </div>
             </div>

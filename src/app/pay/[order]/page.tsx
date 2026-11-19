@@ -6,6 +6,7 @@ import { formatMoney } from "@/lib/utils";
 import { getVendorFedaPayConfig } from "@/lib/payments/fedapay";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import PayClient from "./PayClient";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
  * Customer pay surface — /pay/[order].
@@ -28,7 +29,9 @@ export async function generateMetadata({
     select: { vendor: { select: { shopName: true } } },
   });
   return {
-    title: row ? `Paiement — ${row.vendor.shopName}` : "Paiement",
+    title: row
+      ? (await getServerTr())(`Paiement — ${row.vendor.shopName}`, `Payment — ${row.vendor.shopName}`)
+      : (await getServerTr())("Paiement", "Payment"),
     robots: { index: false },
   };
 }
@@ -40,6 +43,7 @@ export default async function PayPage({
   params: Promise<{ order: string }>;
   searchParams?: Promise<{ paid?: string; failed?: string; cod?: string }>;
 }) {
+  const tr = await getServerTr();
   const { order: orderId } = await params;
   const sp = (await searchParams) ?? {};
 
@@ -88,13 +92,13 @@ export default async function PayPage({
           <div className="border-b border-arctic-400/30 px-5 py-4">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
-                <p className="a-label-md text-arctic-500">Commande chez</p>
+                <p className="a-label-md text-arctic-500">{tr("Commande chez", "Order at")}</p>
                 <span className="a-label-md font-semibold text-arctic-800">{order.vendor.shopName}</span>
                 {order.vendor.verifiedAt && <VerifiedBadge size="sm" withLabel={false} />}
               </div>
               {!fullyPaid && fedaConfig.environment === "sandbox" && (
                 <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
-                  Mode Sandbox
+                  {tr("Mode Sandbox", "Sandbox mode")}
                 </span>
               )}
             </div>
@@ -102,9 +106,9 @@ export default async function PayPage({
               {formatMoney(fullyPaid ? order.totalCents : balanceCents, currency)}
             </p>
             <p className="mt-0.5 a-label-md text-arctic-500">
-              Commande #{ref}
+              {tr("Commande #", "Order #")}{ref}
               {order.paidCents > 0 && !fullyPaid && (
-                <> · {formatMoney(order.paidCents, currency)} déjà réglés</>
+                <> · {formatMoney(order.paidCents, currency)} {tr("déjà réglés", "already paid")}</>
               )}
             </p>
           </div>
@@ -117,14 +121,14 @@ export default async function PayPage({
                 </svg>
               </div>
               <p className="text-base font-bold text-arctic-900">
-                Paiement confirmé !
+                {tr("Paiement confirmé !", "Payment confirmed!")}
               </p>
               <p className="a-body-sm text-arctic-600">
-                Votre commande #{ref} chez <strong>{order.vendor.shopName}</strong> est intégralement réglée. Merci pour votre confiance !
+                {tr("Votre commande #", "Your order #")}{ref} {tr("chez", "at")} <strong>{order.vendor.shopName}</strong> {tr("est intégralement réglée. Merci pour votre confiance !", "is fully paid. Thank you for your trust!")}
               </p>
               <div className="pt-2 flex flex-col gap-2">
                 <Link href={`/c/${order.vendor.shopSlug}`} className="btn-primary justify-center">
-                  Retourner sur la boutique {order.vendor.shopName}
+                  {tr("Retourner sur la boutique", "Back to the shop")} {order.vendor.shopName}
                 </Link>
               </div>
             </div>
@@ -144,7 +148,7 @@ export default async function PayPage({
 
         {/* Order lines */}
         <div className="mt-4 rounded-shape-lg border border-arctic-400/30 bg-arctic-50 p-4">
-          <p className="a-eyebrow mb-2">Votre commande</p>
+          <p className="a-eyebrow mb-2">{tr("Votre commande", "Your order")}</p>
           <ul className="a-ledger space-y-1">
             {order.items.map((it) => (
               <li key={it.id} className="flex items-baseline justify-between gap-3 text-sm">
@@ -159,7 +163,7 @@ export default async function PayPage({
             ))}
             {order.deliveryFeeCents > 0 && (
               <li className="flex justify-between text-sm">
-                <span>Livraison</span>
+                <span>{tr("Livraison", "Delivery")}</span>
                 <span>{formatMoney(order.deliveryFeeCents, currency)}</span>
               </li>
             )}
@@ -171,7 +175,7 @@ export default async function PayPage({
         </div>
 
         <p className="mt-5 text-center a-label-md text-arctic-500">
-          Propulsé par <span className="font-semibold text-arctic-700">Japora × FedaPay</span>
+          {tr("Propulsé par", "Powered by")} <span className="font-semibold text-arctic-700">Japora × FedaPay</span>
         </p>
       </div>
     </div>

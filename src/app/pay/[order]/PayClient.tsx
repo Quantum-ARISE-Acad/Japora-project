@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Glyph from "@/components/Glyph";
 import { waMeLink } from "@/lib/utils";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 /**
  * Buyer-facing payment chooser (/pay/[order]).
@@ -30,6 +31,7 @@ export default function PayClient({
   initialCodSelected?: boolean;
   paymentFailed?: boolean;
 }) {
+  const { tr } = usePublicLang();
   const [selectedMethod, setSelectedMethod] = useState<"fedapay" | "cash">(
     initialCodSelected ? "cash" : "fedapay",
   );
@@ -108,10 +110,10 @@ export default function PayClient({
     <div className="space-y-4 p-5">
       <div>
         <p className="text-xs font-bold uppercase tracking-wider text-arctic-500">
-          Choisissez votre moyen de paiement
+          {tr("Choisissez votre moyen de paiement", "Choose your payment method")}
         </p>
         <p className="mt-0.5 text-xs text-arctic-600">
-          Deux options simples et sécurisées pour finaliser votre commande #{shortRef}.
+          {tr("Deux options simples et sécurisées pour finaliser votre commande #", "Two simple and secure options to complete your order #")}{shortRef}.
         </p>
       </div>
 
@@ -141,15 +143,15 @@ export default function PayClient({
             />
             <div>
               <h3 className="text-sm font-extrabold text-arctic-900">
-                💳 FedaPay (T-Money, Flooz, Mobile Money & Carte)
+                {tr("💳 FedaPay (T-Money, Flooz, Mobile Money & Carte)", "💳 FedaPay (T-Money, Flooz, Mobile Money & card)")}
               </h3>
               <p className="mt-0.5 text-xs text-arctic-600">
-                Paiement instantané sécurisé par T-Money, Flooz Moov, MTN MoMo, Celtiis ou Carte Visa/Mastercard.
+                {tr("Paiement instantané sécurisé par T-Money, Flooz Moov, MTN MoMo, Celtiis ou Carte Visa/Mastercard.", "Instant secure payment by T-Money, Flooz Moov, MTN MoMo, Celtiis or Visa/Mastercard card.")}
               </p>
             </div>
           </div>
           <span className="shrink-0 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
-            {fedaEnvironment === "sandbox" ? "Sandbox" : "Instantané"}
+            {fedaEnvironment === "sandbox" ? "Sandbox" : tr("Instantané", "Instant")}
           </span>
         </div>
 
@@ -164,8 +166,8 @@ export default function PayClient({
             className="btn-primary w-full justify-center gap-2 !bg-emerald-600 hover:!bg-emerald-700 !text-white py-3 text-sm font-bold shadow-md"
           >
             {apiBusy
-              ? "Connexion à FedaPay en cours…"
-              : `💳 Payer ${amountLabel} avec FedaPay →`}
+              ? tr("Connexion à FedaPay en cours…", "Connecting to FedaPay…")
+              : tr(`💳 Payer ${amountLabel} avec FedaPay →`, `💳 Pay ${amountLabel} with FedaPay →`)}
           </button>
         )}
       </section>
@@ -190,10 +192,10 @@ export default function PayClient({
             />
             <div>
               <h3 className="text-sm font-extrabold text-arctic-900">
-                💵 Paiement à la livraison
+                {tr("💵 Paiement à la livraison", "💵 Cash on delivery")}
               </h3>
               <p className="mt-0.5 text-xs text-arctic-600">
-                Réglez en espèces ou à la remise en main propre directement lors de la livraison ou du retrait.
+                {tr("Réglez en espèces ou à la remise en main propre directement lors de la livraison ou du retrait.", "Pay in cash or by hand directly on delivery or pickup.")}
               </p>
             </div>
           </div>
@@ -204,11 +206,10 @@ export default function PayClient({
             {codConfirmed ? (
               <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-xs text-emerald-900 space-y-2">
                 <div className="font-bold flex items-center gap-1.5">
-                  <span>✅</span> Paiement à la livraison enregistré !
+                  <span>✅</span> {tr("Paiement à la livraison enregistré !", "Cash on delivery recorded!")}
                 </div>
                 <p>
-                  Préparez le montant exact de <strong>{amountLabel}</strong> pour la livraison de
-                  votre commande #{shortRef}.
+                  {tr("Préparez le montant exact de", "Prepare the exact amount of")} <strong>{amountLabel}</strong> {tr("pour la livraison de votre commande #", "for the delivery of your order #")}{shortRef}.
                 </p>
                 {waConfirmLink && (
                   <a
@@ -217,7 +218,7 @@ export default function PayClient({
                     rel="noreferrer"
                     className="btn-primary w-full justify-center gap-1.5 !bg-emerald-600 hover:!bg-emerald-700 !text-white py-2 text-xs font-bold"
                   >
-                    <Glyph name="chat" size={14} /> Confirmer la livraison sur WhatsApp
+                    <Glyph name="chat" size={14} /> {tr("Confirmer la livraison sur WhatsApp", "Confirm the delivery on WhatsApp")}
                   </a>
                 )}
               </div>
@@ -229,8 +230,8 @@ export default function PayClient({
                 className="btn-primary w-full justify-center gap-2 py-3 text-sm font-bold"
               >
                 {codBusy
-                  ? "Validation en cours…"
-                  : `💵 Confirmer le paiement à la livraison (${amountLabel})`}
+                  ? tr("Validation en cours…", "Confirming…")
+                  : tr(`💵 Confirmer le paiement à la livraison (${amountLabel})`, `💵 Confirm cash on delivery (${amountLabel})`)}
               </button>
             )}
           </div>
@@ -242,7 +243,7 @@ export default function PayClient({
           href={`/c/${shopSlug}`}
           className="text-xs font-semibold text-arctic-600 hover:text-arctic-900 hover:underline"
         >
-          ← Retourner sur la boutique {shopName}
+          {tr("← Retourner sur la boutique", "← Back to the shop")} {shopName}
         </Link>
       </div>
     </div>

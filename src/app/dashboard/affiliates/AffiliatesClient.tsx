@@ -70,7 +70,7 @@ export default function AffiliatesClient({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error || "Could not create affiliate.");
+        setError(data.error || tr("Impossible de créer l'affilié.", "Could not create affiliate."));
         return;
       }
       setForm(EMPTY);
@@ -81,7 +81,7 @@ export default function AffiliatesClient({
   }
 
   async function remove(id: string) {
-    if (!confirm("Remove this affiliate code? Past attributions are kept.")) return;
+    if (!confirm(tr("Supprimer ce code d'affilié ? Les attributions passées sont conservées.", "Remove this affiliate code? Past attributions are kept."))) return;
     const res = await fetch(`/api/affiliate/${id}`, { method: "DELETE" });
     if (res.ok) await reload();
   }
@@ -124,7 +124,7 @@ export default function AffiliatesClient({
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="Amara on IG"
+              placeholder={tr("Amara sur IG", "Amara on IG")}
               className="mt-1 w-full rounded-lg border border-arctic-400/45 px-3 py-2 text-sm"
             />
           </label>

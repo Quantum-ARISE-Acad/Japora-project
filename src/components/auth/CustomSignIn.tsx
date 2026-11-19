@@ -20,11 +20,13 @@ import {
 } from "@/lib/clerk-signup-flow";
 import PhoneNumberInput from "./PhoneNumberInput";
 import { useClerkFinalization } from "./useClerkFinalization";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 type LoginMethod = "email" | "phone";
 type OtpStrategy = "email_code" | "phone_code";
 
 export default function CustomSignIn() {
+  const { tr } = usePublicLang();
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawRedirect = searchParams.get("redirect") || "/dashboard";
@@ -111,7 +113,7 @@ export default function CustomSignIn() {
     }
 
     if (!clerkActive || !isLoaded || !signIn) {
-      setError("La connexion avec Google nécessite une configuration Clerk active.");
+      setError(tr("La connexion avec Google nécessite une configuration Clerk active.", "Signing in with Google requires an active Clerk configuration."));
       setGoogleLoading(false);
       return;
     }
@@ -145,7 +147,7 @@ export default function CustomSignIn() {
     }
 
     if (!clerkActive || !isLoaded || !signIn) {
-      setError("L'authentification par code nécessite une configuration Clerk active.");
+      setError(tr("L'authentification par code nécessite une configuration Clerk active.", "Signing in with a code requires an active Clerk configuration."));
       setLoading(false);
       return;
     }
@@ -154,8 +156,8 @@ export default function CustomSignIn() {
     if (!identifier) {
       setError(
         method === "email"
-          ? "Veuillez saisir votre adresse email."
-          : "Veuillez saisir votre numéro de téléphone.",
+          ? tr("Veuillez saisir votre adresse email.", "Please enter your email address.")
+          : tr("Veuillez saisir votre numéro de téléphone.", "Please enter your phone number."),
       );
       setLoading(false);
       return;
@@ -172,7 +174,7 @@ export default function CustomSignIn() {
           (f) => f.strategy === "email_code" && typeof f.emailAddressId === "string",
         );
         if (!emailFactor?.emailAddressId) {
-          setError("La connexion par code email n'est pas disponible pour ce compte.");
+          setError(tr("La connexion par code email n'est pas disponible pour ce compte.", "Email code sign-in is not available for this account."));
           setLoading(false);
           return;
         }
@@ -192,7 +194,7 @@ export default function CustomSignIn() {
           (f) => f.strategy === "phone_code" && typeof f.phoneNumberId === "string",
         );
         if (!phoneFactor?.phoneNumberId) {
-          setError("La connexion par code SMS n'est pas disponible pour ce numéro.");
+          setError(tr("La connexion par code SMS n'est pas disponible pour ce numéro.", "SMS code sign-in is not available for this number."));
           setLoading(false);
           return;
         }
@@ -257,7 +259,7 @@ export default function CustomSignIn() {
 
     const cleanCode = code.trim();
     if (!cleanCode) {
-      setError("Veuillez saisir le code de vérification reçu.");
+      setError(tr("Veuillez saisir le code de vérification reçu.", "Please enter the verification code you received."));
       return;
     }
 
@@ -281,10 +283,15 @@ export default function CustomSignIn() {
         return;
       }
       if (transition.action.type === "additional_verification") {
-        setError(`Une vérification supplémentaire est requise (${transition.action.requirements.join(", ") || "facteur Clerk"}).`);
+        setError(
+          tr(
+            `Une vérification supplémentaire est requise (${transition.action.requirements.join(", ") || "facteur Clerk"}).`,
+            `An additional verification is required (${transition.action.requirements.join(", ") || "Clerk factor"}).`,
+          ),
+        );
         return;
       }
-      setError(`Le code a été reçu, mais Clerk demande encore une étape (${transition.action.status}). Renvoyez un code ou réessayez.`);
+      setError(tr(`Le code a été reçu, mais Clerk demande encore une étape (${transition.action.status}). Renvoyez un code ou réessayez.`, `The code was received, but Clerk still asks for a step (${transition.action.status}). Resend a code or try again.`));
     } catch (err: unknown) {
       if (isSessionExistsError(err)) {
         await finalize();
@@ -306,11 +313,11 @@ export default function CustomSignIn() {
         <div className="glass glass-edge rounded-shape-xl p-6 shadow-xl backdrop-blur-md">
           <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-2.5 py-1 text-xs font-semibold text-brand-dark">
             <span>🛍️</span>
-            <span>Portail Vendeurs Marchands</span>
+            <span>{tr("Portail Vendeurs Marchands", "Vendor portal")}</span>
           </div>
-          <h1 className="a-headline-sm text-arctic-900">Espace Vendeur Japora</h1>
+          <h1 className="a-headline-sm text-arctic-900">{tr("Espace Vendeur Japora", "Japora vendor space")}</h1>
           <p className="a-body-md mt-1 text-arctic-600">
-            Gérez votre boutique, vos produits et vos commandes WhatsApp.
+            {tr("Gérez votre boutique, vos produits et vos commandes WhatsApp.", "Manage your shop, your products and your WhatsApp orders.")}
           </p>
 
           {/* Google Sign-in Button */}
@@ -327,13 +334,13 @@ export default function CustomSignIn() {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
               </svg>
-              <span>{googleLoading ? "Connexion Google…" : "Continuer avec Google"}</span>
+              <span>{googleLoading ? tr("Connexion Google…", "Signing in with Google…") : tr("Continuer avec Google", "Continue with Google")}</span>
             </button>
 
             <div className="relative my-4 flex items-center justify-center">
               <div className="w-full border-t border-arctic-200 dark:border-arctic-700" />
               <span className="absolute bg-white px-2 text-[11px] font-medium uppercase tracking-wider text-arctic-400 dark:bg-arctic-900 dark:text-arctic-500">
-                ou par code de vérification
+                {tr("ou par code de vérification", "or with a verification code")}
               </span>
             </div>
           </div>
@@ -350,7 +357,7 @@ export default function CustomSignIn() {
                     : "text-arctic-600 hover:text-arctic-900 dark:text-arctic-300"
                 }`}
               >
-                Email (Code OTP)
+                {tr("Email (Code OTP)", "Email (OTP code)")}
               </button>
               <button
                 type="button"
@@ -361,7 +368,7 @@ export default function CustomSignIn() {
                     : "text-arctic-600 hover:text-arctic-900 dark:text-arctic-300"
                 }`}
               >
-                Téléphone (SMS)
+                {tr("Téléphone (SMS)", "Phone (SMS)")}
               </button>
             </div>
           )}
@@ -370,10 +377,10 @@ export default function CustomSignIn() {
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div>
                 <label className="label">
-                  {secondFactor ? "Code de vérification supplémentaire" : "Code de vérification à 6 chiffres"}
+                  {secondFactor ? tr("Code de vérification supplémentaire", "Additional verification code") : tr("Code de vérification à 6 chiffres", "6-digit verification code")}
                 </label>
                 <p className="mb-2 text-xs text-arctic-600">
-                  Code envoyé à <strong className="text-arctic-900">{maskedTarget}</strong>.
+                  {tr("Code envoyé à", "Code sent to")} <strong className="text-arctic-900">{maskedTarget}</strong>.
                 </p>
                 <input
                   className="input text-center text-xl tracking-widest font-mono"
@@ -395,7 +402,7 @@ export default function CustomSignIn() {
               )}
 
               <button className="btn-primary w-full" disabled={loading}>
-                {loading ? "Vérification en cours…" : secondFactor ? "Valider la vérification" : "Valider le code et accéder à ma boutique"}
+                {loading ? tr("Vérification en cours…", "Checking…") : secondFactor ? tr("Valider la vérification", "Confirm the verification") : tr("Valider le code et accéder à ma boutique", "Check the code and open my shop")}
               </button>
 
               <div className="flex items-center justify-between pt-1 text-xs">
@@ -405,7 +412,7 @@ export default function CustomSignIn() {
                   disabled={loading}
                   className="font-medium text-arctic-600 underline hover:text-arctic-900"
                 >
-                  {method === "email" ? "Changer d'email" : "Changer de numéro"}
+                  {method === "email" ? tr("Changer d'email", "Change email") : tr("Changer de numéro", "Change number")}
                 </button>
                 <button
                   type="button"
@@ -413,7 +420,7 @@ export default function CustomSignIn() {
                   disabled={loading}
                   className="font-medium text-arctic-600 underline hover:text-arctic-900"
                 >
-                  Renvoyer le code
+                  {tr("Renvoyer le code", "Resend the code")}
                 </button>
               </div>
             </form>
@@ -421,21 +428,21 @@ export default function CustomSignIn() {
             <form onSubmit={handleSendOtp} className="space-y-4">
               {method === "email" ? (
                 <div>
-                  <label className="label">Email du compte vendeur</label>
+                  <label className="label">{tr("Email du compte vendeur", "Vendor account email")}</label>
                   <input
                     className="input"
                     type="email"
                     autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="vendeur@exemple.com"
+                    placeholder={tr("vendeur@exemple.com", "vendor@example.com")}
                     required
                   />
                 </div>
               ) : (
                 <PhoneNumberInput
                   id="signin-phone"
-                  label="Numéro de téléphone"
+                  label={tr("Numéro de téléphone", "Phone number")}
                   value={phone}
                   country={phoneCountry}
                   onChange={setPhone}
@@ -450,7 +457,7 @@ export default function CustomSignIn() {
               )}
 
               <button className="btn-primary w-full" disabled={loading}>
-                {loading ? "Envoi du code…" : "Recevoir un code de connexion"}
+                {loading ? tr("Envoi du code…", "Sending the code…") : tr("Recevoir un code de connexion", "Get a sign-in code")}
               </button>
             </form>
           )}
@@ -459,12 +466,12 @@ export default function CustomSignIn() {
           <div id="clerk-captcha" className="mt-3" />
 
           <p className="a-body-sm mt-6 text-center text-arctic-600">
-            Vous n&apos;avez pas encore de boutique ?{" "}
+            {tr("Vous n'avez pas encore de boutique ?", "Don't have a shop yet?")}{" "}
             <Link
               href="/signup"
               className="font-semibold text-arctic-900 underline hover:text-black"
             >
-              Créer ma boutique
+              {tr("Créer ma boutique", "Create my shop")}
             </Link>
           </p>
         </div>

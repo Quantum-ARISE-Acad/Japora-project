@@ -3,27 +3,29 @@ import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { evaluateAndGrant } from "@/lib/trust";
 import { notifyOrderPaid } from "@/lib/order-notifications";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
  * Simulated dev payment endpoint has been disabled.
  * All payments use the real FedaPay API (`/api/payments/checkout`, `/api/payments/fedapay/callback`, `/api/payments/webhook/fedapay`).
  */
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const enabled =
     process.env.NODE_ENV !== "production" ||
     process.env.JAPORA_ENABLE_DEV_PAY_STUB === "1";
-  if (!enabled) return NextResponse.json({ error: "Not Found" }, { status: 404 });
+  if (!enabled) return NextResponse.json({ error: tr("Introuvable", "Not Found") }, { status: 404 });
 
   const body = await req.json().catch(() => null);
   const providerRef = String(body?.providerRef || "").trim();
   const action = String(body?.action || "");
 
   if (!providerRef) {
-    return NextResponse.json({ error: "providerRef required" }, { status: 400 });
+    return NextResponse.json({ error: tr("providerRef est obligatoire.", "providerRef required") }, { status: 400 });
   }
   if (!["success", "failure", "pending"].includes(action)) {
     return NextResponse.json(
-      { error: "action must be success | failure | pending" },
+      { error: tr("Action non reconnue : success, failure ou pending.", "action must be success | failure | pending") },
       { status: 400 },
     );
   }
@@ -32,7 +34,7 @@ export async function POST(req: NextRequest) {
     where: { providerRef },
   });
   if (!intent) {
-    return NextResponse.json({ error: "Payment intent not found" }, { status: 404 });
+    return NextResponse.json({ error: tr("Paiement introuvable", "Payment intent not found") }, { status: 404 });
   }
 
   // Same idempotency guard the real webhook uses.

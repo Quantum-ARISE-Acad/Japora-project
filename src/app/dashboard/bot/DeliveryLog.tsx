@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 type Message = {
   id: string;
@@ -17,47 +18,50 @@ type StatusFilter = "all" | "sent" | "delivered" | "read" | "failed" | "stubbed"
 
 const PAGE_SIZE = 10;
 
-const STATUS: Record<string, { label: string; description: string; tone: string }> = {
+// Labels are [français, English] pairs, shown with tr(...pair).
+type Bi = [string, string];
+
+const STATUS: Record<string, { label: Bi; description: Bi; tone: string }> = {
   sent: {
-    label: "Accepté par l’API",
-    description: "WhatsApp a accepté la demande d’envoi. La remise au téléphone n’est pas encore confirmée.",
+    label: ["Accepté par l’API", "Accepted by the API"],
+    description: ["WhatsApp a accepté la demande d’envoi. La remise au téléphone n’est pas encore confirmée.", "WhatsApp accepted the send request. Delivery to the phone is not confirmed yet."],
     tone: "border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-700 dark:bg-sky-950/50 dark:text-sky-200",
   },
   delivered: {
-    label: "Remis",
-    description: "WhatsApp a confirmé la remise du message au téléphone du destinataire.",
+    label: ["Remis", "Delivered"],
+    description: ["WhatsApp a confirmé la remise du message au téléphone du destinataire.", "WhatsApp confirmed the message reached the recipient's phone."],
     tone: "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200",
   },
   read: {
-    label: "Lu",
-    description: "WhatsApp a confirmé que le destinataire a lu le message.",
+    label: ["Lu", "Read"],
+    description: ["WhatsApp a confirmé que le destinataire a lu le message.", "WhatsApp confirmed the recipient read the message."],
     tone: "border-indigo-300 bg-indigo-50 text-indigo-800 dark:border-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-200",
   },
   failed: {
-    label: "Échec",
-    description: "WhatsApp n’a pas pu envoyer le message. Vérifiez le numéro et la configuration du compte.",
+    label: ["Échec", "Failed"],
+    description: ["WhatsApp n’a pas pu envoyer le message. Vérifiez le numéro et la configuration du compte.", "WhatsApp could not send the message. Check the number and the account settings."],
     tone: "border-red-300 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-950/40 dark:text-red-200",
   },
   stubbed: {
-    label: "Simulé — aucun envoi",
-    description: "Mode démo : aucun message n’a été transmis à WhatsApp.",
+    label: ["Simulé — aucun envoi", "Simulated — not sent"],
+    description: ["Mode démo : aucun message n’a été transmis à WhatsApp.", "Demo mode: no message was passed to WhatsApp."],
     tone: "border-arctic-400 bg-arctic-100 text-arctic-800 dark:border-arctic-600 dark:bg-arctic-800 dark:text-arctic-100",
   },
 };
 
-const FILTERS: { id: StatusFilter; label: string }[] = [
-  { id: "all", label: "Tous" },
-  { id: "sent", label: "Acceptés" },
-  { id: "delivered", label: "Remis" },
-  { id: "read", label: "Lus" },
-  { id: "failed", label: "Échecs" },
-  { id: "stubbed", label: "Simulés" },
+const FILTERS: { id: StatusFilter; label: Bi }[] = [
+  { id: "all", label: ["Tous", "All"] },
+  { id: "sent", label: ["Acceptés", "Accepted"] },
+  { id: "delivered", label: ["Remis", "Delivered"] },
+  { id: "read", label: ["Lus", "Read"] },
+  { id: "failed", label: ["Échecs", "Failed"] },
+  { id: "stubbed", label: ["Simulés", "Simulated"] },
 ];
 
 function statusInfo(status: string) {
   return STATUS[status] || {
-    label: "Statut inconnu",
-    description: `Statut fournisseur non reconnu : ${status}`,
+    label: ["Statut inconnu", "Unknown status"] as Bi,
+    description: [`Statut fournisseur non reconnu : ${status}`, `Unrecognised provider status: ${status}`] as Bi,
     tone: "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200",
   };
 }
@@ -78,6 +82,7 @@ export default function DeliveryLog({
   messages: Message[];
   liveMode: boolean;
 }) {
+  const { tr } = usePublicLang();
   const router = useRouter();
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [query, setQuery] = useState("");
@@ -129,34 +134,34 @@ export default function DeliveryLog({
       <div className="border-b border-arctic-400/30 px-5 py-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 id="whatsapp-history-title" className="font-bold text-arctic-900">Historique WhatsApp</h2>
+            <h2 id="whatsapp-history-title" className="font-bold text-arctic-900">{tr("Historique WhatsApp", "WhatsApp history")}</h2>
             <p className="mt-1 text-sm text-arctic-700 dark:text-slate-300">
-              Suivez les messages réellement envoyés et les accusés reçus de Meta.
+              {tr("Suivez les messages réellement envoyés et les accusés reçus de Meta.", "Follow the messages actually sent and the receipts from Meta.")}
             </p>
           </div>
           <button type="button" onClick={refresh} disabled={refreshing} className="btn-ghost !min-h-9 !px-3 !py-1.5 text-xs">
-            {refreshing ? "Actualisation…" : "Actualiser"}
+            {refreshing ? tr("Actualisation…", "Refreshing…") : tr("Actualiser", "Refresh")}
           </button>
         </div>
 
         {!liveMode && (
           <p className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
-            Mode démo : les messages marqués « Simulé » ne sont pas partis sur WhatsApp. Configurez WhatsApp Cloud API et son webhook pour recevoir les statuts réels.
+            {tr("Mode démo : les messages marqués « Simulé » ne sont pas partis sur WhatsApp. Configurez WhatsApp Cloud API et son webhook pour recevoir les statuts réels.", "Demo mode: messages marked “Simulated” did not leave on WhatsApp. Set up the WhatsApp Cloud API and its webhook to get real statuses.")}
           </p>
         )}
 
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
-          <Summary label="Messages affichés" value={counts.all} />
-          <Summary label="Acceptés" value={counts.sent} />
-          <Summary label="Remis" value={counts.delivered} />
-          <Summary label="Lus" value={counts.read} />
-          <Summary label="Échecs" value={counts.failed} />
+          <Summary label={tr("Messages affichés", "Messages shown")} value={counts.all} />
+          <Summary label={tr("Acceptés", "Accepted")} value={counts.sent} />
+          <Summary label={tr("Remis", "Delivered")} value={counts.delivered} />
+          <Summary label={tr("Lus", "Read")} value={counts.read} />
+          <Summary label={tr("Échecs", "Failed")} value={counts.failed} />
         </div>
       </div>
 
       <div className="space-y-3 px-5 py-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap gap-1.5" aria-label="Filtrer les messages par statut">
+          <div className="flex flex-wrap gap-1.5" aria-label={tr("Filtrer les messages par statut", "Filter messages by status")}>
             {FILTERS.map((item) => (
               <button
                 key={item.id}
@@ -167,16 +172,16 @@ export default function DeliveryLog({
                   ? "rounded-full bg-arctic-800 px-3 py-1.5 text-xs font-semibold text-arctic-50 dark:bg-slate-200 dark:text-slate-900"
                   : "rounded-full border border-arctic-400/60 px-3 py-1.5 text-xs font-semibold text-arctic-800 hover:bg-arctic-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"}
               >
-                {item.label} <span className="opacity-75">{counts[item.id]}</span>
+                {tr(...item.label)} <span className="opacity-75">{counts[item.id]}</span>
               </button>
             ))}
           </div>
-          <label className="sr-only" htmlFor="whatsapp-history-search">Rechercher dans l’historique WhatsApp</label>
+          <label className="sr-only" htmlFor="whatsapp-history-search">{tr("Rechercher dans l’historique WhatsApp", "Search the WhatsApp history")}</label>
           <input
             id="whatsapp-history-search"
             className="input w-full lg:max-w-xs"
             type="search"
-            placeholder="Rechercher un numéro ou un message…"
+            placeholder={tr("Rechercher un numéro ou un message…", "Search a number or a message…")}
             value={query}
             onChange={(event) => changeQuery(event.target.value)}
           />
@@ -184,13 +189,13 @@ export default function DeliveryLog({
 
         {messages.length === 0 ? (
           <EmptyState
-            title="Aucun message sortant pour le moment"
+            title={tr("Aucun message sortant pour le moment", "No outgoing message yet")}
             body={liveMode
-              ? "Les messages envoyés par le bot et les autres fonctions WhatsApp apparaîtront ici avec leur statut."
-              : "Le simulateur de conversation n’envoie aucun message. Les envois réels apparaîtront lorsque WhatsApp Cloud API sera configuré."}
+              ? tr("Les messages envoyés par le bot et les autres fonctions WhatsApp apparaîtront ici avec leur statut.", "Messages sent by the bot and the other WhatsApp features will appear here with their status.")
+              : tr("Le simulateur de conversation n’envoie aucun message. Les envois réels apparaîtront lorsque WhatsApp Cloud API sera configuré.", "The chat simulator sends no message. Real sends will appear once the WhatsApp Cloud API is set up.")}
           />
         ) : filtered.length === 0 ? (
-          <EmptyState title="Aucun résultat" body="Modifiez le filtre ou la recherche pour retrouver un message." />
+          <EmptyState title={tr("Aucun résultat", "No results")} body={tr("Modifiez le filtre ou la recherche pour retrouver un message.", "Change the filter or the search to find a message.")} />
         ) : (
           <>
             <div className="space-y-2 md:hidden">
@@ -200,16 +205,16 @@ export default function DeliveryLog({
               <table className="w-full min-w-[760px] text-left text-sm">
                 <thead className="text-xs uppercase tracking-wide text-slate-600 dark:text-slate-300">
                   <tr>
-                    <th className="px-3 py-2 font-semibold">Destinataire</th>
-                    <th className="px-3 py-2 font-semibold">Message</th>
-                    <th className="px-3 py-2 font-semibold">Statut</th>
-                    <th className="px-3 py-2 font-semibold">Enregistré le</th>
+                    <th className="px-3 py-2 font-semibold">{tr("Destinataire", "Recipient")}</th>
+                    <th className="px-3 py-2 font-semibold">{tr("Message", "Message")}</th>
+                    <th className="px-3 py-2 font-semibold">{tr("Statut", "Status")}</th>
+                    <th className="px-3 py-2 font-semibold">{tr("Enregistré le", "Saved on")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-arctic-400/20">
                   {visible.map((message) => (
                     <tr key={message.id} className="align-top">
-                      <td className="whitespace-nowrap px-3 py-3 font-medium text-arctic-900 dark:text-arctic-100">{message.contact || "Numéro inconnu"}</td>
+                      <td className="whitespace-nowrap px-3 py-3 font-medium text-arctic-900 dark:text-arctic-100">{message.contact || tr("Numéro inconnu", "Unknown number")}</td>
                       <td className="max-w-[28rem] px-3 py-3 text-arctic-800 dark:text-arctic-100">
                         <p className="whitespace-pre-wrap break-words">{message.body}</p>
                         <MessageReferences message={message} />
@@ -225,12 +230,12 @@ export default function DeliveryLog({
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-arctic-400/20 pt-3 text-xs text-arctic-700 dark:text-slate-300">
               <span>
-                {filtered.length === 0 ? "0" : `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, filtered.length)}`} sur {filtered.length} résultat(s) · Les {messages.length} derniers messages sont chargés.
+                {filtered.length === 0 ? "0" : `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, filtered.length)}`} {tr("sur", "of")} {filtered.length} {tr("résultat(s) · Les", "result(s) · The")} {messages.length} {tr("derniers messages sont chargés.", "latest messages are loaded.")}
               </span>
               <div className="flex items-center gap-2">
-                <button type="button" className="btn-ghost !min-h-8 !px-3 !py-1 text-xs" disabled={currentPage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Précédent</button>
-                <span>Page {currentPage} / {pageCount}</span>
-                <button type="button" className="btn-ghost !min-h-8 !px-3 !py-1 text-xs" disabled={currentPage >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>Suivant</button>
+                <button type="button" className="btn-ghost !min-h-8 !px-3 !py-1 text-xs" disabled={currentPage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>{tr("Précédent", "Previous")}</button>
+                <span>{tr("Page", "Page")} {currentPage} / {pageCount}</span>
+                <button type="button" className="btn-ghost !min-h-8 !px-3 !py-1 text-xs" disabled={currentPage >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>{tr("Suivant", "Next")}</button>
               </div>
             </div>
           </>
@@ -250,33 +255,36 @@ function Summary({ label, value }: { label: string; value: number }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
+  const { tr } = usePublicLang();
   const info = statusInfo(status);
   return (
-    <span title={info.description} className={`inline-flex max-w-56 rounded-full border px-2.5 py-1 text-xs font-semibold ${info.tone}`}>
-      {info.label}
+    <span title={tr(...info.description)} className={`inline-flex max-w-56 rounded-full border px-2.5 py-1 text-xs font-semibold ${info.tone}`}>
+      {tr(...info.label)}
     </span>
   );
 }
 
 function MessageReferences({ message }: { message: Message }) {
+  const { tr } = usePublicLang();
   return (
     <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-600 dark:text-slate-300">
-      {message.orderId && <span>Commande · {message.orderId.slice(-8).toUpperCase()}</span>}
-      {message.messageId && <span title={message.messageId}>Référence WhatsApp · {message.messageId.slice(-12)}</span>}
+      {message.orderId && <span>{tr("Commande ·", "Order ·")} {message.orderId.slice(-8).toUpperCase()}</span>}
+      {message.messageId && <span title={message.messageId}>{tr("Référence WhatsApp ·", "WhatsApp reference ·")} {message.messageId.slice(-12)}</span>}
     </div>
   );
 }
 
 function MessageCard({ message }: { message: Message }) {
+  const { tr } = usePublicLang();
   const info = statusInfo(message.status);
   return (
     <article className="rounded-xl border border-arctic-400/30 p-3 dark:border-arctic-700">
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <span className="font-semibold text-arctic-900 dark:text-arctic-100">{message.contact || "Numéro inconnu"}</span>
+        <span className="font-semibold text-arctic-900 dark:text-arctic-100">{message.contact || tr("Numéro inconnu", "Unknown number")}</span>
         <StatusBadge status={message.status} />
       </div>
       <p className="mt-2 whitespace-pre-wrap break-words text-sm text-arctic-800 dark:text-arctic-100">{message.body}</p>
-      <p className="mt-2 text-xs text-arctic-700 dark:text-slate-300" title={info.description}>
+      <p className="mt-2 text-xs text-arctic-700 dark:text-slate-300" title={tr(...info.description)}>
         <time dateTime={message.createdAt}>{formatDate(message.createdAt)}</time>
       </p>
       <MessageReferences message={message} />

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { uploadsDir } from "@/lib/storage";
+import { getServerTr } from "@/lib/public-locale";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +24,9 @@ const SAFE_KEY = /^[A-Za-z0-9-]+\.(jpg|jpeg|png|webp|gif)$/i;
  * after the build are displayed and stay in the persistent folder.
  */
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ key: string }> }) {
+  const tr = await getServerTr();
   const { key } = await params;
-  if (!SAFE_KEY.test(key)) return NextResponse.json({ error: "Not Found" }, { status: 404 });
+  if (!SAFE_KEY.test(key)) return NextResponse.json({ error: tr("Introuvable", "Not Found") }, { status: 404 });
 
   try {
     const file = await readFile(path.join(uploadsDir(), key));
@@ -37,6 +39,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ key
       },
     });
   } catch {
-    return NextResponse.json({ error: "Not Found" }, { status: 404 });
+    return NextResponse.json({ error: tr("Introuvable", "Not Found") }, { status: 404 });
   }
 }
