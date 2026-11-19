@@ -66,7 +66,6 @@ export default function CustomSignIn() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [unifiedSession, setUnifiedSession] = useState<{ email: string; name?: string } | null>(null);
 
   // Returning Clerk sessions use the same sync-and-redirect finalizer.
   useEffect(() => {
@@ -74,22 +73,12 @@ export default function CustomSignIn() {
     void finalize();
   }, [clerkActive, authHook?.isLoaded, authHook?.isSignedIn, authHook?.userId, finalize]);
 
-  // Auto-detect unified Wataru session across ports or forward incoming ticket
+  // Forward an incoming Wataru SSO ticket, if any.
   useEffect(() => {
     const ticket = searchParams.get("ticket") || searchParams.get("sso_ticket");
     if (ticket) {
       router.push(`/api/auth/sso?ticket=${encodeURIComponent(ticket)}&redirect=${encodeURIComponent(redirectUrl)}`);
-      return;
     }
-
-    fetch("/api/auth/sso?format=json")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.ok && data.vendor) {
-          setUnifiedSession(data.vendor);
-        }
-      })
-      .catch(() => {});
   }, [searchParams, redirectUrl, router]);
 
   function switchMethod(next: LoginMethod) {
@@ -313,62 +302,6 @@ export default function CustomSignIn() {
       <main className="flex w-full flex-1 items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm a-fade-in">
 
-        {/* Wataru Unified Account SSO Banner */}
-        {unifiedSession ? (
-          <div className="mb-5 rounded-shape-xl border border-emerald-500/50 bg-gradient-to-br from-emerald-50/90 to-teal-50/90 p-4 text-xs text-emerald-950 shadow-md backdrop-blur-md dark:from-emerald-950/80 dark:to-teal-950/70 dark:text-emerald-100">
-            <div className="flex items-center justify-between">
-              <span className="font-bold flex items-center gap-2 text-emerald-900 dark:text-emerald-200">
-                <span className="grid h-5 w-5 place-items-center rounded bg-emerald-600 text-[11px] font-black text-white">
-                  W
-                </span>
-                <span>Compte Wataru Détecté</span>
-              </span>
-              <span className="rounded-full bg-emerald-200/80 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-800 dark:bg-emerald-800/80 dark:text-emerald-100">
-                SSO Actif
-              </span>
-            </div>
-            <p className="mt-2 text-xs font-medium text-emerald-900 dark:text-emerald-50">
-              Connecté en tant que <strong>{unifiedSession.name || unifiedSession.email}</strong>
-            </p>
-            <button
-              type="button"
-              onClick={() => router.push(redirectUrl)}
-              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-shape-md bg-emerald-600 py-2.5 text-xs font-bold text-white shadow-md hover:bg-emerald-700 active:scale-[0.99] transition-all"
-            >
-              <span>Continuer vers le tableau de bord Japora</span>
-              <span>➔</span>
-            </button>
-            <div className="mt-2 text-center">
-              <a
-                href="http://localhost:3005/login?targetApp=wcatalog"
-                className="text-[11px] text-emerald-700 underline hover:text-emerald-900 dark:text-emerald-300 dark:hover:text-white"
-              >
-                Utiliser un autre compte Wataru
-              </a>
-            </div>
-          </div>
-        ) : (
-          <div className="mb-5 rounded-shape-xl border border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 p-3.5 backdrop-blur-sm">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="grid h-5 w-5 place-items-center rounded bg-emerald-600 text-[11px] font-black text-white">
-                W
-              </span>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
-                Authentification Unifiée Wataru
-              </span>
-            </div>
-            <a
-              href="http://localhost:3005/login?targetApp=wcatalog"
-              className="flex w-full items-center justify-center gap-2 rounded-shape-md bg-emerald-600 py-2.5 px-3 text-xs font-bold text-white shadow-md hover:bg-emerald-700 transition-all text-center"
-            >
-              <span>Connexion Rapide avec Wataru Auth</span>
-              <span>➔</span>
-            </a>
-            <p className="mt-1.5 text-center text-[11px] text-emerald-700 dark:text-emerald-300">
-              1 seul compte pour <strong>Japora</strong>, <strong>Soko CRM</strong> et <strong>WEscrow</strong>
-            </p>
-          </div>
-        )}
 
         <div className="glass glass-edge rounded-shape-xl p-6 shadow-xl backdrop-blur-md">
           <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-2.5 py-1 text-xs font-semibold text-brand-dark">
