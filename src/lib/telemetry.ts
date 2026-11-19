@@ -6,6 +6,8 @@
 
 export type FunnelStage = "visit" | "product_view" | "cart" | "ussd_intent" | "confirmed_order";
 
+// cs
+
 export interface TelemetryPayload {
   shopSlug: string;
   stage: FunnelStage;
