@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatStoredWhatsAppNumber } from "@/lib/whatsapp-number";
 import { useRouter } from "next/navigation";
 import ShopQrCard from "../ShopQrCard";
 import type { WhatsAppAssistantConfig as WaConfigType } from "@/lib/whatsapp-config";
@@ -26,7 +27,7 @@ export default function WhatsAppAssistantConfig({
   const { tr } = usePublicLang();
   const router = useRouter();
 
-  const [whatsappNumber, setWhatsappNumber] = useState(initialWhatsappNumber || "");
+  const [whatsappNumber, setWhatsappNumber] = useState(formatStoredWhatsAppNumber(initialWhatsappNumber));
   const [whatsappPhoneNumberId, setWhatsappPhoneNumberId] = useState(initialPhoneNumberId || "");
   const [aiEnabled, setAiEnabled] = useState(initialConfig.aiEnabled);
   const [showQrOnShop, setShowQrOnShop] = useState(initialConfig.showQrOnShop);
@@ -313,7 +314,7 @@ export default function WhatsAppAssistantConfig({
             <input
               className="input"
               inputMode="tel"
-              placeholder={tr("Ex: 22890123456 (sans + ni espaces)", "Ex: 22890123456 (no + or spaces)")}
+              placeholder={tr("Ex : +228 90 12 34 56 (avec + et l’indicatif)", "e.g. +228 90 12 34 56 (with + and country code)")}
               value={whatsappNumber}
               onChange={(e) => setWhatsappNumber(e.target.value)}
             />

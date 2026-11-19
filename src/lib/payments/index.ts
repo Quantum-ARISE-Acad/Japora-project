@@ -51,6 +51,7 @@ export type InitiateOptions = {
   customerPhone?: string;
   customerName?: string;
   returnUrl?: string;
+  appBaseUrl?: string;
   reference: string; // unique provider reference we generate (e.g. "japora_xxx")
   /** Optional wallet hint, e.g. "T-Money" / "Flooz" / "Orange Money". */
   network?: string;

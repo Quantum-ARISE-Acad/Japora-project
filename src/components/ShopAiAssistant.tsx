@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { isStoredWhatsAppNumberValid } from "@/lib/whatsapp-number";
 import QRCode from "qrcode";
 import type { ShopAiActionButton } from "@/app/api/ai/shop-chat/route";
 
@@ -108,7 +109,8 @@ export default function ShopAiAssistant({
   // WhatsApp QR code state
   const [waQrSvg, setWaQrSvg] = useState<string>("");
 
-  const cleanPhone = whatsappNumber ? whatsappNumber.replace(/\D/g, "") : "";
+  // Without its country code the number would open a wrong WhatsApp contact: no link then.
+  const cleanPhone = isStoredWhatsAppNumberValid(whatsappNumber) ? (whatsappNumber || "").replace(/\D/g, "") : "";
   const defaultWaText =
     whatsappPrefillMessage ||
     `Bonjour ${shopName} (${shopSlug}) ! Je viens de scanner votre QR code sur Japora. Pouvez-vous m'aider avec vos articles ?`;

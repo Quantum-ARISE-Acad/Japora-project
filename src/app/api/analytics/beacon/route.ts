@@ -70,7 +70,10 @@ export async function POST(req: NextRequest) {
   // 5. Sanitize optional fields
   const cleanProductId = typeof productId === "string" && productId.trim() ? productId.trim().slice(0, 128) : null;
   const cleanOrderId = typeof orderId === "string" && orderId.trim() ? orderId.trim().slice(0, 128) : null;
-  const cleanCarrier = (carrier === "tmoney" || carrier === "flooz") ? carrier : null;
+  const cleanCarrier =
+    carrier === "fedapay" || carrier === "cash" || carrier === "tmoney" || carrier === "flooz"
+      ? carrier
+      : null;
   const cleanCustomerId = typeof customerId === "string" && customerId.trim() ? customerId.trim().slice(0, 128) : null;
   const cleanCustomerPhone = typeof customerPhone === "string" && customerPhone.trim()
     ? normalizePhone(customerPhone)

@@ -3,19 +3,16 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { formatMoney } from "@/lib/utils";
-import { buildUssdInstructions } from "@/lib/payments/ussd";
-import { apiFallbackForCurrency, PROVIDER_META } from "@/lib/payments";
+import { getVendorFedaPayConfig } from "@/lib/payments/fedapay";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import PayClient from "./PayClient";
 
 /**
  * Customer pay surface — /pay/[order].
  *
- * The order id is the capability token: anyone the vendor hands the link to can
- * pay. We lead with USSD (dial-code) mobile money — the quick/default method
- * that works on any phone with no smartphone, data, card, or provider account —
- * and offer the hosted provider API ("pay automatically") only as a fallback
- * where the vendor has a rail configured.
+ * Offers strictly two checkout solutions:
+ *  1. FedaPay API v1 (T-Money, Flooz, MTN MoMo, Celtiis & Visa/Mastercard) — Live or Sandbox
+ *  2. Paiement à la livraison (Cash on delivery)
  */
 
 export const dynamic = "force-dynamic";
@@ -31,13 +28,20 @@ export async function generateMetadata({
     select: { vendor: { select: { shopName: true } } },
   });
   return {
-    title: row ? `Pay ${row.vendor.shopName}` : "Pay",
+    title: row ? `Paiement — ${row.vendor.shopName}` : "Paiement",
     robots: { index: false },
   };
 }
 
-export default async function PayPage({ params }: { params: Promise<{ order: string }> }) {
+export default async function PayPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ order: string }>;
+  searchParams?: Promise<{ paid?: string; failed?: string; cod?: string }>;
+}) {
   const { order: orderId } = await params;
+  const sp = (await searchParams) ?? {};
 
   const order = await prisma.order.findFirst({
     where: { id: orderId, deletedAt: null },
@@ -45,7 +49,9 @@ export default async function PayPage({ params }: { params: Promise<{ order: str
       items: true,
       vendor: {
         select: {
+          id: true,
           shopName: true,
+          shopSlug: true,
           whatsappNumber: true,
           momoNumber: true,
           currency: true,
@@ -56,26 +62,21 @@ export default async function PayPage({ params }: { params: Promise<{ order: str
   });
   if (!order) notFound();
 
+  const fedaConfig = await getVendorFedaPayConfig(order.vendor.id);
   const currency = order.vendor.currency || "XOF";
   const balanceCents = Math.max(0, order.totalCents - order.paidCents);
-  const fullyPaid = balanceCents <= 0;
-
-  // Prefer the dedicated mobile-money payee; fall back to the WhatsApp number
-  // (usually the same SIM in Togo) when the vendor hasn't set a separate one.
-  const payeeNumber = order.vendor.momoNumber || order.vendor.whatsappNumber || "";
-  let ussd = buildUssdInstructions({ currency, payeeNumber, amountCents: balanceCents });
-  if (ussd.networks.length === 0) {
-    ussd = buildUssdInstructions({ currency: "XOF", payeeNumber, amountCents: balanceCents });
-  }
-  const apiProvider = apiFallbackForCurrency(currency);
-  const apiLabel = apiProvider ? PROVIDER_META[apiProvider].label : null;
+  const fullyPaid = balanceCents <= 0 || order.status === "PAID" || order.status === "DELIVERED";
+  const isCashOnDelivery =
+    sp.cod === "1" ||
+    (order.note || "").toLowerCase().includes("paiement à la livraison") ||
+    (order.note || "").toLowerCase().includes("[paiement: cash]");
   const ref = orderId.slice(0, 8).toUpperCase();
 
   return (
     <div className="min-h-screen bg-arctic-100 px-4 py-8">
       <div className="mx-auto w-full max-w-md a-fade-in">
         {/* Brand */}
-        <Link href="/" className="mb-6 flex items-center justify-center gap-2.5">
+        <Link href={`/c/${order.vendor.shopSlug}`} className="mb-6 flex items-center justify-center gap-2.5">
           <span className="grid h-9 w-9 place-items-center rounded-shape-md bg-arctic-800 text-base font-black text-arctic-50">
             J
           </span>
@@ -85,51 +86,65 @@ export default async function PayPage({ params }: { params: Promise<{ order: str
         <div className="card overflow-hidden">
           {/* Header: who + how much */}
           <div className="border-b border-arctic-400/30 px-5 py-4">
-            <div className="flex items-center gap-1.5">
-              <p className="a-label-md text-arctic-500">Pay</p>
-              <span className="a-label-md font-semibold text-arctic-800">{order.vendor.shopName}</span>
-              {order.vendor.verifiedAt && <VerifiedBadge size="sm" withLabel={false} />}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <p className="a-label-md text-arctic-500">Commande chez</p>
+                <span className="a-label-md font-semibold text-arctic-800">{order.vendor.shopName}</span>
+                {order.vendor.verifiedAt && <VerifiedBadge size="sm" withLabel={false} />}
+              </div>
+              {!fullyPaid && fedaConfig.environment === "sandbox" && (
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                  Mode Sandbox
+                </span>
+              )}
             </div>
             <p className="mt-1 a-num text-3xl font-bold text-arctic-900">
-              {formatMoney(balanceCents, currency)}
+              {formatMoney(fullyPaid ? order.totalCents : balanceCents, currency)}
             </p>
             <p className="mt-0.5 a-label-md text-arctic-500">
-              Order {ref}
+              Commande #{ref}
               {order.paidCents > 0 && !fullyPaid && (
-                <> · {formatMoney(order.paidCents, currency)} already paid</>
+                <> · {formatMoney(order.paidCents, currency)} déjà réglés</>
               )}
             </p>
           </div>
 
           {fullyPaid ? (
             <div className="space-y-3 p-6 text-center">
-              <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-brand/10 text-brand-dark">
-                {/* check */}
-                <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-100 text-emerald-700">
+                <svg viewBox="0 0 24 24" width={26} height={26} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <path d="M4 12.5l5 5L20 6" />
                 </svg>
               </div>
-              <p className="font-semibold text-arctic-900">This order is fully paid.</p>
-              <p className="a-body-sm text-arctic-600">Nothing left to pay. Thank you!</p>
-              <Link href="/" className="btn-ghost mt-2 inline-flex">Done</Link>
+              <p className="text-base font-bold text-arctic-900">
+                Paiement confirmé !
+              </p>
+              <p className="a-body-sm text-arctic-600">
+                Votre commande #{ref} chez <strong>{order.vendor.shopName}</strong> est intégralement réglée. Merci pour votre confiance !
+              </p>
+              <div className="pt-2 flex flex-col gap-2">
+                <Link href={`/c/${order.vendor.shopSlug}`} className="btn-primary justify-center">
+                  Retourner sur la boutique {order.vendor.shopName}
+                </Link>
+              </div>
             </div>
           ) : (
             <PayClient
               orderId={order.id}
-              currency={currency}
               amountLabel={formatMoney(balanceCents, currency)}
-              ussd={ussd}
-              apiProvider={apiProvider}
-              apiLabel={apiLabel}
               shopName={order.vendor.shopName}
+              shopSlug={order.vendor.shopSlug}
               vendorWhatsApp={order.vendor.whatsappNumber || order.vendor.momoNumber || ""}
+              fedaEnvironment={fedaConfig.environment}
+              initialCodSelected={isCashOnDelivery}
+              paymentFailed={sp.failed === "1"}
             />
           )}
         </div>
 
         {/* Order lines */}
         <div className="mt-4 rounded-shape-lg border border-arctic-400/30 bg-arctic-50 p-4">
-          <p className="a-eyebrow mb-2">Your order</p>
+          <p className="a-eyebrow mb-2">Votre commande</p>
           <ul className="a-ledger space-y-1">
             {order.items.map((it) => (
               <li key={it.id} className="flex items-baseline justify-between gap-3 text-sm">
@@ -156,7 +171,7 @@ export default async function PayPage({ params }: { params: Promise<{ order: str
         </div>
 
         <p className="mt-5 text-center a-label-md text-arctic-500">
-          Powered by <span className="font-semibold text-arctic-700">Japora</span>
+          Propulsé par <span className="font-semibold text-arctic-700">Japora × FedaPay</span>
         </p>
       </div>
     </div>

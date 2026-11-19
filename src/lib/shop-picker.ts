@@ -8,6 +8,7 @@
  *
  * Pure helpers only (no database), so they run in unit tests and in the browser.
  */
+import { isStoredWhatsAppNumberValid } from "./whatsapp-number";
 
 /** Row id of a list reply: "japora-shop:<slug>", or "japora-shop:*" for "all shops". */
 export const SHOP_PICK_PREFIX = "japora-shop:";
@@ -171,7 +172,11 @@ export function shopWhatsAppLink(opts: {
   prefill?: string;
 }): { url: string; viaJaporaNumber: boolean } | null {
   const bot = (opts.botNumber || "").replace(/\D/g, "");
-  const vendor = (opts.vendorNumber || "").replace(/\D/g, "");
+  // A saved number without its country code would open a wrong (often foreign)
+  // number on WhatsApp: no link until the vendor fixes it in Store Setup.
+  const vendor = isStoredWhatsAppNumberValid(opts.vendorNumber)
+    ? (opts.vendorNumber || "").replace(/\D/g, "")
+    : "";
   const number = bot || vendor;
   if (!number) return null;
   const base =

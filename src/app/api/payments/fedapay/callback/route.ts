@@ -4,7 +4,10 @@ import { logger } from "@/lib/logger";
 import {
   fedapayProvider,
   settleFedaPayPaymentIntent,
-  getAppBaseUrl,
+  resolveRequestOrigin,
+  extractFedaWebhookEntity,
+  getVendorFedaPayConfig,
+  verifyFedaPaySignatureWithSecret,
   verifyFedaPayIntentOutcome,
   type FedaJson,
 } from "@/lib/payments/fedapay";
@@ -26,7 +29,7 @@ export async function GET(req: NextRequest) {
   const statusParam = (searchParams.get("status") || "").toLowerCase().trim();
   const returnUrlParam = searchParams.get("returnUrl")?.trim() || "";
 
-  const baseUrl = getAppBaseUrl();
+  const baseUrl = resolveRequestOrigin(req.headers, req.url);
   // Only paths on our own site: a full URL here would let anyone use Japora to redirect elsewhere.
   const toAbsoluteUrl = (path: string) => {
     const safe = path.startsWith("/") && !path.startsWith("//") ? path : "/dashboard/billing";
@@ -106,7 +109,7 @@ export async function POST(req: NextRequest) {
     }
 
     const payload = JSON.parse(rawBody || "{}") as FedaJson;
-    const obj = (payload.object || payload.transaction || payload.data || payload) as FedaJson;
+    const obj = extractFedaWebhookEntity(payload);
     const customMeta = (obj.custom_metadata || {}) as FedaJson;
     const fedaTxId = obj.id ? String(obj.id) : "";
     const ref = typeof customMeta.reference === "string" ? customMeta.reference : "";
@@ -128,6 +131,15 @@ export async function POST(req: NextRequest) {
 
     if (!intent) {
       return NextResponse.json({ ok: true, note: "intent_not_found" });
+    }
+
+    // A webhook secret set by the vendor in the dashboard must also match.
+    const vendorCfg = await getVendorFedaPayConfig(intent.vendorId);
+    if (
+      vendorCfg.webhookSecret &&
+      !verifyFedaPaySignatureWithSecret(rawBody, req.headers, vendorCfg.webhookSecret)
+    ) {
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
     const verified = await verifyFedaPayIntentOutcome(intent, fedaTxId || undefined);

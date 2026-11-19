@@ -86,7 +86,7 @@ function StartInner() {
                   <input
                     className="input"
                     inputMode="tel"
-                    placeholder="With country code, e.g. 22890112233"
+                    placeholder="With + and country code, e.g. +228 90 11 22 33"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     required

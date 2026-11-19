@@ -23,7 +23,8 @@ import {
   getSessionId,
 } from "@/lib/telemetry";
 
-export type PaymentMethod = "fedapay" | "tmoney" | "flooz" | "online" | "wescrow" | "cash";
+// "online" (a second FedaPay button) and "wescrow" (a promise with no escrow behind it) were removed.
+export type PaymentMethod = "fedapay" | "tmoney" | "flooz" | "cash";
 
 export type StorefrontCollection = {
   id: string;
@@ -119,6 +120,7 @@ export default function CatalogClient({
   const [note, setNote] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("fedapay");
   const [launchingFeda, setLaunchingFeda] = useState(false);
+  const [fedaCheckoutError, setFedaCheckoutError] = useState("");
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(initialCollectionId);
   const [copiedMomo, setCopiedMomo] = useState(false);
   const [copiedAmount, setCopiedAmount] = useState(false);
@@ -308,6 +310,7 @@ export default function CatalogClient({
     e.preventDefault();
     setSubmitting(true);
     setError("");
+    setFedaCheckoutError("");
 
     const paymentLabel =
       paymentMethod === "fedapay"
@@ -316,11 +319,7 @@ export default function CatalogClient({
         ? tr("USSD T-Money (*145#)", "T-Money USSD (*145#)")
         : paymentMethod === "flooz"
         ? tr("USSD Flooz (*155#)", "Flooz USSD (*155#)")
-        : paymentMethod === "online"
-        ? tr("Paiement en ligne / Mobile Money automatique", "Online payment / automatic Mobile Money")
-        : paymentMethod === "wescrow"
-        ? tr("Paiement Garanti WEscrow (Safe Hands)", "WEscrow protected payment (Safe Hands)")
-        : tr("Paiement en espèces", "Cash payment");
+        : tr("Paiement à la livraison", "Cash on delivery");
 
     const fullNote = [
       `[PAIEMENT: ${paymentLabel}]`,
@@ -394,8 +393,10 @@ export default function CatalogClient({
     setStep("success");
     setCart([]);
 
-    // Si le client a choisi FedaPay ou Paiement en ligne, lancer directement le checkout FedaPay API v1
-    if (paymentMethod === "fedapay" || paymentMethod === "online") {
+    // FedaPay: open the FedaPay checkout straight away. If it cannot open, say why
+    // on the success screen (the order itself is saved) instead of failing silently.
+    if (paymentMethod === "fedapay") {
+      trackPaymentIntent(shopSlug, data.orderId, "fedapay", data.totalCents);
       setLaunchingFeda(true);
       try {
         const checkoutRes = await fetch("/api/payments/checkout", {
@@ -413,10 +414,21 @@ export default function CatalogClient({
           window.location.href = checkoutData.checkoutUrl;
           return;
         }
+        setFedaCheckoutError(
+          checkoutData.error ||
+            tr("Impossible d'ouvrir la page de paiement FedaPay.", "Could not open the FedaPay payment page."),
+        );
       } catch {
-        // Fallback to success modal with manual button
+        setFedaCheckoutError(tr("Erreur réseau lors de la connexion à FedaPay.", "Network error while reaching FedaPay."));
       }
       setLaunchingFeda(false);
+    } else if (paymentMethod === "cash") {
+      // Record the cash-on-delivery choice so the vendor sees it in Money and Orders.
+      fetch("/api/payments/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: data.orderId, provider: "cash", returnUrl: `/pay/${data.orderId}` }),
+      }).catch(() => {});
     }
     setSubmitting(false);
   }
@@ -1286,67 +1298,6 @@ export default function CatalogClient({
                       </span>
                     </label>
 
-                    {/* Paiement Mobile / En ligne automatique */}
-                    <label
-                      className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
-                        paymentMethod === "online"
-                          ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 ring-1 ring-emerald-600"
-                          : "border-arctic-200 dark:border-arctic-700 bg-white dark:bg-arctic-800 hover:bg-arctic-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="online"
-                          checked={paymentMethod === "online"}
-                          onChange={() => setPaymentMethod("online")}
-                          className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
-                        />
-                        <div>
-                          <span className="text-sm font-bold text-arctic-900 dark:text-white block">
-                            ⚡ {tr("Paiement en ligne / API", "Online payment / API")}
-                          </span>
-                          <p className="text-[11px] text-arctic-500">
-                            {tr("CinetPay, PayGate, carte bancaire ou paiement direct", "CinetPay, PayGate, bank card, or direct push")}
-                          </p>
-                        </div>
-                      </div>
-                    </label>
-
-                    {/* Paiement Garanti WEscrow */}
-                    <label
-                      className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
-                        paymentMethod === "wescrow"
-                          ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-1 ring-indigo-500"
-                          : "border-arctic-200 dark:border-arctic-700 bg-white dark:bg-arctic-800 hover:bg-arctic-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="wescrow"
-                          checked={paymentMethod === "wescrow"}
-                          onChange={() => setPaymentMethod("wescrow")}
-                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
-                        />
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-bold text-indigo-900 dark:text-indigo-300">
-                              🛡️ {tr("Paiement garanti WEscrow", "WEscrow protected payment")}
-                            </span>
-                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-700">
-                              Safe Hands
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-arctic-500">
-                            {tr("Fonds conservés jusqu’à confirmation de réception", "Funds held until receipt is confirmed")}
-                          </p>
-                        </div>
-                      </div>
-                    </label>
-
                     {/* Espèces à la livraison */}
                     <label
                       className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
@@ -1366,10 +1317,10 @@ export default function CatalogClient({
                         />
                         <div>
                           <span className="text-sm font-bold text-arctic-900 dark:text-white block">
-                            💵 {tr("Espèces / Remise en main propre", "Cash / In-person handoff")}
+                            💵 {tr("Paiement à la livraison", "Cash on delivery")}
                           </span>
                           <p className="text-[11px] text-arctic-500">
-                            {tr("Paiement à la livraison ou lors du retrait", "Pay on delivery or pickup")}
+                            {tr("En espèces, à la livraison ou au retrait", "In cash, on delivery or at pickup")}
                           </p>
                         </div>
                       </div>
@@ -1591,17 +1542,27 @@ export default function CatalogClient({
                             window.location.href = d.checkoutUrl;
                             return;
                           }
+                          setFedaCheckoutError(
+                            d.error ||
+                              tr("Impossible d'ouvrir la page de paiement FedaPay.", "Could not open the FedaPay payment page."),
+                          );
                           setLaunchingFeda(false);
                         } catch {
+                          setFedaCheckoutError(tr("Erreur réseau lors de la connexion à FedaPay.", "Network error while reaching FedaPay."));
                           setLaunchingFeda(false);
                         }
                       }}
                       className="btn-primary w-full justify-center gap-2 py-3 !bg-emerald-600 hover:!bg-emerald-700 !text-white text-sm font-bold shadow-md"
                     >
                       {launchingFeda
-                        ? tr("Ouverture de FedaPay Sandbox…", "Opening FedaPay Sandbox…")
+                        ? tr("Ouverture de FedaPay…", "Opening FedaPay…")
                         : `💳 ${tr("Payer", "Pay")} ${formatMoney(placedSummary.totalCents, currency)} ${tr("avec FedaPay", "with FedaPay")} →`}
                     </button>
+                    {fedaCheckoutError && (
+                      <p role="alert" className="mt-2 rounded-shape-sm bg-red-500/10 px-3 py-2 text-center text-xs text-red-600">
+                        {fedaCheckoutError}
+                      </p>
+                    )}
                   </div>
 
                   {/* Bouton Envoi WhatsApp de la commande */}
