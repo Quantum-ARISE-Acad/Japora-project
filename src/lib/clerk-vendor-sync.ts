@@ -1,4 +1,5 @@
 import type { Vendor } from "@prisma/client";
+import { checkWhatsAppNumber } from "./whatsapp-number";
 import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { slugify, digitsOnly } from "@/lib/utils";
@@ -145,9 +146,9 @@ export async function syncClerkUserToVendor(
       ? await hashPassword(input.password)
       : "clerk_managed_auth";
 
-    const cleanWhatsapp = input.whatsappNumber
-      ? digitsOnly(input.whatsappNumber)
-      : "";
+    // Kept only with its country code; otherwise Store Setup asks for it on the dashboard.
+    const waCheck = input.whatsappNumber ? checkWhatsAppNumber(input.whatsappNumber) : null;
+    const cleanWhatsapp = waCheck?.ok ? waCheck.digits : "";
     const cleanMomo = input.momoNumber
       ? digitsOnly(input.momoNumber)
       : cleanWhatsapp;
@@ -274,7 +275,8 @@ export async function syncClerkUserToVendor(
     updateData.shopName = input.shopName.trim();
   }
   if (input.whatsappNumber && input.whatsappNumber.trim()) {
-    const cleanWa = digitsOnly(input.whatsappNumber);
+    const waCheck = checkWhatsAppNumber(input.whatsappNumber);
+    const cleanWa = waCheck.ok ? waCheck.digits : "";
     if (cleanWa && (!vendor.whatsappNumber || vendor.whatsappNumber === "15556449932")) {
       updateData.whatsappNumber = cleanWa;
     }

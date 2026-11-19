@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isStoredWhatsAppNumberValid } from "@/lib/whatsapp-number";
 import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { verifyOtp, isValidPhone, normalizePhone } from "@/lib/otp";
@@ -79,7 +80,8 @@ export async function POST(req: NextRequest) {
       phoneVerifiedAt: new Date(),
       shopName,
       shopSlug,
-      whatsappNumber: phone,
+      // Only a number with a real country code becomes the shop's WhatsApp number.
+      whatsappNumber: isStoredWhatsAppNumberValid(phone) ? phone : "",
       currency: "XOF", // Togo-first default
       onboardedAt: new Date(),
       ...newVendorTrialDates(),

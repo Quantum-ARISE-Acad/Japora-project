@@ -33,35 +33,55 @@ export type FedaPayConfig = {
   environment: "sandbox" | "live";
   publicKey: string;
   secretKey: string;
+  sandboxPublicKey?: string;
+  sandboxSecretKey?: string;
+  livePublicKey?: string;
+  liveSecretKey?: string;
   webhookSecret?: string;
   enabled: boolean;
 };
 
 export function fedapayConfigured(): boolean {
-  // A simulator must not become the automatic fallback for real payments.
-  return hasRealFedaPaySecretKey(process.env.FEDAPAY_SECRET_KEY || "");
+  // A simulator must not become the automatic fallback for real payments:
+  // only a real key (sandbox or live) for the default environment counts.
+  const env = getDefaultEnvMode();
+  const key = pickKeyForEnv(
+    [env === "live" ? process.env.FEDAPAY_LIVE_SECRET_KEY : process.env.FEDAPAY_SANDBOX_SECRET_KEY, process.env.FEDAPAY_SECRET_KEY],
+    "sk",
+    env,
+  );
+  return hasRealFedaPaySecretKey(key, env);
 }
 
-export function getAppBaseUrl(): string {
-  return (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5174").replace(/\/$/, "");
+export function getAppBaseUrl(reqOrigin?: string | null): string {
+  if (reqOrigin && /^https?:\/\//i.test(reqOrigin.trim())) {
+    return reqOrigin.trim().replace(/\/$/, "");
+  }
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL.trim().replace(/\/$/, "");
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL.trim().replace(/\/$/, "")}`;
+  }
+  return "http://localhost:5174";
 }
 
-function resolveFedaPayEnvironment(
-  secretKey: string,
-  preferredEnv?: string | null,
-): "sandbox" | "live" {
-  const trimmed = (secretKey || "").trim();
-  if (trimmed.startsWith("sk_live_")) return "live";
-  if (trimmed.startsWith("sk_sandbox_")) return "sandbox";
-  const env = (
-    preferredEnv ||
-    process.env.FEDAPAY_ENV ||
-    process.env.FEDAPAY_ENVIRONMENT ||
-    "sandbox"
-  )
-    .toLowerCase()
-    .trim();
-  return env === "live" || env === "production" ? "live" : "sandbox";
+export function resolveRequestOrigin(headers: Headers, fallbackUrl?: string): string {
+  const fwdHost = headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  const host = fwdHost || headers.get("host")?.split(",")[0]?.trim();
+  if (host) {
+    const fwdProto = headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+    const proto = fwdProto || (host.includes("localhost") || host.startsWith("127.") ? "http" : "https");
+    return `${proto}://${host}`;
+  }
+  if (fallbackUrl) {
+    try {
+      return new URL(fallbackUrl).origin;
+    } catch {
+      // ignore
+    }
+  }
+  return getAppBaseUrl();
 }
 
 function isDemoOrEmptyKey(key?: string | null): boolean {
@@ -73,62 +93,145 @@ function isDemoOrEmptyKey(key?: string | null): boolean {
   return false;
 }
 
-export async function getVendorFedaPayConfig(vendorId?: string): Promise<FedaPayConfig> {
-  const envSecretKey = (process.env.FEDAPAY_SECRET_KEY || "").trim();
-  const envPublicKey = (
+function keyMatchesEnv(key: string, kind: "sk" | "pk", env: "sandbox" | "live"): boolean {
+  const k = (key || "").trim();
+  if (isDemoOrEmptyKey(k)) return false;
+  const expectedPrefix = `${kind}_${env}_`;
+  return k.startsWith(expectedPrefix);
+}
+
+function pickKeyForEnv(
+  candidates: Array<string | null | undefined>,
+  kind: "sk" | "pk",
+  env: "sandbox" | "live",
+): string {
+  for (const c of candidates) {
+    const val = (c || "").trim();
+    if (keyMatchesEnv(val, kind, env)) return val;
+  }
+  return "";
+}
+
+function getDefaultEnvMode(): "sandbox" | "live" {
+  const env = (process.env.FEDAPAY_ENV || process.env.FEDAPAY_ENVIRONMENT || "sandbox")
+    .toLowerCase()
+    .trim();
+  if (env === "sandbox" || env === "test") return "sandbox";
+  if (env === "live" || env === "production") return "live";
+  const secret = (process.env.FEDAPAY_SECRET_KEY || "").trim();
+  return secret.startsWith("sk_live_") ? "live" : "sandbox";
+}
+
+export async function getVendorFedaPayConfig(
+  vendorId?: string,
+  forceEnvironment?: "sandbox" | "live",
+): Promise<FedaPayConfig> {
+  const envGenericSecret = (process.env.FEDAPAY_SECRET_KEY || "").trim();
+  const envGenericPublic = (
     process.env.FEDAPAY_PUBLIC_KEY ||
     process.env.NEXT_PUBLIC_FEDAPAY_PUBLIC_KEY ||
     ""
   ).trim();
-  const envMode = resolveFedaPayEnvironment(envSecretKey, process.env.FEDAPAY_ENV);
+  const envSandboxSecret = pickKeyForEnv(
+    [process.env.FEDAPAY_SANDBOX_SECRET_KEY, envGenericSecret],
+    "sk",
+    "sandbox",
+  );
+  const envSandboxPublic = pickKeyForEnv(
+    [
+      process.env.FEDAPAY_SANDBOX_PUBLIC_KEY,
+      process.env.NEXT_PUBLIC_FEDAPAY_SANDBOX_PUBLIC_KEY,
+      envGenericPublic,
+    ],
+    "pk",
+    "sandbox",
+  );
+  const envLiveSecret = pickKeyForEnv(
+    [process.env.FEDAPAY_LIVE_SECRET_KEY, envGenericSecret],
+    "sk",
+    "live",
+  );
+  const envLivePublic = pickKeyForEnv(
+    [process.env.FEDAPAY_LIVE_PUBLIC_KEY, envGenericPublic],
+    "pk",
+    "live",
+  );
+  const envWebhookSecret = (process.env.FEDAPAY_WEBHOOK_SECRET || "").trim();
 
-  const defaultConfig: FedaPayConfig = {
-    environment: envMode,
-    publicKey: envPublicKey || "pk_sandbox_japora_demo",
-    secretKey: envSecretKey,
-    webhookSecret: (process.env.FEDAPAY_WEBHOOK_SECRET || "").trim(),
-    enabled: true,
-  };
+  let chosenEnv: "sandbox" | "live" = forceEnvironment || getDefaultEnvMode();
+  let fc: FedaJson | null = null;
 
-  if (!vendorId) return defaultConfig;
-
-  try {
-    const vendor = await prisma.vendor.findUnique({
-      where: { id: vendorId },
-      select: { uiPrefs: true },
-    });
-    if (vendor?.uiPrefs) {
-      const prefs =
-        typeof vendor.uiPrefs === "string"
-          ? JSON.parse(vendor.uiPrefs)
-          : (vendor.uiPrefs as Record<string, unknown>);
-      if (prefs?.fedapayConfig && typeof prefs.fedapayConfig === "object") {
-        const fc = prefs.fedapayConfig as Record<string, unknown>;
-        const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
-        const chosenSecret = !isDemoOrEmptyKey(str(fc.secretKey)) ? str(fc.secretKey) : defaultConfig.secretKey;
-        const chosenPublic = !isDemoOrEmptyKey(str(fc.publicKey)) ? str(fc.publicKey) : defaultConfig.publicKey;
-        const resolvedEnv = resolveFedaPayEnvironment(chosenSecret, str(fc.environment));
-        return {
-          environment: resolvedEnv,
-          publicKey: chosenPublic,
-          secretKey: chosenSecret,
-          webhookSecret: str(fc.webhookSecret) || defaultConfig.webhookSecret,
-          enabled: fc.enabled !== false,
-        };
+  if (vendorId) {
+    try {
+      const vendor = await prisma.vendor.findUnique({
+        where: { id: vendorId },
+        select: { uiPrefs: true },
+      });
+      if (vendor?.uiPrefs) {
+        const prefs =
+          typeof vendor.uiPrefs === "string"
+            ? JSON.parse(vendor.uiPrefs)
+            : (vendor.uiPrefs as FedaJson);
+        if (prefs?.fedapayConfig && typeof prefs.fedapayConfig === "object") {
+          fc = prefs.fedapayConfig;
+          if (!forceEnvironment && (fc?.environment === "sandbox" || fc?.environment === "live")) {
+            chosenEnv = fc.environment;
+          }
+        }
       }
+    } catch {
+      // ignore JSON/DB errors and use default
     }
-  } catch {
-    // ignore JSON/DB errors and use default
   }
 
-  return defaultConfig;
+  const sandboxSecretKey = pickKeyForEnv(
+    [fc?.sandboxSecretKey, fc?.secretKey, envSandboxSecret],
+    "sk",
+    "sandbox",
+  );
+  const sandboxPublicKey = pickKeyForEnv(
+    [fc?.sandboxPublicKey, fc?.publicKey, envSandboxPublic],
+    "pk",
+    "sandbox",
+  );
+  const liveSecretKey = pickKeyForEnv(
+    [fc?.liveSecretKey, fc?.secretKey, envLiveSecret],
+    "sk",
+    "live",
+  );
+  const livePublicKey = pickKeyForEnv(
+    [fc?.livePublicKey, fc?.publicKey, envLivePublic],
+    "pk",
+    "live",
+  );
+
+  const activeSecretKey = chosenEnv === "live" ? liveSecretKey : sandboxSecretKey;
+  const activePublicKey = chosenEnv === "live" ? livePublicKey : sandboxPublicKey;
+
+  return {
+    environment: chosenEnv,
+    publicKey: activePublicKey,
+    secretKey: activeSecretKey,
+    sandboxPublicKey,
+    sandboxSecretKey,
+    livePublicKey,
+    liveSecretKey,
+    webhookSecret:
+      (typeof fc?.webhookSecret === "string" && fc.webhookSecret.trim()) || envWebhookSecret,
+    enabled: fc ? fc.enabled !== false : true,
+  };
 }
 
-export function hasRealFedaPaySecretKey(secretKey: string): boolean {
+export function hasRealFedaPaySecretKey(
+  secretKey: string,
+  env?: "sandbox" | "live",
+): boolean {
   const trimmed = (secretKey || "").trim();
   if (!trimmed || isDemoOrEmptyKey(trimmed) || trimmed.length < 18) {
     return false;
   }
+  if (env === "sandbox") return trimmed.startsWith("sk_sandbox_");
+  if (env === "live") return trimmed.startsWith("sk_live_");
   return trimmed.startsWith("sk_sandbox_") || trimmed.startsWith("sk_live_");
 }
 
@@ -136,6 +239,55 @@ export function fedaApiBaseUrl(env: "sandbox" | "live"): string {
   return env === "live"
     ? "https://api.fedapay.com/v1"
     : "https://sandbox-api.fedapay.com/v1";
+}
+
+/**
+ * Verifies connectivity against the FedaPay REST API v1 (`GET /v1/transactions?per_page=1`).
+ */
+export async function testFedaPayConnection(
+  secretKey: string,
+  env: "sandbox" | "live",
+): Promise<{ ok: boolean; message: string }> {
+  if (!hasRealFedaPaySecretKey(secretKey, env)) {
+    return {
+      ok: false,
+      message:
+        env === "sandbox"
+          ? "Aucune clé secrète Sandbox (sk_sandbox_...) configurée. Le simulateur Sandbox intégré sera utilisé pour les tests."
+          : "Clé secrète Live invalide ou manquante (doit commencer par sk_live_...).",
+    };
+  }
+  try {
+    const base = fedaApiBaseUrl(env);
+    const res = await fetch(`${base}/transactions?per_page=1`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${secretKey.trim()}`,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    });
+    if (res.ok) {
+      return {
+        ok: true,
+        message:
+          env === "sandbox"
+            ? "✅ Connexion FedaPay Sandbox API v1 réussie (sandbox-api.fedapay.com) !"
+            : "✅ Connexion FedaPay Live API v1 réussie (api.fedapay.com) !",
+      };
+    }
+    const errJson = (await res.json().catch(() => ({}))) as FedaJson;
+    const detail = errJson.message || errJson.error || `HTTP ${res.status}`;
+    return {
+      ok: false,
+      message: `❌ FedaPay ${env.toUpperCase()} a rejeté la clé (${detail}).`,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      message: `❌ Erreur réseau FedaPay : ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
 }
 
 /**
@@ -185,10 +337,88 @@ function extractFedaTransaction(json: FedaJson): FedaJson | null {
   const tx =
     json["v1/transaction"] ||
     json.v1?.transaction ||
+    json.entity ||
     json.transaction ||
     json.data ||
     (typeof json.id === "number" && json.status ? json : null);
   return tx && typeof tx === "object" ? tx : null;
+}
+
+/**
+ * Extracts the Transaction object from a FedaPay webhook event payload.
+ * Official FedaPay Event shape: `{ class_name: "Event", name: "transaction.approved", entity: { id, status, amount, mode, custom_metadata, ... } }`.
+ */
+export function extractFedaWebhookEntity(payload: FedaJson): FedaJson {
+  if (!payload || typeof payload !== "object") return {};
+  const candidate =
+    payload.entity ??
+    payload.object ??
+    payload.transaction ??
+    payload.data ??
+    payload;
+  return candidate && typeof candidate === "object" ? (candidate as FedaJson) : {};
+}
+
+function formatFedaErrorMessage(json: FedaJson, status: number): string {
+  const base =
+    typeof json?.message === "string" && json.message.trim()
+      ? json.message.trim()
+      : typeof json?.error === "string" && json.error.trim()
+        ? json.error.trim()
+        : `HTTP ${status}`;
+  if (json?.errors && typeof json.errors === "object") {
+    const details = Object.entries(json.errors as Record<string, unknown>)
+      .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : String(v)}`)
+      .join(" | ");
+    if (details) return `${base} (${details})`;
+  }
+  return base;
+}
+
+/**
+ * Verifies FedaPay's `X-FEDAPAY-SIGNATURE` header (`t=<timestamp>,s=<hmac_sha256>`).
+ * Uses constant-time comparison and supports multiple `s=` signatures (key rotation).
+ */
+export function verifyFedaPaySignatureWithSecret(
+  rawBody: string,
+  headers: Headers,
+  secret: string,
+): boolean {
+  const trimmedSecret = (secret || "").trim();
+  if (!trimmedSecret) return true;
+
+  const sigHeader =
+    headers.get("x-fedapay-signature") || headers.get("X-FEDAPAY-SIGNATURE") || "";
+  if (!sigHeader) return false;
+
+  try {
+    let timestamp = "";
+    const signatures: string[] = [];
+    for (const part of sigHeader.split(",")) {
+      const idx = part.indexOf("=");
+      if (idx === -1) continue;
+      const k = part.slice(0, idx).trim();
+      const v = part.slice(idx + 1).trim();
+      if (k === "t") timestamp = v;
+      if (k === "s" && v) signatures.push(v);
+    }
+    if (!timestamp || signatures.length === 0) return false;
+
+    const signedPayload = `${timestamp}.${rawBody}`;
+    const expectedHex = crypto
+      .createHmac("sha256", trimmedSecret)
+      .update(signedPayload, "utf8")
+      .digest("hex");
+    const expectedBuf = Buffer.from(expectedHex, "utf8");
+
+    return signatures.some((sig) => {
+      const sigBuf = Buffer.from(sig, "utf8");
+      if (sigBuf.length !== expectedBuf.length) return false;
+      return crypto.timingSafeEqual(sigBuf, expectedBuf);
+    });
+  } catch {
+    return false;
+  }
 }
 
 function extractFedaTokenUrl(
@@ -226,7 +456,7 @@ export const fedapayProvider: PaymentProvider = {
         : convertCurrency(opts.amountCents, rawCurrency, "XOF");
     const amountXof = Math.max(100, providerMajorAmount(xofCents, { multipleOf: 5 }));
 
-    if (hasRealFedaPaySecretKey(cfg.secretKey)) {
+    if (hasRealFedaPaySecretKey(cfg.secretKey, cfg.environment)) {
       try {
         const base = fedaApiBaseUrl(cfg.environment);
         const rawName = (opts.customerName || "Client Japora").trim();
@@ -234,21 +464,22 @@ export const fedapayProvider: PaymentProvider = {
         const lastName = rest.join(" ") || "Client";
 
         const safeRefSlug = opts.reference.replace(/[^a-zA-Z0-9]/g, "").slice(-12).toLowerCase() || "order";
-        const customerEmail =
+        const primaryEmail =
           opts.customerEmail && opts.customerEmail.includes("@")
             ? opts.customerEmail.trim()
             : `client.${safeRefSlug}@japora.com`;
+        const fallbackEmail = `order.${safeRefSlug}.${Date.now().toString(36)}@japora.com`;
 
         // Build callback_url so FedaPay redirects the buyer back to our verification route
         const callbackParams = new URLSearchParams({ ref: opts.reference });
         if (opts.returnUrl) {
           callbackParams.set("returnUrl", opts.returnUrl);
         }
-        const callbackUrl = `${getAppBaseUrl()}/api/payments/fedapay/callback?${callbackParams.toString()}`;
+        const callbackUrl = `${getAppBaseUrl(opts.appBaseUrl)}/api/payments/fedapay/callback?${callbackParams.toString()}`;
 
         const parsedPhone = parseFedaPayPhone(opts.customerPhone);
 
-        const buildPayload = (includePhone: boolean) => ({
+        const buildPayload = (includePhone: boolean, emailToUse: string) => ({
           description: `Japora #${opts.orderId.slice(-6).toUpperCase()} (${opts.reference})`,
           amount: Math.round(amountXof),
           currency: { iso: "XOF" },
@@ -257,12 +488,13 @@ export const fedapayProvider: PaymentProvider = {
             reference: opts.reference,
             orderId: opts.orderId,
             vendorId: opts.vendorId,
+            environment: cfg.environment,
             ...(opts.metadata || {}),
           },
           customer: {
             firstname: firstName || "Client",
             lastname: lastName || "Japora",
-            email: customerEmail,
+            email: emailToUse,
             ...(includePhone && parsedPhone ? { phone_number: parsedPhone } : {}),
           },
         });
@@ -274,16 +506,17 @@ export const fedapayProvider: PaymentProvider = {
             "Content-Type": "application/json",
             Accept: "application/json",
           },
-          body: JSON.stringify(buildPayload(true)),
+          body: JSON.stringify(buildPayload(true, primaryEmail)),
         });
 
         let createJson = (await createRes.json().catch(() => ({}))) as FedaJson;
 
-        // If FedaPay rejects the customer's phone_number (format or existing customer conflict),
-        // retry immediately without phone_number so the payment never fails to initialize.
-        if (!createRes.ok && parsedPhone) {
-          logger.warn("payments.fedapay.retry_without_phone", {
+        // If FedaPay rejects the customer's phone_number or email (format or existing customer conflict),
+        // retry cleanly without phone_number and with a unique fallback email.
+        if (!createRes.ok) {
+          logger.warn("payments.fedapay.retry_clean_customer", {
             orderId: opts.orderId,
+            environment: cfg.environment,
             status: createRes.status,
             firstAttemptError: createJson,
           });
@@ -294,7 +527,7 @@ export const fedapayProvider: PaymentProvider = {
               "Content-Type": "application/json",
               Accept: "application/json",
             },
-            body: JSON.stringify(buildPayload(false)),
+            body: JSON.stringify(buildPayload(false, fallbackEmail)),
           });
           createJson = (await createRes.json().catch(() => ({}))) as FedaJson;
         }
@@ -329,6 +562,7 @@ export const fedapayProvider: PaymentProvider = {
               status: "pending",
               raw: {
                 mode: cfg.environment,
+                environment: cfg.environment,
                 transaction: txObj,
                 token: tokenJson,
                 reference: opts.reference,
@@ -337,21 +571,40 @@ export const fedapayProvider: PaymentProvider = {
           }
         }
 
+        const apiErrMsg = formatFedaErrorMessage(createJson, createRes.status);
+
         logger.error("payments.fedapay.api_create_failed", {
           orderId: opts.orderId,
           environment: cfg.environment,
           status: createRes.status,
           response: createJson,
         });
+
+        // Surface real FedaPay API error whenever a real Sandbox or Live key was configured
+        // so misconfigured keys or payload issues are never silently hidden.
+        throw new Error(`Erreur FedaPay ${cfg.environment.toUpperCase()} : ${apiErrMsg}`);
       } catch (err) {
         logger.error("payments.fedapay.api_error", {
           orderId: opts.orderId,
+          environment: cfg.environment,
           error: err instanceof Error ? err.message : String(err),
         });
+        throw err;
       }
+    } else if (cfg.environment === "live") {
+      throw new Error(
+        "Clé API FedaPay Live (sk_live_...) non configurée. Passez en mode Sandbox pour tester ou ajoutez vos clés Live dans le Dashboard → Encaissements.",
+      );
     }
 
-    // Fallback to interactive FedaPay Sandbox Checkout if no valid API key is present
+    // In Sandbox mode when no sk_sandbox_... API key is configured yet, route to the
+    // interactive FedaPay Sandbox Checkout page — in development and demos only.
+    // In production the buyer would land on a fake payment page that cannot complete.
+    if (!devPaymentSimulatorEnabled()) {
+      throw new Error(
+        "Le paiement en ligne n'est pas encore configuré pour cette boutique. Choisissez le paiement à la livraison.",
+      );
+    }
     const sandboxUrl = `/pay/fedapay-sandbox/${encodeURIComponent(opts.reference)}`;
     return {
       checkoutUrl: sandboxUrl,
@@ -359,7 +612,7 @@ export const fedapayProvider: PaymentProvider = {
       status: "pending",
       raw: {
         mode: "sandbox_local",
-        environment: cfg.environment,
+        environment: "sandbox",
         amountXof,
         reference: opts.reference,
       },
@@ -375,12 +628,23 @@ export const fedapayProvider: PaymentProvider = {
           { metadata: { contains: providerRef } },
         ],
       },
+      orderBy: { createdAt: "desc" },
     });
 
-    const cfg = await getVendorFedaPayConfig(intent?.vendorId);
+    let storedEnv: "sandbox" | "live" | undefined;
+    try {
+      const m = intent?.metadata ? JSON.parse(intent.metadata) : {};
+      if (m?.environment === "sandbox" || m?.environment === "live") {
+        storedEnv = m.environment;
+      }
+    } catch {
+      // ignore
+    }
+
+    const cfg = await getVendorFedaPayConfig(intent?.vendorId, storedEnv);
 
     // If providerRef is a numeric FedaPay transaction ID, query GET /v1/transactions/{id}
-    if (hasRealFedaPaySecretKey(cfg.secretKey) && /^\d+$/.test(providerRef)) {
+    if (hasRealFedaPaySecretKey(cfg.secretKey, cfg.environment) && /^\d+$/.test(providerRef)) {
       try {
         const base = fedaApiBaseUrl(cfg.environment);
         const res = await fetch(`${base}/transactions/${providerRef}`, {
@@ -416,79 +680,30 @@ export const fedapayProvider: PaymentProvider = {
     if (intent?.status === "succeeded") {
       return { status: "succeeded", amountCents: intent.amountCents };
     }
-    return {
-      status: intent?.status === "failed" ? "failed" : "pending",
-      amountCents: intent?.amountCents,
-    };
+    if (intent?.status === "failed") {
+      return { status: "failed", amountCents: intent.amountCents };
+    }
+    return { status: "pending", amountCents: intent?.amountCents };
   },
 
   verifyWebhookSignature(rawBody: string, headers: Headers): boolean {
-    const webhookSecret = (process.env.FEDAPAY_WEBHOOK_SECRET || "").trim();
-    if (!webhookSecret) {
-      // When no webhook secret is set, the webhook route still calls provider.verify(id)
-      // against FedaPay's live API with FEDAPAY_SECRET_KEY before settling!
+    const secrets = [
+      process.env.FEDAPAY_WEBHOOK_SECRET,
+      process.env.FEDAPAY_SANDBOX_WEBHOOK_SECRET,
+      process.env.FEDAPAY_LIVE_WEBHOOK_SECRET,
+    ]
+      .map((s) => (s || "").trim())
+      .filter(Boolean);
+
+    if (secrets.length === 0) {
+      // When no global webhook secret is set in env, vendor-level webhookSecret
+      // is verified in the webhook route AND provider.verify(id) checks FedaPay's API.
       return true;
     }
 
-    const sigHeader =
-      headers.get("x-fedapay-signature") || headers.get("X-FEDAPAY-SIGNATURE") || "";
-    if (!sigHeader) return false;
-
-    try {
-      // FedaPay signature format: t=<timestamp>,s=<hmac_sha256>
-      const parts = Object.fromEntries(
-        sigHeader.split(",").map((part) => {
-          const [k, v] = part.trim().split("=");
-          return [k, v];
-        }),
-      );
-      if (parts.t && parts.s) {
-        const signedPayload = `${parts.t}.${rawBody}`;
-        const expected = crypto
-          .createHmac("sha256", webhookSecret)
-          .update(signedPayload, "utf8")
-          .digest("hex");
-        return expected === parts.s;
-      }
-    } catch {
-      return false;
-    }
-    return true;
+    return secrets.some((sec) => verifyFedaPaySignatureWithSecret(rawBody, headers, sec));
   },
 };
-
-/** The built-in sandbox checkout (no real FedaPay key) is for development and demos only. */
-export function devPaymentSimulatorEnabled(): boolean {
-  return process.env.NODE_ENV !== "production" || process.env.JAPORA_ENABLE_DEV_PAY_STUB === "1";
-}
-
-/**
- * The only trusted answer to "is this payment done?" is FedaPay's own API, never
- * the browser. The transaction created for this intent is preferred; a transaction
- * id sent by the browser is only used when none was stored, and must cover the
- * amount, so one small paid transaction cannot settle a bigger order.
- */
-export async function verifyFedaPayIntentOutcome(
-  intent: { id: string; vendorId: string; providerRef: string | null; amountCents: number; currency: string },
-  claimedTxId?: string,
-): Promise<{ outcome: "succeeded" | "failed" | "pending"; raw?: unknown }> {
-  const cfg = await getVendorFedaPayConfig(intent.vendorId);
-  if (!hasRealFedaPaySecretKey(cfg.secretKey)) return { outcome: "pending" };
-  const numeric = (v?: string | null) => (v && /^\d+$/.test(v) ? v : "");
-  const txId = numeric(intent.providerRef) || numeric(claimedTxId);
-  if (!txId) return { outcome: "pending" };
-  const res = await fedapayProvider.verify(txId);
-  if (
-    res.status === "succeeded" &&
-    intent.currency.toUpperCase() === "XOF" &&
-    typeof res.amountCents === "number" &&
-    res.amountCents < intent.amountCents
-  ) {
-    logger.warn("payments.fedapay.amount_mismatch", { intentId: intent.id, txId });
-    return { outcome: "pending", raw: res.raw };
-  }
-  return { outcome: res.status, raw: res.raw };
-}
 
 /**
  * Shared settlement helper for FedaPay transactions (used by GET callback, POST webhook,
@@ -735,4 +950,51 @@ export async function settleFedaPayPaymentIntent(opts: {
     orderId: intent.orderId,
     paymentLinkId: meta.paymentLinkId || null,
   };
+}
+
+/** The built-in sandbox checkout (no real FedaPay key) is for development and demos only. */
+export function devPaymentSimulatorEnabled(): boolean {
+  return process.env.NODE_ENV !== "production" || process.env.JAPORA_ENABLE_DEV_PAY_STUB === "1";
+}
+
+/**
+ * The only trusted answer to "is this payment done?" is FedaPay's own API, never
+ * the browser. The transaction created for this intent is preferred; a transaction
+ * id sent by the browser is only used when none was stored, and must cover the
+ * amount, so one small paid transaction cannot settle a bigger order.
+ */
+export async function verifyFedaPayIntentOutcome(
+  intent: {
+    id: string;
+    vendorId: string;
+    providerRef: string | null;
+    amountCents: number;
+    currency: string;
+    metadata?: string | null;
+  },
+  claimedTxId?: string,
+): Promise<{ outcome: "succeeded" | "failed" | "pending"; raw?: unknown }> {
+  let storedEnv: "sandbox" | "live" | undefined;
+  try {
+    const m = intent.metadata ? JSON.parse(intent.metadata) : {};
+    if (m?.environment === "sandbox" || m?.environment === "live") storedEnv = m.environment;
+  } catch {
+    // ignore malformed metadata
+  }
+  const cfg = await getVendorFedaPayConfig(intent.vendorId, storedEnv);
+  if (!hasRealFedaPaySecretKey(cfg.secretKey, cfg.environment)) return { outcome: "pending" };
+  const numeric = (v?: string | null) => (v && /^\d+$/.test(v) ? v : "");
+  const txId = numeric(intent.providerRef) || numeric(claimedTxId);
+  if (!txId) return { outcome: "pending" };
+  const res = await fedapayProvider.verify(txId);
+  if (
+    res.status === "succeeded" &&
+    intent.currency.toUpperCase() === "XOF" &&
+    typeof res.amountCents === "number" &&
+    res.amountCents < intent.amountCents
+  ) {
+    logger.warn("payments.fedapay.amount_mismatch", { intentId: intent.id, txId });
+    return { outcome: "pending", raw: res.raw };
+  }
+  return { outcome: res.status, raw: res.raw };
 }

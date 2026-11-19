@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { formatStoredWhatsAppNumber } from "@/lib/whatsapp-number";
 import { useRouter } from "next/navigation";
 import { REGIONS, CATEGORIES } from "@/lib/regions";
 import { LANG_NAMES, type Lang } from "@/lib/i18n";
@@ -62,7 +63,7 @@ export default function ShopOnboardingModal({
   const [currency, setCurrency] = useState(initial.currency || "XOF");
   const [whatsappNumber, setWhatsappNumber] = useState(
     initial.whatsappNumber && initial.whatsappNumber !== "15556449932"
-      ? initial.whatsappNumber
+      ? formatStoredWhatsAppNumber(initial.whatsappNumber)
       : "",
   );
   const [momoNumber, setMomoNumber] = useState(initial.momoNumber || "");
@@ -358,7 +359,7 @@ export default function ShopOnboardingModal({
                   <input
                     type="tel"
                     className="input"
-                    placeholder="Ex: 22890112233"
+                    placeholder="Ex : +228 90 11 22 33"
                     value={whatsappNumber}
                     onChange={(e) => setWhatsappNumber(e.target.value)}
                     required

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkWhatsAppNumber } from "@/lib/whatsapp-number";
 import { prisma } from "@/lib/db";
 import { hashPassword, validateEmail, validatePassword } from "@/lib/auth";
 import { createSession } from "@/lib/session";
@@ -30,8 +31,8 @@ export async function POST(req: NextRequest) {
   const email = String(body.email || "").trim().toLowerCase();
   const password = String(body.password || "");
   const shopName = String(body.shopName || "").trim();
-  // Digits only (wa.me format): strip spaces, "+", dashes and parentheses.
-  const whatsappNumber = String(body.whatsappNumber || "").replace(/[^0-9]/g, "");
+  // The country code is required ("+228…"): it is what makes the shop's wa.me links work.
+  const waCheck = checkWhatsAppNumber(String(body.whatsappNumber || ""));
   const currencyInput = String(body.currency || "").trim().toUpperCase();
   const currency = SUPPORTED_CURRENCIES.has(currencyInput) ? currencyInput : "XOF";
 
@@ -47,6 +48,10 @@ export async function POST(req: NextRequest) {
   if (!shopName) {
     return NextResponse.json({ error: "Entrez le nom de votre boutique." }, { status: 400 });
   }
+  if (!waCheck.ok) {
+    return NextResponse.json({ error: waCheck.error, field: "whatsappNumber" }, { status: 400 });
+  }
+  const whatsappNumber = waCheck.digits;
 
   const existing = await prisma.vendor.findUnique({ where: { email } });
   if (existing) {

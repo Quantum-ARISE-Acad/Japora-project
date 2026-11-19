@@ -71,6 +71,7 @@ export default function FedaPaySandboxClient({
   defaultCustomerPhone,
   defaultWallet,
   returnUrl,
+  cancelUrl,
 }: {
   providerRef: string;
   amountCents: number;
@@ -86,6 +87,7 @@ export default function FedaPaySandboxClient({
   defaultCustomerPhone: string;
   defaultWallet: string;
   returnUrl: string;
+  cancelUrl: string;
 }) {
   const router = useRouter();
   const [selectedWallet, setSelectedWallet] = useState(
@@ -446,25 +448,36 @@ export default function FedaPaySandboxClient({
 
               {/* Action Buttons */}
               <div className="space-y-2.5 pt-1">
-                {!hasRealPublicKey && (
-                  <button
-                    type="button"
-                    disabled={processing}
-                    onClick={() => handleComplete("succeeded")}
-                    className="w-full rounded-xl bg-emerald-600 py-3 px-4 text-xs font-bold text-white shadow hover:bg-emerald-700 disabled:opacity-50 transition flex items-center justify-center gap-2"
-                  >
-                    {processing
-                      ? "Validation en cours…"
-                      : `✓ Confirmer le règlement (${selectedWallet})`}
-                  </button>
+                {fedaEnvironment === "sandbox" && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={processing}
+                      onClick={() => handleComplete("succeeded")}
+                      className="w-full rounded-xl bg-emerald-600 py-3 px-4 text-xs font-bold text-white shadow hover:bg-emerald-700 disabled:opacity-50 transition flex items-center justify-center gap-2"
+                    >
+                      {processing
+                        ? "Validation Sandbox en cours…"
+                        : `✓ Valider le paiement test (${selectedWallet})`}
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={processing}
+                      onClick={() => handleComplete("failed")}
+                      className="w-full rounded-xl border border-rose-300 bg-rose-50 py-2.5 px-4 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50 transition"
+                    >
+                      ✕ Simuler un paiement refusé / annulé
+                    </button>
+                  </>
                 )}
 
                 <div className="flex items-center justify-between pt-1">
                   <Link
-                    href={returnUrl}
+                    href={cancelUrl}
                     className="w-full text-center rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-xs font-semibold text-slate-600 hover:bg-slate-50"
                   >
-                    ← Retourner à la boutique
+                    ← Annuler et retourner à la boutique
                   </Link>
                 </div>
               </div>

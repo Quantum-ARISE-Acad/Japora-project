@@ -1,5 +1,6 @@
 import { REGIONS, CATEGORIES, findRegion, findCategory } from "./regions";
 import { digitsOnly } from "./utils";
+import { checkWhatsAppNumber, isStoredWhatsAppNumberValid } from "./whatsapp-number";
 
 export type StoreSetupField = "shopName" | "whatsappNumber" | "region" | "category";
 
@@ -30,7 +31,8 @@ export function isPlaceholderShopName(shopName: string | null | undefined): bool
 
 /**
  * Normalizes a user-supplied or stored WhatsApp phone number into E.164
- * (`+<digits>`) and digits-only form, validating ITU-T E.164 length (8..15 digits).
+ * (`+<digits>`) and digits-only form. Valid only when the digits start with a real
+ * country code and fit that country's length.
  */
 export function normalizeWhatsAppNumber(input: string | null | undefined): {
   e164: string;
@@ -46,7 +48,8 @@ export function normalizeWhatsAppNumber(input: string | null | undefined): {
       valid: false,
     };
   }
-  const valid = digits.length >= 8 && digits.length <= 15;
+  // A saved number counts only if it begins with a real country code (see whatsapp-number.ts).
+  const valid = isStoredWhatsAppNumberValid(digits);
   return {
     e164: digits ? `+${digits}` : "",
     digits,
@@ -138,12 +141,13 @@ export function validateStoreSetupInput(
     };
   }
 
-  const wa = normalizeWhatsAppNumber(input.whatsappNumber);
-  if (!wa.valid) {
+  // Typed input must carry its country code explicitly ("+228…"); no country is guessed.
+  const wa = checkWhatsAppNumber(input.whatsappNumber);
+  if (!wa.ok || PLACEHOLDER_WHATSAPP_DIGITS.has(wa.digits)) {
     return {
       ok: false,
       field: "whatsappNumber",
-      error: "Please enter a valid WhatsApp number with country code (e.g. +22890123456).",
+      error: wa.ok ? "Please enter your own WhatsApp number." : wa.error,
     };
   }
 

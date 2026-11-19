@@ -1,6 +1,7 @@
 "use client";
 
 import { errorMessage } from "@/lib/errors";
+import { formatStoredWhatsAppNumber, WHATSAPP_NUMBER_EXAMPLE } from "@/lib/whatsapp-number";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -61,7 +62,7 @@ export default function SettingsForm({
   const [shopName, setShopName] = useState(initial.shopName);
   const [shopSlug, setShopSlug] = useState(initial.shopSlug);
   const [tagline, setTagline] = useState(initial.tagline);
-  const [whatsappNumber, setWhatsappNumber] = useState(initial.whatsappNumber);
+  const [whatsappNumber, setWhatsappNumber] = useState(formatStoredWhatsAppNumber(initial.whatsappNumber));
   const [momoNumber, setMomoNumber] = useState(initial.momoNumber);
   const [currency, setCurrency] = useState(initial.currency);
   const [region, setRegion] = useState(initial.region);
@@ -199,7 +200,7 @@ export default function SettingsForm({
         if (data.vendor.shopName) setShopName(data.vendor.shopName);
         if (data.vendor.shopSlug) setShopSlug(data.vendor.shopSlug);
         if (typeof data.vendor.tagline === "string") setTagline(data.vendor.tagline);
-        if (typeof data.vendor.whatsappNumber === "string") setWhatsappNumber(data.vendor.whatsappNumber);
+        if (typeof data.vendor.whatsappNumber === "string") setWhatsappNumber(formatStoredWhatsAppNumber(data.vendor.whatsappNumber));
         if (typeof data.vendor.momoNumber === "string") setMomoNumber(data.vendor.momoNumber);
         if (data.vendor.currency) setCurrency(data.vendor.currency);
         if (typeof data.vendor.region === "string") setRegion(data.vendor.region);
@@ -280,12 +281,13 @@ export default function SettingsForm({
             <input
               className="input"
               inputMode="tel"
-              placeholder="With country code, e.g. 2348012345678"
+              placeholder={`With country code, e.g. ${WHATSAPP_NUMBER_EXAMPLE}`}
+              aria-describedby="whatsapp-number-help"
               value={whatsappNumber}
               onChange={(e) => setWhatsappNumber(e.target.value)}
             />
-            <p className="mt-1 text-xs text-arctic-600">
-              Digits only — used for &ldquo;Chat&rdquo; / order links on your catalog.
+            <p id="whatsapp-number-help" className="mt-1 text-xs text-arctic-600">
+              Start with + and your country code (+228 for Togo). Without it, customers who scan your QR code reach the wrong number.
             </p>
           </div>
           <div>

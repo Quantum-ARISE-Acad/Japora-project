@@ -24,6 +24,10 @@ type FedaPayConfigState = {
   environment: "sandbox" | "live";
   publicKey: string;
   secretKey: string;
+  sandboxPublicKey?: string;
+  sandboxSecretKey?: string;
+  livePublicKey?: string;
+  liveSecretKey?: string;
   webhookSecret: string;
   enabled: boolean;
 };
@@ -66,9 +70,78 @@ export default function MoneyDashboardClient({
 }) {
   const router = useRouter();
   const { tr, locale } = usePublicLang();
-  const [fedaConfig, setFedaConfig] = useState<FedaPayConfigState>(initialFedaConfig);
+  const [fedaConfig, setFedaConfig] = useState<FedaPayConfigState>({
+    ...initialFedaConfig,
+    sandboxPublicKey: initialFedaConfig.sandboxPublicKey ?? (initialFedaConfig.environment === "sandbox" ? initialFedaConfig.publicKey : ""),
+    sandboxSecretKey: initialFedaConfig.sandboxSecretKey ?? (initialFedaConfig.environment === "sandbox" ? initialFedaConfig.secretKey : ""),
+    livePublicKey: initialFedaConfig.livePublicKey ?? (initialFedaConfig.environment === "live" ? initialFedaConfig.publicKey : ""),
+    liveSecretKey: initialFedaConfig.liveSecretKey ?? (initialFedaConfig.environment === "live" ? initialFedaConfig.secretKey : ""),
+  });
   const [savingConfig, setSavingConfig] = useState(false);
+  const [testingConn, setTestingConn] = useState(false);
   const [configMsg, setConfigMsg] = useState("");
+  const [configIsError, setConfigIsError] = useState(false);
+
+  const activePublicKey =
+    fedaConfig.environment === "live"
+      ? (fedaConfig.livePublicKey ?? "")
+      : (fedaConfig.sandboxPublicKey ?? "");
+  const activeSecretKey =
+    fedaConfig.environment === "live"
+      ? (fedaConfig.liveSecretKey ?? "")
+      : (fedaConfig.sandboxSecretKey ?? "");
+
+  function updateActiveKey(field: "publicKey" | "secretKey", value: string) {
+    if (fedaConfig.environment === "live") {
+      setFedaConfig((prev) => ({
+        ...prev,
+        [field]: value,
+        ...(field === "publicKey" ? { livePublicKey: value } : { liveSecretKey: value }),
+      }));
+    } else {
+      setFedaConfig((prev) => ({
+        ...prev,
+        [field]: value,
+        ...(field === "publicKey" ? { sandboxPublicKey: value } : { sandboxSecretKey: value }),
+      }));
+    }
+  }
+
+  function switchEnvironment(nextEnv: "sandbox" | "live") {
+    setFedaConfig((prev) => ({
+      ...prev,
+      environment: nextEnv,
+      publicKey: nextEnv === "live" ? (prev.livePublicKey ?? "") : (prev.sandboxPublicKey ?? ""),
+      secretKey: nextEnv === "live" ? (prev.liveSecretKey ?? "") : (prev.sandboxSecretKey ?? ""),
+    }));
+    setConfigMsg("");
+    setConfigIsError(false);
+  }
+
+  async function handleTestConnection() {
+    setTestingConn(true);
+    setConfigMsg("");
+    setConfigIsError(false);
+    try {
+      const res = await fetch("/api/payments/fedapay/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "test_connection",
+          environment: fedaConfig.environment,
+          secretKey: activeSecretKey,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setConfigIsError(!data.ok);
+      setConfigMsg(data.message || (data.ok ? "✅ Connexion FedaPay réussie !" : "⚠️ Échec de la vérification."));
+    } catch {
+      setConfigIsError(true);
+      setConfigMsg("⚠️ Erreur réseau lors du test de connexion FedaPay.");
+    } finally {
+      setTestingConn(false);
+    }
+  }
 
   // Sandbox Test Payment State
   const [testAmount, setTestAmount] = useState(
@@ -88,25 +161,44 @@ export default function MoneyDashboardClient({
     e.preventDefault();
     setSavingConfig(true);
     setConfigMsg("");
+    setConfigIsError(false);
 
     try {
       const res = await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fedapayConfig: fedaConfig,
+          fedapayConfig: {
+            environment: fedaConfig.environment,
+            publicKey: activePublicKey,
+            secretKey: activeSecretKey,
+            sandboxPublicKey: fedaConfig.sandboxPublicKey ?? "",
+            sandboxSecretKey: fedaConfig.sandboxSecretKey ?? "",
+            livePublicKey: fedaConfig.livePublicKey ?? "",
+            liveSecretKey: fedaConfig.liveSecretKey ?? "",
+            webhookSecret: fedaConfig.webhookSecret ?? "",
+            enabled: true,
+          },
         }),
       });
       const data = await res.json().catch(() => ({}));
       setSavingConfig(false);
       if (res.ok) {
-        setConfigMsg(tr("✓ Configuration API FedaPay enregistrée avec succès !", "✓ FedaPay API configuration saved successfully!"));
+        setConfigIsError(false);
+        setConfigMsg(
+          tr(
+            `✓ Configuration FedaPay (${fedaConfig.environment.toUpperCase()}) enregistrée avec succès !`,
+            `✓ FedaPay (${fedaConfig.environment.toUpperCase()}) configuration saved!`,
+          ),
+        );
         router.refresh();
       } else {
+        setConfigIsError(true);
         setConfigMsg(`⚠️ ${data.error || tr("Erreur lors de la sauvegarde.", "Could not save settings.")}`);
       }
     } catch {
       setSavingConfig(false);
+      setConfigIsError(true);
       setConfigMsg(tr("⚠️ Erreur réseau lors de la sauvegarde.", "⚠️ Network error while saving settings."));
     }
   }
@@ -285,7 +377,7 @@ export default function MoneyDashboardClient({
             <div className="flex rounded-lg border border-arctic-300/60 bg-arctic-100 p-0.5 text-xs font-semibold">
               <button
                 type="button"
-                onClick={() => setFedaConfig({ ...fedaConfig, environment: "sandbox" })}
+                onClick={() => switchEnvironment("sandbox")}
                 className={`rounded-md px-3 py-1 transition ${
                   fedaConfig.environment === "sandbox"
                     ? "bg-emerald-600 text-white shadow-2xs"
@@ -296,7 +388,7 @@ export default function MoneyDashboardClient({
               </button>
               <button
                 type="button"
-                onClick={() => setFedaConfig({ ...fedaConfig, environment: "live" })}
+                onClick={() => switchEnvironment("live")}
                 className={`rounded-md px-3 py-1 transition ${
                   fedaConfig.environment === "live"
                     ? "bg-slate-900 text-white shadow-2xs"
@@ -311,7 +403,11 @@ export default function MoneyDashboardClient({
           <form onSubmit={handleSaveFedaConfig} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="label">{tr("Clé publique FedaPay", "FedaPay public key")}</label>
+                <label className="label">
+                  {fedaConfig.environment === "sandbox"
+                    ? tr("Clé Publique Sandbox (pk_sandbox_...)", "Sandbox Public Key (pk_sandbox_...)")
+                    : tr("Clé Publique Live (pk_live_...)", "Live Public Key (pk_live_...)")}
+                </label>
                 <input
                   type="text"
                   className="input font-mono text-xs"
@@ -320,26 +416,58 @@ export default function MoneyDashboardClient({
                       ? "pk_sandbox_..."
                       : "pk_live_..."
                   }
-                  value={fedaConfig.publicKey}
-                  onChange={(e) => setFedaConfig({ ...fedaConfig, publicKey: e.target.value })}
+                  value={activePublicKey}
+                  onChange={(e) => updateActiveKey("publicKey", e.target.value)}
                 />
               </div>
 
               <div>
-                <label className="label">{tr("Clé secrète FedaPay", "FedaPay secret key")}</label>
+                <label className="label">
+                  {fedaConfig.environment === "sandbox"
+                    ? tr("Clé Secrète Sandbox (sk_sandbox_...)", "Sandbox Secret Key (sk_sandbox_...)")
+                    : tr("Clé Secrète Live (sk_live_...)", "Live Secret Key (sk_live_...)")}
+                </label>
                 <input
                   type="password"
                   className="input font-mono text-xs"
                   placeholder={
                     fedaConfig.environment === "sandbox"
-                      ? `sk_sandbox_... (${tr("facultatif en démo", "optional in demo")})`
+                      ? "sk_sandbox_..."
                       : "sk_live_..."
                   }
-                  value={fedaConfig.secretKey}
-                  onChange={(e) => setFedaConfig({ ...fedaConfig, secretKey: e.target.value })}
+                  value={activeSecretKey}
+                  onChange={(e) => updateActiveKey("secretKey", e.target.value)}
                 />
               </div>
             </div>
+
+            <div>
+              <label className="label">
+                {tr("Secret Webhook FedaPay (optionnel)", "FedaPay Webhook Secret (optional)")}
+              </label>
+              <input
+                type="password"
+                className="input font-mono text-xs"
+                placeholder="wh_sandbox_... / wh_live_..."
+                value={fedaConfig.webhookSecret || ""}
+                onChange={(e) => setFedaConfig({ ...fedaConfig, webhookSecret: e.target.value })}
+              />
+            </div>
+
+            {fedaConfig.environment === "sandbox" && (
+              <div className="rounded-xl border border-amber-300/70 bg-amber-50/70 p-3 text-xs text-amber-900">
+                <strong>🧪 {tr("Mode Test Sandbox actif :", "Sandbox Test Mode active:")}</strong>{" "}
+                {activeSecretKey.startsWith("sk_sandbox_")
+                  ? tr(
+                      "Les paiements utiliseront l'API officielle FedaPay Sandbox (sandbox-api.fedapay.com).",
+                      "Payments will use the official FedaPay Sandbox API (sandbox-api.fedapay.com).",
+                    )
+                  : tr(
+                      "Ajoutez vos clés Sandbox FedaPay (sk_sandbox_...) pour tester l'API officielle sandbox-api.fedapay.com, ou laissez vide pour utiliser le guichet Sandbox intégré.",
+                      "Add your FedaPay Sandbox keys (sk_sandbox_...) to test the official sandbox-api.fedapay.com API, or leave empty to use the built-in Sandbox checkout.",
+                    )}
+              </div>
+            )}
 
             <div className="rounded-xl border border-arctic-300/60 bg-arctic-50 p-3 text-xs space-y-1.5">
               <div className="flex items-center justify-between">
@@ -368,19 +496,39 @@ export default function MoneyDashboardClient({
             </div>
 
             {configMsg && (
-              <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs font-medium text-emerald-900">
+              <div
+                className={`rounded-lg border px-3 py-2 text-xs font-medium ${
+                  configIsError
+                    ? "bg-red-50 border-red-200 text-red-800"
+                    : "bg-emerald-50 border-emerald-200 text-emerald-900"
+                }`}
+              >
                 {configMsg}
               </div>
             )}
 
-            <div className="flex items-center justify-between pt-1">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
               <span className="text-xs text-arctic-500">
                 {tr("Mode actif", "Active mode")}:{" "}
                 <strong className="text-emerald-700 uppercase">{fedaConfig.environment}</strong>
               </span>
-              <button type="submit" disabled={savingConfig} className="btn-primary text-xs">
-                {savingConfig ? tr("Enregistrement…", "Saving…") : tr("Enregistrer la configuration FedaPay", "Save FedaPay settings")}
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled={testingConn}
+                  onClick={handleTestConnection}
+                  className="btn-ghost text-xs border border-arctic-300"
+                >
+                  {testingConn
+                    ? tr("Vérification…", "Testing…")
+                    : tr("🔌 Tester l'API FedaPay", "🔌 Test FedaPay API")}
+                </button>
+                <button type="submit" disabled={savingConfig} className="btn-primary text-xs">
+                  {savingConfig
+                    ? tr("Enregistrement…", "Saving…")
+                    : tr("Enregistrer la configuration FedaPay", "Save FedaPay configuration")}
+                </button>
+              </div>
             </div>
           </form>
         </div>

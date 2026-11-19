@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { issueOtp, isValidPhone, normalizePhone } from "@/lib/otp";
+import { checkWhatsAppNumber } from "@/lib/whatsapp-number";
 import { getProvider } from "@/lib/whatsapp";
 import { getClientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
 import { logger } from "@/lib/logger";
@@ -24,9 +25,14 @@ export async function POST(req: NextRequest) {
   if (!ipRl.allowed) return tooManyRequests(ipRl, "Too many code requests. Try again later.");
 
   const body = await req.json().catch(() => null);
-  const phone = normalizePhone(String(body?.phone || ""));
-  if (!isValidPhone(phone)) {
-    return NextResponse.json({ error: "Enter a valid phone number with country code." }, { status: 400 });
+  // The number becomes the shop's WhatsApp number: its country code is required.
+  const waCheck = checkWhatsAppNumber(String(body?.phone || ""));
+  const phone = waCheck.ok ? waCheck.digits : normalizePhone(String(body?.phone || ""));
+  if (!waCheck.ok || !isValidPhone(phone)) {
+    return NextResponse.json(
+      { error: waCheck.ok ? "Numéro invalide." : waCheck.error },
+      { status: 400 },
+    );
   }
 
   const phoneRl = rateLimit({ key: `otp.req.phone:${phone}`, limit: 4, windowMs: 15 * 60_000 });

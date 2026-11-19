@@ -11,18 +11,18 @@ import type {
   VerifyResult,
 } from "./index";
 
-function stubRef(): string {
+function codRef(): string {
   const r = (globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2))
     .replace(/-/g, "")
-    .slice(0, 16);
-  return `stub_${r}`;
+    .slice(0, 12);
+  return `cod_${r}`;
 }
 
 export const cashProvider: PaymentProvider = {
   name: "cash",
   async initiate(opts: InitiateOptions): Promise<InitiateResult> {
-    const ref = stubRef();
-    logger.info("payments.cash.stub_initiate", {
+    const ref = opts.reference ? `cod_${opts.reference.replace(/^japora_/, "")}` : codRef();
+    logger.info("payments.cash.initiate", {
       orderId: opts.orderId,
       vendorId: opts.vendorId,
       amountCents: opts.amountCents,
@@ -31,7 +31,7 @@ export const cashProvider: PaymentProvider = {
     return {
       providerRef: ref,
       status: "pending",
-      // No checkoutUrl on purpose — caller renders "pay on delivery" copy.
+      raw: { mode: "cash_on_delivery" },
     };
   },
   async verify(providerRef: string): Promise<VerifyResult> {
