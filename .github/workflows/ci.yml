@@ -99,7 +99,7 @@ jobs:
       - name: Analyze deployment and CI shell scripts (ShellCheck)
         run: |
           docker run --rm -v "$PWD:/repo:ro" -w /repo koalaman/shellcheck:v0.10.0 --severity=warning \
-            deploy/mvp.sh deploy/backup/backup.sh deploy/scheduler/run.sh scripts/ci/infrastructure.sh
+            deploy/mvp.sh deploy/host/split-disk.sh deploy/host/disk-alert.sh deploy/host/install-disk-alert.sh deploy/backup/backup.sh deploy/scheduler/run.sh scripts/ci/infrastructure.sh
 
   lint:
     name: Stage 1 · Lint (ESLint, no warnings)
