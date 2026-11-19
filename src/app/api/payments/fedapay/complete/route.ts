@@ -3,11 +3,10 @@ import { prisma } from "@/lib/db";
 import { getCurrentVendor } from "@/lib/auth";
 import { getPaymentProvider, newReference } from "@/lib/payments";
 import {
-  devPaymentSimulatorEnabled,
-  getVendorFedaPayConfig,
-  hasRealFedaPaySecretKey,
   settleFedaPayPaymentIntent,
-  verifyFedaPayIntentOutcome,
+  resolveRequestOrigin,
+  testFedaPayConnection,
+  getVendorFedaPayConfig,
 } from "@/lib/payments/fedapay";
 
 /**
@@ -26,6 +25,24 @@ export async function POST(req: NextRequest) {
   }
 
   const action = String(body.action || "complete");
+  const appBaseUrl = resolveRequestOrigin(req.headers, req.url);
+
+  // 0. Test FedaPay API connection (Sandbox or Live) from Dashboard Money
+  if (action === "test_connection") {
+    const vendor = await getCurrentVendor();
+    if (!vendor) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
+    const env = body.environment === "live" ? "live" : "sandbox";
+    const cfg = await getVendorFedaPayConfig(vendor.id, env);
+    const providedSecret =
+      typeof body.secretKey === "string" && body.secretKey.trim() && !body.secretKey.includes("••••")
+        ? body.secretKey.trim()
+        : cfg.secretKey;
+
+    const result = await testFedaPayConnection(providedSecret, env);
+    return NextResponse.json(result, { status: 200 });
+  }
 
   // 1. Initiate FedaPay checkout for a PaymentLink
   if (action === "initiate_link") {
@@ -74,34 +91,66 @@ export async function POST(req: NextRequest) {
     });
 
     const provider = getPaymentProvider("fedapay");
-    const initRes = await provider.initiate({
-      orderId: link.id,
-      vendorId: link.vendorId,
-      amountCents: link.amountCents,
-      currency: link.currency || link.vendor.currency || "XOF",
-      customerName,
-      customerPhone,
-      reference,
-      network,
-      returnUrl,
-      metadata: {
+    try {
+      const initRes = await provider.initiate({
+        orderId: link.id,
+        vendorId: link.vendorId,
+        amountCents: link.amountCents,
+        currency: link.currency || link.vendor.currency || "XOF",
+        customerName,
+        customerPhone,
+        reference,
+        network,
+        returnUrl,
+        appBaseUrl,
+        metadata: {
+          reference,
+          paymentLinkId: link.id,
+          title: link.description || "Lien de paiement",
+        },
+      });
+
+      const rawObj =
+        initRes.raw && typeof initRes.raw === "object"
+          ? (initRes.raw as Record<string, unknown>)
+          : {};
+      const nextMeta = {
+        type: "payment_link",
         reference,
         paymentLinkId: link.id,
         title: link.description || "Lien de paiement",
-      },
-    });
+        customerName,
+        customerPhone,
+        network,
+        returnUrl,
+        ...(typeof rawObj.environment === "string" ? { environment: rawObj.environment } : {}),
+        ...(typeof rawObj.mode === "string" ? { mode: rawObj.mode } : {}),
+      };
 
-    await prisma.paymentIntent.update({
-      where: { id: intent.id },
-      data: { providerRef: initRes.providerRef },
-    });
+      await prisma.paymentIntent.update({
+        where: { id: intent.id },
+        data: {
+          providerRef: initRes.providerRef,
+          metadata: JSON.stringify(nextMeta),
+        },
+      });
 
-    return NextResponse.json({
-      ok: true,
-      paymentIntentId: intent.id,
-      providerRef: initRes.providerRef,
-      checkoutUrl: initRes.checkoutUrl || `/pay/fedapay-sandbox/${reference}`,
-    });
+      return NextResponse.json({
+        ok: true,
+        paymentIntentId: intent.id,
+        providerRef: initRes.providerRef,
+        checkoutUrl: initRes.checkoutUrl || `/pay/fedapay-sandbox/${reference}`,
+      });
+    } catch (e) {
+      await prisma.paymentIntent.update({
+        where: { id: intent.id },
+        data: { status: "failed" },
+      });
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Erreur FedaPay." },
+        { status: 502 },
+      );
+    }
   }
 
   // 2. Initiate a FedaPay Test Payment or Pro Subscription from Dashboard Money
@@ -149,33 +198,66 @@ export async function POST(req: NextRequest) {
     });
 
     const provider = getPaymentProvider("fedapay");
-    const initRes = await provider.initiate({
-      orderId: intent.id,
-      vendorId: vendor.id,
-      amountCents: defaultAmountCents,
-      currency,
-      customerName: vendor.shopName,
-      customerPhone: vendor.whatsappNumber || "+22890000001",
-      reference,
-      returnUrl,
-      metadata: {
+    try {
+      const initRes = await provider.initiate({
+        orderId: intent.id,
+        vendorId: vendor.id,
+        amountCents: defaultAmountCents,
+        currency,
+        customerName: vendor.shopName,
+        customerPhone: vendor.whatsappNumber || "+22890000001",
         reference,
+        returnUrl,
+        appBaseUrl,
+        metadata: {
+          reference,
+          type: isSub ? "subscription" : "fedapay_test",
+          subscriptionVendorId: isSub ? vendor.id : undefined,
+        },
+      });
+
+      const rawObj =
+        initRes.raw && typeof initRes.raw === "object"
+          ? (initRes.raw as Record<string, unknown>)
+          : {};
+      const nextMeta = {
         type: isSub ? "subscription" : "fedapay_test",
+        reference,
         subscriptionVendorId: isSub ? vendor.id : undefined,
-      },
-    });
+        title: isSub
+          ? "Abonnement Japora Pro (Mensuel)"
+          : String(body.title || "Encaissement Test FedaPay"),
+        customerName: vendor.shopName,
+        customerPhone: vendor.whatsappNumber || vendor.momoNumber || "+22890000001",
+        returnUrl,
+        ...(typeof rawObj.environment === "string" ? { environment: rawObj.environment } : {}),
+        ...(typeof rawObj.mode === "string" ? { mode: rawObj.mode } : {}),
+      };
 
-    await prisma.paymentIntent.update({
-      where: { id: intent.id },
-      data: { providerRef: initRes.providerRef },
-    });
+      await prisma.paymentIntent.update({
+        where: { id: intent.id },
+        data: {
+          providerRef: initRes.providerRef,
+          metadata: JSON.stringify(nextMeta),
+        },
+      });
 
-    return NextResponse.json({
-      ok: true,
-      paymentIntentId: intent.id,
-      providerRef: initRes.providerRef,
-      checkoutUrl: initRes.checkoutUrl || `/pay/fedapay-sandbox/${reference}`,
-    });
+      return NextResponse.json({
+        ok: true,
+        paymentIntentId: intent.id,
+        providerRef: initRes.providerRef,
+        checkoutUrl: initRes.checkoutUrl || `/pay/fedapay-sandbox/${reference}`,
+      });
+    } catch (e) {
+      await prisma.paymentIntent.update({
+        where: { id: intent.id },
+        data: { status: "failed" },
+      });
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Erreur FedaPay." },
+        { status: 502 },
+      );
+    }
   }
 
   // 3. Complete / Settle a FedaPay Transaction
@@ -205,21 +287,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Transaction introuvable." }, { status: 404 });
   }
 
-  // The browser only reports what it saw. A real FedaPay payment is checked with
-  // FedaPay; the sandbox checkout is accepted only where the simulator is allowed.
-  const cfg = await getVendorFedaPayConfig(intent.vendorId);
-  let verifiedOutcome: "succeeded" | "failed" | "pending";
-  if (hasRealFedaPaySecretKey(cfg.secretKey)) {
-    verifiedOutcome = (await verifyFedaPayIntentOutcome(intent, fedaTxId)).outcome;
-  } else if (devPaymentSimulatorEnabled()) {
-    verifiedOutcome = outcome;
-  } else {
-    return NextResponse.json({ error: "Paiement simulé désactivé sur ce serveur." }, { status: 403 });
-  }
-
   const settled = await settleFedaPayPaymentIntent({
     intentId: intent.id,
-    outcome: verifiedOutcome,
+    outcome,
     fedaTxId,
     wallet,
     customerPhone: customerPhone || undefined,

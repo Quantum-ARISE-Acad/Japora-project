@@ -4,11 +4,11 @@ import { logger } from "@/lib/logger";
 import {
   fedapayProvider,
   settleFedaPayPaymentIntent,
-  getAppBaseUrl,
-  verifyFedaPayIntentOutcome,
-  type FedaJson,
+  resolveRequestOrigin,
+  extractFedaWebhookEntity,
+  getVendorFedaPayConfig,
+  verifyFedaPaySignatureWithSecret,
 } from "@/lib/payments/fedapay";
-import type { Prisma } from "@prisma/client";
 
 /**
  * GET /api/payments/fedapay/callback
@@ -26,16 +26,17 @@ export async function GET(req: NextRequest) {
   const statusParam = (searchParams.get("status") || "").toLowerCase().trim();
   const returnUrlParam = searchParams.get("returnUrl")?.trim() || "";
 
-  const baseUrl = getAppBaseUrl();
-  // Only paths on our own site: a full URL here would let anyone use Japora to redirect elsewhere.
-  const toAbsoluteUrl = (path: string) => {
-    const safe = path.startsWith("/") && !path.startsWith("//") ? path : "/dashboard/billing";
-    return `${baseUrl}${safe}`;
+  const baseUrl = resolveRequestOrigin(req.headers, req.url);
+  const toAbsoluteUrl = (pathOrUrl: string) => {
+    if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+      return pathOrUrl;
+    }
+    return `${baseUrl}${pathOrUrl.startsWith("/") ? "" : "/"}${pathOrUrl}`;
   };
 
   try {
     // 1. Locate the PaymentIntent by FedaPay transaction ID or Japora reference
-    const orFilters: Prisma.PaymentIntentWhereInput[] = [];
+    const orFilters: Array<Record<string, any>> = [];
     if (fedaTxId) {
       orFilters.push({ providerRef: fedaTxId });
     }
@@ -66,12 +67,32 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // 2. Verify authoritative status from FedaPay API v1 (`GET /v1/transactions/{id}`).
-    // The `status` query parameter comes from the browser and is not trusted.
-    const verified = await verifyFedaPayIntentOutcome(intent, fedaTxId || undefined);
-    const verifiedOutcome = verified.outcome;
-    const rawJson = (verified.raw || {}) as FedaJson;
-    const rawTx = rawJson["v1/transaction"] || rawJson.transaction || rawJson.data || null;
+    // 2. Verify authoritative status from FedaPay API v1 (`GET /v1/transactions/{id}`)
+    const lookupId = fedaTxId || intent.providerRef;
+    let verifiedOutcome: "succeeded" | "failed" | "pending" = "pending";
+    let rawTx: Record<string, any> | null = null;
+
+    if (lookupId) {
+      const verifyRes = await fedapayProvider.verify(lookupId);
+      verifiedOutcome = verifyRes.status;
+      const rawJson = (verifyRes.raw || {}) as Record<string, any>;
+      rawTx =
+        rawJson["v1/transaction"] ||
+        rawJson.transaction ||
+        rawJson.data ||
+        null;
+    }
+
+    // If API reports pending right at redirect time, check query param fallback for explicit cancel/decline
+    if (verifiedOutcome === "pending") {
+      if (
+        statusParam === "declined" ||
+        statusParam === "canceled" ||
+        statusParam === "cancelled"
+      ) {
+        verifiedOutcome = "failed";
+      }
+    }
 
     const settled = await settleFedaPayPaymentIntent({
       intentId: intent.id,
@@ -105,13 +126,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
-    const payload = JSON.parse(rawBody || "{}") as FedaJson;
-    const obj = (payload.object || payload.transaction || payload.data || payload) as FedaJson;
-    const customMeta = (obj.custom_metadata || {}) as FedaJson;
+    const payload = JSON.parse(rawBody || "{}") as Record<string, any>;
+    const obj = extractFedaWebhookEntity(payload);
+    const customMeta = (obj.custom_metadata || {}) as Record<string, any>;
     const fedaTxId = obj.id ? String(obj.id) : "";
     const ref = typeof customMeta.reference === "string" ? customMeta.reference : "";
 
-    const orFilters: Prisma.PaymentIntentWhereInput[] = [];
+    const orFilters: Array<Record<string, any>> = [];
     if (fedaTxId) orFilters.push({ providerRef: fedaTxId });
     if (ref) {
       orFilters.push({ providerRef: ref });
@@ -130,10 +151,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, note: "intent_not_found" });
     }
 
-    const verified = await verifyFedaPayIntentOutcome(intent, fedaTxId || undefined);
+    const vendorCfg = await getVendorFedaPayConfig(intent.vendorId);
+    if (
+      vendorCfg.webhookSecret &&
+      !verifyFedaPaySignatureWithSecret(rawBody, req.headers, vendorCfg.webhookSecret)
+    ) {
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+
+    const verifyRes = await fedapayProvider.verify(fedaTxId || intent.providerRef || "");
     const settled = await settleFedaPayPaymentIntent({
       intentId: intent.id,
-      outcome: verified.outcome,
+      outcome: verifyRes.status,
       fedaTxId: fedaTxId || undefined,
       rawTransaction: obj,
     });

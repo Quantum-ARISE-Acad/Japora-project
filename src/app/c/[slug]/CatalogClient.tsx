@@ -8,13 +8,11 @@ import Glyph from "@/components/Glyph";
 import ProductPlaceholder from "@/components/ProductPlaceholder";
 import { ProductReviews } from "@/components/ProductReviews";
 import { parseDeliveryZones, calculateDeliveryFee } from "@/lib/delivery";
+import ShopThemeSelector from "@/components/ShopThemeSelector";
 import ShopCurrencySelector from "@/components/ShopCurrencySelector";
 import ShopAiAssistant from "@/components/ShopAiAssistant";
 import ShopWhatsAppQrBanner from "@/components/ShopWhatsAppQrBanner";
-import { formatConvertedPrice } from "@/lib/currency";
-import { telHref, directUssdCode } from "@/lib/payments/ussd";
-import { LanguageSwitcher, usePublicLang } from "@/components/PublicLanguageProvider";
-import { matchesSearch } from "@/lib/search-text";
+import { formatConvertedPrice, convertCurrency, formatCurrencyAmount } from "@/lib/currency";
 import {
   trackVisit,
   trackProductView,
@@ -23,7 +21,7 @@ import {
   getSessionId,
 } from "@/lib/telemetry";
 
-export type PaymentMethod = "fedapay" | "tmoney" | "flooz" | "online" | "wescrow" | "cash";
+export type PaymentMethod = "fedapay" | "cash";
 
 export type StorefrontCollection = {
   id: string;
@@ -108,7 +106,6 @@ export default function CatalogClient({
     showQrOnShop?: boolean;
   };
 }) {
-  const { tr } = usePublicLang();
   const [displayCurrency, setDisplayCurrency] = useState(currency || "XOF");
   const [cart, setCart] = useState<CartLine[]>([]);
   const [open, setOpen] = useState(false);
@@ -119,9 +116,8 @@ export default function CatalogClient({
   const [note, setNote] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("fedapay");
   const [launchingFeda, setLaunchingFeda] = useState(false);
+  const [fedaCheckoutError, setFedaCheckoutError] = useState("");
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(initialCollectionId);
-  const [copiedMomo, setCopiedMomo] = useState(false);
-  const [copiedAmount, setCopiedAmount] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [fulfillment, setFulfillment] = useState<"pickup" | "delivery">(
@@ -172,16 +168,13 @@ export default function CatalogClient({
     }
 
     // Search query
-    // Accents, capitals and plurals ignored; every word must be found.
     if (searchQuery.trim()) {
-      list = list.filter((p) =>
-        matchesSearch(
-          searchQuery,
-          p.name,
-          p.description,
-          p.condition,
-          collections.find((c) => c.id === p.collectionId)?.name,
-        ),
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.description.toLowerCase().includes(q) ||
+          (p.condition && p.condition.toLowerCase().includes(q)),
       );
     }
 
@@ -203,7 +196,7 @@ export default function CatalogClient({
     }
 
     return list;
-  }, [products, collections, selectedCollectionId, searchQuery, stockFilter, sortBy]);
+  }, [products, selectedCollectionId, searchQuery, stockFilter, sortBy]);
 
   useEffect(() => {
     if (!directProductId) return;
@@ -243,7 +236,6 @@ export default function CatalogClient({
   }, [deliveryEnabled, fulfillment, deliveryFeeCents, deliveryZones, selectedZone, zonesList]);
 
   const grandTotal = total + deliveryFee;
-  const checkoutZone = selectedZone || zonesList[0]?.name || "";
 
   function addToCart(p: Product, size: string, qty: number) {
     trackCart(shopSlug, p.priceCents * qty);
@@ -291,7 +283,7 @@ export default function CatalogClient({
 
   function quickOrderText(p: Product, size: string) {
     const sizeLabel = size ? ` (${size})` : "";
-    return `${tr(`Bonjour ${shopName}, je souhaite commander :`, `Hi ${shopName}, I'd like to order:`)}\n• ${p.name}${sizeLabel} — ${formatMoney(p.priceCents, currency)}\n\n${tr("Est-ce toujours disponible ?", "Is this still available?")}`;
+    return `Hi ${shopName}, I'd like to order:\n• ${p.name}${sizeLabel} — ${formatMoney(p.priceCents, currency)}\n\nIs this still available?`;
   }
 
   function cartOrderText() {
@@ -301,31 +293,24 @@ export default function CatalogClient({
         return `• ${l.qty}× ${l.name}${sizeLabel} — ${formatMoney(l.priceCents * l.qty, currency)}`;
       })
       .join("\n");
-    return `${tr(`Bonjour ${shopName}`, `Hello ${shopName}`)},\n\n${tr("Je souhaite commander les articles suivants :", "I'd like to order the following items:")}\n${lines}\n\n${tr("Total", "Total")} : ${formatMoney(total, currency)}\n\n${tr("Sont-ils disponibles ? Merci !", "Are these available? Thank you!")}`;
+    return `Bonjour ${shopName},\n\nJe souhaite commander les articles suivants :\n${lines}\n\nTotal : ${formatMoney(total, currency)}\n\nSont-ils disponibles ? Merci !`;
   }
 
   async function submitOrder(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     setError("");
+    setFedaCheckoutError("");
 
     const paymentLabel =
       paymentMethod === "fedapay"
-        ? tr("FedaPay (T-Money, Flooz, Mobile Money & Carte)", "FedaPay (T-Money, Flooz, Mobile Money & card)")
-        : paymentMethod === "tmoney"
-        ? tr("USSD T-Money (*145#)", "T-Money USSD (*145#)")
-        : paymentMethod === "flooz"
-        ? tr("USSD Flooz (*155#)", "Flooz USSD (*155#)")
-        : paymentMethod === "online"
-        ? tr("Paiement en ligne / Mobile Money automatique", "Online payment / automatic Mobile Money")
-        : paymentMethod === "wescrow"
-        ? tr("Paiement Garanti WEscrow (Safe Hands)", "WEscrow protected payment (Safe Hands)")
-        : tr("Paiement en espèces", "Cash payment");
+        ? "FedaPay (T-Money, Flooz, Mobile Money & Carte)"
+        : "Paiement à la livraison";
 
     const fullNote = [
       `[PAIEMENT: ${paymentLabel}]`,
       deliveryEnabled && fulfillment === "delivery"
-        ? `[LIVRAISON - ${checkoutZone || "Standard"}${deliveryAddress ? ` : ${deliveryAddress}` : ""}]`
+        ? `[LIVRAISON - ${selectedZone || "Standard"}${deliveryAddress ? ` : ${deliveryAddress}` : ""}]`
         : deliveryEnabled
         ? "[RETRAIT EN BOUTIQUE]"
         : "",
@@ -344,8 +329,8 @@ export default function CatalogClient({
         customerEmail: customerEmail.trim() || undefined,
         note: fullNote,
         paymentMethod,
-        fulfillment: deliveryEnabled ? fulfillment : "pickup",
-        deliveryZone: fulfillment === "delivery" ? checkoutZone : "",
+        fulfillment,
+        deliveryZone: selectedZone || (zonesList[0]?.name ?? ""),
         sessionId: getSessionId(),
         items: cart.map((l) => ({ productId: l.productId, size: l.size, qty: l.qty })),
       }),
@@ -353,49 +338,36 @@ export default function CatalogClient({
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       setSubmitting(false);
-      setError(data.error || tr("Impossible de passer la commande.", "Could not place the order."));
+      setError(data.error || "Impossible de valider la commande.");
       return;
     }
 
-    if (paymentMethod === "tmoney" || paymentMethod === "flooz") {
-      trackPaymentIntent(shopSlug, data.orderId, paymentMethod, data.totalCents);
-    }
-
+    const finalTotalCents = typeof data.totalCents === "number" ? data.totalCents : grandTotal;
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     const payUrl = `${origin}/pay/${data.orderId}`;
-    const itemsList = cart
-      .map((l) => `  - ${l.qty}x ${l.name}${l.size ? ` (${l.size})` : ""} : ${formatMoney(l.priceCents * l.qty, currency)}`)
-      .join("\n");
-
-    const summary =
-      `Bonjour ${shopName} !\n\n` +
-      `J'ai validé ma commande sur votre boutique Japora.\n` +
-      `Référence : #${data.orderId.slice(0, 8)}\n\n` +
-      `DÉTAILS DES ARTICLES :\n` +
-      `${itemsList}\n\n` +
-      `Sous-total : ${formatMoney(data.totalCents - data.deliveryFeeCents, currency)}\n` +
-      (data.deliveryFeeCents > 0 ? `Frais de livraison : +${formatMoney(data.deliveryFeeCents, currency)} (${checkoutZone || "Standard"})\n` : "") +
-      `Total à régler : ${formatMoney(data.totalCents, currency)}\n` +
-      `Mode de paiement : ${paymentLabel}\n` +
-      `Récupération : ${fulfillment === "delivery" ? `Livraison à domicile (${deliveryAddress || "Voir adresse"})` : "Retrait en boutique"}\n\n` +
-      `INFORMATIONS CLIENT :\n` +
-      `- Nom : ${customerName}\n` +
-      (customerPhone ? `- Téléphone : ${customerPhone}\n` : "") +
-      (note ? `- Note spéciale : ${note}\n` : "") +
-      `\nLien suivi & facture :\n${payUrl}\n\n` +
-      `Merci de bien vouloir me confirmer ma commande !`;
+    const summary = `Bonjour ${shopName},\n\n` +
+      `Je viens de valider ma commande (Réf : #${data.orderId.slice(0, 8)}).\n\n` +
+      `📦 *Articles commandés :*\n${cart.map((l) => `• ${l.qty}× ${l.name}${l.size ? ` (${l.size})` : ""} — ${formatMoney(l.priceCents * l.qty, currency)}`).join("\n")}\n\n` +
+      `💰 *Sous-total :* ${formatMoney(total, currency)}\n` +
+      (deliveryFee > 0 ? `🛵 *Frais de livraison :* +${formatMoney(deliveryFee, currency)} (${selectedZone || "Standard"})\n` : "") +
+      `💳 *Total à régler :* ${formatMoney(finalTotalCents, currency)}\n` +
+      `📍 *Récupération :* ${fulfillment === "delivery" ? `Livraison à domicile (${deliveryAddress || "Voir adresse"})` : "Retrait en boutique"}\n` +
+      `📱 *Mode de paiement :* ${paymentLabel}\n` +
+      `👤 *Client :* ${customerName}${customerPhone ? ` (${customerPhone})` : ""}\n` +
+      (note ? `📝 *Note :* ${note}\n` : "") +
+      `\n🔗 *Lien commande & paiement :*\n${payUrl}\n\nMerci de bien vouloir confirmer ma commande !`;
 
     setPlacedSummary({
       orderId: data.orderId,
       waLink: waMeLink(whatsappNumber, summary),
       paymentMethod,
-      totalCents: data.totalCents,
+      totalCents: finalTotalCents,
     });
     setStep("success");
     setCart([]);
 
-    // Si le client a choisi FedaPay ou Paiement en ligne, lancer directement le checkout FedaPay API v1
-    if (paymentMethod === "fedapay" || paymentMethod === "online") {
+    if (paymentMethod === "fedapay") {
+      trackPaymentIntent(shopSlug, data.orderId, "fedapay", finalTotalCents);
       setLaunchingFeda(true);
       try {
         const checkoutRes = await fetch("/api/payments/checkout", {
@@ -413,10 +385,24 @@ export default function CatalogClient({
           window.location.href = checkoutData.checkoutUrl;
           return;
         }
+        setFedaCheckoutError(
+          checkoutData.error || "Impossible d'ouvrir la page de paiement FedaPay. Réessayez ci-dessous.",
+        );
       } catch {
-        // Fallback to success modal with manual button
+        setFedaCheckoutError("Erreur réseau lors de la connexion à FedaPay. Réessayez ci-dessous.");
       }
       setLaunchingFeda(false);
+    } else {
+      // Record cash-on-delivery intent so vendor sees it cleanly in billing/orders
+      fetch("/api/payments/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: data.orderId,
+          provider: "cash",
+          returnUrl: `${origin}/pay/${data.orderId}`,
+        }),
+      }).catch(() => {});
     }
     setSubmitting(false);
   }
@@ -458,7 +444,6 @@ export default function CatalogClient({
                 onCurrencyChange={setDisplayCurrency}
                 baseCurrency={currency}
               />
-              <LanguageSwitcher />
               <button
                 type="button"
                 onClick={() => {
@@ -471,9 +456,9 @@ export default function CatalogClient({
                     ? "bg-emerald-600 text-white hover:bg-emerald-700"
                     : "border border-arctic-300 bg-white text-arctic-700 hover:bg-arctic-100"
                 }`}
-                title={tr("Ouvrir mon panier", "Open my cart")}
+                title="Ouvrir mon panier"
               >
-                <span>🛒 {tr("Panier", "Cart")}</span>
+                <span>🛒 Panier</span>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${
                     itemCount > 0 ? "bg-white text-emerald-800" : "bg-arctic-200 text-arctic-700"
@@ -490,7 +475,7 @@ export default function CatalogClient({
                   rel="noreferrer"
                   className="btn-primary gap-1.5"
                 >
-                  <Glyph name="chat" size={16} /> {tr("Discuter", "Chat")}
+                  <Glyph name="chat" size={16} /> Chat
                 </a>
               )}
             </div>
@@ -508,7 +493,7 @@ export default function CatalogClient({
                   setSearchQuery(e.target.value);
                   setVisibleCount(PAGE_SIZE);
                 }}
-                placeholder={tr("Rechercher des produits…", "Search products…")}
+                placeholder="Search products..."
                 className="w-full rounded-shape-full border border-arctic-300/50 bg-white/90 py-1.5 pl-9 pr-8 text-sm text-arctic-900 placeholder:text-arctic-400 focus:border-arctic-600 focus:outline-none focus:ring-1 focus:ring-arctic-400"
               />
               {searchQuery && (
@@ -537,7 +522,7 @@ export default function CatalogClient({
                       : "bg-arctic-200/60 text-arctic-700 hover:bg-arctic-300/60"
                   }`}
                 >
-                  {tr("Tout", "All")} ({products.length})
+                  All ({products.length})
                 </button>
                 <button
                   type="button"
@@ -551,7 +536,7 @@ export default function CatalogClient({
                       : "bg-arctic-200/60 text-arctic-700 hover:bg-arctic-300/60"
                   }`}
                 >
-                  {tr("En stock", "In stock")}
+                  In stock
                 </button>
                 <button
                   type="button"
@@ -565,7 +550,7 @@ export default function CatalogClient({
                       : "bg-arctic-200/60 text-arctic-700 hover:bg-arctic-300/60"
                   }`}
                 >
-                  {tr("Stock faible", "Low stock")}
+                  Low stock
                 </button>
                 <button
                   type="button"
@@ -579,7 +564,7 @@ export default function CatalogClient({
                       : "bg-arctic-200/60 text-arctic-700 hover:bg-arctic-300/60"
                   }`}
                 >
-                  ✨ {tr("Nouveautés", "New")}
+                  ✨ New
                 </button>
               </div>
 
@@ -589,9 +574,9 @@ export default function CatalogClient({
                 onChange={(e) => setSortBy(e.target.value as "default" | "price_asc" | "price_desc")}
                 className="rounded-shape-md border border-arctic-300/50 bg-white/90 px-2 py-1 text-xs font-medium text-arctic-700 focus:outline-none"
               >
-                <option value="default">{tr("Trier : par défaut", "Sort: Default")}</option>
-                <option value="price_asc">{tr("Prix : croissant", "Price: Low to High")}</option>
-                <option value="price_desc">{tr("Prix : décroissant", "Price: High to Low")}</option>
+                <option value="default">Sort: Default</option>
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
               </select>
             </div>
           </div>
@@ -616,7 +601,7 @@ export default function CatalogClient({
           <section className="mb-6 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-extrabold uppercase tracking-wider text-arctic-600 flex items-center gap-1.5">
-                <span>📁</span> {tr("Collections de la boutique", "Shop collections")}
+                <span>📁</span> Collections de la boutique
               </h2>
               {selectedCollectionId && (
                 <button
@@ -627,7 +612,7 @@ export default function CatalogClient({
                   }}
                   className="text-xs font-semibold text-brand-dark hover:underline"
                 >
-                  {tr("Voir tout le catalogue", "View full catalog")} ({products.length})
+                  Voir tout le catalogue ({products.length})
                 </button>
               )}
             </div>
@@ -655,13 +640,13 @@ export default function CatalogClient({
                   🛍️
                 </div>
                 <div>
-                  <div className="text-sm font-bold leading-tight">{tr("Tout le catalogue", "All products")}</div>
+                  <div className="text-sm font-bold leading-tight">Tout le catalogue</div>
                   <div
                     className={`text-[11px] ${
                       selectedCollectionId === null ? "text-white/80" : "text-arctic-500"
                     }`}
                   >
-                    {products.length} {tr(products.length > 1 ? "articles" : "article", products.length > 1 ? "items" : "item")}
+                    {products.length} article{products.length > 1 ? "s" : ""}
                   </div>
                 </div>
               </button>
@@ -701,7 +686,7 @@ export default function CatalogClient({
                           active ? "text-emerald-100" : "text-arctic-500"
                         }`}
                       >
-                        {col.productCount} {tr(col.productCount > 1 ? "produits" : "produit", col.productCount > 1 ? "products" : "product")}
+                        {col.productCount} produit{col.productCount > 1 ? "s" : ""}
                       </div>
                     </div>
                   </button>
@@ -717,7 +702,7 @@ export default function CatalogClient({
                 <div className="rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-emerald-700 p-4 text-white shadow-sm flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-200">
-                      📁 {tr("Collection sélectionnée", "Selected collection")}
+                      📁 Collection sélectionnée
                     </div>
                     <h3 className="text-lg font-extrabold">{activeCol.name}</h3>
                     {activeCol.description && (
@@ -729,14 +714,14 @@ export default function CatalogClient({
                       href={`/c/${shopSlug}/collection/${activeCol.slug}`}
                       className="rounded-xl bg-white/15 hover:bg-white/25 px-3 py-1.5 text-xs font-semibold text-white transition"
                     >
-                      {tr("Lien dédié de la collection", "Collection link")} ↗
+                      Lien dédié de la collection ↗
                     </a>
                     <button
                       type="button"
                       onClick={() => setSelectedCollectionId(null)}
                       className="rounded-xl bg-white text-brand-dark px-3 py-1.5 text-xs font-bold hover:bg-emerald-50 transition"
                     >
-                      ✕ {tr("Tout afficher", "Show all")}
+                      ✕ Tout afficher
                     </button>
                   </div>
                 </div>
@@ -749,7 +734,7 @@ export default function CatalogClient({
         {(searchQuery || stockFilter !== "all" || selectedCollectionId) && (
           <div className="mb-4 flex items-center justify-between text-xs text-arctic-600">
             <span>
-              {tr("Affichage de", "Showing")} <strong>{filteredProducts.length}</strong> {tr(filteredProducts.length === 1 ? "article" : "articles", filteredProducts.length === 1 ? "item" : "items")}
+              Affichage de <strong>{filteredProducts.length}</strong> article{filteredProducts.length === 1 ? "" : "s"}
             </span>
             <button
               onClick={() => {
@@ -759,7 +744,7 @@ export default function CatalogClient({
               }}
               className="text-arctic-800 underline hover:text-black"
             >
-              {tr("Réinitialiser les filtres", "Reset filters")}
+              Réinitialiser les filtres
             </button>
           </div>
         )}
@@ -767,9 +752,9 @@ export default function CatalogClient({
         {filteredProducts.length === 0 ? (
           <div className="card grid place-items-center gap-3 p-12 text-center text-arctic-600">
             <span className="text-4xl">🔍</span>
-            <h3 className="text-base font-semibold text-arctic-800">{tr("Aucun produit trouvé", "No products found")}</h3>
+            <h3 className="text-base font-semibold text-arctic-800">No products found</h3>
             <p className="text-sm max-w-sm">
-              {tr("Aucun article ne correspond à vos critères. Modifiez votre recherche ou vos filtres.", "We couldn’t find any items matching your criteria. Try adjusting your search or filters.")}
+              We couldn&apos;t find any items matching your criteria. Try adjusting your search query or filters.
             </p>
             <button
               onClick={() => {
@@ -778,7 +763,7 @@ export default function CatalogClient({
               }}
               className="btn-ghost mt-2 text-xs"
             >
-              {tr("Effacer les filtres", "Clear filters")}
+              Clear filters
             </button>
           </div>
         ) : (
@@ -811,7 +796,7 @@ export default function CatalogClient({
               onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
               className="btn-ghost rounded-shape-full px-6 py-2.5 shadow-xs font-semibold text-arctic-800 hover:bg-arctic-200/50"
             >
-              {tr("Afficher plus", "Load more")} ({filteredProducts.length - visibleCount} {tr("restants", "remaining")})
+              Load more ({filteredProducts.length - visibleCount} remaining)
             </button>
           </div>
         )}
@@ -827,7 +812,7 @@ export default function CatalogClient({
               </span>
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-700">
-                  {tr("Votre panier", "Your cart")} ({itemCount} {tr(itemCount === 1 ? "article" : "articles", itemCount === 1 ? "item" : "items")})
+                  Votre panier ({itemCount} article{itemCount === 1 ? "" : "s"})
                 </div>
                 <div className="font-extrabold text-arctic-900 text-base">
                   {formatConvertedPrice(total, currency, displayCurrency).primary}
@@ -835,7 +820,7 @@ export default function CatalogClient({
               </div>
             </div>
             <button onClick={openCart} className="btn-primary !bg-emerald-600 hover:!bg-emerald-700 px-5 py-2.5 text-sm font-bold shadow-lg">
-              {tr("Ouvrir le panier et commander", "Open cart & checkout")} →
+              Ouvrir le panier & Commander →
             </button>
           </div>
         </div>
@@ -865,7 +850,7 @@ export default function CatalogClient({
                 )}
                 {selectedProduct.condition && selectedProduct.condition !== "new" && (
                   <span className="absolute bottom-3 left-3 rounded-full bg-arctic-900/80 px-3 py-1 text-xs font-semibold capitalize text-white backdrop-blur">
-                    {selectedProduct.condition === "used" ? tr("Occasion", "Used") : tr("Reconditionné", "Refurbished")}
+                    {selectedProduct.condition === "used" ? "Occasion" : "Reconditionné"}
                   </span>
                 )}
               </div>
@@ -878,8 +863,8 @@ export default function CatalogClient({
                     </h2>
                     <span className="text-xs text-arctic-500">
                       {selectedProduct.stock > 0
-                        ? `${selectedProduct.stock} ${tr(selectedProduct.stock > 1 ? "unités disponibles" : "unité disponible", selectedProduct.stock > 1 ? "units available" : "unit available")}`
-                        : tr("Rupture de stock", "Out of stock")}
+                        ? `${selectedProduct.stock} unit${selectedProduct.stock > 1 ? "s" : ""} available`
+                        : "Out of stock"}
                     </span>
                   </div>
                   <div className="text-right">
@@ -893,7 +878,7 @@ export default function CatalogClient({
                     )}
                     {selectedProduct.wholesalePriceCents && (
                       <div className="text-xs text-arctic-600">
-                        {tr("Prix de gros", "Wholesale")}: {formatConvertedPrice(selectedProduct.wholesalePriceCents, currency, displayCurrency).primary} ({tr("min.", "min.")} {selectedProduct.wholesaleMinQty})
+                        Gros: {formatConvertedPrice(selectedProduct.wholesalePriceCents, currency, displayCurrency).primary} (min. {selectedProduct.wholesaleMinQty})
                       </div>
                     )}
                   </div>
@@ -917,7 +902,7 @@ export default function CatalogClient({
                     }}
                     className="btn-primary w-full py-3"
                   >
-                    {selectedProduct.stock > 0 ? tr("Ajouter au panier et commander", "Add to cart & checkout") : tr("Rupture de stock", "Out of stock")}
+                    {selectedProduct.stock > 0 ? "Add to cart & Checkout" : "Out of stock"}
                   </button>
                 </div>
 
@@ -945,7 +930,7 @@ export default function CatalogClient({
                   >
                     {step === "cart" ? "1" : "✓"}
                   </span>
-                  <span className={step === "cart" ? "text-arctic-900 font-bold" : "text-arctic-600"}>{tr("Panier", "Cart")}</span>
+                  <span className={step === "cart" ? "text-arctic-900 font-bold" : "text-arctic-600"}>Cart</span>
                   <span className="text-arctic-400">→</span>
                   <span
                     className={`flex h-5 w-5 items-center justify-center rounded-full ${
@@ -958,7 +943,7 @@ export default function CatalogClient({
                   >
                     {step === "success" ? "✓" : "2"}
                   </span>
-                  <span className={step === "form" ? "text-arctic-900 font-bold" : "text-arctic-600"}>{tr("Coordonnées", "Details")}</span>
+                  <span className={step === "form" ? "text-arctic-900 font-bold" : "text-arctic-600"}>Details</span>
                   <span className="text-arctic-400">→</span>
                   <span
                     className={`flex h-5 w-5 items-center justify-center rounded-full ${
@@ -967,7 +952,7 @@ export default function CatalogClient({
                   >
                     3
                   </span>
-                  <span className={step === "success" ? "text-arctic-900 font-bold" : "text-arctic-600"}>{tr("Terminé", "Done")}</span>
+                  <span className={step === "success" ? "text-arctic-900 font-bold" : "text-arctic-600"}>Done</span>
                 </div>
                 <button onClick={() => setOpen(false)} className="text-arctic-500 hover:text-arctic-800">
                   ✕
@@ -993,7 +978,7 @@ export default function CatalogClient({
                         {l.size && <span className="ml-1 text-xs text-arctic-500">({l.size})</span>}
                       </div>
                       <div className="text-sm text-arctic-600">
-                        {formatConvertedPrice(l.priceCents, currency, displayCurrency).primary} {tr("l’unité", "each")}
+                        {formatConvertedPrice(l.priceCents, currency, displayCurrency).primary} each
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
@@ -1022,7 +1007,7 @@ export default function CatalogClient({
                 ))}
 
                 <div className="flex items-center justify-between border-t border-arctic-400/30 pt-3">
-                  <span className="text-sm text-arctic-600">{tr("Total", "Total")}</span>
+                  <span className="text-sm text-arctic-600">Total</span>
                   <div className="text-right">
                     <span className="text-lg font-bold text-arctic-900">
                       {formatConvertedPrice(total, currency, displayCurrency).primary}
@@ -1036,7 +1021,7 @@ export default function CatalogClient({
                 </div>
 
                 <button onClick={() => setStep("form")} className="btn-primary w-full">
-                  {tr("Continuer", "Continue to details")}
+                  Continue to details
                 </button>
                 {hasWhatsApp && (
                   <a
@@ -1045,7 +1030,7 @@ export default function CatalogClient({
                     rel="noreferrer"
                     className="btn-ghost w-full gap-1.5"
                   >
-                    <Glyph name="chat" size={16} /> {tr("Ou envoyer la commande sur WhatsApp", "Or send order on WhatsApp")}
+                    <Glyph name="chat" size={16} /> Or send order on WhatsApp
                   </a>
                 )}
               </div>
@@ -1054,17 +1039,17 @@ export default function CatalogClient({
             {step === "form" && (
               <form onSubmit={submitOrder} className="space-y-3.5 p-5">
                 <div>
-                  <label className="label">{tr("Nom complet *", "Your full name *")}</label>
+                  <label className="label">Your full name *</label>
                   <input
                     className="input"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder={tr("ex. Kossi Amouzou", "e.g. John Doe")}
+                    placeholder="e.g. John Doe"
                     required
                   />
                 </div>
                 <div>
-                  <label className="label">{tr("Numéro WhatsApp", "WhatsApp phone number")}</label>
+                  <label className="label">WhatsApp phone number</label>
                   <input
                     className="input"
                     inputMode="tel"
@@ -1072,14 +1057,14 @@ export default function CatalogClient({
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                   />
-                  <span className="text-[11px] text-arctic-500">{tr("Pour organiser la livraison et vous tenir informé", "For delivery coordination and updates")}</span>
+                  <span className="text-[11px] text-arctic-500">For delivery coordination & updates</span>
                 </div>
                 <div>
-                  <label className="label">{tr("Adresse e-mail (facultatif)", "Email address (optional)")}</label>
+                  <label className="label">Email address (optional)</label>
                   <input
                     className="input"
                     type="email"
-                    placeholder={tr("Pour recevoir le reçu de commande", "To receive your order receipt")}
+                    placeholder="To receive your order receipt"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
                   />
@@ -1088,7 +1073,7 @@ export default function CatalogClient({
                 {deliveryEnabled && (
                   <div className="rounded-xl border border-arctic-400/30 bg-arctic-100/30 p-3 space-y-2.5">
                     <label className="text-xs font-semibold text-arctic-800 block">
-                      {tr("Mode de récupération", "Fulfillment method")}
+                      Mode de récupération
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
@@ -1100,8 +1085,8 @@ export default function CatalogClient({
                             : "border-arctic-200 bg-white text-arctic-700 hover:bg-arctic-50"
                         }`}
                       >
-                        <span className="block font-bold">🏪 {tr("Retrait", "Pickup")}</span>
-                        <span className="text-[10px] text-arctic-500">{tr("Gratuit en boutique", "Free at the shop")}</span>
+                        <span className="block font-bold">🏪 Retrait</span>
+                        <span className="text-[10px] text-arctic-500">Gratuit en boutique</span>
                       </button>
 
                       <button
@@ -1113,8 +1098,8 @@ export default function CatalogClient({
                             : "border-arctic-200 bg-white text-arctic-700 hover:bg-arctic-50"
                         }`}
                       >
-                        <span className="block font-bold">🛵 {tr("Livraison", "Delivery")}</span>
-                        <span className="text-[10px] text-arctic-500">{tr("À votre adresse", "To your address")}</span>
+                        <span className="block font-bold">🛵 Livraison</span>
+                        <span className="text-[10px] text-arctic-500">À votre adresse</span>
                       </button>
                     </div>
 
@@ -1123,7 +1108,7 @@ export default function CatalogClient({
                         {zonesList.length > 0 && (
                           <div>
                             <label className="text-[11px] font-medium text-arctic-700 block mb-1">
-                              {tr("Zone de livraison", "Delivery zone")}
+                              Zone de livraison
                             </label>
                             <select
                               value={selectedZone}
@@ -1141,13 +1126,13 @@ export default function CatalogClient({
 
                         <div>
                           <label className="text-[11px] font-medium text-arctic-700 block mb-1">
-                            {tr("Adresse / Quartier de livraison *", "Delivery address / neighborhood *")}
+                            Adresse / Quartier de livraison *
                           </label>
                           <input
                             required
                             value={deliveryAddress}
                             onChange={(e) => setDeliveryAddress(e.target.value)}
-                            placeholder={tr("Quartier, repère, ville…", "Neighborhood, landmark, city…")}
+                            placeholder="Quartier, repère, ville..."
                             className="input text-xs py-1.5"
                           />
                         </div>
@@ -1157,30 +1142,30 @@ export default function CatalogClient({
                 )}
 
                 <div>
-                  <label className="label">{tr("Notes complémentaires (facultatif)", "Additional notes (optional)")}</label>
+                  <label className="label">Notes complémentaires (optionnel)</label>
                   <textarea
                     className="input min-h-[55px]"
-                    placeholder={tr("Instructions particulières, taille ou couleur…", "Special instructions, size, or color details…")}
+                    placeholder="Instructions particulières, détails taille ou couleur..."
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                   />
                 </div>
 
-                {/* Mode de règlement */}
+                {/* Mode de règlement — 2 solutions uniquement : FedaPay & Paiement à la livraison */}
                 <div className="rounded-xl border border-arctic-400/30 bg-arctic-100/30 p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold text-arctic-800 dark:text-arctic-100 block">
-                      {tr("Mode de paiement souhaité *", "Preferred payment method *")}
+                      Mode de paiement *
                     </label>
                     <span className="text-[10px] uppercase font-bold text-emerald-600 tracking-wide">
-                      {tr("Options flexibles", "Flexible options")}
+                      Sécurisé
                     </span>
                   </div>
 
-                  <div className="space-y-1.5 pt-1">
-                    {/* FedaPay Sandbox / Live — Recommandé */}
+                  <div className="space-y-2 pt-1">
+                    {/* 1. FedaPay (T-Money, Flooz, Mobile Money & Carte) */}
                     <label
-                      className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
+                      className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
                         paymentMethod === "fedapay"
                           ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 ring-2 ring-emerald-500/30"
                           : "border-arctic-200 dark:border-arctic-700 bg-white dark:bg-arctic-800 hover:bg-arctic-50"
@@ -1196,162 +1181,26 @@ export default function CatalogClient({
                           className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
                         />
                         <div>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-sm font-bold text-arctic-900 dark:text-white">
-                              💳 {tr("FedaPay (Mobile Money et carte)", "FedaPay (Mobile Money & card)")}
+                              💳 FedaPay (T-Money, Flooz, Mobile Money & Carte)
                             </span>
-                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-600 text-white">
-                              {tr("Mode test actif", "Sandbox active")}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-arctic-500">
-                            T-Money, Flooz Moov, MTN MoMo, Celtiis & Visa/Mastercard
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                        {tr("Recommandé", "Recommended")}
-                      </span>
-                    </label>
-
-                    {/* USSD T-Money */}
-                    <label
-                      className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
-                        paymentMethod === "tmoney"
-                          ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30 ring-1 ring-amber-500"
-                          : "border-arctic-200 dark:border-arctic-700 bg-white dark:bg-arctic-800 hover:bg-arctic-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="tmoney"
-                          checked={paymentMethod === "tmoney"}
-                          onChange={() => setPaymentMethod("tmoney")}
-                          className="h-4 w-4 text-amber-600 focus:ring-amber-500"
-                        />
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-bold text-arctic-900 dark:text-white">
-                              🟡 USSD T-Money
-                            </span>
-                            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-200/70 text-amber-900 font-bold">
-                              *145#
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-600 text-white">
+                              Instantané
                             </span>
                           </div>
-                          <p className="text-[11px] text-arctic-500">
-                            {tr("Togocom Togo — Paiement direct par code USSD", "Togocom Togo — Pay directly using a USSD code")}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
-                        Togo
-                      </span>
-                    </label>
-
-                    {/* USSD Flooz */}
-                    <label
-                      className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
-                        paymentMethod === "flooz"
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30 ring-1 ring-blue-500"
-                          : "border-arctic-200 dark:border-arctic-700 bg-white dark:bg-arctic-800 hover:bg-arctic-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="flooz"
-                          checked={paymentMethod === "flooz"}
-                          onChange={() => setPaymentMethod("flooz")}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-                        />
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-bold text-arctic-900 dark:text-white">
-                              🔵 USSD Flooz
-                            </span>
-                            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-blue-200/70 text-blue-900 font-bold">
-                              *155#
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-arctic-500">
-                            {tr("Moov Africa Togo — Virement Mobile Money direct", "Moov Africa Togo — Direct Mobile Money transfer")}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800">
-                        Togo
-                      </span>
-                    </label>
-
-                    {/* Paiement Mobile / En ligne automatique */}
-                    <label
-                      className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
-                        paymentMethod === "online"
-                          ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 ring-1 ring-emerald-600"
-                          : "border-arctic-200 dark:border-arctic-700 bg-white dark:bg-arctic-800 hover:bg-arctic-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="online"
-                          checked={paymentMethod === "online"}
-                          onChange={() => setPaymentMethod("online")}
-                          className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
-                        />
-                        <div>
-                          <span className="text-sm font-bold text-arctic-900 dark:text-white block">
-                            ⚡ {tr("Paiement en ligne / API", "Online payment / API")}
-                          </span>
-                          <p className="text-[11px] text-arctic-500">
-                            {tr("CinetPay, PayGate, carte bancaire ou paiement direct", "CinetPay, PayGate, bank card, or direct push")}
+                          <p className="text-[11px] text-arctic-500 mt-0.5">
+                            Payez en ligne par T-Money, Flooz Moov, MTN MoMo, Celtiis ou Carte Visa/Mastercard
                           </p>
                         </div>
                       </div>
                     </label>
 
-                    {/* Paiement Garanti WEscrow */}
+                    {/* 2. Paiement à la livraison */}
                     <label
-                      className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
-                        paymentMethod === "wescrow"
-                          ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-1 ring-indigo-500"
-                          : "border-arctic-200 dark:border-arctic-700 bg-white dark:bg-arctic-800 hover:bg-arctic-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="wescrow"
-                          checked={paymentMethod === "wescrow"}
-                          onChange={() => setPaymentMethod("wescrow")}
-                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
-                        />
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-bold text-indigo-900 dark:text-indigo-300">
-                              🛡️ {tr("Paiement garanti WEscrow", "WEscrow protected payment")}
-                            </span>
-                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-700">
-                              Safe Hands
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-arctic-500">
-                            {tr("Fonds conservés jusqu’à confirmation de réception", "Funds held until receipt is confirmed")}
-                          </p>
-                        </div>
-                      </div>
-                    </label>
-
-                    {/* Espèces à la livraison */}
-                    <label
-                      className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
+                      className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
                         paymentMethod === "cash"
-                          ? "border-arctic-400 bg-arctic-100 dark:bg-arctic-800 ring-1 ring-arctic-400"
+                          ? "border-arctic-700 bg-arctic-100 dark:bg-arctic-800 ring-2 ring-arctic-500/30"
                           : "border-arctic-200 dark:border-arctic-700 bg-white dark:bg-arctic-800 hover:bg-arctic-50"
                       }`}
                     >
@@ -1362,14 +1211,14 @@ export default function CatalogClient({
                           value="cash"
                           checked={paymentMethod === "cash"}
                           onChange={() => setPaymentMethod("cash")}
-                          className="h-4 w-4 text-arctic-600 focus:ring-arctic-500"
+                          className="h-4 w-4 text-arctic-700 focus:ring-arctic-500"
                         />
                         <div>
                           <span className="text-sm font-bold text-arctic-900 dark:text-white block">
-                            💵 {tr("Espèces / Remise en main propre", "Cash / In-person handoff")}
+                            💵 Paiement à la livraison
                           </span>
-                          <p className="text-[11px] text-arctic-500">
-                            {tr("Paiement à la livraison ou lors du retrait", "Pay on delivery or pickup")}
+                          <p className="text-[11px] text-arctic-500 mt-0.5">
+                            Réglez en espèces ou à la remise en main propre lors de la réception
                           </p>
                         </div>
                       </div>
@@ -1379,17 +1228,17 @@ export default function CatalogClient({
 
                 <div className="space-y-1 border-t border-arctic-400/30 pt-2.5 text-xs">
                   <div className="flex items-center justify-between text-arctic-600">
-                    <span>{tr("Sous-total des articles", "Items subtotal")}</span>
+                    <span>Sous-total articles</span>
                     <span>{formatConvertedPrice(total, currency, displayCurrency).primary}</span>
                   </div>
                   {deliveryFee > 0 && (
                     <div className="flex items-center justify-between text-arctic-600">
-                      <span>{tr("Frais de livraison", "Delivery fee")}</span>
+                      <span>Frais de livraison</span>
                       <span>+{formatConvertedPrice(deliveryFee, currency, displayCurrency).primary}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between font-bold text-arctic-900 text-base pt-1">
-                    <span>{tr("Total à payer", "Total due")}</span>
+                    <span>Total à payer</span>
                     <div className="text-right">
                       <span>{formatConvertedPrice(grandTotal, currency, displayCurrency).primary}</span>
                       {displayCurrency !== currency && (
@@ -1407,202 +1256,110 @@ export default function CatalogClient({
 
                 <div className="flex gap-2 pt-1">
                   <button type="button" onClick={() => setStep("cart")} className="btn-ghost flex-1">
-                    {tr("Retour", "Back")}
+                    Retour
                   </button>
                   <button className="btn-primary flex-1" disabled={submitting}>
-                    {submitting ? tr("Validation…", "Submitting…") : tr("Confirmer la commande", "Place order")}
+                    {submitting ? "Validation…" : "Confirmer la commande"}
                   </button>
                 </div>
               </form>
             )}
 
             {step === "success" && placedSummary && (() => {
-              const effectivePayee = momoNumber || whatsappNumber || "";
-              const amountMajor = Math.round(placedSummary.totalCents / 100);
-              const isUssd = placedSummary.paymentMethod === "tmoney" || placedSummary.paymentMethod === "flooz";
-              const ussdCode = placedSummary.paymentMethod === "tmoney" ? "*145#" : "*155#";
-              const directCode = isUssd
-                ? directUssdCode(
-                    placedSummary.paymentMethod as "tmoney" | "flooz",
-                    effectivePayee,
-                    amountMajor
-                  )
-                : null;
+              const isCod = placedSummary.paymentMethod === "cash";
 
               return (
                 <div className="space-y-4 p-5 text-center">
                   <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-100 text-3xl">
-                    🎉
+                    {isCod ? "✅" : "💳"}
                   </div>
                   <div>
                     <h3 className="font-bold text-arctic-900 text-lg">
-                      {tr(`Merci pour votre commande, ${customerName || "cher client"} !`, `Thank you for your order, ${customerName || "customer"}!`)}
+                      Merci pour votre commande, {customerName || "cher client"} !
                     </h3>
                     <p className="mt-1 text-sm text-arctic-600">
-                      {tr("Votre commande a bien été enregistrée chez", "Your order has been placed with")} <strong>{shopName}</strong>.
-                      {customerEmail ? ` ${tr("Un email récapitulatif vous a été envoyé.", "A confirmation email has been sent.")}` : ""}
+                      Votre commande a bien été enregistrée chez <strong>{shopName}</strong>.
+                      {customerEmail ? " Un email récapitulatif vous a été envoyé." : ""}
                     </p>
                     <p className="mt-1 text-xs text-arctic-500 font-mono">
-                      {tr("Référence", "Ref.")} : #{placedSummary.orderId.slice(0, 8)}
+                      Réf : #{placedSummary.orderId.slice(0, 8)}
                     </p>
                   </div>
 
-                  {/* Carte interactive USSD si TMoney ou Flooz choisi */}
-                  {isUssd && (
-                    <div className="rounded-xl border border-arctic-300/80 bg-arctic-50 dark:bg-arctic-900/60 p-4 text-left shadow-sm">
-                      <div className="flex items-center justify-between pb-2 mb-2 border-b border-arctic-200 dark:border-arctic-700">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">
-                            {placedSummary.paymentMethod === "tmoney" ? "🟡" : "🔵"}
-                          </span>
-                          <div>
-                            <h4 className="text-sm font-bold text-arctic-900 dark:text-white">
-                              {tr("Paiement", "Payment")} {placedSummary.paymentMethod === "tmoney" ? "T-Money (Togocom)" : "Flooz (Moov Africa)"}
-                            </h4>
-                            <span className="text-[11px] font-mono text-arctic-500">
-                              {tr("Code USSD", "USSD code")} : {ussdCode}
-                            </span>
-                          </div>
-                        </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                  {isCod ? (
+                    <div className="rounded-xl border-2 border-emerald-500/50 bg-emerald-50/70 p-4 text-left space-y-2 shadow-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
+                          <span>💵</span> Paiement à la livraison confirmé
+                        </span>
+                        <span className="rounded-full bg-emerald-600 px-2.5 py-0.5 text-[10px] font-bold text-white">
                           {formatMoney(placedSummary.totalCents, currency)}
                         </span>
                       </div>
-
-                      <dl className="space-y-2 text-xs">
-                        <div className="flex items-center justify-between">
-                          <dt className="text-arctic-500">{tr("Numéro du vendeur :", "Seller's number:")}</dt>
-                          <dd className="flex items-center gap-1.5 font-bold text-arctic-900 dark:text-white">
-                            <span>{effectivePayee || tr("Non renseigné", "Not provided")}</span>
-                            {effectivePayee && (
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  try {
-                                    await navigator.clipboard.writeText(effectivePayee);
-                                    setCopiedMomo(true);
-                                    setTimeout(() => setCopiedMomo(false), 1500);
-                                  } catch {}
-                                }}
-                                className="px-2 py-0.5 rounded border border-arctic-300 text-[10px] font-semibold hover:bg-arctic-200"
-                              >
-                                {copiedMomo ? tr("Copié !", "Copied!") : tr("Copier", "Copy")}
-                              </button>
-                            )}
-                          </dd>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <dt className="text-arctic-500">{tr("Montant exact :", "Exact amount:")}</dt>
-                          <dd className="flex items-center gap-1.5 font-bold text-emerald-600">
-                            <span>{formatMoney(placedSummary.totalCents, currency)}</span>
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                try {
-                                  await navigator.clipboard.writeText(String(amountMajor));
-                                  setCopiedAmount(true);
-                                  setTimeout(() => setCopiedAmount(false), 1500);
-                                } catch {}
-                              }}
-                              className="px-2 py-0.5 rounded border border-arctic-300 text-[10px] font-semibold hover:bg-arctic-200"
-                            >
-                              {copiedAmount ? tr("Copié !", "Copied!") : tr("Copier", "Copy")}
-                            </button>
-                          </dd>
-                        </div>
-                      </dl>
-
-                      {/* Boutons d'appel USSD */}
-                      <div className="mt-3 space-y-1.5">
-                        {directCode && (
-                          <a
-                            href={telHref(directCode)}
-                            className="btn-primary w-full justify-center gap-1.5 text-xs py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
-                          >
-                            <Glyph name="phone" size={14} /> {tr("Composer le code direct", "Dial direct code")} ({directCode})
-                          </a>
-                        )}
-                        <a
-                          href={telHref(ussdCode)}
-                          className="btn-ghost w-full justify-center gap-1.5 text-xs py-1.5 border border-arctic-300 font-medium"
-                        >
-                          <Glyph name="phone" size={13} /> {tr("Composer le menu standard", "Dial standard menu")} ({ussdCode})
-                        </a>
+                      <p className="text-xs text-arctic-700 leading-relaxed">
+                        Préparez le montant de{" "}
+                        <strong>{formatMoney(placedSummary.totalCents, currency)}</strong> lors de
+                        la réception ou du retrait de votre commande.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border-2 border-emerald-500/80 bg-emerald-50/70 p-4 text-left space-y-2.5 shadow-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
+                          <span>💳</span> Règlement instantané FedaPay
+                        </span>
+                        <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                          Sécurisé
+                        </span>
                       </div>
-
-                      {/* Instructions pas à pas */}
-                      <details className="mt-2.5 text-xs text-arctic-600">
-                        <summary className="cursor-pointer font-semibold hover:text-arctic-900 py-1">
-                          {tr("Instructions détaillées étape par étape", "Detailed step-by-step instructions")}
-                        </summary>
-                        <ol className="mt-1.5 space-y-1 pl-4 list-decimal text-[11px] text-arctic-700 dark:text-arctic-300">
-                          {placedSummary.paymentMethod === "tmoney" ? (
-                            <>
-                              <li>{tr("Composez *145# sur votre ligne Togocel / T-Money", "Dial *145# on your Togocel / T-Money line")}</li>
-                              <li>{tr("Choisissez l’option 1 « Transfert d’argent »", "Choose option 1, “Money transfer”")}</li>
-                              <li>{tr("Entrez le numéro du vendeur :", "Enter the seller's number:")} {effectivePayee}</li>
-                              <li>{tr("Entrez le montant :", "Enter the amount:")} {formatMoney(placedSummary.totalCents, currency)}</li>
-                              <li>{tr("Entrez votre code secret T-Money pour valider", "Enter your T-Money PIN to confirm")}</li>
-                            </>
-                          ) : (
-                            <>
-                              <li>{tr("Composez *155# sur votre ligne Moov Africa / Flooz", "Dial *155# on your Moov Africa / Flooz line")}</li>
-                              <li>{tr("Choisissez l’option 1 « Transfert d’argent »", "Choose option 1, “Money transfer”")}</li>
-                              <li>{tr("Entrez le numéro Moov du vendeur :", "Enter the seller's Moov number:")} {effectivePayee}</li>
-                              <li>{tr("Entrez le montant :", "Enter the amount:")} {formatMoney(placedSummary.totalCents, currency)}</li>
-                              <li>{tr("Confirmez avec votre code PIN secret Flooz", "Confirm using your Flooz PIN")}</li>
-                            </>
-                          )}
-                        </ol>
-                      </details>
+                      <p className="text-xs text-arctic-700">
+                        Réglez votre commande de{" "}
+                        <strong>{formatMoney(placedSummary.totalCents, currency)}</strong> par
+                        T-Money, Flooz, MTN MoMo, Celtiis ou Carte Visa/Mastercard.
+                      </p>
+                      {fedaCheckoutError && (
+                        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+                          ⚠️ {fedaCheckoutError}
+                        </p>
+                      )}
+                      <button
+                        type="button"
+                        disabled={launchingFeda}
+                        onClick={async () => {
+                          setLaunchingFeda(true);
+                          setFedaCheckoutError("");
+                          try {
+                            const res = await fetch("/api/payments/checkout", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                orderId: placedSummary.orderId,
+                                provider: "fedapay",
+                                returnUrl: `${window.location.origin}/pay/${placedSummary.orderId}?paid=1`,
+                              }),
+                            });
+                            const d = await res.json().catch(() => ({}));
+                            if (res.ok && d.checkoutUrl) {
+                              window.location.href = d.checkoutUrl;
+                              return;
+                            }
+                            setFedaCheckoutError(
+                              d.error || "Impossible d'ouvrir FedaPay pour le moment.",
+                            );
+                            setLaunchingFeda(false);
+                          } catch {
+                            setFedaCheckoutError("Erreur réseau lors de l'ouverture de FedaPay.");
+                            setLaunchingFeda(false);
+                          }
+                        }}
+                        className="btn-primary w-full justify-center gap-2 py-3 !bg-emerald-600 hover:!bg-emerald-700 !text-white text-sm font-bold shadow-md"
+                      >
+                        {launchingFeda
+                          ? "Redirection vers FedaPay en cours…"
+                          : `💳 Payer ${formatMoney(placedSummary.totalCents, currency)} avec FedaPay →`}
+                      </button>
                     </div>
                   )}
-
-                  {/* Bouton Paiement direct FedaPay */}
-                  <div className="rounded-xl border-2 border-emerald-500/80 bg-emerald-50/70 p-3.5 text-left space-y-2.5 shadow-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
-                        <span>💳</span> {tr("Paiement instantané FedaPay", "Instant FedaPay payment")}
-                      </span>
-                      <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
-                        Sécurisé
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-arctic-700">
-                      {tr("Payez votre commande de", "Pay for your order of")} <strong>{formatMoney(placedSummary.totalCents, currency)}</strong> {tr("maintenant par T-Money, Flooz, Mobile Money ou carte et recevez votre reçu sur WhatsApp.", "now using T-Money, Flooz, Mobile Money, or card and receive your receipt on WhatsApp.")}
-                    </p>
-                    <button
-                      type="button"
-                      disabled={launchingFeda}
-                      onClick={async () => {
-                        setLaunchingFeda(true);
-                        try {
-                          const res = await fetch("/api/payments/checkout", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              orderId: placedSummary.orderId,
-                              provider: "fedapay",
-                              returnUrl: `${window.location.origin}/pay/${placedSummary.orderId}?paid=1`,
-                            }),
-                          });
-                          const d = await res.json().catch(() => ({}));
-                          if (res.ok && d.checkoutUrl) {
-                            window.location.href = d.checkoutUrl;
-                            return;
-                          }
-                          setLaunchingFeda(false);
-                        } catch {
-                          setLaunchingFeda(false);
-                        }
-                      }}
-                      className="btn-primary w-full justify-center gap-2 py-3 !bg-emerald-600 hover:!bg-emerald-700 !text-white text-sm font-bold shadow-md"
-                    >
-                      {launchingFeda
-                        ? tr("Ouverture de FedaPay Sandbox…", "Opening FedaPay Sandbox…")
-                        : `💳 ${tr("Payer", "Pay")} ${formatMoney(placedSummary.totalCents, currency)} ${tr("avec FedaPay", "with FedaPay")} →`}
-                    </button>
-                  </div>
 
                   {/* Bouton Envoi WhatsApp de la commande */}
                   {hasWhatsApp && (
@@ -1612,16 +1369,16 @@ export default function CatalogClient({
                       rel="noreferrer"
                       className="btn-ghost w-full justify-center gap-2 py-2.5 border border-emerald-600 text-emerald-800 hover:bg-emerald-50 text-xs font-bold"
                     >
-                      <Glyph name="chat" size={16} /> {tr("Confirmer aussi sur WhatsApp", "Also confirm on WhatsApp")} 💬
+                      <Glyph name="chat" size={16} /> Confirmer la commande sur WhatsApp 💬
                     </a>
                   )}
 
-                  {/* Lien page de paiement détaillée */}
+                  {/* Lien page de suivi / paiement de la commande */}
                   <a
                     href={`/pay/${placedSummary.orderId}`}
                     className="btn-ghost w-full justify-center gap-1.5 py-2.5 border border-arctic-300/80 text-xs font-semibold"
                   >
-                    <Glyph name="phone" size={15} /> {tr("Voir toutes les options de paiement (WEscrow, etc.)", "See all payment options (WEscrow, etc.)")}
+                    📄 Voir le récapitulatif & paiement de la commande
                   </a>
 
                   <button
@@ -1631,7 +1388,7 @@ export default function CatalogClient({
                     }}
                     className="btn-ghost w-full text-xs text-arctic-500"
                   >
-                    {tr("Continuer mes achats", "Continue shopping")}
+                    Continuer mes achats
                   </button>
                 </div>
               );
@@ -1701,7 +1458,6 @@ function ProductCard({
   onClickPreview: () => void;
   waMeOrderLink: ((size: string) => string) | null;
 }) {
-  const { tr } = usePublicLang();
   const sizes = parseSizes(p.sizes);
   const [size, setSize] = useState(sizes[0] ?? "");
   const [qty, setQty] = useState(1);
@@ -1739,12 +1495,12 @@ function ProductCard({
           )}
           {isNew && (
             <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-bold text-white shadow-xs">
-              {tr("Nouveau", "New")}
+              Nouveau
             </span>
           )}
           {p.condition && p.condition !== "new" && (
             <span className="rounded-full bg-arctic-900/80 px-2 py-0.5 text-[11px] font-semibold capitalize text-white backdrop-blur">
-              {p.condition === "used" ? tr("Occasion", "Used") : tr("Reconditionné", "Refurbished")}
+              {p.condition === "used" ? "Occasion" : "Reconditionné"}
             </span>
           )}
         </div>
@@ -1752,13 +1508,13 @@ function ProductCard({
         {outOfStock && (
           <div className="absolute inset-0 grid place-items-center bg-arctic-900/60 backdrop-blur-xs">
             <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-arctic-900 shadow">
-              {tr("Épuisé", "Sold out")}
+              Épuisé
             </span>
           </div>
         )}
         {!outOfStock && p.stock <= 3 && (
           <span className="absolute right-2 top-2 rounded-full bg-amber-500 px-2 py-0.5 text-[11px] font-semibold text-white shadow-xs">
-            {tr("Plus que", "Only")} {p.stock}
+            Plus que {p.stock}
           </span>
         )}
       </div>
@@ -1789,7 +1545,7 @@ function ProductCard({
 
         {sizes.length > 0 && (
           <div>
-            <label className="label !mb-1 !text-xs">{tr("Taille / Variante", "Size / Variant")}</label>
+            <label className="label !mb-1 !text-xs">Taille / Variante</label>
             <select
               className="input !py-1 text-xs"
               value={size}
@@ -1831,7 +1587,7 @@ function ProductCard({
             disabled={outOfStock}
             className="btn-primary flex-1 !py-1.5 text-xs"
           >
-            {outOfStock ? tr("Indisponible", "Unavailable") : tr("Ajouter au panier", "Add to cart")}
+            {outOfStock ? "Indisponible" : "Ajouter au panier"}
           </button>
         </div>
 
@@ -1842,7 +1598,7 @@ function ProductCard({
             rel="noreferrer"
             className="inline-flex w-full items-center justify-center gap-1 text-center text-[11px] font-medium text-brand-dark hover:underline pt-0.5"
           >
-            <Glyph name="chat" size={12} /> {tr("Commander sur WhatsApp", "Order on WhatsApp")}
+            <Glyph name="chat" size={12} /> Commander sur WhatsApp
           </a>
         )}
       </div>
