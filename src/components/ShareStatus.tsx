@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import Glyph from "@/components/Glyph";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 interface ShareStatusProps {
   shopName: string;
@@ -19,6 +20,7 @@ export default function ShareStatus({
   priceText,
   imageUrl,
 }: ShareStatusProps) {
+  const { tr } = usePublicLang();
   const [open, setOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -164,7 +166,7 @@ export default function ShareStatus({
         }}
         className="inline-flex items-center gap-1.5 rounded-shape-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700"
       >
-        <Glyph name="chat" size={14} /> Partager en Statut WhatsApp
+        <Glyph name="chat" size={14} /> {tr("Partager en Statut WhatsApp", "Share as a WhatsApp Status")}
       </button>
 
       {open && (
@@ -172,7 +174,7 @@ export default function ShareStatus({
           <div className="card w-full max-w-lg overflow-hidden rounded-shape-xl bg-white shadow-elev-3 dark:bg-arctic-900">
             <div className="flex items-center justify-between border-b border-arctic-300/40 px-5 py-3">
               <h3 className="text-sm font-bold text-arctic-900 dark:text-white">
-                Partager sur votre Statut WhatsApp
+                {tr("Partager sur votre Statut WhatsApp", "Share on your WhatsApp Status")}
               </h3>
               <button onClick={() => setOpen(false)} className="text-arctic-500 hover:text-arctic-800">
                 ✕
@@ -181,7 +183,7 @@ export default function ShareStatus({
 
             <div className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
               <p className="text-xs text-arctic-600">
-                Téléchargez cette affiche format Story/Statut pour la poster dans votre statut WhatsApp avec le lien de votre boutique !
+                {tr("Téléchargez cette affiche format Story/Statut pour la poster dans votre statut WhatsApp avec le lien de votre boutique !", "Download this Story/Status poster to post it in your WhatsApp status with your shop link!")}
               </p>
 
               {/* Hidden canvas */}
@@ -191,9 +193,9 @@ export default function ShareStatus({
               <div className="mx-auto w-48 aspect-[9/16] overflow-hidden rounded-xl shadow-lg border border-arctic-300/50 bg-arctic-900">
                 {previewUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={previewUrl} alt="Aperçu Statut" className="h-full w-full object-cover" />
+                  <img src={previewUrl} alt={tr("Aperçu Statut", "Status preview")} className="h-full w-full object-cover" />
                 ) : (
-                  <div className="grid h-full place-items-center text-xs text-white">Génération…</div>
+                  <div className="grid h-full place-items-center text-xs text-white">{tr("Génération…", "Generating…")}</div>
                 )}
               </div>
 
@@ -205,7 +207,7 @@ export default function ShareStatus({
                   disabled={!previewUrl || generating}
                   className="btn-primary w-full justify-center text-xs py-2.5"
                 >
-                  📥 Télécharger l&apos;affiche Statut (HD)
+                  {tr("📥 Télécharger l'affiche Statut (HD)", "📥 Download the Status poster (HD)")}
                 </button>
 
                 <a
@@ -214,7 +216,7 @@ export default function ShareStatus({
                   rel="noreferrer"
                   className="btn-ghost w-full justify-center gap-2 text-xs py-2.5 border border-emerald-600/30 text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20"
                 >
-                  <Glyph name="chat" size={15} /> Partager le message texte avec lien sur WhatsApp
+                  <Glyph name="chat" size={15} /> {tr("Partager le message texte avec lien sur WhatsApp", "Share the text message with the link on WhatsApp")}
                 </a>
               </div>
             </div>

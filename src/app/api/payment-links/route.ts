@@ -3,10 +3,12 @@ import { getCurrentVendor } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatMoney } from "@/lib/utils";
 import { sendWhatsApp } from "@/lib/whatsapp";
+import { getServerTr } from "@/lib/public-locale";
 
 export async function GET() {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const links = await prisma.paymentLink.findMany({
     where: { vendorId: vendor.id },
@@ -33,15 +35,16 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const body = await req.json().catch(() => null);
-  if (!body) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  if (!body) return NextResponse.json({ error: tr("JSON invalide.", "Invalid JSON") }, { status: 400 });
 
   const amountCents = Number(body.amountCents);
   if (!amountCents || amountCents <= 0 || !Number.isFinite(amountCents)) {
-    return NextResponse.json({ error: "Montant invalide" }, { status: 400 });
+    return NextResponse.json({ error: tr("Montant invalide", "Invalid amount") }, { status: 400 });
   }
 
   const description = String(body.description || "").trim().slice(0, 300);

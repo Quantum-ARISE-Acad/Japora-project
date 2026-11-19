@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { hashToken } from "@/lib/token";
 import { logger } from "@/lib/logger";
+import { getServerTr } from "@/lib/public-locale";
 
 type Params = { params: Promise<{ token: string }> };
 
@@ -33,6 +34,7 @@ async function verify(token: string): Promise<
 }
 
 export default async function VerifyEmailPage({ params }: Params) {
+  const tr = await getServerTr();
   const { token } = await params;
   const result = await verify(token);
 
@@ -48,12 +50,12 @@ export default async function VerifyEmailPage({ params }: Params) {
           {result.ok ? (
             <>
               <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-arctic-200/80 text-3xl backdrop-blur-glass-thin a-pulse">✅</div>
-              <h1 className="a-headline-sm text-arctic-900">Email verified</h1>
+              <h1 className="a-headline-sm text-arctic-900">{tr("E-mail vérifié", "Email verified")}</h1>
               <p className="a-body-md text-arctic-700">
-                {result.shopName} is ready.
+                {result.shopName} {tr("est prête.", "is ready.")}
               </p>
               <Link href="/dashboard" className="btn-primary w-full">
-                Open dashboard
+                {tr("Ouvrir le tableau de bord", "Open dashboard")}
               </Link>
             </>
           ) : (
@@ -61,18 +63,18 @@ export default async function VerifyEmailPage({ params }: Params) {
               <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-amber-100/80 text-3xl backdrop-blur-glass-thin">⚠️</div>
               <h1 className="a-headline-sm text-arctic-900">
                 {result.reason === "used"
-                  ? "Link already used"
+                  ? tr("Lien déjà utilisé", "Link already used")
                   : result.reason === "expired"
-                    ? "Link expired"
-                    : "Invalid link"}
+                    ? tr("Lien expiré", "Link expired")
+                    : tr("Lien invalide", "Invalid link")}
               </h1>
               <p className="a-body-md text-arctic-700">
                 {result.reason === "used"
-                  ? "This verification link was already used. You're all set."
-                  : "Sign in and we'll send you a fresh verification email."}
+                  ? tr("Ce lien de vérification a déjà été utilisé. Tout est en ordre.", "This verification link was already used. You're all set.")
+                  : tr("Connectez-vous et nous vous enverrons un nouvel e-mail de vérification.", "Sign in and we'll send you a fresh verification email.")}
               </p>
               <Link href="/login" className="btn-ghost w-full">
-                Go to sign in
+                {tr("Aller à la connexion", "Go to sign in")}
               </Link>
             </>
           )}

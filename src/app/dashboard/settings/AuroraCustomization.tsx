@@ -8,6 +8,7 @@ import {
   uiPrefsToCssVars,
   type UiPrefs,
 } from "@/lib/uiPrefs";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 /**
  * Settings sub-card: vendor-controlled Aurora customization.
@@ -29,6 +30,7 @@ type Props = {
 };
 
 export default function AuroraCustomization({ initial, currency }: Props) {
+  const { tr } = usePublicLang();
   const initialPrefs = useMemo(() => parseUiPrefs(initial), [initial]);
   const [prefs, setPrefs] = useState(initialPrefs);
   const [saving, setSaving] = useState(false);
@@ -65,7 +67,7 @@ export default function AuroraCustomization({ initial, currency }: Props) {
     const data = await res.json().catch(() => ({}));
     setSaving(false);
     if (!res.ok) {
-      setError(data.error || "Could not save preferences.");
+      setError(data.error || tr("Impossible d'enregistrer les préférences.", "Could not save preferences."));
       return;
     }
     setSavedAt(Date.now());
@@ -83,14 +85,14 @@ export default function AuroraCustomization({ initial, currency }: Props) {
     <div className="glass glass-edge rounded-shape-lg p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="a-title-lg text-arctic-900">Personnaliser l’apparence</h2>
+          <h2 className="a-title-lg text-arctic-900">{tr("Personnaliser l’apparence", "Customize the look")}</h2>
           <p className="a-body-md mt-1 text-arctic-700">
-            Réglez l’animation, la densité et la couleur du tableau de bord. L’aperçu réagit pendant le réglage.
+            {tr("Réglez l’animation, la densité et la couleur du tableau de bord. L’aperçu réagit pendant le réglage.", "Adjust the dashboard's animation, density and colour. The preview reacts while you adjust.")}
           </p>
         </div>
         {savedAt && (
           <span className="rounded-shape-full border border-arctic-400/45 bg-arctic-200/70 px-2 py-0.5 a-label-md text-arctic-900 backdrop-blur-glass-thin">
-            ✓ Enregistré
+            {tr("✓ Enregistré", "✓ Saved")}
           </span>
         )}
       </div>
@@ -99,7 +101,7 @@ export default function AuroraCustomization({ initial, currency }: Props) {
         {/* Sliders */}
         <div className="space-y-5">
           <AuroraSlider
-            label="Intensité des animations"
+            label={tr("Intensité des animations", "Animation intensity")}
             value={prefs.motion}
             onChange={(e) => update("motion", Number(e.currentTarget.value))}
             formatValue={(v) =>
@@ -107,7 +109,7 @@ export default function AuroraCustomization({ initial, currency }: Props) {
             }
           />
           <AuroraSlider
-            label="Densité"
+            label={tr("Densité", "Density")}
             value={prefs.density}
             onChange={(e) => update("density", Number(e.currentTarget.value))}
             formatValue={(v) =>
@@ -115,7 +117,7 @@ export default function AuroraCustomization({ initial, currency }: Props) {
             }
           />
           <AuroraSlider
-            label="Teinte d’accent"
+            label={tr("Teinte d’accent", "Accent hue")}
             value={prefs.accentShift}
             onChange={(e) => update("accentShift", Number(e.currentTarget.value))}
             formatValue={(v) => {
@@ -138,17 +140,17 @@ export default function AuroraCustomization({ initial, currency }: Props) {
               disabled={saving || !dirty}
               className="btn-primary"
             >
-              {saving ? "Enregistrement…" : "Enregistrer les préférences"}
+              {saving ? tr("Enregistrement…", "Saving…") : tr("Enregistrer les préférences", "Save preferences")}
             </button>
             <button onClick={reset} disabled={saving} className="btn-ghost">
-              Rétablir les valeurs par défaut
+              {tr("Rétablir les valeurs par défaut", "Restore defaults")}
             </button>
           </div>
         </div>
 
         {/* Aperçu en direct — exemple fictif */}
         <aside className="glass glass-edge rounded-shape-lg p-4" style={previewStyle}>
-          <div className="a-label-md mb-3 text-arctic-700">Aperçu en direct — exemple fictif</div>
+          <div className="a-label-md mb-3 text-arctic-700">{tr("Aperçu en direct — exemple fictif", "Live preview — sample data")}</div>
           <div
             className="space-y-3"
             style={{
@@ -161,7 +163,7 @@ export default function AuroraCustomization({ initial, currency }: Props) {
                 padding: `calc(0.9rem * var(--aurora-density, 1))`,
               }}
             >
-              <div className="a-label-md text-arctic-800">Aujourd’hui — exemple</div>
+              <div className="a-label-md text-arctic-800">{tr("Aujourd’hui — exemple", "Today — sample")}</div>
               <div className="a-display-sm text-arctic-900">{currency} 42 000</div>
             </div>
             <button
@@ -171,7 +173,7 @@ export default function AuroraCustomization({ initial, currency }: Props) {
               }}
               onClick={(e) => e.preventDefault()}
             >
-              Action d’exemple
+              {tr("Action d’exemple", "Sample action")}
             </button>
             <div className="grid grid-cols-3 gap-2">
               {["Nouveau", "Payé", "Envoyé"].map((k, i) => (

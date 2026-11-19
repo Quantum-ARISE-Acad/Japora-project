@@ -3,8 +3,10 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 function StartInner() {
+  const { tr } = usePublicLang();
   const router = useRouter();
   const sp = useSearchParams();
   const ref = sp.get("ref") || "";
@@ -30,7 +32,7 @@ function StartInner() {
     const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(data.error || "Could not send the code.");
+      setError(data.error || tr("Impossible d'envoyer le code.", "Could not send the code."));
       return;
     }
     if (data.devCode) setDevCode(String(data.devCode));
@@ -49,7 +51,7 @@ function StartInner() {
     const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(data.error || "Could not verify the code.");
+      setError(data.error || tr("Impossible de vérifier le code.", "Could not verify the code."));
       return;
     }
     router.push("/dashboard");
@@ -67,26 +69,26 @@ function StartInner() {
         <div className="glass glass-edge rounded-shape-xl p-6">
           {step === "phone" ? (
             <>
-              <h1 className="a-headline-sm text-arctic-900">Start on WhatsApp</h1>
+              <h1 className="a-headline-sm text-arctic-900">{tr("Commencer sur WhatsApp", "Start on WhatsApp")}</h1>
               <p className="a-body-md mt-1 text-arctic-600">
-                Enter your WhatsApp number. We&apos;ll send a code — no password, no email.
+                {tr("Entrez votre numéro WhatsApp. Nous vous envoyons un code : pas de mot de passe, pas d'e-mail.", "Enter your WhatsApp number. We'll send a code — no password, no email.")}
               </p>
               <form onSubmit={requestCode} className="mt-6 space-y-4">
                 <div>
-                  <label className="label">Shop name</label>
+                  <label className="label">{tr("Nom de la boutique", "Shop name")}</label>
                   <input
                     className="input"
-                    placeholder="e.g. Chez Améyo"
+                    placeholder={tr("ex. Chez Améyo", "e.g. Chez Améyo")}
                     value={shopName}
                     onChange={(e) => setShopName(e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="label">WhatsApp number</label>
+                  <label className="label">{tr("Numéro WhatsApp", "WhatsApp number")}</label>
                   <input
                     className="input"
                     inputMode="tel"
-                    placeholder="With + and country code, e.g. +228 90 11 22 33"
+                    placeholder={tr("Avec + et l'indicatif du pays, par ex. +228 90 11 22 33", "With + and country code, e.g. +228 90 11 22 33")}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     required
@@ -98,20 +100,20 @@ function StartInner() {
                   </p>
                 )}
                 <button className="btn-primary w-full" disabled={loading}>
-                  {loading ? "Sending…" : "Send my code"}
+                  {loading ? tr("Envoi…", "Sending…") : tr("Envoyer mon code", "Send my code")}
                 </button>
               </form>
             </>
           ) : (
             <>
-              <h1 className="a-headline-sm text-arctic-900">Enter your code</h1>
+              <h1 className="a-headline-sm text-arctic-900">{tr("Entrez votre code", "Enter your code")}</h1>
               <p className="a-body-md mt-1 text-arctic-600">
-                We sent a 6-digit code to{" "}
-                <span className="font-semibold text-arctic-900">{phone}</span> on WhatsApp.
+                {tr("Nous avons envoyé un code à 6 chiffres au", "We sent a 6-digit code to")}{" "}
+                <span className="font-semibold text-arctic-900">{phone}</span> {tr("sur WhatsApp.", "on WhatsApp.")}
               </p>
               {devCode && (
                 <p className="mt-2 rounded-shape-md border border-dashed border-arctic-400/55 bg-white/55 px-3 py-2 a-body-sm text-arctic-700 backdrop-blur-glass-thin">
-                  Dev mode — your code is{" "}
+                  {tr("Mode développement — votre code est", "Dev mode — your code is")}{" "}
                   <span className="font-mono font-bold text-arctic-900">{devCode}</span>
                 </p>
               )}
@@ -134,14 +136,14 @@ function StartInner() {
                   </p>
                 )}
                 <button className="btn-primary w-full" disabled={loading}>
-                  {loading ? "Checking…" : "Confirm & open my shop"}
+                  {loading ? tr("Vérification…", "Checking…") : tr("Confirmer et ouvrir ma boutique", "Confirm & open my shop")}
                 </button>
                 <button
                   type="button"
                   onClick={() => { setStep("phone"); setError(""); setCode(""); }}
                   className="btn-ghost w-full"
                 >
-                  Change number
+                  {tr("Changer de numéro", "Change number")}
                 </button>
               </form>
             </>
@@ -149,9 +151,9 @@ function StartInner() {
         </div>
 
         <p className="mt-6 text-center a-body-sm text-arctic-600">
-          Prefer email?{" "}
+          {tr("Vous préférez l'e-mail ?", "Prefer email?")}{" "}
           <Link href="/signup" className="font-semibold text-arctic-900 hover:underline">
-            Sign up the classic way
+            {tr("S'inscrire de façon classique", "Sign up the classic way")}
           </Link>
         </p>
       </div>

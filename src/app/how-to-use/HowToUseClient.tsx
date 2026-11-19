@@ -698,7 +698,7 @@ export default function HowToUseClient() {
                   <div className="mb-1.5 flex items-center justify-between text-[10px] font-bold text-brand-dark">
                     <span className="inline-flex items-center gap-1.5">
                       <SaasIcon name="bot" size={13} />
-                      <span>Assistant Japora</span>
+                      <span>{tr("Assistant Japora", "Japora assistant")}</span>
                     </span>
                     <span>{tr("Instantané", "Instant")}</span>
                   </div>

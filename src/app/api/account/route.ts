@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentVendor } from "@/lib/auth";
 import { destroySession } from "@/lib/session";
 import { logger } from "@/lib/logger";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
  * Soft-delete the current vendor's account. We keep the row (so we can honour
@@ -14,14 +15,15 @@ import { logger } from "@/lib/logger";
  * Privacy Policy. Hard-delete the row from your DB once the window passes.
  */
 export async function DELETE(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));
   // Belt-and-braces: require the user to type their shop name to confirm.
   if (String(body?.confirm || "") !== vendor.shopName) {
     return NextResponse.json(
-      { error: "To confirm, type your shop name exactly." },
+      { error: tr("Pour confirmer, tapez exactement le nom de votre boutique.", "To confirm, type your shop name exactly.") },
       { status: 400 },
     );
   }

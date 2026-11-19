@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { formatCurrencyAmount, convertCurrency } from "@/lib/currency";
 import { digitsOnly, waMeLink } from "@/lib/utils";
 import { parseWhatsAppAssistantConfig } from "@/lib/whatsapp-config";
+import { getServerTr } from "@/lib/public-locale";
 
 interface ChatMessage {
   role: "user" | "model" | "assistant";
@@ -37,6 +38,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   try {
     const body = await req.json();
     const {
@@ -48,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     if (!shopSlug || !message) {
       return NextResponse.json(
-        { error: "shopSlug and message are required" },
+        { error: tr("shopSlug et message sont obligatoires.", "shopSlug and message are required") },
         { status: 400 },
       );
     }
@@ -66,7 +68,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!vendor) {
-      return NextResponse.json({ error: "Boutique introuvable" }, { status: 404 });
+      return NextResponse.json({ error: tr("Boutique introuvable", "Shop not found") }, { status: 404 });
     }
 
     const waConfig = parseWhatsAppAssistantConfig(vendor.uiPrefs);
@@ -364,7 +366,7 @@ RÈGLES STRICTES :
   } catch (error: unknown) {
     console.error("[shop-chat error]", error);
     return NextResponse.json(
-      { error: "Erreur lors du traitement de votre message." },
+      { error: tr("Erreur lors du traitement de votre message.", "Error while processing your message.") },
       { status: 500 },
     );
   }

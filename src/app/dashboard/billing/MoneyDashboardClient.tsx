@@ -134,10 +134,10 @@ export default function MoneyDashboardClient({
       });
       const data = await res.json().catch(() => ({}));
       setConfigIsError(!data.ok);
-      setConfigMsg(data.message || (data.ok ? "✅ Connexion FedaPay réussie !" : "⚠️ Échec de la vérification."));
+      setConfigMsg(data.message || (data.ok ? tr("✅ Connexion FedaPay réussie !", "✅ FedaPay connection successful!") : tr("⚠️ Échec de la vérification.", "⚠️ Check failed.")));
     } catch {
       setConfigIsError(true);
-      setConfigMsg("⚠️ Erreur réseau lors du test de connexion FedaPay.");
+      setConfigMsg(tr("⚠️ Erreur réseau lors du test de connexion FedaPay.", "⚠️ Network error during the FedaPay connection test."));
     } finally {
       setTestingConn(false);
     }
@@ -333,13 +333,13 @@ export default function MoneyDashboardClient({
 
         <div className="card p-5 border-l-4 border-l-brand">
           <div className="text-xs font-semibold uppercase tracking-wider text-arctic-500">
-            Transactions FedaPay
+            {tr("Transactions FedaPay", "FedaPay transactions")}
           </div>
           <div className="mt-2 text-2xl font-extrabold text-arctic-900">
             {stats.fedaSuccessCount} {tr(stats.fedaSuccessCount > 1 ? "réussites" : "réussite", stats.fedaSuccessCount > 1 ? "successful" : "successful")}
           </div>
           <div className="mt-1 text-xs text-arctic-500">
-            T-Money, Flooz, MoMo & Carte
+            {tr("T-Money, Flooz, MoMo & Carte", "T-Money, Flooz, MoMo & card")}
           </div>
         </div>
 

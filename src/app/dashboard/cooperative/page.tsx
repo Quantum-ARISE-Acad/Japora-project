@@ -3,8 +3,10 @@ import { getCooperativeForVendor } from "@/lib/cooperative";
 import { REGIONS } from "@/lib/regions";
 import { renderQrSvg } from "@/lib/qr";
 import CooperativeClient from "./CooperativeClient";
+import { getServerTr } from "@/lib/public-locale";
 
 export default async function CooperativePage() {
+  const tr = await getServerTr();
   const vendor = await requireVendor();
   const coop = await getCooperativeForVendor(vendor.id);
 
@@ -28,9 +30,9 @@ export default async function CooperativePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="a-headline-md text-arctic-900">Coopérative & Association Marchande</h1>
+        <h1 className="a-headline-md text-arctic-900">{tr("Coopérative & Association Marchande", "Cooperative & traders' association")}</h1>
         <p className="a-body-md mt-1 text-arctic-600">
-          Développez votre réseau de vendeurs sur WhatsApp, partagez un code d&apos;adhésion commun et gagnez en visibilité.
+          {tr("Développez votre réseau de vendeurs sur WhatsApp, partagez un code d'adhésion commun et gagnez en visibilité.", "Grow your network of vendors on WhatsApp, share a common membership code and gain visibility.")}
         </p>
       </div>
 

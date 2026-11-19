@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 export default function ForgotPasswordPage() {
+  const { tr } = usePublicLang();
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -34,21 +36,20 @@ export default function ForgotPasswordPage() {
               <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-arctic-200/80 text-2xl backdrop-blur-glass-thin">
                 📬
               </div>
-              <h1 className="a-headline-sm text-arctic-900">Check your inbox</h1>
+              <h1 className="a-headline-sm text-arctic-900">{tr("Consultez votre boîte de réception", "Check your inbox")}</h1>
               <p className="a-body-md text-arctic-700">
-                If an account exists for{" "}
-                <span className="font-semibold text-arctic-900">{email}</span>, a reset link is on its way.
-                The link expires in an hour.
+                {tr("Si un compte existe pour", "If an account exists for")}{" "}
+                <span className="font-semibold text-arctic-900">{email}</span>{tr(", un lien de réinitialisation arrive. Il expire dans une heure.", ", a reset link is on its way. The link expires in an hour.")}
               </p>
               <Link href="/login" className="btn-ghost mt-2 w-full">
-                Back to sign in
+                {tr("Retour à la connexion", "Back to sign in")}
               </Link>
             </div>
           ) : (
             <>
-              <h1 className="a-headline-sm text-arctic-900">Reset your password</h1>
+              <h1 className="a-headline-sm text-arctic-900">{tr("Réinitialiser votre mot de passe", "Reset your password")}</h1>
               <p className="a-body-md mt-1 text-arctic-600">
-                Type your email. We&apos;ll send a reset link.
+                {tr("Saisissez votre e-mail. Nous vous enverrons un lien de réinitialisation.", "Type your email. We'll send a reset link.")}
               </p>
               <form onSubmit={onSubmit} className="mt-5 space-y-4">
                 <div>
@@ -62,7 +63,7 @@ export default function ForgotPasswordPage() {
                   />
                 </div>
                 <button className="btn-primary w-full" disabled={loading}>
-                  {loading ? "Sending…" : "Send reset link"}
+                  {loading ? tr("Envoi…", "Sending…") : tr("Envoyer le lien", "Send reset link")}
                 </button>
               </form>
             </>
@@ -70,9 +71,9 @@ export default function ForgotPasswordPage() {
         </div>
 
         <p className="mt-6 text-center a-body-sm text-arctic-600">
-          Remembered it?{" "}
+          {tr("Vous vous en souvenez ?", "Remembered it?")}{" "}
           <Link href="/login" className="font-semibold text-arctic-900 hover:underline">
-            Sign in
+            {tr("Se connecter", "Sign in")}
           </Link>
         </p>
       </div>

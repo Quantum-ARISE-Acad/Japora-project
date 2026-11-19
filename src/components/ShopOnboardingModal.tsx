@@ -3,19 +3,21 @@
 import { useState, useEffect } from "react";
 import { formatStoredWhatsAppNumber } from "@/lib/whatsapp-number";
 import { useRouter } from "next/navigation";
-import { REGIONS, CATEGORIES } from "@/lib/regions";
+import { REGIONS, CATEGORIES, categoryName } from "@/lib/regions";
 import { LANG_NAMES, type Lang } from "@/lib/i18n";
 import { slugify } from "@/lib/utils";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
-const CURRENCY_OPTIONS = [
-  { code: "XOF", label: "XOF — Franc CFA (UEMOA : Togo, Bénin, CI, Sénégal…)" },
-  { code: "XAF", label: "XAF — Franc CFA (CEMAC : Cameroun, Gabon…)" },
-  { code: "GHS", label: "GHS — Cedi Ghanéen (GH₵)" },
-  { code: "NGN", label: "NGN — Naira Nigérian (₦)" },
-  { code: "GNF", label: "GNF — Franc Guinéen (FG)" },
-  { code: "KES", label: "KES — Shilling Kényan (KSh)" },
-  { code: "EUR", label: "EUR — Euro (€)" },
-  { code: "USD", label: "USD — Dollar US ($)" },
+// Labels are [français, English].
+const CURRENCY_OPTIONS: { code: string; label: [string, string] }[] = [
+  { code: "XOF", label: ["XOF — Franc CFA (UEMOA : Togo, Bénin, CI, Sénégal…)", "XOF — CFA franc (WAEMU: Togo, Benin, CI, Senegal…)"] },
+  { code: "XAF", label: ["XAF — Franc CFA (CEMAC : Cameroun, Gabon…)", "XAF — CFA franc (CEMAC: Cameroon, Gabon…)"] },
+  { code: "GHS", label: ["GHS — Cedi ghanéen (GH₵)", "GHS — Ghanaian cedi (GH₵)"] },
+  { code: "NGN", label: ["NGN — Naira nigérian (₦)", "NGN — Nigerian naira (₦)"] },
+  { code: "GNF", label: ["GNF — Franc guinéen (FG)", "GNF — Guinean franc (FG)"] },
+  { code: "KES", label: ["KES — Shilling kényan (KSh)", "KES — Kenyan shilling (KSh)"] },
+  { code: "EUR", label: ["EUR — Euro (€)", "EUR — Euro (€)"] },
+  { code: "USD", label: ["USD — Dollar US ($)", "USD — US dollar ($)"] },
 ];
 
 const REGIONS_BY_COUNTRY = REGIONS.reduce<Record<string, typeof REGIONS>>(
@@ -47,6 +49,7 @@ export default function ShopOnboardingModal({
 }: {
   initial: ShopOnboardingInitial;
 }) {
+  const { tr } = usePublicLang();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(initial.needsOnboarding);
   const [step, setStep] = useState<1 | 2>(1);
@@ -103,7 +106,7 @@ export default function ShopOnboardingModal({
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      setError("L'image ne doit pas dépasser 5 Mo.");
+      setError(tr("L'image ne doit pas dépasser 5 Mo.", "The image must not be larger than 5 MB."));
       return;
     }
     setUploadingAvatar(true);
@@ -117,10 +120,10 @@ export default function ShopOnboardingModal({
       if (res.ok && data.url) {
         setAvatarUrl(data.url);
       } else {
-        setError(data.error || "Échec du téléversement du logo.");
+        setError(data.error || tr("Échec du téléversement du logo.", "Logo upload failed."));
       }
     } catch {
-      setError("Erreur réseau lors de l'envoi de l'image.");
+      setError(tr("Erreur réseau lors de l'envoi de l'image.", "Network error while sending the image."));
     } finally {
       setUploadingAvatar(false);
       e.target.value = "";
@@ -130,7 +133,7 @@ export default function ShopOnboardingModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!shopName.trim()) {
-      setError("Veuillez renseigner le nom de votre boutique.");
+      setError(tr("Veuillez renseigner le nom de votre boutique.", "Please enter your shop name."));
       setStep(1);
       return;
     }
@@ -158,7 +161,7 @@ export default function ShopOnboardingModal({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error || "Impossible d'enregistrer la configuration.");
+        setError(data.error || tr("Impossible d'enregistrer la configuration.", "Could not save the setup."));
         setSaving(false);
         return;
       }
@@ -167,7 +170,7 @@ export default function ShopOnboardingModal({
       setIsOpen(false);
       router.refresh();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erreur réseau.");
+      setError(err instanceof Error ? err.message : tr("Erreur réseau.", "Network error."));
       setSaving(false);
     }
   }
@@ -181,17 +184,17 @@ export default function ShopOnboardingModal({
         <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 px-6 py-5 text-white">
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-0.5 text-xs font-bold backdrop-blur-xs">
-              ✨ Configuration de votre boutique Japora
+              {tr("✨ Configuration de votre boutique Japora", "✨ Set up your Japora shop")}
             </span>
             <span className="text-xs font-semibold text-emerald-100">
-              Étape {step} sur 2
+              {tr("Étape", "Step")} {step} {tr("sur 2", "of 2")}
             </span>
           </div>
           <h2 className="mt-2 text-xl font-extrabold tracking-tight">
-            Bienvenue ! Personnalisons votre boutique
+            {tr("Bienvenue ! Personnalisons votre boutique", "Welcome! Let's personalise your shop")}
           </h2>
           <p className="mt-1 text-xs text-emerald-100">
-            Renseignez les informations essentielles de votre boutique pour commencer à vendre sur WhatsApp et Mobile Money.
+            {tr("Renseignez les informations essentielles de votre boutique pour commencer à vendre sur WhatsApp et Mobile Money.", "Fill in your shop's key details to start selling on WhatsApp and Mobile Money.")}
           </p>
         </div>
 
@@ -200,12 +203,12 @@ export default function ShopOnboardingModal({
             <>
               <div>
                 <label className="label font-semibold text-arctic-900">
-                  Nom de votre boutique ou marque *
+                  {tr("Nom de votre boutique ou marque *", "Your shop or brand name *")}
                 </label>
                 <input
                   type="text"
                   className="input"
-                  placeholder="Ex: Maison Kossi Lomé, Bella Mode..."
+                  placeholder={tr("Ex: Maison Kossi Lomé, Bella Mode...", "e.g. Maison Kossi Lomé, Bella Mode...")}
                   value={shopName}
                   onChange={(e) => handleNameChange(e.target.value)}
                   required
@@ -215,7 +218,7 @@ export default function ShopOnboardingModal({
 
               <div>
                 <label className="label font-semibold text-arctic-900">
-                  Lien public de votre catalogue
+                  {tr("Lien public de votre catalogue", "Public link of your catalog")}
                 </label>
                 <div className="flex items-center gap-2">
                   <span className="rounded-lg bg-arctic-100 px-3 py-2 text-xs font-mono font-semibold text-arctic-600 border border-arctic-300/50">
@@ -224,7 +227,7 @@ export default function ShopOnboardingModal({
                   <input
                     type="text"
                     className="input font-mono text-sm"
-                    placeholder="ma-boutique"
+                    placeholder={tr("ma-boutique", "my-shop")}
                     value={shopSlug}
                     onChange={(e) => {
                       setSlugTouched(true);
@@ -238,7 +241,7 @@ export default function ShopOnboardingModal({
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="label font-semibold text-arctic-900">
-                    Langue de la boutique *
+                    {tr("Langue de la boutique *", "Shop language *")}
                   </label>
                   <select
                     className="input"
@@ -255,7 +258,7 @@ export default function ShopOnboardingModal({
 
                 <div>
                   <label className="label font-semibold text-arctic-900">
-                    Devise principale *
+                    {tr("Devise principale *", "Main currency *")}
                   </label>
                   <select
                     className="input"
@@ -264,7 +267,7 @@ export default function ShopOnboardingModal({
                   >
                     {CURRENCY_OPTIONS.map((c) => (
                       <option key={c.code} value={c.code}>
-                        {c.label}
+                        {tr(...c.label)}
                       </option>
                     ))}
                   </select>
@@ -274,17 +277,17 @@ export default function ShopOnboardingModal({
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="label font-semibold text-arctic-900">
-                    Catégorie d&apos;activité
+                    {tr("Catégorie d'activité", "Business category")}
                   </label>
                   <select
                     className="input"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                   >
-                    <option value="">— Choisir une catégorie —</option>
+                    <option value="">{tr("— Choisir une catégorie —", "— Choose a category —")}</option>
                     {CATEGORIES.map((c) => (
                       <option key={c.slug} value={c.slug}>
-                        {c.icon} {c.label}
+                        {c.icon} {tr(...categoryName(c))}
                       </option>
                     ))}
                   </select>
@@ -292,14 +295,14 @@ export default function ShopOnboardingModal({
 
                 <div>
                   <label className="label font-semibold text-arctic-900">
-                    Ville / Région
+                    {tr("Ville / Région", "City / Region")}
                   </label>
                   <select
                     className="input"
                     value={region}
                     onChange={(e) => setRegion(e.target.value)}
                   >
-                    <option value="">— Choisir une région —</option>
+                    <option value="">{tr("— Choisir une région —", "— Choose a region —")}</option>
                     {Object.entries(REGIONS_BY_COUNTRY).map(([country, list]) => (
                       <optgroup key={country} label={country}>
                         {list.map((r) => (
@@ -315,12 +318,12 @@ export default function ShopOnboardingModal({
 
               <div>
                 <label className="label font-semibold text-arctic-900">
-                  Slogan court (affiché sous le nom)
+                  {tr("Slogan court (affiché sous le nom)", "Short tagline (shown under the name)")}
                 </label>
                 <input
                   type="text"
                   className="input"
-                  placeholder="Ex: Prêt-à-porter & accessoires, livraison rapide à Lomé"
+                  placeholder={tr("Ex: Prêt-à-porter & accessoires, livraison rapide à Lomé", "e.g. Ready-to-wear & accessories, fast delivery in Lomé")}
                   value={tagline}
                   onChange={(e) => setTagline(e.target.value)}
                 />
@@ -337,7 +340,7 @@ export default function ShopOnboardingModal({
                   type="button"
                   onClick={() => {
                     if (!shopName.trim()) {
-                      setError("Veuillez d'abord saisir le nom de votre boutique.");
+                      setError(tr("Veuillez d'abord saisir le nom de votre boutique.", "Please enter your shop name first."));
                       return;
                     }
                     setError("");
@@ -345,7 +348,7 @@ export default function ShopOnboardingModal({
                   }}
                   className="btn-primary px-5 py-2.5"
                 >
-                  Continuer (WhatsApp & Paiements) →
+                  {tr("Continuer (WhatsApp & Paiements) →", "Continue (WhatsApp & payments) →")}
                 </button>
               </div>
             </>
@@ -354,45 +357,45 @@ export default function ShopOnboardingModal({
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="label font-semibold text-arctic-900">
-                    Numéro WhatsApp Business *
+                    {tr("Numéro WhatsApp Business *", "WhatsApp Business number *")}
                   </label>
                   <input
                     type="tel"
                     className="input"
-                    placeholder="Ex : +228 90 11 22 33"
+                    placeholder={tr("Ex : +228 90 11 22 33", "e.g. +228 90 11 22 33")}
                     value={whatsappNumber}
                     onChange={(e) => setWhatsappNumber(e.target.value)}
                     required
                   />
                   <span className="mt-1 block text-[11px] text-arctic-500">
-                    Avec indicatif pays sans + (ex: 228 pour le Togo, 229 Bénin).
+                    {tr("Avec + et l'indicatif du pays (ex. +228 pour le Togo, +229 pour le Bénin).", "With + and the country code (e.g. +228 for Togo, +229 for Benin).")}
                   </span>
                 </div>
 
                 <div>
                   <label className="label font-semibold text-arctic-900">
-                    Numéro Mobile Money (T-Money / Flooz)
+                    {tr("Numéro Mobile Money (T-Money / Flooz)", "Mobile Money number (T-Money / Flooz)")}
                   </label>
                   <input
                     type="tel"
                     className="input"
-                    placeholder="Identique au WhatsApp si vide"
+                    placeholder={tr("Identique au WhatsApp si vide", "Same as WhatsApp if empty")}
                     value={momoNumber}
                     onChange={(e) => setMomoNumber(e.target.value)}
                   />
                   <span className="mt-1 block text-[11px] text-arctic-500">
-                    Numéro marchand pour recevoir les paiements USSD & FedaPay.
+                    {tr("Numéro marchand pour recevoir les paiements USSD & FedaPay.", "Merchant number to receive USSD & FedaPay payments.")}
                   </span>
                 </div>
               </div>
 
               <div>
                 <label className="label font-semibold text-arctic-900">
-                  Présentation de la boutique (Bio, optionnel)
+                  {tr("Présentation de la boutique (Bio, optionnel)", "Shop description (bio, optional)")}
                 </label>
                 <textarea
                   className="input min-h-[68px]"
-                  placeholder="Décrivez vos produits, vos délais de livraison et vos garanties..."
+                  placeholder={tr("Décrivez vos produits, vos délais de livraison et vos garanties...", "Describe your products, delivery times and guarantees...")}
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                 />
@@ -400,7 +403,7 @@ export default function ShopOnboardingModal({
 
               <div className="rounded-xl border border-arctic-300/60 bg-arctic-50/60 p-3.5">
                 <label className="block text-xs font-bold text-arctic-900 mb-2">
-                  Logo de votre boutique (optionnel)
+                  {tr("Logo de votre boutique (optionnel)", "Your shop logo (optional)")}
                 </label>
                 <div className="flex items-center gap-3.5">
                   <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-brand/30 bg-white flex items-center justify-center font-black text-xl text-brand">
@@ -414,7 +417,7 @@ export default function ShopOnboardingModal({
                   <div className="space-y-1">
                     <label className="btn-ghost text-xs py-1.5 px-3 border border-arctic-300 cursor-pointer inline-flex items-center gap-1.5">
                       <span>📷</span>
-                      <span>{uploadingAvatar ? "Envoi en cours…" : "Importer un logo"}</span>
+                      <span>{uploadingAvatar ? tr("Envoi en cours…", "Sending…") : tr("Importer un logo", "Upload a logo")}</span>
                       <input
                         type="file"
                         accept="image/png,image/jpeg,image/webp,image/gif"
@@ -424,7 +427,7 @@ export default function ShopOnboardingModal({
                       />
                     </label>
                     <p className="text-[11px] text-arctic-500">
-                      PNG, JPG ou WebP (max 5 Mo). Modifiable à tout moment dans Settings.
+                      {tr("PNG, JPG ou WebP (max 5 Mo). Modifiable à tout moment dans Settings.", "PNG, JPG or WebP (max 5 MB). You can change it anytime in Settings.")}
                     </p>
                   </div>
                 </div>
@@ -442,14 +445,14 @@ export default function ShopOnboardingModal({
                   onClick={() => setStep(1)}
                   className="btn-ghost text-xs"
                 >
-                  ← Retour
+                  {tr("← Retour", "← Back")}
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
                   className="btn-primary px-6 py-2.5 font-bold"
                 >
-                  {saving ? "Création de votre espace…" : "🚀 Lancer ma boutique Japora"}
+                  {saving ? tr("Création de votre espace…", "Creating your space…") : tr("🚀 Lancer ma boutique Japora", "🚀 Launch my Japora shop")}
                 </button>
               </div>
             </>

@@ -9,6 +9,7 @@ import {
   type PaymentProviderName,
 } from "@/lib/payments";
 import { resolveRequestOrigin } from "@/lib/payments/fedapay";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
  * POST /api/payments/checkout
@@ -21,11 +22,12 @@ import { resolveRequestOrigin } from "@/lib/payments/fedapay";
  * Returns: { checkoutUrl?, providerRef, status, paymentIntentId }
  */
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   let body: { orderId?: string; provider?: string; returnUrl?: string; network?: string };
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    return NextResponse.json({ error: tr("Corps JSON invalide.", "Invalid JSON body.") }, { status: 400 });
   }
 
   const orderId = typeof body.orderId === "string" ? body.orderId.trim() : "";
@@ -34,10 +36,10 @@ export async function POST(req: NextRequest) {
   const network = typeof body.network === "string" ? body.network.trim() : undefined;
 
   if (!orderId) {
-    return NextResponse.json({ error: "orderId is required." }, { status: 400 });
+    return NextResponse.json({ error: tr("orderId est obligatoire.", "orderId is required.") }, { status: 400 });
   }
   if (!providerName || !isValidProviderName(providerName)) {
-    return NextResponse.json({ error: "Unknown payment provider." }, { status: 400 });
+    return NextResponse.json({ error: tr("Moyen de paiement inconnu.", "Unknown payment provider.") }, { status: 400 });
   }
 
   const ip = getClientIp(req);
@@ -53,13 +55,13 @@ export async function POST(req: NextRequest) {
     include: { vendor: { select: { id: true, currency: true } } },
   });
   if (!order) {
-    return NextResponse.json({ error: "Order not found." }, { status: 404 });
+    return NextResponse.json({ error: tr("Commande introuvable.", "Order not found.") }, { status: 404 });
   }
 
   const balanceCents = Math.max(0, order.totalCents - order.paidCents);
   if (balanceCents <= 0) {
     return NextResponse.json(
-      { error: "Order already fully paid." },
+      { error: tr("Cette commande est déjà entièrement payée.", "Order already fully paid.") },
       { status: 409 },
     );
   }

@@ -6,13 +6,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { listShops, type ShopCard as ShopCardType } from "@/lib/directory";
-import { CATEGORIES, findRegion, findCategory } from "@/lib/regions";
+import { CATEGORIES, findRegion, findCategory, categoryName, countryName } from "@/lib/regions";
 import { formatMoney } from "@/lib/utils";
 import { AuroraIsoscout } from "@/components/aurora";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 import { SaasIcon, CategoryIcon } from "@/components/ui/SaasIcons";
+import { getServerTr } from "@/lib/public-locale";
 
 export const revalidate = 300;
 
@@ -22,14 +23,21 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { region, category } = await params;
   const r = findRegion(region);
   const c = findCategory(category);
-  if (!r || !c) return { title: "Not found — Japora" };
+  const tr = await getServerTr();
+  if (!r || !c) return { title: tr("Introuvable — Japora", "Not found — Japora") };
+  const [catFr, catEn] = categoryName(c);
+  const [countryFr, countryEn] = countryName(r.country);
   return {
-    title: `Boutiques ${c.label} à ${r.label} — Japora`,
-    description: `Découvrez les vendeurs WhatsApp ${c.label.toLowerCase()} à ${r.label}, ${r.country}.`,
+    title: tr(`Boutiques ${catFr} à ${r.label} — Japora`, `${catEn} shops in ${r.label} — Japora`),
+    description: tr(
+      `Découvrez les vendeurs WhatsApp ${catFr.toLowerCase()} à ${r.label}, ${countryFr}.`,
+      `Discover the ${catEn.toLowerCase()} WhatsApp vendors in ${r.label}, ${countryEn}.`,
+    ),
   };
 }
 
-function ShopCard({ shop }: { shop: ShopCardType }) {
+async function ShopCard({ shop }: { shop: ShopCardType }) {
+  const tr = await getServerTr();
   const initial = shop.shopName.charAt(0).toUpperCase() || "S";
   const cur = shop.currency || "XOF";
   return (
@@ -65,7 +73,7 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
           <p className="mt-3 a-body-md line-clamp-3 text-arctic-700">{shop.bio}</p>
         ) : (
           <p className="mt-3 a-body-sm italic text-arctic-500">
-            Catalogue disponible en commande directe sur WhatsApp.
+            {tr("Catalogue disponible en commande directe sur WhatsApp.", "Catalog available to order directly on WhatsApp.")}
           </p>
         )}
 
@@ -94,13 +102,13 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
           href={`/c/${shop.shopSlug}`}
           className="text-xs font-semibold text-arctic-700 hover:text-arctic-900"
         >
-          Catalogue direct
+          {tr("Catalogue direct", "Direct catalog")}
         </Link>
         <Link
           href={`/shop/${shop.shopSlug}`}
           className="inline-flex items-center gap-1 a-label-md font-bold text-brand-dark group-hover:underline"
         >
-          <span>Voir la boutique</span>
+          <span>{tr("Voir la boutique", "View the shop")}</span>
           <SaasIcon name="arrow-right" size={13} />
         </Link>
       </div>
@@ -109,6 +117,7 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
 }
 
 export default async function MarketplaceRegionCategoryPage({ params }: Params) {
+  const tr = await getServerTr();
   const { region, category } = await params;
   const r = findRegion(region);
   const c = findCategory(category);
@@ -131,12 +140,12 @@ export default async function MarketplaceRegionCategoryPage({ params }: Params) 
               href={`/marketplace/${r.slug}`}
               className="font-semibold hover:text-arctic-900"
             >
-              {r.label} ({r.country})
+              {r.label} ({tr(...countryName(r.country))})
             </Link>
             <span>/</span>
             <span className="inline-flex items-center gap-1 font-bold text-brand-dark">
               <CategoryIcon slug={c.slug} size={13} />
-              <span>{c.label}</span>
+              <span>{tr(...categoryName(c))}</span>
             </span>
           </nav>
 
@@ -145,11 +154,14 @@ export default async function MarketplaceRegionCategoryPage({ params }: Params) 
               <CategoryIcon slug={c.slug} size={22} />
             </span>
             <span>
-              Boutiques {c.label} à {r.label}
+              {tr(`Boutiques ${categoryName(c)[0]} à ${r.label}`, `${c.label} shops in ${r.label}`)}
             </span>
           </h1>
           <p className="a-body-lg a-measure mt-2 text-arctic-700">
-            Vendeurs WhatsApp vérifiés dans le rayon {c.label.toLowerCase()} à {r.label} ({r.country}). Parcourez leurs articles et commandez en direct.
+            {tr(
+              `Vendeurs WhatsApp vérifiés dans le rayon ${categoryName(c)[0].toLowerCase()} à ${r.label} (${countryName(r.country)[0]}). Parcourez leurs articles et commandez en direct.`,
+              `Verified WhatsApp vendors in the ${c.label.toLowerCase()} aisle in ${r.label} (${countryName(r.country)[1]}). Browse their items and order directly.`,
+            )}
           </p>
         </div>
       </section>
@@ -157,7 +169,7 @@ export default async function MarketplaceRegionCategoryPage({ params }: Params) 
       <main className="mx-auto max-w-6xl flex-1 px-4 py-10">
         <section className="mb-8">
           <h2 className="mb-3 a-label-md uppercase tracking-wider text-arctic-700">
-            Autres rayons à {r.label}
+            {tr("Autres rayons à", "Other aisles in")} {r.label}
           </h2>
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.filter((x) => x.slug !== c.slug).map((x) => (
@@ -176,24 +188,27 @@ export default async function MarketplaceRegionCategoryPage({ params }: Params) 
         <section className="mb-12">
           <div className="mb-5 flex items-end justify-between border-b border-arctic-200/70 pb-3">
             <h2 className="a-headline-md text-arctic-900">
-              {shops.length} {shops.length === 1 ? "boutique" : "boutiques"}
+              {shops.length} {shops.length === 1 ? tr("boutique", "shop") : tr("boutiques", "shops")}
             </h2>
             <Link
               href={`/marketplace/${r.slug}`}
               className="text-xs font-semibold text-brand-dark hover:underline"
             >
-              ← Tous les rayons à {r.label}
+              {tr("← Tous les rayons à", "← All aisles in")} {r.label}
             </Link>
           </div>
           {shops.length === 0 ? (
             <div className="glass glass-edge rounded-shape-xl p-8">
               <AuroraIsoscout
                 variant="products"
-                title={`Aucune boutique ${c.label.toLowerCase()} à ${r.label} pour l'instant`}
-                body={`Lancez la première boutique ${c.label.toLowerCase()} à ${r.label} sur Japora et captez les premiers clients de votre ville.`}
+                title={tr(`Aucune boutique ${categoryName(c)[0].toLowerCase()} à ${r.label} pour l'instant`, `No ${c.label.toLowerCase()} shop in ${r.label} yet`)}
+                body={tr(
+                  `Lancez la première boutique ${categoryName(c)[0].toLowerCase()} à ${r.label} sur Japora et captez les premiers clients de votre ville.`,
+                  `Open the first ${c.label.toLowerCase()} shop in ${r.label} on Japora and win the first customers in your city.`,
+                )}
                 action={
                   <Link href="/signup" className="btn-primary">
-                    Créer ma boutique maintenant →
+                    {tr("Créer ma boutique maintenant →", "Create my shop now →")}
                   </Link>
                 }
               />

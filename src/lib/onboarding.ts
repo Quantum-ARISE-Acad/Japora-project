@@ -122,7 +122,9 @@ export type StoreSetupValidationResult =
   | {
       ok: false;
       field: StoreSetupField;
+      /** français */
       error: string;
+      errorEn: string;
     };
 
 /**
@@ -137,7 +139,8 @@ export function validateStoreSetupInput(
     return {
       ok: false,
       field: "shopName",
-      error: "Please enter your real shop name (not 'My Shop').",
+      error: "Saisissez le vrai nom de votre boutique (pas « My Shop »).",
+      errorEn: "Please enter your real shop name (not 'My Shop').",
     };
   }
 
@@ -147,7 +150,8 @@ export function validateStoreSetupInput(
     return {
       ok: false,
       field: "whatsappNumber",
-      error: wa.ok ? "Please enter your own WhatsApp number." : wa.error,
+      error: wa.ok ? "Saisissez votre propre numéro WhatsApp." : wa.error,
+      errorEn: wa.ok ? "Please enter your own WhatsApp number." : wa.errorEn,
     };
   }
 
@@ -156,7 +160,8 @@ export function validateStoreSetupInput(
     return {
       ok: false,
       field: "region",
-      error: "Please select your shop's region.",
+      error: "Choisissez la région de votre boutique.",
+      errorEn: "Please select your shop's region.",
     };
   }
 
@@ -165,7 +170,8 @@ export function validateStoreSetupInput(
     return {
       ok: false,
       field: "category",
-      error: "Please select your shop's category.",
+      error: "Choisissez la catégorie de votre boutique.",
+      errorEn: "Please select your shop's category.",
     };
   }
 

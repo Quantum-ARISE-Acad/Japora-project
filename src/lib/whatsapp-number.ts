@@ -16,15 +16,17 @@ export const WHATSAPP_NUMBER_EXAMPLE = "+228 90 12 34 56";
 
 export type WhatsAppNumberCheck =
   | { ok: true; digits: string; e164: string }
-  | { ok: false; error: string };
+  /** error: français, errorEn: English — shown with tr(error, errorEn). */
+  | { ok: false; error: string; errorEn: string };
 
 const HELP = `Écrivez le numéro avec l'indicatif du pays, par exemple ${WHATSAPP_NUMBER_EXAMPLE} pour le Togo.`;
+const HELP_EN = `Write the number with its country code, for example ${WHATSAPP_NUMBER_EXAMPLE} for Togo.`;
 
 /** Checks a number typed by a person. Without an explicit country code it is refused. */
 export function checkWhatsAppNumber(input: string | null | undefined): WhatsAppNumberCheck {
   const compact = (input ?? "").trim().replace(/[\s().\-/]/g, "");
   if (!compact) {
-    return { ok: false, error: `Le numéro WhatsApp est obligatoire. ${HELP}` };
+    return { ok: false, error: `Le numéro WhatsApp est obligatoire. ${HELP}`, errorEn: `The WhatsApp number is required. ${HELP_EN}` };
   }
   let international: string;
   if (compact.startsWith("+")) international = compact;
@@ -33,11 +35,12 @@ export function checkWhatsAppNumber(input: string | null | undefined): WhatsAppN
     return {
       ok: false,
       error: `Commencez le numéro par + suivi de l'indicatif du pays, par exemple ${WHATSAPP_NUMBER_EXAMPLE} pour le Togo.`,
+      errorEn: `Start the number with + followed by the country code, for example ${WHATSAPP_NUMBER_EXAMPLE} for Togo.`,
     };
   }
 
   if (!/^\+\d{6,15}$/.test(international)) {
-    return { ok: false, error: `Ce numéro n'est pas valide. ${HELP}` };
+    return { ok: false, error: `Ce numéro n'est pas valide. ${HELP}`, errorEn: `This number is not valid. ${HELP_EN}` };
   }
   try {
     const parsed = parsePhoneNumberFromString(international, metadata);
@@ -50,6 +53,7 @@ export function checkWhatsAppNumber(input: string | null | undefined): WhatsAppN
   return {
     ok: false,
     error: `Ce numéro ne correspond pas à l'indicatif du pays saisi. ${HELP}`,
+    errorEn: `This number does not match the country code you entered. ${HELP_EN}`,
   };
 }
 

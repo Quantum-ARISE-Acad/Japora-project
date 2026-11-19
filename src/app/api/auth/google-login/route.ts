@@ -5,15 +5,17 @@ import { createSession } from "@/lib/session";
 import { setUnifiedCookie } from "@/lib/unified-auth";
 import { slugify } from "@/lib/utils";
 import { hashPassword } from "@/lib/auth";
+import { getServerTr } from "@/lib/public-locale";
 
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   if (
     process.env.NODE_ENV === "production" ||
     (clerkKey && clerkKey.trim().length > 0 && !clerkKey.includes("your_clerk") && !clerkKey.includes("pk_test_placeholder"))
   ) {
     return NextResponse.json(
-      { error: "Demo Google login is disabled when Clerk authentication is configured." },
+      { error: tr("La connexion Google de démonstration est désactivée quand Clerk est configuré.", "Demo Google login is disabled when Clerk authentication is configured.") },
       { status: 403 },
     );
   }

@@ -6,6 +6,7 @@ import Link from "next/link";
 import Glyph from "@/components/Glyph";
 import { COOPERATIVE_NAME_SUGGESTIONS, regionLabel } from "@/lib/regions";
 import { cooperativeJoinPayload } from "@/lib/cooperative-client";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 type Member = {
   id: string;
@@ -39,6 +40,7 @@ export default function CooperativeClient({
   qrSvg: string;
   regions: RegionOption[];
 }) {
+  const { tr } = usePublicLang();
   const router = useRouter();
 
   // Mode for non-joined vendors
@@ -72,7 +74,7 @@ export default function CooperativeClient({
     setBusy(false);
 
     if (!res.ok) {
-      setError(data.error || "Impossible de rejoindre la coopérative. Vérifiez le code.");
+      setError(data.error || tr("Impossible de rejoindre la coopérative. Vérifiez le code.", "Could not join the cooperative. Check the code."));
       return;
     }
     router.refresh();
@@ -92,7 +94,7 @@ export default function CooperativeClient({
     setBusy(false);
 
     if (!res.ok) {
-      setError(data.error || "Erreur lors de la création de la coopérative.");
+      setError(data.error || tr("Erreur lors de la création de la coopérative.", "Error while creating the cooperative."));
       return;
     }
     router.refresh();
@@ -173,7 +175,7 @@ export default function CooperativeClient({
               tab === "join" ? "bg-arctic-800 text-arctic-50 shadow-sm" : "text-arctic-700 hover:bg-arctic-800 hover:text-arctic-50"
             }`}
           >
-            Rejoindre avec un code
+            {tr("Rejoindre avec un code", "Join with a code")}
           </button>
           <button
             type="button"
@@ -185,24 +187,24 @@ export default function CooperativeClient({
               tab === "create" ? "bg-arctic-800 text-arctic-50 shadow-sm" : "text-arctic-700 hover:bg-arctic-800 hover:text-arctic-50"
             }`}
           >
-            Créer une coopérative
+            {tr("Créer une coopérative", "Create a cooperative")}
           </button>
         </div>
 
         {tab === "join" ? (
           <form onSubmit={handleJoin} className="card space-y-4 p-6 shadow-elev-1">
             <div>
-              <h2 className="text-base font-bold text-arctic-900">Rejoindre une coopérative existante</h2>
+              <h2 className="text-base font-bold text-arctic-900">{tr("Rejoindre une coopérative existante", "Join an existing cooperative")}</h2>
               <p className="mt-1 text-xs text-arctic-600">
-                Entrez le code d&apos;adhésion à 6 lettres fourni par le responsable de votre marché ou association.
+                {tr("Entrez le code d'adhésion à 6 lettres fourni par le responsable de votre marché ou association.", "Enter the 6-letter membership code given by your market or association leader.")}
               </p>
             </div>
 
             <div>
-              <label className="label">Code d&apos;adhésion (6 caractères)</label>
+              <label className="label">{tr("Code d'adhésion (6 caractères)", "Membership code (6 characters)")}</label>
               <input
                 className="input font-mono uppercase tracking-widest text-lg font-bold text-center"
-                placeholder="Ex: ABCXYZ"
+                placeholder={tr("Ex: ABCXYZ", "e.g. ABCXYZ")}
                 maxLength={8}
                 value={joinCodeInput}
                 onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase())}
@@ -213,25 +215,25 @@ export default function CooperativeClient({
             {error && <p className="rounded-md bg-red-50 p-2.5 text-xs text-red-600">{error}</p>}
 
             <button type="submit" disabled={busy} className="btn-primary w-full py-2.5 text-sm">
-              {busy ? "Vérification…" : "Rejoindre la coopérative"}
+              {busy ? tr("Vérification…", "Checking…") : tr("Rejoindre la coopérative", "Join the cooperative")}
             </button>
           </form>
         ) : (
           <form onSubmit={handleCreate} className="card space-y-4 p-6 shadow-elev-1">
             <div>
-              <h2 className="text-base font-bold text-arctic-900">Créer votre association marchande</h2>
+              <h2 className="text-base font-bold text-arctic-900">{tr("Créer votre association marchande", "Create your traders' association")}</h2>
               <p className="mt-1 text-xs text-arctic-600">
-                Vous obtiendrez un code d&apos;adhésion unique, un QR code et un poster imprimable pour inscrire tous les vendeurs de votre marché.
+                {tr("Vous obtiendrez un code d'adhésion unique, un QR code et un poster imprimable pour inscrire tous les vendeurs de votre marché.", "You will get a unique membership code, a QR code and a printable poster to sign up every vendor in your market.")}
               </p>
             </div>
 
             <div>
-              <label className="label" htmlFor="cooperative-name">Nom de l&apos;association ou coopérative *</label>
+              <label className="label" htmlFor="cooperative-name">{tr("Nom de l'association ou coopérative *", "Association or cooperative name *")}</label>
               <input
                 id="cooperative-name"
                 className="input"
                 list="cooperative-name-suggestions"
-                placeholder="Choisissez une suggestion ou saisissez un nom"
+                placeholder={tr("Choisissez une suggestion ou saisissez un nom", "Pick a suggestion or type a name")}
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
                 required
@@ -242,7 +244,7 @@ export default function CooperativeClient({
             </div>
 
             <div>
-              <label className="label">Région / Ville</label>
+              <label className="label">{tr("Région / Ville", "Region / City")}</label>
               <select
                 className="input"
                 value={createRegion}
@@ -259,7 +261,7 @@ export default function CooperativeClient({
             {error && <p className="rounded-md bg-red-50 p-2.5 text-xs text-red-600">{error}</p>}
 
             <button type="submit" disabled={busy} className="btn-primary w-full py-2.5 text-sm">
-              {busy ? "Création…" : "Créer et générer mon code"}
+              {busy ? tr("Création…", "Creating…") : tr("Créer et générer mon code", "Create and generate my code")}
             </button>
           </form>
         )}
@@ -286,7 +288,10 @@ export default function CooperativeClient({
               )}
             </div>
             <p className="mt-1 text-sm text-arctic-600">
-              Région : <strong>{cooperative.region ? regionLabel(cooperative.region) : "Non spécifiée"}</strong> · {cooperative.memberCount} boutique{cooperative.memberCount > 1 ? "s" : ""} membre{cooperative.memberCount > 1 ? "s" : ""}
+              {tr("Région :", "Region:")} <strong>{cooperative.region ? regionLabel(cooperative.region) : tr("Non spécifiée", "Not specified")}</strong> ·{" "}
+              {cooperative.memberCount > 1
+                ? tr(`${cooperative.memberCount} boutiques membres`, `${cooperative.memberCount} member shops`)
+                : tr(`${cooperative.memberCount} boutique membre`, `${cooperative.memberCount} member shop`)}
             </p>
           </div>
 
@@ -297,14 +302,14 @@ export default function CooperativeClient({
               rel="noreferrer"
               className="btn-ghost text-xs font-semibold gap-1.5"
             >
-              📄 Affiche / Flyer imprimable
+              {tr("📄 Affiche / Flyer imprimable", "📄 Printable poster / flyer")}
             </a>
             <button
               onClick={handleLeave}
               disabled={busy}
               className="btn-danger text-xs !py-1.5"
             >
-              Quitter
+              {tr("Quitter", "Leave")}
             </button>
           </div>
         </div>
@@ -312,7 +317,7 @@ export default function CooperativeClient({
         {/* Join Code & Share Box */}
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           <div className="rounded-shape-lg border border-arctic-300/50 bg-arctic-100/50 p-4 sm:col-span-2 space-y-3">
-            <div className="text-xs font-semibold text-arctic-700">Code d&apos;adhésion de la coopérative</div>
+            <div className="text-xs font-semibold text-arctic-700">{tr("Code d'adhésion de la coopérative", "Cooperative membership code")}</div>
             <div className="flex items-center gap-3">
               <span className="font-mono text-3xl font-black tracking-wider text-arctic-900">
                 {cooperative.joinCode}
@@ -322,12 +327,12 @@ export default function CooperativeClient({
                 onClick={copyJoinLink}
                 className="btn-ghost text-xs py-1 px-3"
               >
-                {copied ? "Lien copié !" : "Copier le lien d'adhésion"}
+                {copied ? tr("Lien copié !", "Link copied!") : tr("Copier le lien d'adhésion", "Copy the membership link")}
               </button>
             </div>
 
             <p className="text-xs text-arctic-600">
-              Partagez ce code ou ce lien avec les vendeurs de votre marché pour qu&apos;ils rejoignent votre groupe.
+              {tr("Partagez ce code ou ce lien avec les vendeurs de votre marché pour qu'ils rejoignent votre groupe.", "Share this code or link with the vendors of your market so they join your group.")}
             </p>
 
             <div className="pt-1 flex flex-wrap gap-2">
@@ -337,7 +342,7 @@ export default function CooperativeClient({
                 rel="noreferrer"
                 className="btn-primary text-xs gap-1.5"
               >
-                <Glyph name="chat" size={14} /> Inviter sur WhatsApp
+                <Glyph name="chat" size={14} /> {tr("Inviter sur WhatsApp", "Invite on WhatsApp")}
               </a>
             </div>
           </div>
@@ -352,24 +357,24 @@ export default function CooperativeClient({
               />
             ) : (
               <div className="grid h-48 w-48 place-items-center rounded-md bg-arctic-100 text-xs text-arctic-500">
-                QR indisponible
+                {tr("QR indisponible", "QR unavailable")}
               </div>
             )}
-            <span className="mt-2 text-[11px] font-medium text-arctic-500">Scanner pour rejoindre</span>
+            <span className="mt-2 text-[11px] font-medium text-arctic-500">{tr("Scanner pour rejoindre", "Scan to join")}</span>
           </div>
         </div>
       </div>
 
       {/* WhatsApp Invite Blaster (for Admins / Leaders) */}
       <div className="card p-6 space-y-3">
-        <h3 className="text-sm font-bold text-arctic-900">Inviter des vendeurs par WhatsApp</h3>
+        <h3 className="text-sm font-bold text-arctic-900">{tr("Inviter des vendeurs par WhatsApp", "Invite vendors by WhatsApp")}</h3>
         <p className="text-xs text-arctic-600">
-          Entrez les numéros de téléphone des commerçants (séparés par des virgules ou retours à la ligne) pour leur envoyer directement l&apos;invitation avec le lien.
+          {tr("Entrez les numéros de téléphone des commerçants (séparés par des virgules ou retours à la ligne) pour leur envoyer directement l'invitation avec le lien.", "Enter the traders' phone numbers (separated by commas or new lines) to send them the invitation with the link directly.")}
         </p>
         <form onSubmit={handleInvite} className="space-y-3">
           <textarea
             className="input min-h-[65px] font-mono text-xs"
-            placeholder="Ex: +228 90 12 34 56, +228 91 23 45 67"
+            placeholder={tr("Ex: +228 90 12 34 56, +228 91 23 45 67", "e.g. +228 90 12 34 56, +228 91 23 45 67")}
             value={invitePhones}
             onChange={(e) => setInvitePhones(e.target.value)}
           />
@@ -383,7 +388,7 @@ export default function CooperativeClient({
             disabled={inviteBusy || !invitePhones.trim()}
             className="btn-primary text-xs py-2 px-4"
           >
-            {inviteBusy ? "Envoi en cours…" : "Envoyer les invitations WhatsApp"}
+            {inviteBusy ? tr("Envoi en cours…", "Sending…") : tr("Envoyer les invitations WhatsApp", "Send the WhatsApp invitations")}
           </button>
         </form>
       </div>
@@ -392,9 +397,9 @@ export default function CooperativeClient({
       <div className="card overflow-hidden">
         <div className="border-b border-arctic-300/40 px-5 py-3.5 flex items-center justify-between">
           <h3 className="font-bold text-arctic-900 text-sm">
-            Membres de la coopérative ({cooperative.members.length})
+            {tr("Membres de la coopérative (", "Cooperative members (")}{cooperative.members.length})
           </h3>
-          <span className="text-xs text-arctic-500">Boutiques actives</span>
+          <span className="text-xs text-arctic-500">{tr("Boutiques actives", "Active shops")}</span>
         </div>
 
         <div className="divide-y divide-arctic-300/30">
@@ -407,7 +412,7 @@ export default function CooperativeClient({
                 <div>
                   <div className="font-semibold text-sm text-arctic-900">{m.shopName}</div>
                   <div className="text-xs text-arctic-500">
-                    Membre depuis le {new Date(m.joinedAt).toLocaleDateString()}
+                    {tr("Membre depuis le", "Member since")} {new Date(m.joinedAt).toLocaleDateString()}
                   </div>
                 </div>
               </div>
@@ -418,7 +423,7 @@ export default function CooperativeClient({
                   target="_blank"
                   className="btn-ghost text-xs !py-1 px-3"
                 >
-                  Voir catalogue ↗
+                  {tr("Voir catalogue ↗", "View catalog ↗")}
                 </Link>
               </div>
             </div>

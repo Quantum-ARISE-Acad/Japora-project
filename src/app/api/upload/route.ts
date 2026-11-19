@@ -4,6 +4,7 @@ import { getStorageProvider } from "@/lib/storage";
 import { logger } from "@/lib/logger";
 import { rateLimit, tooManyRequests } from "@/lib/ratelimit";
 import { optimizeImage } from "@/lib/image";
+import { getServerTr } from "@/lib/public-locale";
 
 const ALLOWED: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -13,8 +14,9 @@ const ALLOWED: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const rl = rateLimit({ key: `upload:${vendor.id}`, limit: 20, windowMs: 60_000 });
   if (!rl.allowed) return tooManyRequests(rl, "Too many uploads. Slow down.");
@@ -22,14 +24,14 @@ export async function POST(req: NextRequest) {
   const form = await req.formData();
   const file = form.get("file");
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "No file uploaded." }, { status: 400 });
+    return NextResponse.json({ error: tr("Aucun fichier envoyé.", "No file uploaded.") }, { status: 400 });
   }
   if (file.size > 5 * 1024 * 1024) {
-    return NextResponse.json({ error: "Image must be under 5MB." }, { status: 400 });
+    return NextResponse.json({ error: tr("L'image doit faire moins de 5 Mo.", "Image must be under 5MB.") }, { status: 400 });
   }
   const ext = ALLOWED[file.type];
   if (!ext) {
-    return NextResponse.json({ error: "Use a JPG, PNG, WebP or GIF image." }, { status: 400 });
+    return NextResponse.json({ error: tr("Utilisez une image JPG, PNG, WebP ou GIF.", "Use a JPG, PNG, WebP or GIF image.") }, { status: 400 });
   }
 
   const rawBuffer = Buffer.from(await file.arrayBuffer());
@@ -56,6 +58,6 @@ export async function POST(req: NextRequest) {
       provider: provider.name,
       error: e instanceof Error ? e.message : String(e),
     });
-    return NextResponse.json({ error: "Upload failed." }, { status: 502 });
+    return NextResponse.json({ error: tr("L'envoi a échoué.", "Upload failed.") }, { status: 502 });
   }
 }

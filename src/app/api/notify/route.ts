@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentVendor } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getServerTr } from "@/lib/public-locale";
 
 export async function GET(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const sp = req.nextUrl.searchParams;
   const sinceParam = sp.get("since");

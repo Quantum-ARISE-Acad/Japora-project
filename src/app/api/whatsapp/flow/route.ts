@@ -6,19 +6,21 @@ import { buildCheckoutFlowJson, type FlowCompletion } from "@/lib/flow";
 import { attributeOrder } from "@/lib/campaigns";
 import { enqueue, kickDrain } from "@/lib/bus";
 import { crossedToZero, stockDepleted } from "@/lib/catalog-events";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
  * GET /api/whatsapp/flow?slug=<shopSlug> — returns the checkout Flow JSON for a
  * shop, ready to paste into Meta's Flow Builder. Public (it's a form template).
  */
 export async function GET(req: NextRequest) {
+  const tr = await getServerTr();
   const slug = req.nextUrl.searchParams.get("slug") || "";
   if (!slug) return NextResponse.json({ error: "Pass ?slug=<shopSlug>." }, { status: 400 });
   const vendor = await prisma.vendor.findFirst({
     where: { shopSlug: slug, deletedAt: null },
     select: { id: true, shopName: true, currency: true },
   });
-  if (!vendor) return NextResponse.json({ error: "Shop not found." }, { status: 404 });
+  if (!vendor) return NextResponse.json({ error: tr("Boutique introuvable.", "Shop not found.") }, { status: 404 });
   const products = await prisma.product.findMany({
     where: { vendorId: vendor.id, isActive: true },
     select: { id: true, name: true, priceCents: true, sizes: true, stock: true },
@@ -68,6 +70,7 @@ function vendorIdFrom(body: Record<string, unknown>): string | null {
 }
 
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const action = String(body.action || "");
 
@@ -85,7 +88,7 @@ export async function POST(req: NextRequest) {
 
   const data = (body.data as FlowCompletion) || (body as FlowCompletion);
   const vendorId = vendorIdFrom(body);
-  if (!vendorId) return NextResponse.json({ error: "Unknown shop." }, { status: 400 });
+  if (!vendorId) return NextResponse.json({ error: tr("Boutique inconnue.", "Unknown shop.") }, { status: 400 });
 
   const productId = String(data.product || "").trim();
   const phone = String(data.phone || "").trim();
@@ -95,13 +98,13 @@ export async function POST(req: NextRequest) {
   const qty = Math.max(1, Math.min(999, parseInt(String(data.qty ?? 1), 10) || 1));
 
   if (!productId || !phone) {
-    return NextResponse.json({ error: "Missing product or phone." }, { status: 400 });
+    return NextResponse.json({ error: tr("Produit ou téléphone manquant.", "Missing product or phone.") }, { status: 400 });
   }
 
   const product = await prisma.product.findFirst({
     where: { id: productId, vendorId, isActive: true },
   });
-  if (!product) return NextResponse.json({ error: "Product unavailable." }, { status: 404 });
+  if (!product) return NextResponse.json({ error: tr("Produit indisponible.", "Product unavailable.") }, { status: 404 });
   if (product.stock < qty && !product.preOrderAllowed) {
     return NextResponse.json({ error: `Only ${product.stock} left.` }, { status: 409 });
   }

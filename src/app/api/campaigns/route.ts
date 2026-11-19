@@ -12,11 +12,13 @@ import {
   type MetaCtaType,
   type MetaPlacementId,
 } from "@/lib/meta-marketing";
+import { getServerTr } from "@/lib/public-locale";
 
 /** GET /api/campaigns — the vendor's campaigns with click/order/revenue stats + Meta Marketing API details. */
 export async function GET() {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const [campaigns, metaMap, metaConfig] = await Promise.all([
     listCampaigns(vendor.id),
@@ -43,14 +45,15 @@ export async function GET() {
 
 /** POST /api/campaigns — mint a new CTWA / Meta Marketing API campaign + 4-step Graph API pipeline. */
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const b = await req.json().catch(() => null);
-  if (!b) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  if (!b) return NextResponse.json({ error: tr("Requête invalide.", "Invalid request") }, { status: 400 });
 
   const name = String(b.name || "").trim();
-  if (!name) return NextResponse.json({ error: "Veuillez donner un nom à votre campagne." }, { status: 400 });
+  if (!name) return NextResponse.json({ error: tr("Veuillez donner un nom à votre campagne.", "Please give your campaign a name.") }, { status: 400 });
 
   // Accept dailyBudget or spend in major currency units (e.g. "5000" CFA) -> cents
   const dailyBudgetMajor = Number(b.dailyBudget ?? b.spend ?? 25);
@@ -189,6 +192,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (e) {
     logger.error("campaign.create_failed", { vendorId: vendor.id, error: String(e) });
-    return NextResponse.json({ error: "Impossible de créer la campagne publicitaire." }, { status: 500 });
+    return NextResponse.json({ error: tr("Impossible de créer la campagne publicitaire.", "Could not create the ad campaign.") }, { status: 500 });
   }
 }

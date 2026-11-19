@@ -10,7 +10,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getShop } from "@/lib/directory";
-import { findRegion, findCategory } from "@/lib/regions";
+import { findRegion, findCategory, categoryName, countryName } from "@/lib/regions";
 import { waMeLink, formatMoney } from "@/lib/utils";
 import Glyph from "@/components/Glyph";
 import VerifiedBadge from "@/components/VerifiedBadge";
@@ -19,6 +19,7 @@ import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 import { SaasIcon, CategoryIcon } from "@/components/ui/SaasIcons";
 import { getPublicLocale, publicText } from "@/lib/public-locale";
+import { getServerTr } from "@/lib/public-locale";
 
 export const revalidate = 300;
 
@@ -27,14 +28,16 @@ type Params = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
   const shop = await getShop(slug);
-  if (!shop) return { title: "Shop not found — Japora" };
+  const tr = await getServerTr();
+  if (!shop) return { title: tr("Boutique introuvable — Japora", "Shop not found — Japora") };
   return {
-    title: `${shop.shopName} sur Japora — Boutique WhatsApp`,
-    description: shop.bio || shop.tagline || `Commandez chez ${shop.shopName} sur WhatsApp.`,
+    title: tr(`${shop.shopName} sur Japora — Boutique WhatsApp`, `${shop.shopName} on Japora — WhatsApp shop`),
+    description: shop.bio || shop.tagline || tr(`Commandez chez ${shop.shopName} sur WhatsApp.`, `Order from ${shop.shopName} on WhatsApp.`),
   };
 }
 
 export default async function PublicShopPage({ params }: Params) {
+  const tr = await getServerTr();
   const { slug } = await params;
   const shop = await getShop(slug);
   if (!shop) notFound();
@@ -79,7 +82,7 @@ export default async function PublicShopPage({ params }: Params) {
                 className="inline-flex items-center gap-1 hover:text-arctic-900"
               >
                 <CategoryIcon slug={category.slug} size={13} className="text-brand-dark" />
-                <span>{category.label}</span>
+                <span>{tr(...categoryName(category))}</span>
               </Link>
             </>
           )}
@@ -106,7 +109,7 @@ export default async function PublicShopPage({ params }: Params) {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={shop.avatarUrl}
-                  alt={`${shop.shopName} avatar`}
+                  alt={tr(`Logo de ${shop.shopName}`, `${shop.shopName} logo`)}
                   className="relative z-20 h-24 w-24 rounded-shape-lg border-4 border-white bg-white object-cover shadow-elev-2 sm:h-28 sm:w-28"
                 />
               ) : (
@@ -123,7 +126,7 @@ export default async function PublicShopPage({ params }: Params) {
                   >
                     <SaasIcon name="map-pin" size={13} className="text-brand-dark" />
                     <span>
-                      {region.label}, {region.country}
+                      {region.label}, {tr(...countryName(region.country))}
                     </span>
                   </Link>
                 ) : null}
@@ -133,12 +136,12 @@ export default async function PublicShopPage({ params }: Params) {
                     className="a-chip inline-flex items-center gap-1.5"
                   >
                     <CategoryIcon slug={category.slug} size={13} className="text-brand-dark" />
-                    <span>{category.label}</span>
+                    <span>{tr(...categoryName(category))}</span>
                   </Link>
                 ) : category ? (
                   <span className="a-chip inline-flex items-center gap-1.5">
                     <CategoryIcon slug={category.slug} size={13} className="text-brand-dark" />
-                    <span>{category.label}</span>
+                    <span>{tr(...categoryName(category))}</span>
                   </span>
                 ) : null}
               </div>

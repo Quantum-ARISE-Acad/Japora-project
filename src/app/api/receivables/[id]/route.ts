@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentVendor } from "@/lib/auth";
 import { markPaid } from "@/lib/receivables";
 import { logger } from "@/lib/logger";
+import { getServerTr } from "@/lib/public-locale";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -15,15 +16,16 @@ type Params = { params: Promise<{ id: string }> };
  * Without `action`, falls back to updating note / dueDate only.
  */
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const { id } = await params;
   const existing = await prisma.receivable.findFirst({
     where: { id, vendorId: vendor.id },
   });
   if (!existing) {
-    return NextResponse.json({ error: "Receivable not found" }, { status: 404 });
+    return NextResponse.json({ error: tr("Créance introuvable", "Receivable not found") }, { status: 404 });
   }
 
   const b = await req.json().catch(() => ({}));
@@ -38,7 +40,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (action === "partial") {
     const amount = Math.max(0, Math.floor(Number(b.amountCents) || 0));
     if (amount <= 0) {
-      return NextResponse.json({ error: "Amount must be greater than zero." }, { status: 400 });
+      return NextResponse.json({ error: tr("Le montant doit être supérieur à zéro.", "Amount must be greater than zero.") }, { status: 400 });
     }
     const updated = await markPaid(id, vendor.id, { amountCents: amount });
     logger.info("receivable.partial", {

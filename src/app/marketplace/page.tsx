@@ -1,15 +1,21 @@
 import type { Metadata } from "next";
+import { getServerTr } from "@/lib/public-locale";
 import { listShops } from "@/lib/directory";
 import { parseSearchType, searchMarketplace, type ProductHit } from "@/lib/search";
 import MarketplaceClient from "./MarketplaceClient";
 
 export const revalidate = 300;
 
-export const metadata: Metadata = {
-  title: "Marketplace Japora — Boutiques en ligne & WhatsApp vérifiées",
-  description:
-    "Explorez les meilleurs vendeurs WhatsApp vérifiés en Afrique. Mode, électronique, beauté, alimentation. Parcourez les catalogues et commandez en direct.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const tr = await getServerTr();
+  return {
+    title: tr("Marketplace Japora — Boutiques en ligne & WhatsApp vérifiées", "Japora marketplace — verified online & WhatsApp shops"),
+    description: tr(
+      "Explorez les meilleurs vendeurs WhatsApp vérifiés en Afrique. Mode, électronique, beauté, alimentation. Parcourez les catalogues et commandez en direct.",
+      "Explore the best verified WhatsApp vendors in Africa. Fashion, electronics, beauty, food. Browse the catalogs and order directly.",
+    ),
+  };
+}
 
 type Props = {
   searchParams?: Promise<{ category?: string; region?: string; q?: string; type?: string }>;

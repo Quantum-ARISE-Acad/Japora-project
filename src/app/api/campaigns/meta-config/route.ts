@@ -6,13 +6,15 @@ import {
   verifyMetaAccessToken,
   type MetaEnvironment,
 } from "@/lib/meta-marketing";
+import { getServerTr } from "@/lib/public-locale";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
   if (!vendor) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
   }
   const config = await getVendorMetaConfig(vendor.id);
   return NextResponse.json({
@@ -27,16 +29,17 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
   if (!vendor) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
   }
 
   let body: Record<string, unknown>;
   try {
     body = (await req.json()) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+    return NextResponse.json({ error: tr("Requête invalide (JSON).", "invalid_json") }, { status: 400 });
   }
 
   const environment: MetaEnvironment =

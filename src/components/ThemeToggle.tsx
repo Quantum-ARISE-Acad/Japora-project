@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 /**
  * Light/dark toggle. Flips the `.dark` class on <html>, persists to
@@ -11,6 +12,7 @@ import { useEffect, useState } from "react";
  * is a 44px touch target with an aria-label and aria-pressed state.
  */
 export default function ThemeToggle({ className = "" }: { className?: string }) {
+  const { tr } = usePublicLang();
   const [dark, setDark] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -35,9 +37,9 @@ export default function ThemeToggle({ className = "" }: { className?: string }) 
     <button
       type="button"
       onClick={toggle}
-      aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+      aria-label={isDark ? tr("Passer au thème clair", "Switch to light theme") : tr("Passer au thème sombre", "Switch to dark theme")}
       aria-pressed={isDark}
-      title={isDark ? "Light mode" : "Dark mode"}
+      title={isDark ? tr("Mode clair", "Light mode") : tr("Mode sombre", "Dark mode")}
       className={
         "grid h-9 w-9 place-items-center rounded-full border border-arctic-400/45 text-arctic-700 " +
         "transition-colors duration-short hover:border-brand/60 hover:text-brand-dark " +

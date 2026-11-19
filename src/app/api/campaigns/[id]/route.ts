@@ -7,18 +7,20 @@ import {
   syncOrSimulateMetaInsights,
   updateMetaCampaignLifecycle,
 } from "@/lib/meta-marketing";
+import { getServerTr } from "@/lib/public-locale";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_req: NextRequest, { params }: Params) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
   const { id } = await params;
   const [campaign, metaMap] = await Promise.all([
     getCampaign(vendor.id, id),
     getVendorMetaCampaignMap(vendor.id),
   ]);
-  if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!campaign) return NextResponse.json({ error: tr("Introuvable", "Not found") }, { status: 404 });
   return NextResponse.json({
     campaign: {
       ...campaign,
@@ -32,13 +34,14 @@ export async function GET(_req: NextRequest, { params }: Params) {
  * update daily budget, or sync/simulate Meta Marketing API insights.
  */
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
   const { id } = await params;
 
   const existing = await getCampaign(vendor.id, id);
   if (!existing) {
-    return NextResponse.json({ error: "Campagne introuvable." }, { status: 404 });
+    return NextResponse.json({ error: tr("Campagne introuvable.", "Campaign not found.") }, { status: 404 });
   }
 
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
@@ -91,7 +94,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const dailyBudgetMajor = Number(body.dailyBudget);
     if (!Number.isFinite(dailyBudgetMajor) || dailyBudgetMajor <= 0) {
       return NextResponse.json(
-        { error: "Budget quotidien invalide." },
+        { error: tr("Budget quotidien invalide.", "Invalid daily budget.") },
         { status: 400 },
       );
     }
@@ -115,16 +118,17 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     });
   }
 
-  return NextResponse.json({ error: "Action non reconnue." }, { status: 400 });
+  return NextResponse.json({ error: tr("Action non reconnue.", "Unknown action.") }, { status: 400 });
 }
 
 /** DELETE /api/campaigns/:id — archive (soft-delete). Stops new attribution. */
 export async function DELETE(_req: NextRequest, { params }: Params) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
   const { id } = await params;
   await updateMetaCampaignLifecycle(vendor.id, id, "ARCHIVED").catch(() => null);
   const ok = await softDeleteCampaign(vendor.id, id);
-  if (!ok) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!ok) return NextResponse.json({ error: tr("Introuvable", "Not found") }, { status: 404 });
   return NextResponse.json({ ok: true });
 }

@@ -11,12 +11,14 @@ import {
   sanitizeWhatsAppAssistantPatch,
 } from "@/lib/whatsapp-config";
 import { recordVendorActivity } from "@/lib/clerk-vendor-sync";
+import { getServerTr } from "@/lib/public-locale";
 
 const LANG_KEYS = new Set(Object.keys(LANG_NAMES) as Lang[]);
 
 export async function GET() {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const prefs =
     vendor.uiPrefs && typeof vendor.uiPrefs === "object" && !Array.isArray(vendor.uiPrefs)
@@ -52,8 +54,9 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const b = await req.json().catch(() => ({}));
   const data: Record<string, unknown> = {};
@@ -69,7 +72,7 @@ export async function PATCH(req: NextRequest) {
     // open the wrong number (see src/lib/whatsapp-number.ts).
     const wa = checkWhatsAppNumber(b.whatsappNumber);
     if (!wa.ok) {
-      return NextResponse.json({ error: wa.error, field: "whatsappNumber" }, { status: 400 });
+      return NextResponse.json({ error: tr(wa.error, wa.errorEn), field: "whatsappNumber" }, { status: 400 });
     }
     data.whatsappNumber = wa.digits;
   }
@@ -134,7 +137,7 @@ export async function PATCH(req: NextRequest) {
   if (typeof b.bio === "string") {
     const bio = b.bio.trim();
     if (bio.length > 1000) {
-      return NextResponse.json({ error: "La biographie est trop longue (1000 caractères max)." }, { status: 400 });
+      return NextResponse.json({ error: tr("La biographie est trop longue (1000 caractères max).", "The bio is too long (1000 characters max).") }, { status: 400 });
     }
     data.bio = bio;
   }
@@ -149,7 +152,7 @@ export async function PATCH(req: NextRequest) {
           if (!/^https?:$/.test(parsed.protocol)) throw new Error("bad_scheme");
         } catch {
           return NextResponse.json(
-            { error: "Le logo doit être une image téléversée (/uploads/...) ou une URL http(s)." },
+            { error: tr("Le logo doit être une image téléversée (/uploads/...) ou une URL http(s).", "The logo must be an uploaded image (/uploads/...) or an http(s) URL.") },
             { status: 400 },
           );
         }
@@ -203,7 +206,7 @@ export async function PATCH(req: NextRequest) {
   if (b.uiPrefs !== undefined) {
     const patch = validateUiPrefsPatch(b.uiPrefs);
     if (!patch) {
-      return NextResponse.json({ error: "Invalid uiPrefs payload." }, { status: 400 });
+      return NextResponse.json({ error: tr("Préférences d'affichage invalides.", "Invalid uiPrefs payload.") }, { status: 400 });
     }
     Object.assign(currentUiPrefs, patch);
     uiPrefsChanged = true;

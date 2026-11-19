@@ -292,7 +292,7 @@ export default function WhatsAppAssistantConfig({
             <label className="label">{tr("Nom de votre Assistant IA", "Your AI Assistant Name")}</label>
             <input
               className="input"
-              placeholder={`Assistant ${shopName}`}
+              placeholder={tr(`Assistant ${shopName}`, `${shopName} assistant`)}
               value={assistantName}
               onChange={(e) => setAssistantName(e.target.value)}
             />
@@ -408,7 +408,7 @@ export default function WhatsAppAssistantConfig({
               </label>
               <input
                 className="input text-xs font-mono"
-                placeholder="Ex: 105928374650192"
+                placeholder={tr("Ex: 105928374650192", "e.g. 105928374650192")}
                 value={whatsappPhoneNumberId}
                 onChange={(e) => setWhatsappPhoneNumberId(e.target.value)}
               />
@@ -426,7 +426,7 @@ export default function WhatsAppAssistantConfig({
               </label>
               <input
                 className="input text-xs font-mono"
-                placeholder="Ex: 109283746519283"
+                placeholder={tr("Ex: 109283746519283", "e.g. 109283746519283")}
                 value={whatsappBusinessAccountId}
                 onChange={(e) => setWhatsappBusinessAccountId(e.target.value)}
               />
@@ -481,7 +481,7 @@ export default function WhatsAppAssistantConfig({
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <span className="font-semibold text-arctic-700">Callback URL : </span>
+                <span className="font-semibold text-arctic-700">{tr("Callback URL :", "Callback URL:")} </span>
                 <code className="rounded bg-arctic-100 px-2 py-0.5 font-mono text-arctic-900">
                   {webhookUrl}
                 </code>
@@ -501,7 +501,7 @@ export default function WhatsAppAssistantConfig({
               </button>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold text-arctic-700">Verify Token : </span>
+              <span className="font-semibold text-arctic-700">{tr("Verify Token :", "Verify token:")} </span>
               <input
                 className="input !w-auto text-xs font-mono py-1 px-2"
                 value={whatsappVerifyToken}

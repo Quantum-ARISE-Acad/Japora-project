@@ -5,6 +5,7 @@ import { getCooperativeByCode } from "@/lib/cooperative";
 import { appUrl } from "@/lib/token";
 import { regionLabel } from "@/lib/regions";
 import PrintButton from "./PrintButton";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
  * Printable cooperative recruitment flyer — the association multiplier.
@@ -33,6 +34,7 @@ const GOLD = "#A16207";
 const PAPER = "#FFFFFF";
 
 export default async function FlyerPage({ params }: { params: Promise<{ code: string }> }) {
+  const tr = await getServerTr();
   const { code } = await params;
   const coop = await getCooperativeByCode(code);
   if (!coop) notFound();
@@ -65,9 +67,9 @@ export default async function FlyerPage({ params }: { params: Promise<{ code: st
       <div className="min-h-screen px-4 py-8" style={{ background: "#EFEDE8" }}>
         {/* Screen-only toolbar */}
         <div className="no-print mx-auto mb-5 flex max-w-[210mm] items-center justify-between gap-3">
-          <Link href="/dashboard/settings" className="btn-ghost">← Retour aux paramètres</Link>
+          <Link href="/dashboard/settings" className="btn-ghost">{tr("← Retour aux paramètres", "← Back to settings")}</Link>
           <div className="flex items-center gap-2">
-            <span className="hidden text-sm text-arctic-600 sm:inline">Imprimer au format A4 ou enregistrer en PDF.</span>
+            <span className="hidden text-sm text-arctic-600 sm:inline">{tr("Imprimer au format A4 ou enregistrer en PDF.", "Print in A4 or save as PDF.")}</span>
             <PrintButton />
           </div>
         </div>
@@ -96,7 +98,7 @@ export default async function FlyerPage({ params }: { params: Promise<{ code: st
             </span>
             <span className="font-display" style={{ fontSize: 22, fontWeight: 600 }}>Japora</span>
             <span className="ml-auto" style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: GOLD, fontWeight: 700 }}>
-              {coop.region ? `${regionLabel(coop.region)} · ` : ""}Coopérative
+              {coop.region ? `${regionLabel(coop.region)} · ` : ""}{tr("Coopérative", "Cooperative")}
             </span>
           </div>
 
@@ -104,12 +106,11 @@ export default async function FlyerPage({ params }: { params: Promise<{ code: st
 
           {/* Headline */}
           <h1 className="font-display" style={{ fontSize: 40, lineHeight: 1.08, fontWeight: 600, letterSpacing: "-0.01em" }}>
-            Vends sur WhatsApp avec{" "}
+            {tr("Vends sur WhatsApp avec", "Sell on WhatsApp with")}{" "}
             <span style={{ color: GOLD }}>{coop.name}</span>.
           </h1>
           <p style={{ marginTop: 12, fontSize: 16, lineHeight: 1.5, color: STONE, maxWidth: "150mm" }}>
-            Pas de nouvelle application. Ton commerce tourne sur le WhatsApp que tu
-            utilises déjà — et toute la coopérative vend sous la même bannière.
+            {tr("Pas de nouvelle application. Ton commerce tourne sur le WhatsApp que tu utilises déjà — et toute la coopérative vend sous la même bannière.", "No new app. Your business runs on the WhatsApp you already use — and the whole cooperative sells under the same banner.")}
           </p>
 
           {/* Benefits */}
@@ -132,23 +133,23 @@ export default async function FlyerPage({ params }: { params: Promise<{ code: st
           >
             <div style={{ background: "#fff", padding: 8, border: `1px solid ${INK}1A`, borderRadius: 12 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrSrc} alt={`QR pour rejoindre ${coop.name}`} width={200} height={200} style={{ display: "block", width: 200, height: 200 }} />
+              <img src={qrSrc} alt={tr(`QR pour rejoindre ${coop.name}`, `QR to join ${coop.name}`)} width={200} height={200} style={{ display: "block", width: 200, height: 200 }} />
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: GOLD, fontWeight: 700 }}>
-                Scanne pour rejoindre
+                {tr("Scanne pour rejoindre", "Scan to join")}
               </div>
               <div className="font-display" style={{ fontSize: 30, fontWeight: 600, marginTop: 4 }}>
-                Ouvre ta boutique — gratuit
+                {tr("Ouvre ta boutique — gratuit", "Open your shop — free")}
               </div>
               <div style={{ marginTop: 10, fontSize: 14, color: STONE }}>
-                Ou va sur :
+                {tr("Ou va sur :", "Or go to:")}
               </div>
               <div style={{ fontFamily: "ui-monospace, monospace", fontSize: 15, fontWeight: 600, wordBreak: "break-all" }}>
                 {joinUrl.replace(/^https?:\/\//, "")}
               </div>
               <div style={{ marginTop: 10, fontSize: 14, color: STONE }}>
-                Code d’adhésion :{" "}
+                {tr("Code d’adhésion :", "Membership code:")}{" "}
                 <span style={{ fontWeight: 700, color: INK, letterSpacing: "0.1em", fontVariantNumeric: "tabular-nums" }}>
                   {coop.joinCode}
                 </span>
@@ -159,9 +160,9 @@ export default async function FlyerPage({ params }: { params: Promise<{ code: st
           {/* Footer */}
           <div style={{ marginTop: "10mm", display: "flex", justifyContent: "space-between", fontSize: 12, color: STONE }}>
             <span>
-              {coop.memberCount} {coop.memberCount === 1 ? "boutique" : "boutiques"} déjà sur Japora
+              {coop.memberCount} {coop.memberCount === 1 ? tr("boutique", "shop") : tr("boutiques", "shops")} {tr("déjà sur Japora", "already on Japora")}
             </span>
-            <span>Propulsé par Japora — vends sur WhatsApp, encaisse, grandis.</span>
+            <span>{tr("Propulsé par Japora — vends sur WhatsApp, encaisse, grandis.", "Powered by Japora — sell on WhatsApp, get paid, grow.")}</span>
           </div>
         </div>
       </div>

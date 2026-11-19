@@ -2,10 +2,12 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getVendorFedaPayConfig } from "@/lib/payments/fedapay";
 import FedaPaySandboxClient from "./FedaPaySandboxClient";
+import { getServerTr } from "@/lib/public-locale";
 
 type Params = { params: Promise<{ ref: string }> };
 
 export default async function FedaPaySandboxPage({ params }: Params) {
+  const tr = await getServerTr();
   const { ref } = await params;
 
   const intent = await prisma.paymentIntent.findFirst({
@@ -78,8 +80,8 @@ export default async function FedaPaySandboxPage({ params }: Params) {
       title={
         meta.title ||
         (orderSummary
-          ? `Commande #${orderSummary.id.slice(-6).toUpperCase()}`
-          : "Paiement Japora")
+          ? tr(`Commande #${orderSummary.id.slice(-6).toUpperCase()}`, `Order #${orderSummary.id.slice(-6).toUpperCase()}`)
+          : tr("Paiement Japora", "Japora payment"))
       }
       defaultCustomerName={orderSummary?.customerName || meta.customerName || ""}
       defaultCustomerPhone={orderSummary?.customerPhone || meta.customerPhone || "+22890000001"}

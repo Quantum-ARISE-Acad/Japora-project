@@ -4,15 +4,17 @@ import { getCurrentVendor } from "@/lib/auth";
 import { getStripe } from "@/lib/stripe";
 import { appUrl } from "@/lib/token";
 import { logger } from "@/lib/logger";
+import { getServerTr } from "@/lib/public-locale";
 
 export async function POST(_req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const priceId = process.env.STRIPE_PRICE_ID;
   if (!priceId) {
     return NextResponse.json(
-      { error: "Billing is not configured. Set STRIPE_SECRET_KEY + STRIPE_PRICE_ID." },
+      { error: tr("La facturation n'est pas configurée. Renseignez STRIPE_SECRET_KEY et STRIPE_PRICE_ID.", "Billing is not configured. Set STRIPE_SECRET_KEY + STRIPE_PRICE_ID.") },
       { status: 503 },
     );
   }
@@ -20,7 +22,7 @@ export async function POST(_req: NextRequest) {
   const stripe = await getStripe();
   if (!stripe) {
     return NextResponse.json(
-      { error: "Stripe SDK is not installed. Run: pnpm add stripe" },
+      { error: tr("Le module Stripe n'est pas installé. Lancez : pnpm add stripe", "Stripe SDK is not installed. Run: pnpm add stripe") },
       { status: 503 },
     );
   }
@@ -65,6 +67,6 @@ export async function POST(_req: NextRequest) {
       vendorId: vendor.id,
       error: e instanceof Error ? e.message : String(e),
     });
-    return NextResponse.json({ error: "Could not start checkout." }, { status: 502 });
+    return NextResponse.json({ error: tr("Impossible de démarrer le paiement.", "Could not start checkout.") }, { status: 502 });
   }
 }

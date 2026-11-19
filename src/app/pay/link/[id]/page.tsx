@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { getServerTr } from "@/lib/public-locale";
 import { prisma } from "@/lib/db";
 import { formatMoney } from "@/lib/utils";
 import PaymentLinkClient from "./PaymentLinkClient";
@@ -13,11 +14,15 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     include: { vendor: { select: { shopName: true, currency: true } } },
   });
 
-  if (!link) return { title: "Lien de paiement" };
+  const tr = await getServerTr();
+  if (!link) return { title: tr("Lien de paiement", "Payment link") };
 
   return {
-    title: `Paiement ${formatMoney(link.amountCents, link.currency || link.vendor.currency)} — ${link.vendor.shopName}`,
-    description: link.description || `Lien de paiement pour ${link.vendor.shopName}`,
+    title: tr(
+      `Paiement ${formatMoney(link.amountCents, link.currency || link.vendor.currency)} — ${link.vendor.shopName}`,
+      `Payment ${formatMoney(link.amountCents, link.currency || link.vendor.currency)} — ${link.vendor.shopName}`,
+    ),
+    description: link.description || tr(`Lien de paiement pour ${link.vendor.shopName}`, `Payment link for ${link.vendor.shopName}`),
   };
 }
 

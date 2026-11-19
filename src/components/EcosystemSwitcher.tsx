@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 export interface PlatformItem {
   id: "japora" | "soko" | "wescrow";
@@ -55,6 +56,7 @@ export default function EcosystemSwitcher({
 }: {
   current?: "japora" | "soko" | "wescrow";
 }) {
+  const { tr } = usePublicLang();
   const [open, setOpen] = useState(false);
   const [navigatingId, setNavigatingId] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -106,11 +108,11 @@ export default function EcosystemSwitcher({
         type="button"
         onClick={() => setOpen(!open)}
         aria-expanded={open}
-        aria-label="Changer de plateforme dans la suite Wataru"
+        aria-label={tr("Changer de plateforme dans la suite Wataru", "Switch platform in the Wataru suite")}
         className="inline-flex h-9 sm:h-10 items-center gap-2 rounded-shape-full border border-arctic-400/40 bg-arctic-50/70 px-3 text-xs font-semibold text-arctic-700 backdrop-blur-sm transition-all hover:border-brand hover:bg-arctic-100 hover:text-arctic-900"
       >
         <span className="grid h-5 w-5 place-items-center text-sm">🌐</span>
-        <span className="hidden md:inline">Écosystème</span>
+        <span className="hidden md:inline">{tr("Écosystème", "Ecosystem")}</span>
         <span className="text-[10px] uppercase font-bold tracking-wider text-brand px-1.5 py-0.2 bg-brand/10 rounded">
           Suite
         </span>
@@ -132,14 +134,14 @@ export default function EcosystemSwitcher({
           <div className="mb-2 px-2 py-1 flex items-center justify-between border-b border-arctic-200/60 pb-2 dark:border-slate-800">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-wider text-arctic-400 dark:text-slate-400">
-                Suite Wataru Commerce
+                {tr("Suite Wataru Commerce", "Wataru Commerce suite")}
               </p>
               <p className="text-xs font-semibold text-arctic-800 dark:text-white">
-                Plateformes Interconnectées
+                {tr("Plateformes Interconnectées", "Connected platforms")}
               </p>
             </div>
             <span className="text-[10px] rounded-full bg-emerald-500/10 px-2 py-0.5 font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-              Synchro Active
+              {tr("Synchro Active", "Sync active")}
             </span>
           </div>
 
@@ -170,11 +172,11 @@ export default function EcosystemSwitcher({
                       </p>
                       {isCurrent ? (
                         <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
-                          Actuel
+                          {tr("Actuel", "Current")}
                         </span>
                       ) : isNavigating ? (
                         <span className="rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 px-2 py-0.5 text-[10px] font-bold animate-pulse">
-                          Connexion SSO…
+                          {tr("Connexion SSO…", "SSO sign-in…")}
                         </span>
                       ) : (
                         <span className="text-[10px] font-medium text-arctic-500 dark:text-slate-400">
@@ -183,7 +185,7 @@ export default function EcosystemSwitcher({
                       )}
                     </div>
                     <p className="mt-0.5 text-[11px] leading-snug text-arctic-600 dark:text-slate-400 line-clamp-2">
-                      {isNavigating ? "Transfert de session sécurisé vers " + p.name + "…" : p.tagline}
+                      {isNavigating ? tr("Transfert de session sécurisé vers ", "Secure session transfer to ") + p.name + "…" : p.tagline}
                     </p>
                   </div>
                 </a>
@@ -192,7 +194,7 @@ export default function EcosystemSwitcher({
           </div>
 
           <div className="mt-2.5 pt-2 border-t border-arctic-200/50 dark:border-slate-800 px-2 flex items-center justify-between text-[11px] text-arctic-500 dark:text-slate-400">
-            <span>Flux de données unifié</span>
+            <span>{tr("Flux de données unifié", "Unified data flow")}</span>
             <span className="text-brand font-medium">Japora ↔ Soko ↔ WEscrow</span>
           </div>
         </div>

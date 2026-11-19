@@ -3,17 +3,19 @@ import { NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { createSession } from "@/lib/session";
 import { resolveOrProvisionClerkVendor } from "@/lib/auth";
+import { getServerTr } from "@/lib/public-locale";
 
 export async function POST(req: Request) {
+  const tr = await getServerTr();
   try {
     const clerkAuth = await auth();
     if (!clerkAuth?.userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
     }
 
     const clerkUser = await currentUser();
     if (!clerkUser || clerkUser.id !== clerkAuth.userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
     }
 
     const body = await req.json().catch(() => ({}));
@@ -28,7 +30,7 @@ export async function POST(req: Request) {
     const vendor = await resolveOrProvisionClerkVendor(clerkAuth.userId, clerkUser, hints);
     if (!vendor) {
       return NextResponse.json(
-        { error: "Unable to resolve a verified email or phone identity for this Clerk user." },
+        { error: tr("Impossible de trouver un e-mail ou un téléphone vérifié pour ce compte Clerk.", "Unable to resolve a verified email or phone identity for this Clerk user.") },
         { status: 400 },
       );
     }
