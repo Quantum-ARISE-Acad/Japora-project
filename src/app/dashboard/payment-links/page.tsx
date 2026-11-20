@@ -1,12 +1,14 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
+import { getServerTr } from "@/lib/public-locale";
 import { getCurrentVendor } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import PaymentLinksClient from "./PaymentLinksClient";
 
-export const metadata: Metadata = {
-  title: "Liens de Paiement — Dashboard",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const tr = await getServerTr();
+  return { title: tr("Liens de paiement — Tableau de bord", "Payment links — Dashboard") };
+}
 
 export default async function PaymentLinksPage() {
   const vendor = await getCurrentVendor();

@@ -803,6 +803,20 @@ describe("tenant isolation: order tracking (/api/orders/track & trackCustomerOrd
     assert.equal(ownRefMatches.length, 1);
     assert.equal(ownRefMatches[0].id, orderA.id);
 
+    // A short piece of a reference must not reveal orders (references are 6 characters).
+    const shortRefMatches = await findTrackedOrdersForVendor(vendorA.id, {
+      orderRef: orderA.id.slice(-3),
+    });
+    assert.deepEqual(shortRefMatches, []);
+
+    // On WhatsApp, a valid reference of another customer's order is not shown to the sender.
+    const otherCustomerMatches = await findTrackedOrdersForVendor(vendorA.id, {
+      orderRef: orderA.id.slice(-6),
+      phone: "22890000001",
+      requirePhoneMatch: true,
+    });
+    assert.deepEqual(otherCustomerMatches, []);
+
     const ownBotReply = await trackCustomerOrders(
       vendorA.id,
       sharedBuyerPhone,

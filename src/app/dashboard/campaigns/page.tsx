@@ -1,54 +1,54 @@
 import { requireVendor } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import { listCampaigns } from "@/lib/campaigns";
+import { prisma } from "@/lib/db";
+import {
+  getVendorMetaCampaignMap,
+  getVendorMetaConfig,
+} from "@/lib/meta-marketing";
 import CampaignsClient from "./CampaignsClient";
+
+export const dynamic = "force-dynamic";
 
 export default async function CampaignsPage() {
   const vendor = await requireVendor();
-  const [campaigns, products, productSales] = await Promise.all([
+  const [campaigns, products, metaMap, metaConfig] = await Promise.all([
     listCampaigns(vendor.id),
     prisma.product.findMany({
-      where: { vendorId: vendor.id, isActive: true },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true, priceCents: true },
-    }),
-    prisma.orderItem.groupBy({
-      by: ["productId"],
-      where: {
-        productId: { not: null },
-        order: { is: { vendorId: vendor.id, deletedAt: null, status: { in: ["PAID", "DELIVERED"] } } },
+      where: { vendorId: vendor.id },
+      select: {
+        id: true,
+        name: true,
+        priceCents: true,
+        imageUrl: true,
+        description: true,
+        stock: true,
       },
-      _sum: { quantity: true },
+      orderBy: { createdAt: "desc" },
     }),
+    getVendorMetaCampaignMap(vendor.id),
+    getVendorMetaConfig(vendor.id),
   ]);
 
-  const paidUnitsByProduct = new Map(
-    productSales
-      .filter((row) => row.productId)
-      .map((row) => [row.productId as string, row._sum.quantity ?? 0]),
-  );
-  const rankedProducts = products
-    .map((product) => ({
-      ...product,
-      paidUnits: paidUnitsByProduct.get(product.id) ?? 0,
-    }))
-    .sort((a, b) => b.paidUnits - a.paidUnits || a.name.localeCompare(b.name));
-  const featuredProductIds = new Set(
-    rankedProducts.filter((product) => product.paidUnits > 0).slice(0, 5).map((product) => product.id),
-  );
-  const productOptions = rankedProducts.map((product) => ({
-    ...product,
-    featured: featuredProductIds.has(product.id),
+  const enrichedCampaigns = campaigns.map((c) => ({
+    ...c,
+    metaDetails: metaMap[c.id] ?? null,
   }));
-
-  // Serialise Date → ISO for the client boundary.
-  const dto = campaigns.map((c) => ({ ...c, createdAt: c.createdAt.toISOString() }));
 
   return (
     <CampaignsClient
-      initialCampaigns={dto}
-      products={productOptions}
+      initialCampaigns={enrichedCampaigns}
+      products={products}
       currency={vendor.currency}
+      shopName={vendor.shopName}
+      shopSlug={vendor.shopSlug}
+      whatsappNumber={vendor.whatsappNumber}
+      initialMetaConfig={{
+        ...metaConfig,
+        hasAccessToken: Boolean(metaConfig.accessToken),
+        maskedToken: metaConfig.accessToken
+          ? `${metaConfig.accessToken.slice(0, 8)}••••••••${metaConfig.accessToken.slice(-4)}`
+          : "",
+      }}
     />
   );
 }

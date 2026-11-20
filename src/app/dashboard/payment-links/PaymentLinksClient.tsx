@@ -477,7 +477,7 @@ export default function PaymentLinksClient({
                   required
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder={currency === "XOF" ? "Ex: 10000" : "Ex: 25.00"}
+                  placeholder={currency === "XOF" ? tr("Ex: 10000", "e.g. 10000") : tr("Ex: 25.00", "e.g. 25.00")}
                   className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
               </div>
@@ -512,7 +512,7 @@ export default function PaymentLinksClient({
                     type="tel"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
-                    placeholder="Ex: +22890123456"
+                    placeholder={tr("Ex: +22890123456", "e.g. +22890123456")}
                     className="w-full px-3 py-1.5 text-xs font-mono rounded-lg border border-emerald-300 bg-white text-slate-900 focus:outline-none"
                   />
                 </div>
@@ -595,7 +595,7 @@ export default function PaymentLinksClient({
                 <input
                   type="text"
                   className="input text-sm"
-                  placeholder="Ex: Kossi Mensah"
+                  placeholder={tr("Ex: Kossi Mensah", "e.g. Kossi Mensah")}
                   value={waName}
                   onChange={(e) => setWaName(e.target.value)}
                 />
@@ -608,7 +608,7 @@ export default function PaymentLinksClient({
                   type="tel"
                   required
                   className="input text-sm font-mono"
-                  placeholder="Ex: +22890123456"
+                  placeholder={tr("Ex: +22890123456", "e.g. +22890123456")}
                   value={waPhone}
                   onChange={(e) => setWaPhone(e.target.value)}
                 />

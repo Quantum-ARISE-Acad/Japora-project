@@ -2,6 +2,7 @@
 
 import { type ReactNode, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 /**
  * M3 dialog — glass surface, full-page scrim, animated in/out via the
@@ -28,6 +29,7 @@ export default function AuroraDialog({
   actions,
   size = "md",
 }: Props) {
+  const { tr } = usePublicLang();
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
@@ -56,7 +58,7 @@ export default function AuroraDialog({
       {/* Scrim — Aurora uses a softer scrim than typical M3 so the glass
           dialog feels suspended in the aurora mesh, not behind a curtain. */}
       <button
-        aria-label="Close"
+        aria-label={tr("Fermer", "Close")}
         onClick={onClose}
         className="absolute inset-0 bg-arctic-900/40 backdrop-blur-glass-thin"
       />

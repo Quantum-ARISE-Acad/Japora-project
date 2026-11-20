@@ -12,8 +12,8 @@ import ShopCurrencySelector from "@/components/ShopCurrencySelector";
 import ShopAiAssistant from "@/components/ShopAiAssistant";
 import ShopWhatsAppQrBanner from "@/components/ShopWhatsAppQrBanner";
 import { formatConvertedPrice } from "@/lib/currency";
-import { telHref, directUssdCode } from "@/lib/payments/ussd";
 import { LanguageSwitcher, usePublicLang } from "@/components/PublicLanguageProvider";
+import { matchesSearch } from "@/lib/search-text";
 import {
   trackVisit,
   trackProductView,
@@ -22,7 +22,8 @@ import {
   getSessionId,
 } from "@/lib/telemetry";
 
-export type PaymentMethod = "fedapay" | "tmoney" | "flooz" | "online" | "wescrow" | "cash";
+// Two ways to pay: FedaPay (Mobile Money and card, confirmed by FedaPay) or cash on delivery.
+export type PaymentMethod = "fedapay" | "cash";
 
 export type StorefrontCollection = {
   id: string;
@@ -70,7 +71,6 @@ export default function CatalogClient({
   tagline,
   verified = false,
   whatsappNumber,
-  momoNumber = "",
   currency,
   avatarUrl = "",
   bio = "",
@@ -118,9 +118,8 @@ export default function CatalogClient({
   const [note, setNote] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("fedapay");
   const [launchingFeda, setLaunchingFeda] = useState(false);
+  const [fedaCheckoutError, setFedaCheckoutError] = useState("");
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(initialCollectionId);
-  const [copiedMomo, setCopiedMomo] = useState(false);
-  const [copiedAmount, setCopiedAmount] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [fulfillment, setFulfillment] = useState<"pickup" | "delivery">(
@@ -171,13 +170,16 @@ export default function CatalogClient({
     }
 
     // Search query
+    // Accents, capitals and plurals ignored; every word must be found.
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      list = list.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          (p.condition && p.condition.toLowerCase().includes(q)),
+      list = list.filter((p) =>
+        matchesSearch(
+          searchQuery,
+          p.name,
+          p.description,
+          p.condition,
+          collections.find((c) => c.id === p.collectionId)?.name,
+        ),
       );
     }
 
@@ -199,7 +201,7 @@ export default function CatalogClient({
     }
 
     return list;
-  }, [products, selectedCollectionId, searchQuery, stockFilter, sortBy]);
+  }, [products, collections, selectedCollectionId, searchQuery, stockFilter, sortBy]);
 
   useEffect(() => {
     if (!directProductId) return;
@@ -304,19 +306,12 @@ export default function CatalogClient({
     e.preventDefault();
     setSubmitting(true);
     setError("");
+    setFedaCheckoutError("");
 
     const paymentLabel =
       paymentMethod === "fedapay"
         ? tr("FedaPay (T-Money, Flooz, Mobile Money & Carte)", "FedaPay (T-Money, Flooz, Mobile Money & card)")
-        : paymentMethod === "tmoney"
-        ? tr("USSD T-Money (*145#)", "T-Money USSD (*145#)")
-        : paymentMethod === "flooz"
-        ? tr("USSD Flooz (*155#)", "Flooz USSD (*155#)")
-        : paymentMethod === "online"
-        ? tr("Paiement en ligne / Mobile Money automatique", "Online payment / automatic Mobile Money")
-        : paymentMethod === "wescrow"
-        ? tr("Paiement Garanti WEscrow (Safe Hands)", "WEscrow protected payment (Safe Hands)")
-        : tr("Paiement en espèces", "Cash payment");
+        : tr("Paiement à la livraison", "Cash on delivery");
 
     const fullNote = [
       `[PAIEMENT: ${paymentLabel}]`,
@@ -347,14 +342,10 @@ export default function CatalogClient({
       }),
     });
     const data = await res.json().catch(() => ({}));
-    setSubmitting(false);
     if (!res.ok) {
+      setSubmitting(false);
       setError(data.error || tr("Impossible de passer la commande.", "Could not place the order."));
       return;
-    }
-
-    if (paymentMethod === "tmoney" || paymentMethod === "flooz") {
-      trackPaymentIntent(shopSlug, data.orderId, paymentMethod, data.totalCents);
     }
 
     const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -389,6 +380,45 @@ export default function CatalogClient({
     });
     setStep("success");
     setCart([]);
+
+    // FedaPay: open the FedaPay checkout straight away. If it cannot open, say why
+    // on the success screen (the order itself is saved) instead of failing silently.
+    if (paymentMethod === "fedapay") {
+      trackPaymentIntent(shopSlug, data.orderId, "fedapay", data.totalCents);
+      setLaunchingFeda(true);
+      try {
+        const checkoutRes = await fetch("/api/payments/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId: data.orderId,
+            provider: "fedapay",
+            returnUrl: `${origin}/pay/${data.orderId}?paid=1`,
+          }),
+        });
+        const checkoutData = await checkoutRes.json().catch(() => ({}));
+        setSubmitting(false);
+        if (checkoutRes.ok && checkoutData.checkoutUrl) {
+          window.location.href = checkoutData.checkoutUrl;
+          return;
+        }
+        setFedaCheckoutError(
+          checkoutData.error ||
+            tr("Impossible d'ouvrir la page de paiement FedaPay.", "Could not open the FedaPay payment page."),
+        );
+      } catch {
+        setFedaCheckoutError(tr("Erreur réseau lors de la connexion à FedaPay.", "Network error while reaching FedaPay."));
+      }
+      setLaunchingFeda(false);
+    } else if (paymentMethod === "cash") {
+      // Record the cash-on-delivery choice so the vendor sees it in Money and Orders.
+      fetch("/api/payments/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: data.orderId, provider: "cash", returnUrl: `/pay/${data.orderId}` }),
+      }).catch(() => {});
+    }
+    setSubmitting(false);
   }
 
   const hasWhatsApp = whatsappNumber.replace(/[^0-9]/g, "").length > 0;
@@ -1184,139 +1214,6 @@ export default function CatalogClient({
                       </span>
                     </label>
 
-                    {/* USSD T-Money */}
-                    <label
-                      className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
-                        paymentMethod === "tmoney"
-                          ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30 ring-1 ring-amber-500"
-                          : "border-arctic-200 dark:border-arctic-700 bg-white dark:bg-arctic-800 hover:bg-arctic-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="tmoney"
-                          checked={paymentMethod === "tmoney"}
-                          onChange={() => setPaymentMethod("tmoney")}
-                          className="h-4 w-4 text-amber-600 focus:ring-amber-500"
-                        />
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-bold text-arctic-900 dark:text-white">
-                              🟡 USSD T-Money
-                            </span>
-                            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-200/70 text-amber-900 font-bold">
-                              *145#
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-arctic-500">
-                            {tr("Togocom Togo — Paiement direct par code USSD", "Togocom Togo — Pay directly using a USSD code")}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
-                        Togo
-                      </span>
-                    </label>
-
-                    {/* USSD Flooz */}
-                    <label
-                      className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
-                        paymentMethod === "flooz"
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30 ring-1 ring-blue-500"
-                          : "border-arctic-200 dark:border-arctic-700 bg-white dark:bg-arctic-800 hover:bg-arctic-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="flooz"
-                          checked={paymentMethod === "flooz"}
-                          onChange={() => setPaymentMethod("flooz")}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-                        />
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-bold text-arctic-900 dark:text-white">
-                              🔵 USSD Flooz
-                            </span>
-                            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-blue-200/70 text-blue-900 font-bold">
-                              *155#
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-arctic-500">
-                            {tr("Moov Africa Togo — Virement Mobile Money direct", "Moov Africa Togo — Direct Mobile Money transfer")}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800">
-                        Togo
-                      </span>
-                    </label>
-
-                    {/* Paiement Mobile / En ligne automatique */}
-                    <label
-                      className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
-                        paymentMethod === "online"
-                          ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 ring-1 ring-emerald-600"
-                          : "border-arctic-200 dark:border-arctic-700 bg-white dark:bg-arctic-800 hover:bg-arctic-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="online"
-                          checked={paymentMethod === "online"}
-                          onChange={() => setPaymentMethod("online")}
-                          className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
-                        />
-                        <div>
-                          <span className="text-sm font-bold text-arctic-900 dark:text-white block">
-                            ⚡ {tr("Paiement en ligne / API", "Online payment / API")}
-                          </span>
-                          <p className="text-[11px] text-arctic-500">
-                            {tr("CinetPay, PayGate, carte bancaire ou paiement direct", "CinetPay, PayGate, bank card, or direct push")}
-                          </p>
-                        </div>
-                      </div>
-                    </label>
-
-                    {/* Paiement Garanti WEscrow */}
-                    <label
-                      className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
-                        paymentMethod === "wescrow"
-                          ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 ring-1 ring-indigo-500"
-                          : "border-arctic-200 dark:border-arctic-700 bg-white dark:bg-arctic-800 hover:bg-arctic-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="wescrow"
-                          checked={paymentMethod === "wescrow"}
-                          onChange={() => setPaymentMethod("wescrow")}
-                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
-                        />
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-bold text-indigo-900 dark:text-indigo-300">
-                              🛡️ {tr("Paiement garanti WEscrow", "WEscrow protected payment")}
-                            </span>
-                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-700">
-                              Safe Hands
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-arctic-500">
-                            {tr("Fonds conservés jusqu’à confirmation de réception", "Funds held until receipt is confirmed")}
-                          </p>
-                        </div>
-                      </div>
-                    </label>
-
                     {/* Espèces à la livraison */}
                     <label
                       className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
@@ -1336,10 +1233,10 @@ export default function CatalogClient({
                         />
                         <div>
                           <span className="text-sm font-bold text-arctic-900 dark:text-white block">
-                            💵 {tr("Espèces / Remise en main propre", "Cash / In-person handoff")}
+                            💵 {tr("Paiement à la livraison", "Cash on delivery")}
                           </span>
                           <p className="text-[11px] text-arctic-500">
-                            {tr("Paiement à la livraison ou lors du retrait", "Pay on delivery or pickup")}
+                            {tr("En espèces, à la livraison ou au retrait", "In cash, on delivery or at pickup")}
                           </p>
                         </div>
                       </div>
@@ -1387,17 +1284,6 @@ export default function CatalogClient({
             )}
 
             {step === "success" && placedSummary && (() => {
-              const effectivePayee = momoNumber || whatsappNumber || "";
-              const amountMajor = Math.round(placedSummary.totalCents / 100);
-              const isUssd = placedSummary.paymentMethod === "tmoney" || placedSummary.paymentMethod === "flooz";
-              const ussdCode = placedSummary.paymentMethod === "tmoney" ? "*145#" : "*155#";
-              const directCode = isUssd
-                ? directUssdCode(
-                    placedSummary.paymentMethod as "tmoney" | "flooz",
-                    effectivePayee,
-                    amountMajor
-                  )
-                : null;
 
               return (
                 <div className="space-y-4 p-5 text-center">
@@ -1417,125 +1303,14 @@ export default function CatalogClient({
                     </p>
                   </div>
 
-                  {/* Carte interactive USSD si TMoney ou Flooz choisi */}
-                  {isUssd && (
-                    <div className="rounded-xl border border-arctic-300/80 bg-arctic-50 dark:bg-arctic-900/60 p-4 text-left shadow-sm">
-                      <div className="flex items-center justify-between pb-2 mb-2 border-b border-arctic-200 dark:border-arctic-700">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">
-                            {placedSummary.paymentMethod === "tmoney" ? "🟡" : "🔵"}
-                          </span>
-                          <div>
-                            <h4 className="text-sm font-bold text-arctic-900 dark:text-white">
-                              {tr("Paiement", "Payment")} {placedSummary.paymentMethod === "tmoney" ? "T-Money (Togocom)" : "Flooz (Moov Africa)"}
-                            </h4>
-                            <span className="text-[11px] font-mono text-arctic-500">
-                              {tr("Code USSD", "USSD code")} : {ussdCode}
-                            </span>
-                          </div>
-                        </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                          {formatMoney(placedSummary.totalCents, currency)}
-                        </span>
-                      </div>
-
-                      <dl className="space-y-2 text-xs">
-                        <div className="flex items-center justify-between">
-                          <dt className="text-arctic-500">{tr("Numéro du vendeur :", "Seller's number:")}</dt>
-                          <dd className="flex items-center gap-1.5 font-bold text-arctic-900 dark:text-white">
-                            <span>{effectivePayee || tr("Non renseigné", "Not provided")}</span>
-                            {effectivePayee && (
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  try {
-                                    await navigator.clipboard.writeText(effectivePayee);
-                                    setCopiedMomo(true);
-                                    setTimeout(() => setCopiedMomo(false), 1500);
-                                  } catch {}
-                                }}
-                                className="px-2 py-0.5 rounded border border-arctic-300 text-[10px] font-semibold hover:bg-arctic-200"
-                              >
-                                {copiedMomo ? tr("Copié !", "Copied!") : tr("Copier", "Copy")}
-                              </button>
-                            )}
-                          </dd>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <dt className="text-arctic-500">{tr("Montant exact :", "Exact amount:")}</dt>
-                          <dd className="flex items-center gap-1.5 font-bold text-emerald-600">
-                            <span>{formatMoney(placedSummary.totalCents, currency)}</span>
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                try {
-                                  await navigator.clipboard.writeText(String(amountMajor));
-                                  setCopiedAmount(true);
-                                  setTimeout(() => setCopiedAmount(false), 1500);
-                                } catch {}
-                              }}
-                              className="px-2 py-0.5 rounded border border-arctic-300 text-[10px] font-semibold hover:bg-arctic-200"
-                            >
-                              {copiedAmount ? tr("Copié !", "Copied!") : tr("Copier", "Copy")}
-                            </button>
-                          </dd>
-                        </div>
-                      </dl>
-
-                      {/* Boutons d'appel USSD */}
-                      <div className="mt-3 space-y-1.5">
-                        {directCode && (
-                          <a
-                            href={telHref(directCode)}
-                            className="btn-primary w-full justify-center gap-1.5 text-xs py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
-                          >
-                            <Glyph name="phone" size={14} /> {tr("Composer le code direct", "Dial direct code")} ({directCode})
-                          </a>
-                        )}
-                        <a
-                          href={telHref(ussdCode)}
-                          className="btn-ghost w-full justify-center gap-1.5 text-xs py-1.5 border border-arctic-300 font-medium"
-                        >
-                          <Glyph name="phone" size={13} /> {tr("Composer le menu standard", "Dial standard menu")} ({ussdCode})
-                        </a>
-                      </div>
-
-                      {/* Instructions pas à pas */}
-                      <details className="mt-2.5 text-xs text-arctic-600">
-                        <summary className="cursor-pointer font-semibold hover:text-arctic-900 py-1">
-                          {tr("Instructions détaillées étape par étape", "Detailed step-by-step instructions")}
-                        </summary>
-                        <ol className="mt-1.5 space-y-1 pl-4 list-decimal text-[11px] text-arctic-700 dark:text-arctic-300">
-                          {placedSummary.paymentMethod === "tmoney" ? (
-                            <>
-                              <li>{tr("Composez *145# sur votre ligne Togocel / T-Money", "Dial *145# on your Togocel / T-Money line")}</li>
-                              <li>{tr("Choisissez l’option 1 « Transfert d’argent »", "Choose option 1, “Money transfer”")}</li>
-                              <li>{tr("Entrez le numéro du vendeur :", "Enter the seller's number:")} {effectivePayee}</li>
-                              <li>{tr("Entrez le montant :", "Enter the amount:")} {formatMoney(placedSummary.totalCents, currency)}</li>
-                              <li>{tr("Entrez votre code secret T-Money pour valider", "Enter your T-Money PIN to confirm")}</li>
-                            </>
-                          ) : (
-                            <>
-                              <li>{tr("Composez *155# sur votre ligne Moov Africa / Flooz", "Dial *155# on your Moov Africa / Flooz line")}</li>
-                              <li>{tr("Choisissez l’option 1 « Transfert d’argent »", "Choose option 1, “Money transfer”")}</li>
-                              <li>{tr("Entrez le numéro Moov du vendeur :", "Enter the seller's Moov number:")} {effectivePayee}</li>
-                              <li>{tr("Entrez le montant :", "Enter the amount:")} {formatMoney(placedSummary.totalCents, currency)}</li>
-                              <li>{tr("Confirmez avec votre code PIN secret Flooz", "Confirm using your Flooz PIN")}</li>
-                            </>
-                          )}
-                        </ol>
-                      </details>
-                    </div>
-                  )}
-
-                  {/* Bouton Paiement direct FedaPay Sandbox */}
+                  {/* Bouton Paiement direct FedaPay */}
                   <div className="rounded-xl border-2 border-emerald-500/80 bg-emerald-50/70 p-3.5 text-left space-y-2.5 shadow-xs">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
                         <span>💳</span> {tr("Paiement instantané FedaPay", "Instant FedaPay payment")}
                       </span>
                       <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
-                        Sandbox
+                        {tr("Sécurisé", "Secure")}
                       </span>
                     </div>
                     <p className="text-[11px] text-arctic-700">
@@ -1561,17 +1336,27 @@ export default function CatalogClient({
                             window.location.href = d.checkoutUrl;
                             return;
                           }
+                          setFedaCheckoutError(
+                            d.error ||
+                              tr("Impossible d'ouvrir la page de paiement FedaPay.", "Could not open the FedaPay payment page."),
+                          );
                           setLaunchingFeda(false);
                         } catch {
+                          setFedaCheckoutError(tr("Erreur réseau lors de la connexion à FedaPay.", "Network error while reaching FedaPay."));
                           setLaunchingFeda(false);
                         }
                       }}
                       className="btn-primary w-full justify-center gap-2 py-3 !bg-emerald-600 hover:!bg-emerald-700 !text-white text-sm font-bold shadow-md"
                     >
                       {launchingFeda
-                        ? tr("Ouverture de FedaPay Sandbox…", "Opening FedaPay Sandbox…")
+                        ? tr("Ouverture de FedaPay…", "Opening FedaPay…")
                         : `💳 ${tr("Payer", "Pay")} ${formatMoney(placedSummary.totalCents, currency)} ${tr("avec FedaPay", "with FedaPay")} →`}
                     </button>
+                    {fedaCheckoutError && (
+                      <p role="alert" className="mt-2 rounded-shape-sm bg-red-500/10 px-3 py-2 text-center text-xs text-red-600">
+                        {fedaCheckoutError}
+                      </p>
+                    )}
                   </div>
 
                   {/* Bouton Envoi WhatsApp de la commande */}
@@ -1648,7 +1433,7 @@ export default function CatalogClient({
       )}
 
       <footer className="mx-auto mt-8 max-w-5xl px-4 pb-6 text-center text-xs text-arctic-500">
-        Powered by <span className="font-semibold">Japora</span>
+        {tr("Propulsé par", "Powered by")} <span className="font-semibold">Japora</span>
       </footer>
     </div>
   );

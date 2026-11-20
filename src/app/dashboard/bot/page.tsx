@@ -3,13 +3,18 @@ import { prisma } from "@/lib/db";
 import { isLiveMode } from "@/lib/whatsapp";
 import { isLlmConfigured, llmProviderName } from "@/lib/llm";
 import { parseWhatsAppAssistantConfig } from "@/lib/whatsapp-config";
+import { getDashboardLocale, trServer } from "@/lib/dashboard-lang";
 import BotChatClient from "./BotChatClient";
 import DeliveryLog from "./DeliveryLog";
+import HandoffInbox, { type WaitingCustomer } from "./HandoffInbox";
+import { listOpenHandoffs } from "@/lib/handoff";
 import WhatsAppAssistantConfig from "./WhatsAppAssistantConfig";
 import Glyph from "@/components/Glyph";
 
 export default async function BotPage() {
   const vendor = await requireVendor();
+  const locale = await getDashboardLocale(vendor.language);
+  const tr = <T = string,>(frVal: T, enVal: T): T => trServer(locale, frVal, enVal);
   const outbound = await prisma.whatsAppMessage.findMany({
     where: { vendorId: vendor.id, direction: "OUT" },
     orderBy: { createdAt: "desc" },
@@ -25,6 +30,26 @@ export default async function BotPage() {
     },
   });
 
+  const handoffs = await listOpenHandoffs(vendor.id);
+  const waiting: WaitingCustomer[] = await Promise.all(
+    handoffs.map(async (h) => {
+      const messages = await prisma.whatsAppMessage.findMany({
+        where: { vendorId: vendor.id, contact: h.contact },
+        orderBy: { createdAt: "desc" },
+        take: 6,
+        select: { id: true, direction: true, body: true, createdAt: true },
+      });
+      return {
+        id: h.id,
+        contact: h.contact,
+        lastMessage: h.lastMessage,
+        createdAt: h.createdAt.toISOString(),
+        expiresAt: h.expiresAt.toISOString(),
+        messages: messages.reverse().map((m) => ({ ...m, createdAt: m.createdAt.toISOString() })),
+      };
+    }),
+  );
+
   const waConfig = parseWhatsAppAssistantConfig(vendor.uiPrefs);
   const cloudLive = isLiveMode(vendor);
   const llmActive = isLlmConfigured(waConfig.geminiApiKey);
@@ -35,10 +60,16 @@ export default async function BotPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="a-headline-md text-arctic-900">
-            Assistant WhatsApp Cloud API & IA Gemini
+            {tr(
+              "Assistant WhatsApp Cloud API & IA Gemini",
+              "WhatsApp Cloud API & Gemini AI Assistant",
+            )}
           </h1>
           <p className="text-sm text-arctic-600">
-            Configurez votre assistant IA lié à votre boutique, récupérez vos QR codes, et testez en direct les commandes et le suivi sur WhatsApp.
+            {tr(
+              "Configurez votre assistant IA lié à votre boutique, récupérez vos QR codes, et testez en direct les commandes et le suivi sur WhatsApp.",
+              "Configure your shop's AI assistant, get your QR codes, and test live WhatsApp orders and tracking.",
+            )}
           </p>
         </div>
         <a
@@ -47,7 +78,8 @@ export default async function BotPage() {
           rel="noreferrer"
           className="btn-primary text-xs gap-1.5"
         >
-          <span>✨</span> Voir l&apos;Assistant sur ma boutique ↗
+          <span>✨</span>{" "}
+          {tr("Voir l'Assistant sur ma boutique ↗", "View Assistant on my shop ↗")}
         </a>
       </div>
 
@@ -57,10 +89,13 @@ export default async function BotPage() {
             "mr-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold " +
             (cloudLive
               ? "bg-emerald-100 text-emerald-800"
-              : "bg-arctic-200/65 text-arctic-700")
+              : "bg-amber-100 text-amber-800")
           }
         >
-          ● {cloudLive ? "WhatsApp Cloud API (Live)" : "Mode Simulation (Stub)"}
+          ●{" "}
+          {cloudLive
+            ? tr("WhatsApp Cloud API (Connecté)", "WhatsApp Cloud API (Connected)")
+            : tr("WhatsApp Cloud API (À configurer)", "WhatsApp Cloud API (To configure)")}
         </span>
         <span
           className={
@@ -71,33 +106,54 @@ export default async function BotPage() {
           }
         >
           <Glyph name="sparkle" size={13} />{" "}
-          {llmActive ? `IA Active (${providerName.toUpperCase()})` : "IA désactivée"}
+          {llmActive
+            ? tr(`IA Active (${providerName.toUpperCase()})`, `AI Active (${providerName.toUpperCase()})`)
+            : tr("IA désactivée", "AI disabled")}
         </span>
         <span className="text-arctic-800">
           {cloudLive
-            ? "Vos clients sur WhatsApp reçoivent ces réponses et boutons interactifs en temps réel via Meta Cloud API."
-            : "Mode simulation actif : testez toutes les fonctionnalités ci-dessous, puis renseignez votre Token Meta Cloud API & Phone Number ID pour passer en production."}
+            ? tr(
+                "Vos clients sur WhatsApp reçoivent ces réponses et boutons interactifs en temps réel via Meta Cloud API.",
+                "Your customers on WhatsApp receive these replies and interactive buttons in real time via Meta Cloud API.",
+              )
+            : tr(
+                "Renseignez votre Token Meta Cloud API & Phone Number ID ci-dessous pour activer l'envoi WhatsApp en direct.",
+                "Enter your Meta Cloud API Token & Phone Number ID below to enable live WhatsApp messaging.",
+              )}
         </span>
       </div>
+
+      <HandoffInbox waiting={waiting} />
 
       {/* Configuration complète : QR Codes + Gemini IA + Meta WhatsApp Cloud API */}
       <WhatsAppAssistantConfig
         shopName={vendor.shopName}
         shopSlug={vendor.shopSlug}
         initialWhatsappNumber={vendor.whatsappNumber}
-        initialPhoneNumberId={vendor.whatsappPhoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID || ""}
+        initialPhoneNumberId={vendor.whatsappPhoneNumberId || ""}
         initialConfig={waConfig}
         isCloudLive={cloudLive}
         isGeminiLive={llmActive}
       />
 
-      {/* Simulateur interactif WhatsApp (Questions IA, Commandes 1-clic, Suivi de commande) */}
+      {/* Console en direct WhatsApp Cloud API & Assistant IA */}
       <div>
         <h2 className="text-base font-bold text-arctic-900 mb-2">
-          💬 Simulateur WhatsApp Client (Test en direct)
+          💬{" "}
+          {tr(
+            "Console Live WhatsApp Cloud API & Assistant IA Gemini",
+            "Live WhatsApp Cloud API & Gemini AI Console",
+          )}
         </h2>
         <p className="text-xs text-arctic-600 mb-3">
-          Testez exactement ce que voit un client qui scanne votre QR Code WhatsApp : posez des questions à Gemini, cliquez sur les boutons de commande directe (les commandes arrivent dans votre onglet <strong>Orders</strong>), et testez le suivi de commande !
+          {tr(
+            <>
+              Interagissez en direct avec votre Assistant IA connecté à votre base de données MySQL : posez des questions à Gemini, passez de vraies commandes (enregistrées dans votre onglet <strong>Commandes</strong>), suivez vos commandes et envoyez les réponses sur WhatsApp Cloud API !
+            </>,
+            <>
+              Interact live with your AI Assistant connected to your MySQL database: ask Gemini questions, place real orders (saved in your <strong>Orders</strong> tab), track orders, and send replies over WhatsApp Cloud API!
+            </>,
+          )}
         </p>
         <BotChatClient shopName={vendor.shopName} />
       </div>

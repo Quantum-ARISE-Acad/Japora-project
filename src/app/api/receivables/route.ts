@@ -9,10 +9,12 @@ import {
   type ReceivableStatus,
 } from "@/lib/receivables";
 import { logger } from "@/lib/logger";
+import { getServerTr } from "@/lib/public-locale";
 
 export async function GET(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const sp = req.nextUrl.searchParams;
   const statusRaw = sp.get("status");
@@ -34,15 +36,16 @@ export async function GET(req: NextRequest) {
  * a vendor logs a friend's tab from memory).
  */
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const b = await req.json().catch(() => null);
-  if (!b) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  if (!b) return NextResponse.json({ error: tr("Requête invalide.", "Invalid request") }, { status: 400 });
 
   const amountCents = Math.max(0, Math.floor(Number(b.amountCents) || 0));
   if (amountCents <= 0) {
-    return NextResponse.json({ error: "Amount must be greater than zero." }, { status: 400 });
+    return NextResponse.json({ error: tr("Le montant doit être supérieur à zéro.", "Amount must be greater than zero.") }, { status: 400 });
   }
 
   const customerId =
@@ -55,11 +58,11 @@ export async function POST(req: NextRequest) {
   // vendor's customer/order.
   if (customerId) {
     const c = await prisma.customer.findFirst({ where: { id: customerId, vendorId: vendor.id } });
-    if (!c) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+    if (!c) return NextResponse.json({ error: tr("Client introuvable", "Customer not found") }, { status: 404 });
   }
   if (orderId) {
     const o = await prisma.order.findFirst({ where: { id: orderId, vendorId: vendor.id } });
-    if (!o) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    if (!o) return NextResponse.json({ error: tr("Commande introuvable", "Order not found") }, { status: 404 });
   }
 
   const created = await createForUnpaidOrder(prisma, vendor.id, orderId, {

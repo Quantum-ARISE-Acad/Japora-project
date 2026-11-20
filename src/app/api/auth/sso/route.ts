@@ -10,8 +10,10 @@ import {
 import { createSession } from "@/lib/session";
 import { getCurrentVendor } from "@/lib/auth";
 import { publicOrigin } from "@/lib/public-origin";
+import { getServerTr } from "@/lib/public-locale";
 
 export async function GET(req: NextRequest) {
+  const tr = await getServerTr();
   const searchParams = req.nextUrl.searchParams;
   const ticket = searchParams.get("ticket");
   const redirectUrl = searchParams.get("redirect") || "/dashboard";
@@ -23,7 +25,7 @@ export async function GET(req: NextRequest) {
 
   if (!tokenToVerify) {
     if (format === "json") {
-      return NextResponse.json({ error: "No ticket or unified session found" }, { status: 401 });
+      return NextResponse.json({ error: tr("Aucun jeton ni session unifiée trouvés.", "No ticket or unified session found") }, { status: 401 });
     }
     return NextResponse.redirect(new URL("/login?error=no_session", publicOrigin(req)));
   }
@@ -31,7 +33,7 @@ export async function GET(req: NextRequest) {
   const payload = await verifyUnifiedToken(tokenToVerify);
   if (!payload || !payload.email) {
     if (format === "json") {
-      return NextResponse.json({ error: "Invalid or expired SSO token" }, { status: 401 });
+      return NextResponse.json({ error: tr("Jeton SSO invalide ou expiré.", "Invalid or expired SSO token") }, { status: 401 });
     }
     return NextResponse.redirect(new URL("/login?error=invalid_sso", publicOrigin(req)));
   }
@@ -73,10 +75,11 @@ export async function GET(req: NextRequest) {
 
 // POST endpoint to generate an SSO ticket to switch to WEscrow or Soko CRM
 export async function POST(_req: NextRequest) {
+  const tr = await getServerTr();
   try {
     const vendor = await getCurrentVendor();
     if (!vendor) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+      return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
     }
 
     const ticket = await createSsoTicket({

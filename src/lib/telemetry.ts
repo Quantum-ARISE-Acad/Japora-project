@@ -12,7 +12,7 @@ export interface TelemetryPayload {
   sessionId: string;
   productId?: string | null;
   orderId?: string | null;
-  carrier?: "tmoney" | "flooz" | null;
+  carrier?: "fedapay" | "cash" | "tmoney" | "flooz" | null;
   valueCents?: number;
 }
 
@@ -152,7 +152,7 @@ export function trackCart(shopSlug: string, valueCents?: number): void {
 export function trackPaymentIntent(
   shopSlug: string,
   orderId: string,
-  carrier: "tmoney" | "flooz",
+  carrier: "fedapay" | "cash" | "tmoney" | "flooz",
   valueCents?: number
 ): void {
   if (typeof window === "undefined" || !shopSlug || !orderId) return;

@@ -3,18 +3,20 @@ import { prisma } from "@/lib/db";
 import { getCurrentVendor } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { setCustomerMarketingConsent } from "@/lib/customers";
+import { getServerTr } from "@/lib/public-locale";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_req: NextRequest, { params }: Params) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const { id } = await params;
   const customer = await prisma.customer.findFirst({
     where: { id, vendorId: vendor.id, deletedAt: null },
   });
-  if (!customer) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+  if (!customer) return NextResponse.json({ error: tr("Client introuvable", "Customer not found") }, { status: 404 });
 
   // Recent orders for the side drawer — capped so we never load a year of
   // history into a popover.
@@ -36,14 +38,15 @@ export async function GET(_req: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const { id } = await params;
   const existing = await prisma.customer.findFirst({
     where: { id, vendorId: vendor.id, deletedAt: null },
   });
-  if (!existing) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: tr("Client introuvable", "Customer not found") }, { status: 404 });
 
   const b = await req.json().catch(() => ({}));
   const data: Record<string, unknown> = {};
@@ -65,12 +68,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       return NextResponse.json({ ok: true, customer });
     } catch (err) {
       if (err instanceof Error && err.message === "customer_not_found") {
-        return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+        return NextResponse.json({ error: tr("Client introuvable", "Customer not found") }, { status: 404 });
       }
       if (err instanceof Error && err.message === "valid_consent_basis_required") {
-        return NextResponse.json({ error: "A valid consent basis is required when granting consent." }, { status: 400 });
+        return NextResponse.json({ error: tr("Une base de consentement valide est requise pour accorder le consentement.", "A valid consent basis is required when granting consent.") }, { status: 400 });
       }
-      return NextResponse.json({ error: "Invalid consent update." }, { status: 400 });
+      return NextResponse.json({ error: tr("Mise à jour du consentement invalide.", "Invalid consent update.") }, { status: 400 });
     }
   }
 

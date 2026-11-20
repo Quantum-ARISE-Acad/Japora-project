@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PublicLocale } from "@/lib/public-locale";
 
@@ -73,9 +73,13 @@ export function PublicLanguageProvider({
     setLocale(locale === "fr" ? "en" : "fr");
   };
 
-  const tr = <T = string,>(frVal: T, enVal: T): T => {
-    return locale === "en" ? enVal : frVal;
-  };
+  // Stable between renders (changes only with the language), so it can be a hook dependency.
+  const tr = useCallback(
+    function tr<T = string>(frVal: T, enVal: T): T {
+      return locale === "en" ? enVal : frVal;
+    },
+    [locale],
+  );
 
   return (
     <LanguageContext.Provider value={{ locale, setLocale, toggleLocale, tr }}>

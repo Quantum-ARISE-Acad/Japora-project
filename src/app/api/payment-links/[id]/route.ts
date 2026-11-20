@@ -3,11 +3,13 @@ import { getCurrentVendor } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatMoney } from "@/lib/utils";
 import { sendWhatsApp } from "@/lib/whatsapp";
+import { getServerTr } from "@/lib/public-locale";
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const tr = await getServerTr();
   const { id } = await params;
 
   const link = await prisma.paymentLink.findUnique({
@@ -29,7 +31,7 @@ export async function GET(
   });
 
   if (!link) {
-    return NextResponse.json({ error: "Lien de paiement introuvable" }, { status: 404 });
+    return NextResponse.json({ error: tr("Lien de paiement introuvable", "Payment link not found") }, { status: 404 });
   }
 
   const isExpired = link.expiresAt ? new Date(link.expiresAt).getTime() < Date.now() : false;
@@ -46,6 +48,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const tr = await getServerTr();
   const { id } = await params;
   const vendor = await getCurrentVendor();
 
@@ -54,7 +57,7 @@ export async function PATCH(
   });
 
   if (!link) {
-    return NextResponse.json({ error: "Lien de paiement introuvable" }, { status: 404 });
+    return NextResponse.json({ error: tr("Lien de paiement introuvable", "Payment link not found") }, { status: 404 });
   }
 
   const body = await req.json().catch(() => ({}));
@@ -66,7 +69,7 @@ export async function PATCH(
       const customerName = String(body.customerName || "").trim();
       if (!customerPhone) {
         return NextResponse.json(
-          { error: "Veuillez saisir le numéro WhatsApp du client." },
+          { error: tr("Veuillez saisir le numéro WhatsApp du client.", "Please enter the customer's WhatsApp number.") },
           { status: 400 },
         );
       }
@@ -110,21 +113,22 @@ export async function PATCH(
     return NextResponse.json({ ok: true, link: updated });
   }
 
-  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 }
 
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const { id } = await params;
   const link = await prisma.paymentLink.findUnique({ where: { id } });
 
   if (!link || link.vendorId !== vendor.id) {
-    return NextResponse.json({ error: "Lien de paiement introuvable" }, { status: 404 });
+    return NextResponse.json({ error: tr("Lien de paiement introuvable", "Payment link not found") }, { status: 404 });
   }
 
   await prisma.paymentLink.delete({ where: { id } });

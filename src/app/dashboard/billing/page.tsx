@@ -129,8 +129,14 @@ export default async function BillingPage({
       initialFedaConfig={{
         environment: fedaConfig.environment,
         publicKey: fedaConfig.publicKey,
-        secretKey: fedaConfig.secretKey,
-        webhookSecret: fedaConfig.webhookSecret || "",
+        // Secrets never reach the browser in clear: the form shows a masked hint and
+        // the settings API keeps the stored value when it receives the mask back.
+        secretKey: maskSecret(fedaConfig.secretKey),
+        sandboxPublicKey: fedaConfig.sandboxPublicKey || "",
+        sandboxSecretKey: maskSecret(fedaConfig.sandboxSecretKey),
+        livePublicKey: fedaConfig.livePublicKey || "",
+        liveSecretKey: maskSecret(fedaConfig.liveSecretKey),
+        webhookSecret: maskSecret(fedaConfig.webhookSecret),
         enabled: fedaConfig.enabled,
       }}
       stats={{
@@ -152,4 +158,10 @@ export default async function BillingPage({
       queryStatus={sp}
     />
   );
+}
+
+function maskSecret(value?: string | null): string {
+  const v = (value || "").trim();
+  if (!v) return "";
+  return `${v.slice(0, Math.min(11, v.length - 4))}••••${v.slice(-4)}`;
 }

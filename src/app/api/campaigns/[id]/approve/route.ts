@@ -7,14 +7,16 @@ import {
   getRecoveryApprovalPreview,
   rejectRecoveryCampaignApproval,
 } from "@/lib/campaigns";
+import { getServerTr } from "@/lib/public-locale";
 
 function isReviewableStatus(status?: string | null) {
   return !status || ["draft", "approved", "blocked", "failed"].includes(status);
 }
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const { id } = await params;
   const campaign = await prisma.campaign.findFirst({
@@ -32,9 +34,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       approvalHash: true,
     },
   });
-  if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!campaign) return NextResponse.json({ error: tr("Introuvable", "Not found") }, { status: 404 });
   if (!["abandoned_cart", "reactivation"].includes(campaign.kind)) {
-    return NextResponse.json({ error: "Cette action concerne uniquement une relance client." }, { status: 409 });
+    return NextResponse.json({ error: tr("Cette action concerne uniquement une relance client.", "This action only applies to a customer follow-up.") }, { status: 409 });
   }
 
   const preview = await getRecoveryApprovalPreview(vendor.id, id);
@@ -59,8 +61,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const { id } = await params;
   const campaign = await prisma.campaign.findFirst({
@@ -74,9 +77,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       status: true,
     },
   });
-  if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!campaign) return NextResponse.json({ error: tr("Introuvable", "Not found") }, { status: 404 });
   if (!["abandoned_cart", "reactivation"].includes(campaign.kind)) {
-    return NextResponse.json({ error: "Cette action concerne uniquement une relance client." }, { status: 409 });
+    return NextResponse.json({ error: tr("Cette action concerne uniquement une relance client.", "This action only applies to a customer follow-up.") }, { status: 409 });
   }
 
   const body = await req.json().catch(() => ({}));
@@ -84,22 +87,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (action === "reject") {
     const rejected = await rejectRecoveryCampaignApproval(vendor.id, id);
     if (!rejected) {
-      return NextResponse.json({ error: "Cannot reject a sent campaign." }, { status: 409 });
+      return NextResponse.json({ error: tr("Impossible de refuser une campagne déjà envoyée.", "Cannot reject a sent campaign.") }, { status: 409 });
     }
     return NextResponse.json({ ok: true, rejected: true, campaign: rejected });
   }
 
   if (!["approve", "approve_and_send"].includes(action)) {
-    return NextResponse.json({ error: "Unsupported action" }, { status: 400 });
+    return NextResponse.json({ error: tr("Action non prise en charge.", "Unsupported action") }, { status: 400 });
   }
 
   if (["sent", "stubbed", "sending", "archived"].includes(campaign.status)) {
-    return NextResponse.json({ error: "Campaign is already in a terminal state." }, { status: 409 });
+    return NextResponse.json({ error: tr("La campagne est déjà terminée.", "Campaign is already in a terminal state.") }, { status: 409 });
   }
 
   const preview = await getRecoveryApprovalPreview(vendor.id, id);
   if (!preview) {
-    return NextResponse.json({ error: "No pending recovery candidate matches this campaign." }, { status: 409 });
+    return NextResponse.json({ error: tr("Aucun client en attente ne correspond à cette relance.", "No pending recovery candidate matches this campaign.") }, { status: 409 });
   }
 
   const approved = await approveRecoveryCampaign(vendor.id, id, {
@@ -108,7 +111,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     body: preview.renderedBody,
   });
   if (!approved) {
-    return NextResponse.json({ error: "Campaign could not be approved." }, { status: 500 });
+    return NextResponse.json({ error: tr("La campagne n'a pas pu être approuvée.", "Campaign could not be approved.") }, { status: 500 });
   }
 
   const result = action === "approve_and_send"

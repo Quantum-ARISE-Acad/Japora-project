@@ -26,15 +26,18 @@ import {
   type VerificationStep,
   type ClerkResource,
 } from "@/lib/clerk-signup-flow";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
-const CURRENCIES = [
-  { code: "XOF", label: "Franc CFA (XOF)", flag: "🇹🇬" },
-  { code: "USD", label: "US Dollar ($)", flag: "🇺🇸" },
-  { code: "EUR", label: "Euro (€)", flag: "🇪🇺" },
-  { code: "GHS", label: "Ghanaian Cedi (GH₵)", flag: "🇬🇭" },
+// Labels are [français, English].
+const CURRENCIES: { code: string; label: [string, string]; flag: string }[] = [
+  { code: "XOF", label: ["Franc CFA (XOF)", "CFA franc (XOF)"], flag: "🇹🇬" },
+  { code: "USD", label: ["Dollar US ($)", "US Dollar ($)"], flag: "🇺🇸" },
+  { code: "EUR", label: ["Euro (€)", "Euro (€)"], flag: "🇪🇺" },
+  { code: "GHS", label: ["Cedi ghanéen (GH₵)", "Ghanaian Cedi (GH₵)"], flag: "🇬🇭" },
 ];
 
 export default function CustomSignUp() {
+  const { tr } = usePublicLang();
   const router = useRouter();
   const clerkActive = isClerkConfigured();
   const { finalize, error: finalizationError } = useClerkFinalization("/dashboard");
@@ -187,18 +190,23 @@ export default function CustomSignUp() {
       } else if (action.missingFields.includes("email_address")) {
         setMethod("email");
       }
-      setError(`Informations supplémentaires requises : ${action.missingFields.join(", ")}`);
+      setError(tr(`Informations supplémentaires requises : ${action.missingFields.join(", ")}`, `More information is required: ${action.missingFields.join(", ")}`));
       return;
     }
 
     if (action.type === "additional_verification") {
       setVerificationStep(null);
       setMissingRequirements(action.requirements);
-      setError(`Clerk exige une vérification supplémentaire : ${action.requirements.join(", ") || "vérification du compte"}.`);
+      setError(
+        tr(
+          `Clerk exige une vérification supplémentaire : ${action.requirements.join(", ") || "vérification du compte"}.`,
+          `Clerk requires an additional verification: ${action.requirements.join(", ") || "account verification"}.`,
+        ),
+      );
       return;
     }
 
-    setError("Vérification supplémentaire requise pour activer le compte.");
+    setError(tr("Vérification supplémentaire requise pour activer le compte.", "Additional verification is required to activate the account."));
   }
 
   function switchMethod(next: SignUpMethod) {
@@ -219,7 +227,7 @@ export default function CustomSignUp() {
     }
 
     if (!clerkActive || !isLoaded || !signUp) {
-      setError("L'inscription avec Google nécessite une configuration Clerk active.");
+      setError(tr("L'inscription avec Google nécessite une configuration Clerk active.", "Signing up with Google requires an active Clerk configuration."));
       setGoogleLoading(false);
       return;
     }
@@ -267,19 +275,19 @@ export default function CustomSignUp() {
       }
 
       if (!isLoaded || !signUp) {
-        setError("Le service d'authentification est en cours d'initialisation. Veuillez réessayer.");
+        setError(tr("Le service d'authentification est en cours d'initialisation. Veuillez réessayer.", "The sign-in service is starting. Please try again."));
         setLoading(false);
         return;
       }
 
       if (method === "email" && !trimmedEmail) {
-        setError("Veuillez renseigner votre adresse email.");
+        setError(tr("Veuillez renseigner votre adresse email.", "Please enter your email address."));
         setLoading(false);
         return;
       }
 
       if (method === "phone" && !formattedPhone) {
-        setError("Veuillez renseigner un numéro de téléphone valide avec indicatif pays (ex: +228...).");
+        setError(tr("Veuillez renseigner un numéro de téléphone valide avec indicatif pays (ex: +228...).", "Please enter a valid phone number with its country code (e.g. +228...)."));
         setLoading(false);
         return;
       }
@@ -371,7 +379,7 @@ export default function CustomSignUp() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error || "Impossible de créer le compte localement.");
+        setError(data.error || tr("Impossible de créer le compte localement.", "Could not create the account locally."));
         setLoading(false);
         return;
       }
@@ -407,7 +415,7 @@ export default function CustomSignUp() {
 
     const cleanCode = code.trim();
     if (!cleanCode && signUp.status !== "complete") {
-      setError("Veuillez saisir le code de vérification.");
+      setError(tr("Veuillez saisir le code de vérification.", "Please enter the verification code."));
       return;
     }
 
@@ -462,7 +470,7 @@ export default function CustomSignUp() {
           setMethod("email");
         }
         setError(
-          `Votre code a bien été vérifié. Veuillez compléter : ${action.missingFields.join(", ")}`,
+          tr(`Votre code a bien été vérifié. Veuillez compléter : ${action.missingFields.join(", ")}`, `Your code was verified. Please complete: ${action.missingFields.join(", ")}`),
         );
         return;
       }
@@ -471,11 +479,26 @@ export default function CustomSignUp() {
         setVerificationStep(null);
         setCode("");
         setMissingRequirements(action.requirements);
-        setError(`Clerk exige une vérification supplémentaire : ${action.requirements.join(", ") || "vérification du compte"}.`);
+        setError(
+        tr(
+          `Clerk exige une vérification supplémentaire : ${action.requirements.join(", ") || "vérification du compte"}.`,
+          `Clerk requires an additional verification: ${action.requirements.join(", ") || "account verification"}.`,
+        ),
+      );
         return;
       }
 
-      setError(`Le code a été vérifié, mais Clerk demande encore une étape (${action.type === "incomplete" ? action.unverifiedFields.join(", ") || action.missingFields.join(", ") || "état incomplet" : "vérification supplémentaire"}).`);
+      setError(
+        action.type === "incomplete"
+          ? tr(
+              `Le code a été vérifié, mais Clerk demande encore une étape (${action.unverifiedFields.join(", ") || action.missingFields.join(", ") || "état incomplet"}).`,
+              `The code was verified, but Clerk still asks for a step (${action.unverifiedFields.join(", ") || action.missingFields.join(", ") || "incomplete state"}).`,
+            )
+          : tr(
+              "Le code a été vérifié, mais Clerk demande encore une étape (vérification supplémentaire).",
+              "The code was verified, but Clerk still asks for a step (additional verification).",
+            ),
+      );
     } catch (err: unknown) {
       if (isSessionExistsError(err)) {
         await finalize({ payload: getSyncPayload() });
@@ -502,10 +525,10 @@ export default function CustomSignUp() {
           <div className="mb-4 rounded-shape-lg border border-amber-500/30 bg-amber-50/90 p-3 text-xs text-amber-900 shadow-sm backdrop-blur-sm dark:bg-amber-950/40 dark:text-amber-200">
             <div className="flex items-center gap-2 font-semibold">
               <span className="inline-block h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-              Mode Démo / Prêt pour Clerk
+              {tr("Mode Démo / Prêt pour Clerk", "Demo mode / ready for Clerk")}
             </div>
             <p className="mt-1 opacity-90">
-              Renseignez <code className="font-mono text-[11px] bg-amber-200/50 px-1 py-0.5 rounded">NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</code> pour activer l&apos;authentification Clerk en direct.
+              {tr("Renseignez", "Set")} <code className="font-mono text-[11px] bg-amber-200/50 px-1 py-0.5 rounded">NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</code> {tr("pour activer l'authentification Clerk en direct.", "to turn on live Clerk sign-in.")}
             </p>
           </div>
         )}
@@ -515,25 +538,25 @@ export default function CustomSignUp() {
             <div>
               <h1 className="a-headline-sm text-arctic-900">
                 {verificationStep === "email"
-                  ? "Vérifiez votre adresse email"
-                  : "Vérifiez votre numéro de téléphone"}
+                  ? tr("Vérifiez votre adresse email", "Check your email address")
+                  : tr("Vérifiez votre numéro de téléphone", "Check your phone number")}
               </h1>
               <p className="a-body-md mt-1 text-arctic-600">
                 {verificationStep === "email" ? (
                   <>
-                    Un code de vérification à 6 chiffres a été envoyé à{" "}
+                    {tr("Un code de vérification à 6 chiffres a été envoyé à", "A 6-digit verification code was sent to")}{" "}
                     <strong>{signUp?.emailAddress || email}</strong>.
                   </>
                 ) : (
                   <>
-                    Un code SMS à 6 chiffres a été envoyé au{" "}
+                    {tr("Un code SMS à 6 chiffres a été envoyé au", "A 6-digit SMS code was sent to")}{" "}
                     <strong>{signUp?.phoneNumber || normalizeE164Phone(phone, phoneCountry) || phone}</strong>.
                   </>
                 )}
               </p>
               <form onSubmit={handleVerifyOtp} className="mt-6 space-y-4">
                 <div>
-                  <label className="label">Code de vérification</label>
+                  <label className="label">{tr("Code de vérification", "Verification code")}</label>
                   <input
                     className="input text-center text-xl tracking-widest font-mono"
                     type="text"
@@ -552,7 +575,7 @@ export default function CustomSignUp() {
                   </p>
                 )}
                 <button className="btn-primary w-full" disabled={loading}>
-                  {loading ? "Vérification…" : "Confirmer et activer mon compte"}
+                  {loading ? tr("Vérification…", "Checking…") : tr("Confirmer et activer mon compte", "Confirm and activate my account")}
                 </button>
                 <div className="flex items-center justify-between pt-1 text-xs">
                   <button
@@ -565,7 +588,7 @@ export default function CustomSignUp() {
                     disabled={loading}
                     className="font-medium text-arctic-600 underline hover:text-arctic-900"
                   >
-                    Modifier mes informations
+                    {tr("Modifier mes informations", "Edit my information")}
                   </button>
                   <button
                     type="button"
@@ -573,7 +596,7 @@ export default function CustomSignUp() {
                     disabled={loading}
                     className="font-medium text-arctic-600 underline hover:text-arctic-900"
                   >
-                    Renvoyer le code
+                    {tr("Renvoyer le code", "Resend the code")}
                   </button>
                 </div>
               </form>
@@ -581,17 +604,17 @@ export default function CustomSignUp() {
           ) : (
             <>
               <h1 className="a-headline-sm text-arctic-900">
-                {continuingOAuth ? "Complétez votre inscription" : "Créer votre compte vendeur Japora"}
+                {continuingOAuth ? tr("Complétez votre inscription", "Complete your sign-up") : tr("Créer votre compte vendeur Japora", "Create your Japora vendor account")}
               </h1>
               <p className="a-body-md mt-1 text-arctic-600">
                 {continuingOAuth
-                  ? "Dernière étape pour accéder à votre espace vendeur."
-                  : "Créez votre compte en quelques secondes, puis configurez votre boutique sur le tableau de bord."}
+                  ? tr("Dernière étape pour accéder à votre espace vendeur.", "Last step to reach your vendor space.")
+                  : tr("Créez votre compte en quelques secondes, puis configurez votre boutique sur le tableau de bord.", "Create your account in a few seconds, then set up your shop from the dashboard.")}
               </p>
 
               <div className="mt-4 flex items-center gap-2 rounded-shape-md bg-brand/10 p-2.5 text-xs text-brand-dark font-medium">
                 <span>🛍️</span>
-                <span>Plateforme marchande dédiée aux vendeurs & créateurs africains</span>
+                <span>{tr("Plateforme marchande dédiée aux vendeurs & créateurs africains", "Commerce platform for African vendors & creators")}</span>
               </div>
 
               {/* Google Sign-up Button */}
@@ -609,13 +632,13 @@ export default function CustomSignUp() {
                       <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                     </svg>
-                    <span>{googleLoading ? "Création Google en cours…" : "S'inscrire avec Google"}</span>
+                    <span>{googleLoading ? tr("Création Google en cours…", "Creating with Google…") : tr("S'inscrire avec Google", "Sign up with Google")}</span>
                   </button>
 
                   <div className="relative my-4 flex items-center justify-center">
                     <div className="w-full border-t border-arctic-200 dark:border-arctic-700" />
                     <span className="absolute bg-white px-2 text-[11px] font-medium uppercase tracking-wider text-arctic-400 dark:bg-arctic-900 dark:text-arctic-500">
-                      ou par code de vérification
+                      {tr("ou par code de vérification", "or with a verification code")}
                     </span>
                   </div>
 
@@ -630,7 +653,7 @@ export default function CustomSignUp() {
                           : "text-arctic-600 hover:text-arctic-900 dark:text-arctic-300"
                       }`}
                     >
-                      Email (Code OTP)
+                      {tr("Email (Code OTP)", "Email (OTP code)")}
                     </button>
                     <button
                       type="button"
@@ -641,7 +664,7 @@ export default function CustomSignUp() {
                           : "text-arctic-600 hover:text-arctic-900 dark:text-arctic-300"
                       }`}
                     >
-                      Téléphone (SMS)
+                      {tr("Téléphone (SMS)", "Phone (SMS)")}
                     </button>
                   </div>
                 </div>
@@ -649,27 +672,27 @@ export default function CustomSignUp() {
 
               <form onSubmit={handleSignUp} className="space-y-3.5 mt-4">
                 <div>
-                  <label className="label">Votre nom complet</label>
+                  <label className="label">{tr("Votre nom complet", "Your full name")}</label>
                   <input
                     className="input"
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="ex: Kossi Mensah"
+                    placeholder={tr("ex: Kossi Mensah", "e.g. Kossi Mensah")}
                     required={!continuingOAuth}
                   />
                 </div>
 
                 {method === "email" ? (
                   <div>
-                    <label className="label">Adresse Email</label>
+                    <label className="label">{tr("Adresse Email", "Email address")}</label>
                     <input
                       className="input"
                       type="email"
                       autoComplete="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="vous@exemple.com"
+                      placeholder={tr("vous@exemple.com", "you@example.com")}
                       required
                       disabled={
                         continuingOAuth &&
@@ -681,7 +704,7 @@ export default function CustomSignUp() {
                 ) : (
                   <PhoneNumberInput
                     id="signup-phone"
-                    label="Numéro de téléphone (SMS OTP)"
+                    label={tr("Numéro de téléphone (SMS OTP)", "Phone number (SMS OTP)")}
                     value={phone}
                     country={phoneCountry}
                     onChange={setPhone}
@@ -691,14 +714,14 @@ export default function CustomSignUp() {
 
                 {requiresPassword && (
                   <div>
-                    <label className="label">Mot de passe</label>
+                    <label className="label">{tr("Mot de passe", "Password")}</label>
                     <input
                       className="input"
                       type="password"
                       autoComplete="new-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Au moins 8 caractères"
+                      placeholder={tr("Au moins 8 caractères", "At least 8 characters")}
                       minLength={8}
                       required={requiresPassword}
                     />
@@ -706,7 +729,7 @@ export default function CustomSignUp() {
                 )}
 
                 <div>
-                  <label className="label">Devise principale de la boutique</label>
+                  <label className="label">{tr("Devise principale de la boutique", "Main shop currency")}</label>
                   <select
                     className="input"
                     value={currency}
@@ -714,7 +737,7 @@ export default function CustomSignUp() {
                   >
                     {CURRENCIES.map((c) => (
                       <option key={c.code} value={c.code}>
-                        {c.flag} {c.label}
+                        {c.flag} {tr(...c.label)}
                       </option>
                     ))}
                   </select>
@@ -728,17 +751,17 @@ export default function CustomSignUp() {
 
                 <button className="btn-primary w-full mt-2" disabled={loading}>
                   {loading
-                    ? "Création du compte…"
+                    ? tr("Création du compte…", "Creating the account…")
                     : continuingOAuth
-                      ? "Continuer vers ma boutique"
-                      : "Continuer et recevoir mon code"}
+                      ? tr("Continuer vers ma boutique", "Continue to my shop")
+                      : tr("Continuer et recevoir mon code", "Continue and get my code")}
                 </button>
               </form>
 
               <p className="a-body-sm mt-6 text-center text-arctic-600">
-                Vous avez déjà une boutique ?{" "}
+                {tr("Vous avez déjà une boutique ?", "Already have a shop?")}{" "}
                 <Link href="/login" className="font-semibold text-arctic-900 underline hover:text-black">
-                  Se connecter
+                  {tr("Se connecter", "Sign in")}
                 </Link>
               </p>
             </>

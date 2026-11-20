@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentVendor } from "@/lib/auth";
 import { issueVerificationEmail } from "@/lib/verification";
 import { rateLimit, tooManyRequests } from "@/lib/ratelimit";
+import { getServerTr } from "@/lib/public-locale";
 
 export async function POST(_req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
   if (vendor.emailVerifiedAt) return NextResponse.json({ ok: true, already: true });
 
   const rl = rateLimit({

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { TopProduct } from "@/lib/bookkeeping";
+import { isZeroDecimal } from "@/lib/currency";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 type SummaryCard = {
@@ -22,15 +23,18 @@ type Props = {
 };
 
 function formatMoney(cents: number, currency: string): string {
+  const code = (currency || "XOF").toUpperCase();
+  const fractionDigits = isZeroDecimal(code) ? 0 : 2;
   try {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: currency || "XOF",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      currency: code,
+      currencyDisplay: isZeroDecimal(code) ? "code" : "symbol",
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
     }).format(cents / 100);
   } catch {
-    return `${currency} ${(cents / 100).toFixed(2)}`;
+    return `${code} ${(cents / 100).toFixed(fractionDigits)}`;
   }
 }
 
@@ -263,7 +267,7 @@ export default function BookkeepingClient({ currency, currentSummary, lastSummar
           <button
             type="button"
             onClick={() => openReport(pickedYear, pickedMonth)}
-            className="rounded-lg bg-arctic-800 px-4 py-2 text-sm font-semibold text-white hover:bg-arctic-900"
+            className="rounded-lg bg-arctic-800 px-4 py-2 text-sm font-semibold text-white hover:bg-arctic-900 dark:bg-brand dark:text-arctic-50 dark:hover:bg-brand-bright"
           >
             {tr("Ouvrir le rapport du mois", "Open monthly report")}
           </button>

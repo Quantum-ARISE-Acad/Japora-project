@@ -18,10 +18,13 @@ import { publicOrigin } from "@/lib/public-origin";
 import { sendWhatsApp } from "@/lib/whatsapp";
 import { formatMoney } from "@/lib/utils";
 import { calculateDeliveryFee, parseDeliveryZones } from "@/lib/delivery";
+import { resolveRequestOrigin } from "@/lib/payments/fedapay";
+import { getServerTr } from "@/lib/public-locale";
 
 export async function GET(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   // Offset pagination, bounded so a runaway query can't blow up the dashboard.
   const sp = req.nextUrl.searchParams;
@@ -55,8 +58,9 @@ export async function GET(req: NextRequest) {
  *  - Dashboard manual add:    { source: "manual", items, ... } (requires auth)
  */
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const b = await req.json().catch(() => null);
-  if (!b) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  if (!b) return NextResponse.json({ error: tr("Requête invalide.", "Invalid request") }, { status: 400 });
 
   const source = b.source === "manual" ? "manual" : "catalog";
 
@@ -84,20 +88,20 @@ export async function POST(req: NextRequest) {
   }
   if (!vendor) {
     return source === "manual"
-      ? NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-      : NextResponse.json({ error: "Shop not found" }, { status: 404 });
+      ? NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 })
+      : NextResponse.json({ error: tr("Boutique introuvable", "Shop not found") }, { status: 404 });
   }
 
   const customerName = String(b.customerName || "").trim();
   if (!customerName) {
-    return NextResponse.json({ error: "Please enter the customer's name." }, { status: 400 });
+    return NextResponse.json({ error: tr("Veuillez saisir le nom du client.", "Please enter the customer's name.") }, { status: 400 });
   }
   let customerPhone = String(b.customerPhone || "").trim();
   if (customerPhone) {
     const norm = normalizePhone(customerPhone);
     if (!isValidPhone(norm)) {
       return NextResponse.json(
-        { error: "Format de numéro de téléphone invalide (8 à 15 chiffres requis)." },
+        { error: tr("Format de numéro de téléphone invalide (8 à 15 chiffres requis).", "Invalid phone number format (8 to 15 digits required).") },
         { status: 400 },
       );
     }
@@ -114,12 +118,12 @@ export async function POST(req: NextRequest) {
   // Legacy/manual callers that omit fulfillment continue to create pickup orders.
   const fulfillment = b.fulfillment ?? "pickup";
   if (fulfillment !== "pickup" && fulfillment !== "delivery") {
-    return NextResponse.json({ error: "Mode de réception invalide." }, { status: 400 });
+    return NextResponse.json({ error: tr("Mode de réception invalide.", "Invalid fulfilment method.") }, { status: 400 });
   }
   let deliveryFeeCents = 0;
   if (fulfillment === "delivery") {
     if (!vendor.deliveryEnabled) {
-      return NextResponse.json({ error: "Cette boutique ne propose pas la livraison." }, { status: 400 });
+      return NextResponse.json({ error: tr("Cette boutique ne propose pas la livraison.", "This shop does not offer delivery.") }, { status: 400 });
     }
     const zones = parseDeliveryZones(vendor.deliveryZones, vendor.deliveryFeeCents);
     const requestedZone = typeof b.deliveryZone === "string" ? b.deliveryZone.trim() : "";
@@ -127,14 +131,14 @@ export async function POST(req: NextRequest) {
       ? zones.find((z) => z.name.toLowerCase() === requestedZone.toLowerCase())
       : zones[0];
     if (requestedZone && !zone) {
-      return NextResponse.json({ error: "Zone de livraison inconnue." }, { status: 400 });
+      return NextResponse.json({ error: tr("Zone de livraison inconnue.", "Unknown delivery zone.") }, { status: 400 });
     }
     deliveryFeeCents = calculateDeliveryFee(vendor, zone?.name);
   }
 
   const rawItems = Array.isArray(b.items) ? b.items : [];
   if (rawItems.length === 0) {
-    return NextResponse.json({ error: "Add at least one item." }, { status: 400 });
+    return NextResponse.json({ error: tr("Ajoutez au moins un article.", "Add at least one item.") }, { status: 400 });
   }
 
   const ids = [...new Set(rawItems.map((i: { productId: unknown }) => String(i.productId)))];
@@ -154,7 +158,7 @@ export async function POST(req: NextRequest) {
   for (const it of rawItems) {
     const p = byId.get(String(it.productId));
     if (!p) {
-      return NextResponse.json({ error: "An item is no longer available." }, { status: 400 });
+      return NextResponse.json({ error: tr("Un article n'est plus disponible.", "An item is no longer available.") }, { status: 400 });
     }
     const qty = Math.max(1, Math.min(999, parseInt(String(it.qty ?? it.quantity ?? 1), 10) || 1));
     if (p.stock < qty) {
@@ -288,26 +292,33 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Send order summary + FedaPay payment link via WhatsApp Cloud API if customerPhone provided
+  // Send order summary + payment details via WhatsApp Cloud API if customerPhone provided
   if (customerPhone) {
     try {
-      const origin = (process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin || "http://localhost:5174").replace(/\/$/, "");
+      const origin = resolveRequestOrigin(req.headers, req.url);
       const payUrl = `${origin}/pay/${order.id}`;
       const amountFormatted = formatMoney(totalCents, vendor.currency || "XOF");
       const itemsText = lineItems
         .map((li) => `• ${li.quantity}× ${li.productName}${li.size ? ` (${li.size})` : ""}`)
         .join("\n");
+      const isCod = paymentMethod === "cash";
 
       await sendWhatsApp({
         vendorId: vendor.id,
         to: customerPhone,
         orderId: order.id,
-        body:
-          `🛍️ *Commande enregistrée chez ${vendor.shopName} !*\n\n` +
-          `Réf : *#${order.id.slice(-6).toUpperCase()}*\n` +
-          `${itemsText}\n\n` +
-          `💰 Total : *${amountFormatted}*\n\n` +
-          `👉 *Lien de paiement sécurisé FedaPay (T-Money, Flooz, Mobile Money & Carte) :*\n${payUrl}`,
+        body: isCod
+          ? `🛍️ *Commande enregistrée chez ${vendor.shopName} !*\n\n` +
+            `Réf : *#${order.id.slice(-6).toUpperCase()}*\n` +
+            `${itemsText}\n\n` +
+            `💰 Total à régler à la livraison : *${amountFormatted}*\n` +
+            `💵 Mode choisi : *Paiement à la livraison*\n\n` +
+            `👉 Suivi de commande (ou payer en ligne via FedaPay) :\n${payUrl}`
+          : `🛍️ *Commande enregistrée chez ${vendor.shopName} !*\n\n` +
+            `Réf : *#${order.id.slice(-6).toUpperCase()}*\n` +
+            `${itemsText}\n\n` +
+            `💰 Total : *${amountFormatted}*\n\n` +
+            `👉 *Lien de paiement sécurisé FedaPay (T-Money, Flooz, Mobile Money & Carte) :*\n${payUrl}`,
       });
     } catch (e) {
       logger.error("order.buyer_whatsapp_failed", { orderId: order.id, error: String(e) });

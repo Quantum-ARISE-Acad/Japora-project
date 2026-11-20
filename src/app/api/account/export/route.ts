@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentVendor } from "@/lib/auth";
 import { logger } from "@/lib/logger";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
  * GDPR data-export endpoint. Streams a JSON dump of everything we hold for
@@ -9,8 +10,9 @@ import { logger } from "@/lib/logger";
  * archive or send it to an authority.
  */
 export async function GET() {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const [products, orders, emails, whatsappMessages] = await Promise.all([
     prisma.product.findMany({ where: { vendorId: vendor.id } }),

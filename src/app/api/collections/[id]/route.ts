@@ -3,18 +3,20 @@ import { revalidatePath } from "next/cache";
 import { getCurrentVendor } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/utils";
+import { getServerTr } from "@/lib/public-locale";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const { id } = await params;
   const existing = await prisma.collection.findFirst({
     where: { id, vendorId: vendor.id },
   });
-  if (!existing) return NextResponse.json({ error: "Collection introuvable" }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: tr("Collection introuvable", "Collection not found") }, { status: 404 });
 
   const body = await req.json().catch(() => ({}));
   const data: Record<string, unknown> = {};
@@ -29,13 +31,16 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         where: { vendorId_slug: { vendorId: vendor.id, slug: candidateSlug } },
       });
       if (conflict && conflict.id !== id) {
-        return NextResponse.json({ error: "Une autre collection utilise déjà ce slug." }, { status: 409 });
+        return NextResponse.json({ error: tr("Une autre collection utilise déjà ce slug.", "Another collection already uses this slug.") }, { status: 409 });
       }
       data.slug = candidateSlug;
     }
   }
   if (typeof body.description === "string") {
     data.description = body.description.trim();
+  }
+  if (typeof body.imageUrl === "string") {
+    data.imageUrl = body.imageUrl.trim();
   }
 
   // Handle product associations if passed
@@ -72,14 +77,15 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const { id } = await params;
   const existing = await prisma.collection.findFirst({
     where: { id, vendorId: vendor.id },
   });
-  if (!existing) return NextResponse.json({ error: "Collection introuvable" }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: tr("Collection introuvable", "Collection not found") }, { status: 404 });
 
   // Unlink products before deleting collection
   await prisma.product.updateMany({

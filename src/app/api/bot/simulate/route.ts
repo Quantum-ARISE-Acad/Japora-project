@@ -1,43 +1,104 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireVendor } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { respondTo, logBotEvent } from "@/lib/bot";
+import { sendWhatsApp } from "@/lib/whatsapp";
 import { recordTouchFromText } from "@/lib/campaigns";
+import { recordVendorActivity } from "@/lib/clerk-vendor-sync";
 import { logger } from "@/lib/logger";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
- * Bot simulator. Lets a logged-in vendor type a message as if it came from a
- * customer and see exactly what their bot would reply — without needing Meta
- * Cloud API credentials. Hits the same respondTo() path the live webhook does.
- *
- * Persists a BotEvent so the conversation surfaces in admin logs alongside
- * real WhatsApp traffic; we tag it with from=simulator so it can be filtered.
+ * Live WhatsApp Cloud API & Gemini AI Console endpoint.
+ * Executes the real catalog + Gemini AI assistant against MySQL, records
+ * real WhatsAppMessage & BotEvent rows in MySQL, and optionally dispatches
+ * the message to the recipient's WhatsApp via Meta Cloud API.
  */
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await requireVendor();
 
   const body = await req.json().catch(() => null);
   const text = String(body?.text || "").trim();
-  const fromPhone = String(body?.fromPhone || "simulator").trim() || "simulator";
+  const fromPhone =
+    String(body?.fromPhone || vendor.whatsappNumber || "").replace(/[^\d+]/g, "") ||
+    "22890000000";
+  const dispatchWhatsApp = Boolean(body?.dispatchWhatsApp);
 
   if (!text) {
-    return NextResponse.json({ error: "Type a message to simulate." }, { status: 400 });
+    return NextResponse.json({ error: tr("Veuillez saisir un message.", "Please enter a message.") }, { status: 400 });
   }
   if (text.length > 1000) {
-    return NextResponse.json({ error: "Message too long (1000 char max)." }, { status: 400 });
+    return NextResponse.json(
+      { error: tr("Message trop long (1000 caractères max).", "Message too long (1000 characters max).") },
+      { status: 400 },
+    );
   }
 
   try {
-    // Mirror the live webhook: record a CTWA touch if the message carries a ref.
     await recordTouchFromText(vendor.id, fromPhone, text).catch(() => null);
+
+    // Record real inbound message in MySQL
+    await prisma.whatsAppMessage.create({
+      data: {
+        vendorId: vendor.id,
+        direction: "IN",
+        contact: fromPhone,
+        body: text,
+        status: "received",
+      },
+    });
+
     const { reply, intent, buttons } = await respondTo(vendor.id, fromPhone, text);
-    await logBotEvent(vendor.id, `sim:${fromPhone}`, intent, text, true);
-    logger.info("bot.simulate", { vendorId: vendor.id, intent });
-    return NextResponse.json({ ok: true, reply, intent, buttons: buttons ?? [] });
+    await logBotEvent(vendor.id, fromPhone, intent, text, true);
+
+    let whatsappDelivery: Awaited<ReturnType<typeof sendWhatsApp>> | null = null;
+    if (dispatchWhatsApp && fromPhone) {
+      whatsappDelivery = await sendWhatsApp({
+        vendorId: vendor.id,
+        to: fromPhone,
+        body: reply,
+      });
+    } else {
+      await prisma.whatsAppMessage.create({
+        data: {
+          vendorId: vendor.id,
+          direction: "OUT",
+          contact: fromPhone,
+          body: reply,
+          status: "sent",
+        },
+      });
+    }
+
+    await recordVendorActivity({
+      vendorId: vendor.id,
+      type: "whatsapp.assistant.interaction",
+      subjectType: "whatsapp",
+      subjectId: fromPhone,
+      data: {
+        contact: fromPhone,
+        intent,
+        dispatchedToCloudApi: dispatchWhatsApp,
+      },
+    }).catch(() => {});
+
+    logger.info("bot.live_console", { vendorId: vendor.id, intent, fromPhone });
+    return NextResponse.json({
+      ok: true,
+      reply,
+      intent,
+      buttons: buttons ?? [],
+      whatsappDelivery,
+    });
   } catch (e) {
-    logger.error("bot.simulate_failed", {
+    logger.error("bot.live_console_failed", {
       vendorId: vendor.id,
       error: e instanceof Error ? e.message : String(e),
     });
-    return NextResponse.json({ error: "Bot simulation failed." }, { status: 500 });
+    return NextResponse.json(
+      { error: tr("Erreur lors du traitement par l'assistant WhatsApp.", "Error while the WhatsApp assistant was processing.") },
+      { status: 500 },
+    );
   }
 }

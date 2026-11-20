@@ -4,6 +4,7 @@ import { getCooperativeForVendor, parsePhoneList, inviteByPhones } from "@/lib/c
 import { getClientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
 import { appUrl } from "@/lib/token";
 import { logger } from "@/lib/logger";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
  * POST /api/cooperative/invite { phones }
@@ -13,20 +14,21 @@ import { logger } from "@/lib/logger";
  * fans out messages.
  */
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Veuillez vous connecter pour continuer." }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter pour continuer.", "Please sign in to continue.") }, { status: 401 });
 
   const ip = getClientIp(req);
   const rl = rateLimit({ key: `coop.invite:${vendor.id}:${ip}`, limit: 10, windowMs: 60 * 60_000 });
   if (!rl.allowed) return tooManyRequests(rl, "Trop d’invitations. Réessayez dans quelques minutes.");
 
   const coop = await getCooperativeForVendor(vendor.id);
-  if (!coop) return NextResponse.json({ error: "Vous n’appartenez pas encore à une coopérative." }, { status: 400 });
+  if (!coop) return NextResponse.json({ error: tr("Vous n’appartenez pas encore à une coopérative.", "You don't belong to a cooperative yet.") }, { status: 400 });
 
   const b = await req.json().catch(() => null);
   const phones = parsePhoneList(String(b?.phones || ""));
   if (phones.length === 0) {
-    return NextResponse.json({ error: "Ajoutez au moins un numéro de téléphone valide." }, { status: 400 });
+    return NextResponse.json({ error: tr("Ajoutez au moins un numéro de téléphone valide.", "Add at least one valid phone number.") }, { status: 400 });
   }
 
   const summary = await inviteByPhones({

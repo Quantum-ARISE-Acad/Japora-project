@@ -620,7 +620,7 @@ export default function HowToUseClient() {
                     onClick={() => setActiveScenario(idx)}
                     className={`w-full rounded-shape-lg border p-4 text-left transition-all ${
                       isSelected
-                        ? "border-arctic-900 bg-arctic-900 text-white shadow-elev-1"
+                        ? "border-arctic-900 bg-arctic-900 text-arctic-50 shadow-elev-1"
                         : "border-arctic-300/70 bg-white/80 text-arctic-900 hover:border-brand"
                     }`}
                   >
@@ -629,14 +629,14 @@ export default function HowToUseClient() {
                         <SaasIcon
                           name={scen.icon}
                           size={15}
-                          className={isSelected ? "text-amber-300" : "text-brand-dark"}
+                          className={isSelected ? "text-amber-300 dark:text-gold-fill" : "text-brand-dark"}
                         />
                         <span>{scen.label}</span>
                       </span>
                       <SaasIcon
                         name="arrow-right"
                         size={14}
-                        className={isSelected ? "text-gold-bright" : "text-arctic-400"}
+                        className={isSelected ? "text-gold-bright dark:text-gold-fill" : "text-arctic-400"}
                       />
                     </div>
                     <p
@@ -698,7 +698,7 @@ export default function HowToUseClient() {
                   <div className="mb-1.5 flex items-center justify-between text-[10px] font-bold text-brand-dark">
                     <span className="inline-flex items-center gap-1.5">
                       <SaasIcon name="bot" size={13} />
-                      <span>Assistant Japora</span>
+                      <span>{tr("Assistant Japora", "Japora assistant")}</span>
                     </span>
                     <span>{tr("Instantané", "Instant")}</span>
                   </div>

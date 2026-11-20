@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { issueOtp, isValidPhone, normalizePhone } from "@/lib/otp";
+import { checkWhatsAppNumber } from "@/lib/whatsapp-number";
 import { getProvider } from "@/lib/whatsapp";
 import { getClientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
 import { logger } from "@/lib/logger";
 import { phoneSignupEnabled } from "@/lib/otp";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
  * POST /api/auth/otp/request  { phone }
@@ -13,9 +15,10 @@ import { phoneSignupEnabled } from "@/lib/otp";
  * returned as `devCode` so the flow is testable without live credentials.
  */
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   if (!phoneSignupEnabled()) {
     return NextResponse.json(
-      { error: "Phone sign-up is not available yet. Please sign up with your email." },
+      { error: tr("L'inscription par téléphone n'est pas encore disponible. Inscrivez-vous avec votre e-mail.", "Phone sign-up is not available yet. Please sign up with your email.") },
       { status: 503 },
     );
   }
@@ -24,9 +27,14 @@ export async function POST(req: NextRequest) {
   if (!ipRl.allowed) return tooManyRequests(ipRl, "Too many code requests. Try again later.");
 
   const body = await req.json().catch(() => null);
-  const phone = normalizePhone(String(body?.phone || ""));
-  if (!isValidPhone(phone)) {
-    return NextResponse.json({ error: "Enter a valid phone number with country code." }, { status: 400 });
+  // The number becomes the shop's WhatsApp number: its country code is required.
+  const waCheck = checkWhatsAppNumber(String(body?.phone || ""));
+  const phone = waCheck.ok ? waCheck.digits : normalizePhone(String(body?.phone || ""));
+  if (!waCheck.ok || !isValidPhone(phone)) {
+    return NextResponse.json(
+      { error: waCheck.ok ? tr("Numéro invalide.", "Invalid number.") : tr(waCheck.error, waCheck.errorEn) },
+      { status: 400 },
+    );
   }
 
   const phoneRl = rateLimit({ key: `otp.req.phone:${phone}`, limit: 4, windowMs: 15 * 60_000 });

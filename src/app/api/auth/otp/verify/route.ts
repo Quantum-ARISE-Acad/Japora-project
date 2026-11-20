@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isStoredWhatsAppNumberValid } from "@/lib/whatsapp-number";
 import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { verifyOtp, isValidPhone, normalizePhone } from "@/lib/otp";
@@ -11,6 +12,7 @@ import { joinByCode } from "@/lib/cooperative";
 import { getClientIp, rateLimit, tooManyRequests } from "@/lib/ratelimit";
 import { logger } from "@/lib/logger";
 import { phoneSignupEnabled } from "@/lib/otp";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
  * POST /api/auth/otp/verify  { phone, code, shopName?, ref? }
@@ -23,9 +25,10 @@ import { phoneSignupEnabled } from "@/lib/otp";
  *   - XOF default currency (Togo-first) + a 30-day trial + a referral code
  */
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   if (!phoneSignupEnabled()) {
     return NextResponse.json(
-      { error: "Phone sign-up is not available yet. Please sign up with your email." },
+      { error: tr("L'inscription par téléphone n'est pas encore disponible. Inscrivez-vous avec votre e-mail.", "Phone sign-up is not available yet. Please sign up with your email.") },
       { status: 503 },
     );
   }
@@ -41,7 +44,7 @@ export async function POST(req: NextRequest) {
   const coop = typeof body?.coop === "string" ? body.coop.trim() : "";
 
   if (!isValidPhone(phone) || !/^\d{4,8}$/.test(code)) {
-    return NextResponse.json({ error: "Enter the code we sent you." }, { status: 400 });
+    return NextResponse.json({ error: tr("Entrez le code que nous vous avons envoyé.", "Enter the code we sent you.") }, { status: 400 });
   }
 
   const check = await verifyOtp(phone, code);
@@ -79,7 +82,8 @@ export async function POST(req: NextRequest) {
       phoneVerifiedAt: new Date(),
       shopName,
       shopSlug,
-      whatsappNumber: phone,
+      // Only a number with a real country code becomes the shop's WhatsApp number.
+      whatsappNumber: isStoredWhatsAppNumberValid(phone) ? phone : "",
       currency: "XOF", // Togo-first default
       onboardedAt: new Date(),
       ...newVendorTrialDates(),

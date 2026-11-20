@@ -1,10 +1,11 @@
 import { requireVendor } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { priceFloorsForVendor } from "@/lib/products";
 import ProductsClient from "./ProductsClient";
 
 export default async function ProductsPage() {
   const vendor = await requireVendor();
-  const [products, collections] = await Promise.all([
+  const [products, collections, floors] = await Promise.all([
     prisma.product.findMany({
       where: { vendorId: vendor.id },
       orderBy: { createdAt: "desc" },
@@ -14,6 +15,7 @@ export default async function ProductsPage() {
       orderBy: { name: "asc" },
       select: { id: true, name: true, slug: true },
     }),
+    priceFloorsForVendor(vendor.id),
   ]);
 
   const dto = products.map((p) => ({
@@ -21,6 +23,7 @@ export default async function ProductsPage() {
     name: p.name,
     description: p.description,
     priceCents: p.priceCents,
+    minPriceCents: floors.get(p.id) ?? null,
     imageUrl: p.imageUrl,
     sizes: p.sizes,
     stock: p.stock,

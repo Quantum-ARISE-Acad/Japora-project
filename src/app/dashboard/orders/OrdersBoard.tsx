@@ -55,30 +55,46 @@ function parseDealMetadata(note: string, source: string) {
   };
 }
 
-const COLUMNS: { key: OrderStatus; title: string; dot: string; tint: string }[] = [
-  { key: "NEW",       title: "New",       dot: "bg-blue-500",  tint: "bg-blue-50" },
-  { key: "CONFIRMED", title: "Confirmed", dot: "bg-amber-500", tint: "bg-amber-50" },
-  { key: "PAID",      title: "Paid",      dot: "bg-brand",     tint: "bg-emerald-50" },
-  { key: "DELIVERED", title: "Delivered", dot: "bg-arctic-500", tint: "bg-arctic-200/65" },
+const COLUMNS: { key: OrderStatus; titleFr: string; titleEn: string; dot: string; tint: string }[] = [
+  { key: "NEW",       titleFr: "Nouvelles",  titleEn: "New",       dot: "bg-blue-500",   tint: "bg-blue-50" },
+  { key: "CONFIRMED", titleFr: "Confirmées", titleEn: "Confirmed", dot: "bg-amber-500",  tint: "bg-amber-50" },
+  { key: "PAID",      titleFr: "Payées",     titleEn: "Paid",      dot: "bg-brand",      tint: "bg-emerald-50" },
+  { key: "DELIVERED", titleFr: "Livrées",    titleEn: "Delivered", dot: "bg-arctic-500", tint: "bg-arctic-200/65" },
 ];
 
-function actionsFor(status: string, isDeal = false): { label: string; to: OrderStatus; primary?: boolean; danger?: boolean }[] {
+function actionsFor(
+  status: string,
+  isDeal = false,
+  tr: <T = string>(fr: T, en: T) => T = (fr) => fr,
+): { label: string; to: OrderStatus; primary?: boolean; danger?: boolean }[] {
   switch (status) {
     case "NEW":
       return isDeal
         ? [
-            { label: "✅ Valider le Deal", to: "CONFIRMED", primary: true },
-            { label: "❌ Refuser le Deal", to: "CANCELLED", danger: true },
+            { label: tr("✅ Valider le Deal", "✅ Approve Deal"), to: "CONFIRMED", primary: true },
+            { label: tr("❌ Refuser le Deal", "❌ Reject Deal"), to: "CANCELLED", danger: true },
           ]
         : [
-            { label: "Confirm", to: "CONFIRMED", primary: true },
-            { label: "Cancel", to: "CANCELLED" },
+            { label: tr("Confirmer", "Confirm"), to: "CONFIRMED", primary: true },
+            { label: tr("Annuler", "Cancel"), to: "CANCELLED" },
           ];
-    case "CONFIRMED": return [{ label: "Mark paid", to: "PAID", primary: true }, { label: "← New", to: "NEW" }, { label: "Cancel", to: "CANCELLED" }];
-    case "PAID":      return [{ label: "Mark delivered", to: "DELIVERED", primary: true }, { label: "← Confirmed", to: "CONFIRMED" }];
-    case "DELIVERED": return [{ label: "↩ Reopen", to: "PAID" }];
-    case "CANCELLED": return [{ label: "Restore", to: "NEW", primary: true }];
-    default: return [];
+    case "CONFIRMED":
+      return [
+        { label: tr("Marquer payée", "Mark paid"), to: "PAID", primary: true },
+        { label: tr("← Nouvelle", "← New"), to: "NEW" },
+        { label: tr("Annuler", "Cancel"), to: "CANCELLED" },
+      ];
+    case "PAID":
+      return [
+        { label: tr("Marquer livrée", "Mark delivered"), to: "DELIVERED", primary: true },
+        { label: tr("← Confirmée", "← Confirmed"), to: "CONFIRMED" },
+      ];
+    case "DELIVERED":
+      return [{ label: tr("↩ Réouvrir", "↩ Reopen"), to: "PAID" }];
+    case "CANCELLED":
+      return [{ label: tr("Restaurer", "Restore"), to: "NEW", primary: true }];
+    default:
+      return [];
   }
 }
 
@@ -370,7 +386,7 @@ export default function OrdersBoard({
         </div>
       )}
 
-      <div className="card flex flex-wrap items-center gap-3 p-3">
+      <div className="orders-filter-toolbar card flex flex-wrap items-center gap-3 p-3">
         <input
           className="input min-w-[200px] flex-1"
           placeholder={tr("Rechercher un client, un téléphone ou un produit…", "Search customer name, phone, or product…")}
@@ -408,7 +424,7 @@ export default function OrdersBoard({
                   "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition " +
                   (active
                     ? "bg-arctic-800 text-white hover:bg-arctic-700"
-                    : "bg-arctic-200/65 text-arctic-600 line-through hover:bg-arctic-300")
+                    : "orders-status-filter-inactive bg-arctic-200/65 text-arctic-600 line-through hover:bg-arctic-300")
                 }
               >
                 <span>{columnTitle(col.key)}</span>
@@ -529,7 +545,7 @@ function OrderCard({
 }) {
   const { tr, locale } = usePublicLang();
   const dealMeta = parseDealMetadata(o.note, o.source);
-  const actions = actionsFor(o.status, dealMeta.isDeal);
+  const actions = actionsFor(o.status, dealMeta.isDeal, tr);
   const waText = notifyText(o, shopName, currency);
   const base = typeof window !== "undefined" ? window.location.origin : "";
   const payUrl = `${base}/pay/${o.id}`;
