@@ -2,15 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { formatMoney, waMeLink } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
 import VerifiedBadge from "@/components/VerifiedBadge";
-import { telHref } from "@/lib/payments/ussd";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
-
-const DIAL_BUTTONS = [
-  { label: "T-Money", dial: "*145#" },
-  { label: "Flooz", dial: "*155#" },
-];
 
 interface PaymentLinkClientProps {
   id: string;
@@ -42,25 +36,11 @@ export default function PaymentLinkClient({
   vendor,
 }: PaymentLinkClientProps) {
   const { tr } = usePublicLang();
-  const [copied, setCopied] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [selectedNetwork, setSelectedNetwork] = useState("T-Money Togo");
   const [fedaLoading, setFedaLoading] = useState(false);
   const [fedaError, setFedaError] = useState("");
-
-  const payeePhone = vendor.momoNumber || vendor.whatsappNumber;
-
-  async function copyNumber() {
-    if (!payeePhone) return;
-    try {
-      await navigator.clipboard.writeText(payeePhone);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // ignore
-    }
-  }
 
   async function startFedaPayCheckout() {
     setFedaLoading(true);
@@ -91,11 +71,6 @@ export default function PaymentLinkClient({
   }
 
   const formattedAmount = formatMoney(amountCents, currency);
-  const waConfirmText = `Bonjour ${vendor.shopName}, je viens d'effectuer le paiement de ${formattedAmount}${
-    description ? ` pour : "${description}"` : ""
-  }. Pouvez-vous confirmer la réception s'il vous plaît ? Merci !`;
-
-  const waConfirmUrl = payeePhone ? waMeLink(payeePhone, waConfirmText) : "#";
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex flex-col justify-between p-4 sm:p-6">
@@ -244,59 +219,8 @@ export default function PaymentLinkClient({
                   </button>
                 </div>
 
-                {/* Direct Mobile Money Payee Info */}
-                {payeePhone && (
-                  <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-4 border border-slate-200 dark:border-slate-700 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                        {tr("Ou transfert Mobile Money direct", "Or direct Mobile Money transfer")}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={copyNumber}
-                        className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold hover:underline"
-                      >
-                        {copied ? tr("Copié !", "Copied!") : tr("Copier", "Copy")}
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between font-mono font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-900 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm">
-                      <span>{payeePhone}</span>
-                      <span className="text-xs font-sans text-slate-400">Direct</span>
-                    </div>
-
-                    {/* Direct USSD dial: opens the phone's dialer with the wallet code. */}
-                    <div className="grid grid-cols-2 gap-2">
-                      {DIAL_BUTTONS.map((b) => (
-                        <a
-                          key={b.dial}
-                          href={telHref(b.dial)}
-                          className="min-h-[44px] rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-2 py-2 text-center text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 flex flex-col items-center justify-center"
-                        >
-                          <span>{tr("Appeler", "Call")} {b.label}</span>
-                          <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400">{b.dial}</span>
-                        </a>
-                      ))}
-                    </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                      {tr("Composez le code, choisissez « Transfert », puis envoyez", "Dial the code, choose “Transfer”, then send")} {formattedAmount} {tr("au numéro ci-dessus.", "to the number above.")}
-                    </p>
-                  </div>
-                )}
-
                 {/* Action: WhatsApp confirmation */}
                 <div className="space-y-2 pt-1">
-                  {payeePhone && (
-                    <a
-                      href={waConfirmUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full py-2.5 px-4 rounded-xl border border-emerald-600 text-emerald-700 hover:bg-emerald-50 font-semibold text-xs flex items-center justify-center gap-2 transition-all"
-                    >
-                      <span>💬</span>
-                      <span>{tr("J'ai fait un transfert direct — Confirmer sur WhatsApp", "I made a direct transfer — confirm on WhatsApp")}</span>
-                    </a>
-                  )}
 
                   <Link
                     href={`/c/${vendor.shopSlug}`}

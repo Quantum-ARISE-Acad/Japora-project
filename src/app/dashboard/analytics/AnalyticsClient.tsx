@@ -249,7 +249,7 @@ export default function AnalyticsClient({
       { stage: "cart", label: tr("3. Ajouts au panier", "3. Added to cart"), count: carts },
       {
         stage: "ussd_intent",
-        label: tr("4. Intentions de paiement Mobile Money / USSD", "4. Mobile Money / USSD checkout intents"),
+        label: tr("4. Intentions de paiement FedaPay", "4. FedaPay checkout intents"),
         count: ussd,
       },
       {

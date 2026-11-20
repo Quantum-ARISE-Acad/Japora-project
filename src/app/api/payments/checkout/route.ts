@@ -5,6 +5,7 @@ import { getClientIp, rateLimit, tooManyRequests, envLimit } from "@/lib/ratelim
 import {
   getPaymentProvider,
   isValidProviderName,
+  providersForCurrency,
   newReference,
   type PaymentProviderName,
 } from "@/lib/payments";
@@ -38,7 +39,8 @@ export async function POST(req: NextRequest) {
   if (!orderId) {
     return NextResponse.json({ error: tr("orderId est obligatoire.", "orderId is required.") }, { status: 400 });
   }
-  if (!providerName || !isValidProviderName(providerName)) {
+  // Japora offers only FedaPay and cash on delivery (see providersForCurrency).
+  if (!providerName || !isValidProviderName(providerName) || !providersForCurrency("XOF").includes(providerName)) {
     return NextResponse.json({ error: tr("Moyen de paiement inconnu.", "Unknown payment provider.") }, { status: 400 });
   }
 
