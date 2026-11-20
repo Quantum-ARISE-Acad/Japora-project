@@ -11,7 +11,7 @@
 # Japora s'arrête : le système (SSH, journaux, mises à jour) garde son espace.
 #
 # Usage (une seule fois, avant le premier « deploy/mvp.sh up ») :
-#   sudo deploy/host/split-disk.sh 13G
+#   sudo deploy/host/split-disk.sh 11G
 # Relancer le script ne refait rien de ce qui est déjà en place.
 # Agrandir plus tard (Japora arrêté) : voir deploy/README.md, « Espace disque ».
 set -euo pipefail
