@@ -3,7 +3,7 @@
 # systemd), en dehors de Docker : elle prévient même si Japora est arrêté parce
 # que l'espace est plein.
 #
-# Surveille / (le système) et /srv/japora-data (Docker et sauvegardes) :
+# Surveille / (le système) et /srv/data (Docker et sauvegardes) :
 #   - à partir de WARN_PCT % (80 par défaut) : e-mail « Attention » ;
 #   - à partir de CRIT_PCT % (90 par défaut) : e-mail « URGENT » ;
 #   - rappel toutes les REMIND_HOURS heures (12) tant que ça reste plein ;
@@ -17,7 +17,7 @@ STATE_DIR="${JAPORA_ALERT_STATE:-/var/lib/japora-alerts}"
 WARN_PCT=80
 CRIT_PCT=90
 REMIND_HOURS=12
-MOUNTS="/ /srv/japora-data"
+MOUNTS="/ /srv/data"
 SMTP_URL="" SMTP_USER="" SMTP_PASSWORD="" ALERT_EMAIL_FROM="" ALERT_EMAIL_TO=""
 # shellcheck disable=SC1090
 [ -r "$CONF" ] && . "$CONF"
@@ -54,7 +54,7 @@ send_mail() {
 
 details() {
   echo "Espace disque sur $HOST :"
-  df -h / /srv/japora-data 2>/dev/null
+  df -h / /srv/data 2>/dev/null
   echo
   if command -v docker >/dev/null; then
     echo "Docker :"; timeout 20 docker system df 2>/dev/null || echo "(Docker ne répond pas)"
@@ -81,7 +81,7 @@ for m in $MOUNTS; do
   prev_level="$(cut -d' ' -f1 "$key" 2>/dev/null || echo ok)"
   last_sent="$(cut -d' ' -f2 "$key" 2>/dev/null || echo 0)"
   if (( pct >= CRIT_PCT )); then level=crit; elif (( pct >= WARN_PCT )); then level=warn; else level=ok; fi
-  name="$m"; [ "$m" = / ] && name="/ (système)"; [ "$m" = /srv/japora-data ] && name="/srv/japora-data (Docker et sauvegardes)"
+  name="$m"; [ "$m" = / ] && name="/ (système)"; [ "$m" = /srv/data ] && name="/srv/data (Docker et sauvegardes)"
 
   should_send=0
   if [ "$level" != "$prev_level" ]; then
