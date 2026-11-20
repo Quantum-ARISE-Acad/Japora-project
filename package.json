@@ -65,5 +65,8 @@
       "esbuild",
       "sharp"
     ]
+  },
+  "overrides": {
+    "effect": "3.22.5"
   }
 }
