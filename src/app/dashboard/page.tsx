@@ -9,6 +9,8 @@ import CopyableLink from "./CopyableLink";
 import NotifyFollowers from "./NotifyFollowers";
 import Glyph from "@/components/Glyph";
 import EmailVerificationBanner from "@/components/EmailVerificationBanner";
+import { parseWhatsAppAssistantConfig } from "@/lib/whatsapp-config";
+import { isLiveMode } from "@/lib/whatsapp";
 
 export default async function OverviewPage() {
   const vendor = await requireVendor();
@@ -100,9 +102,64 @@ export default async function OverviewPage() {
   );
   const whatsappStatusShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
 
+  const waCfg = parseWhatsAppAssistantConfig(vendor.uiPrefs);
+  const waLive = isLiveMode(vendor);
+  const latestWaError = (waCfg.diagnostics || []).find((d) => d.severity !== "ok") || null;
+
   return (
     <div className="space-y-7 a-fade-in">
       <EmailVerificationBanner email={vendor.email} verified={Boolean(vendor.emailVerifiedAt)} />
+
+      {/* Alerte de diagnostic WhatsApp Cloud API / IA Gemini en haut du Dashboard */}
+      {latestWaError ? (
+        <div
+          className={`rounded-shape-lg border-2 p-4 ${
+            latestWaError.severity === "error"
+              ? "border-red-400 bg-red-50 text-red-950"
+              : "border-amber-400 bg-amber-50 text-amber-950"
+          }`}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-1 max-w-3xl">
+              <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-red-800">
+                <span>{latestWaError.severity === "error" ? "🚨" : "⚠️"}</span>
+                <span>
+                  {tr(
+                    `Diagnostic Assistant WhatsApp / IA (${latestWaError.stage.toUpperCase()})`,
+                    `WhatsApp / AI Assistant Diagnostic (${latestWaError.stage.toUpperCase()})`,
+                  )}
+                </span>
+              </div>
+              <div className="text-sm font-bold">{latestWaError.title}</div>
+              <p className="text-xs leading-relaxed opacity-90">{latestWaError.message}</p>
+              {latestWaError.fixHint && (
+                <p className="mt-1 rounded bg-white/85 p-2 text-xs text-arctic-900 border border-black/10">
+                  💡 <strong>{tr("Solution :", "Fix:")}</strong> {latestWaError.fixHint}
+                </p>
+              )}
+            </div>
+            <Link
+              href="/dashboard/bot"
+              className="btn-primary text-xs shrink-0"
+            >
+              {tr("🩺 Ouvrir le Diagnostic WhatsApp & Régler →", "🩺 Open WhatsApp Diagnostics & Fix →")}
+            </Link>
+          </div>
+        </div>
+      ) : !waLive ? (
+        <div className="rounded-shape-lg border border-amber-300/80 bg-amber-50/90 px-4 py-3 text-amber-950 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-xs sm:text-sm">
+            <strong>⚠️ {tr("Assistant WhatsApp en mode Simulation (Stub) :", "WhatsApp Assistant in Simulation (Stub) mode:")}</strong>{" "}
+            {tr(
+              "Renseignez ou transférez votre Phone Number ID et Access Token Meta sur cette boutique pour que la réponse automatique parte sur WhatsApp.",
+              "Enter or transfer your Meta Phone Number ID and Access Token on this store so automatic replies are sent on WhatsApp.",
+            )}
+          </div>
+          <Link href="/dashboard/bot" className="text-xs font-bold underline hover:no-underline shrink-0">
+            {tr("Configurer l'Assistant WhatsApp →", "Configure WhatsApp Assistant →")}
+          </Link>
+        </div>
+      ) : null}
 
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>

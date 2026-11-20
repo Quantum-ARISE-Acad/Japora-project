@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ShopQrCard from "../ShopQrCard";
-import type { WhatsAppAssistantConfig as WaConfigType } from "@/lib/whatsapp-config";
+import type {
+  WhatsAppAssistantConfig as WaConfigType,
+  WhatsAppDiagnosticAlert,
+} from "@/lib/whatsapp-config";
+import type { SubsystemCheck } from "@/app/api/whatsapp/diagnostics/route";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 export default function WhatsAppAssistantConfig({
@@ -66,6 +70,75 @@ export default function WhatsAppAssistantConfig({
   const [testingSend, setTestingSend] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; text: string } | null>(null);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
+
+  // Live Diagnostic & Alert System State
+  const [diagChecks, setDiagChecks] = useState<SubsystemCheck[]>([]);
+  const [diagAlerts, setDiagAlerts] = useState<WhatsAppDiagnosticAlert[]>(
+    initialConfig.diagnostics || [],
+  );
+  const [probing, setProbing] = useState(false);
+  const [probeResult, setProbeResult] = useState<{
+    metaApi?: { ok: boolean; status: string; displayPhone?: string; verifiedName?: string; error?: string; fixHint?: string };
+    geminiApi?: { ok: boolean; modelUsed?: string; sampleReply?: string; error?: string; fixHint?: string };
+  } | null>(null);
+
+  async function loadDiagnostics() {
+    try {
+      const res = await fetch("/api/whatsapp/diagnostics");
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data.checks)) setDiagChecks(data.checks);
+      if (Array.isArray(data.diagnostics)) setDiagAlerts(data.diagnostics);
+    } catch {
+      // ignore
+    }
+  }
+
+  useEffect(() => {
+    loadDiagnostics();
+    const interval = setInterval(loadDiagnostics, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  async function handleRunLiveProbe() {
+    if (probing) return;
+    setProbing(true);
+    setProbeResult(null);
+    try {
+      const res = await fetch("/api/whatsapp/diagnostics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          whatsappAccessToken: whatsappAccessToken.trim() || undefined,
+          whatsappPhoneNumberId: whatsappPhoneNumberId.trim() || undefined,
+          geminiApiKey: geminiApiKey.trim() || undefined,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.results) {
+        setProbeResult(data.results);
+      }
+      await loadDiagnostics();
+    } catch {
+      // ignore
+    } finally {
+      setProbing(false);
+    }
+  }
+
+  async function handleClearAlerts() {
+    try {
+      await fetch("/api/whatsapp/diagnostics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "clear" }),
+      });
+      setDiagAlerts([]);
+      await loadDiagnostics();
+    } catch {
+      // ignore
+    }
+  }
 
   const origin =
     typeof window !== "undefined"
@@ -174,6 +247,191 @@ export default function WhatsAppAssistantConfig({
 
   return (
     <div className="space-y-6">
+      {/* 0. Centre de Diagnostic en Direct (Webhook Meta + Envoi Cloud API + IA Gemini + Routage Boutique) */}
+      <div className="card border-2 border-arctic-300/80 p-5 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-arctic-300/40 pb-3">
+          <div>
+            <h2 className="text-base font-bold text-arctic-900 flex items-center gap-2">
+              <span>🩺</span>
+              <span>
+                {tr(
+                  "Diagnostic en Direct : Pourquoi la réponse automatique bloque ou fonctionne ?",
+                  "Live Diagnostics: Why is the auto-reply failing or working?",
+                )}
+              </span>
+            </h2>
+            <p className="text-xs text-arctic-600 mt-0.5">
+              {tr(
+                "Vérifie chaque étape exacte : 1) Routage Boutique, 2) Réception Webhook Meta, 3) Envoi Réponse WhatsApp Cloud API, et 4) IA Google Gemini.",
+                "Checks every exact stage: 1) Store Routing, 2) Meta Webhook Reception, 3) WhatsApp Cloud API Outbound Send, and 4) Google Gemini AI.",
+              )}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleRunLiveProbe}
+              disabled={probing}
+              className="btn-primary text-xs py-1.5 px-3"
+            >
+              {probing
+                ? tr("Vérification en cours…", "Testing…")
+                : tr("🔍 Lancer le test complet (Meta + Gemini)", "🔍 Run Full Diagnostic (Meta + Gemini)")}
+            </button>
+            {diagAlerts.length > 0 && (
+              <button
+                type="button"
+                onClick={handleClearAlerts}
+                className="btn-ghost text-xs py-1.5 px-2.5 border border-arctic-300"
+              >
+                {tr("Effacer les alertes", "Clear alerts")}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Résultat du test actif en 1 clic */}
+        {probeResult && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div
+              className={`rounded-xl border p-3.5 text-xs space-y-1.5 ${
+                probeResult.metaApi?.ok
+                  ? "border-emerald-400 bg-emerald-50 text-emerald-950"
+                  : "border-red-400 bg-red-50 text-red-950"
+              }`}
+            >
+              <div className="font-bold flex items-center gap-1.5 text-sm">
+                <span>{probeResult.metaApi?.ok ? "✅" : "❌"}</span>
+                <span>Test Connexion Meta WhatsApp Cloud API</span>
+              </div>
+              {probeResult.metaApi?.ok ? (
+                <p>
+                  Connecté au numéro Meta <strong>{probeResult.metaApi.displayPhone}</strong> (
+                  {probeResult.metaApi.verifiedName}). Le Token et le Phone Number ID sont valides !
+                </p>
+              ) : (
+                <>
+                  <p className="font-semibold">{probeResult.metaApi?.error}</p>
+                  {probeResult.metaApi?.fixHint && (
+                    <p className="rounded bg-white/80 p-2 text-[11px] text-arctic-900 border border-black/10">
+                      💡 <strong>Comment régler :</strong> {probeResult.metaApi.fixHint}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div
+              className={`rounded-xl border p-3.5 text-xs space-y-1.5 ${
+                probeResult.geminiApi?.ok
+                  ? "border-emerald-400 bg-emerald-50 text-emerald-950"
+                  : "border-amber-400 bg-amber-50 text-amber-950"
+              }`}
+            >
+              <div className="font-bold flex items-center gap-1.5 text-sm">
+                <span>{probeResult.geminiApi?.ok ? "✅" : "⚠️"}</span>
+                <span>Test Intelligence Artificielle Google Gemini</span>
+              </div>
+              {probeResult.geminiApi?.ok ? (
+                <p>
+                  Modèle actif : <strong>{probeResult.geminiApi.modelUsed}</strong> — Réponse test :{" "}
+                  <em>&laquo; {probeResult.geminiApi.sampleReply} &raquo;</em>
+                </p>
+              ) : (
+                <>
+                  <p className="font-semibold">{probeResult.geminiApi?.error}</p>
+                  {probeResult.geminiApi?.fixHint && (
+                    <p className="rounded bg-white/80 p-2 text-[11px] text-arctic-900 border border-black/10">
+                      💡 <strong>Comment régler :</strong> {probeResult.geminiApi.fixHint}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* État des 4 sous-systèmes */}
+        {diagChecks.length > 0 && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {diagChecks.map((chk) => {
+              const badgeCls =
+                chk.status === "ok"
+                  ? "border-emerald-300 bg-emerald-50/70 text-emerald-950"
+                  : chk.status === "error"
+                  ? "border-red-300 bg-red-50/80 text-red-950"
+                  : "border-amber-300 bg-amber-50/80 text-amber-950";
+              const icon = chk.status === "ok" ? "✅" : chk.status === "error" ? "🚨" : "⚠️";
+              return (
+                <div key={chk.id} className={`rounded-xl border p-3 text-xs space-y-1 ${badgeCls}`}>
+                  <div className="font-bold flex items-center justify-between gap-2">
+                    <span>
+                      {icon} {chk.label}
+                    </span>
+                    <span className="uppercase text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white/80">
+                      {chk.status === "ok" ? "OK" : chk.status === "error" ? "BLOQUÉ" : "ATTENTION"}
+                    </span>
+                  </div>
+                  <p className="font-medium leading-snug">{chk.summary}</p>
+                  {chk.details && <p className="opacity-85 text-[11px]">{chk.details}</p>}
+                  {chk.fixHint && chk.status !== "ok" && (
+                    <p className="mt-1 rounded bg-white/85 p-2 text-[11px] text-arctic-900 border border-black/10">
+                      💡 <strong>Action :</strong> {chk.fixHint}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Alertes récentes capturées lors des appels Webhook / Envoi / Gemini */}
+        {diagAlerts.filter((a) => a.severity !== "ok").length > 0 && (
+          <div className="space-y-2 pt-1">
+            <div className="text-xs font-bold text-red-800 uppercase tracking-wider">
+              🚨 Dernières erreurs détectées sur le Webhook / Envoi Automatique :
+            </div>
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              {diagAlerts
+                .filter((a) => a.severity !== "ok")
+                .slice(0, 6)
+                .map((alert) => (
+                  <div
+                    key={alert.id}
+                    className={`rounded-lg border p-3 text-xs space-y-1 ${
+                      alert.severity === "error"
+                        ? "border-red-400 bg-red-50 text-red-950"
+                        : "border-amber-400 bg-amber-50 text-amber-950"
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2 font-bold">
+                      <span>
+                        {alert.severity === "error" ? "❌" : "⚠️"} [{alert.stage.toUpperCase()}]{" "}
+                        {alert.title}
+                      </span>
+                      <span className="text-[11px] font-normal opacity-75">
+                        {new Date(alert.at).toLocaleString("fr-FR")}
+                        {alert.contact ? ` • Client: ${alert.contact}` : ""}
+                      </span>
+                    </div>
+                    <p>{alert.message}</p>
+                    {alert.details && (
+                      <pre className="whitespace-pre-wrap rounded bg-black/5 p-1.5 font-mono text-[10px] opacity-85">
+                        {alert.details}
+                      </pre>
+                    )}
+                    {alert.fixHint && (
+                      <p className="rounded bg-white/90 p-2 text-[11px] font-medium text-arctic-900 border border-black/10">
+                        💡 <strong>Solution exacte :</strong> {alert.fixHint}
+                      </p>
+                    )}
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* 1. QR Codes de l'Assistant IA (Boutique + WhatsApp) */}
       <ShopQrCard
         slug={shopSlug}

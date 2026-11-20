@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentVendor } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { parseWhatsAppAssistantConfig } from "@/lib/whatsapp-config";
 
 export async function GET(req: NextRequest) {
   const vendor = await getCurrentVendor();
@@ -35,9 +36,19 @@ export async function GET(req: NextRequest) {
     },
   });
 
+  const waCfg = parseWhatsAppAssistantConfig(vendor.uiPrefs);
+  const recentAlerts = (waCfg.diagnostics || []).filter(
+    (d) =>
+      d.severity !== "ok" &&
+      (!sinceParam || new Date(d.at).getTime() > since.getTime()),
+  );
+  const latestActiveError = (waCfg.diagnostics || []).find((d) => d.severity !== "ok") || null;
+
   return NextResponse.json({
     orders: newOrders,
     unreadCount,
+    whatsappAlerts: recentAlerts,
+    latestWhatsappIssue: latestActiveError,
     serverTime: new Date().toISOString(),
   });
 }

@@ -199,14 +199,15 @@ RÈGLES STRICTES :
     let replyText = "";
     let usedModel = "fallback-smart-assistant";
 
-    // 4. Try Gemini API with gemini-3.8-flash first
+    // 4. Try Gemini API with real Gemini models first
     if (apiKey && waConfig.aiEnabled !== false) {
       const candidateModels = [
-        "gemini-3.8-flash",
-        "gemini-3.5-flash",
-        "gemini-flash-latest",
+        process.env.JAPORA_LLM_MODEL,
         "gemini-2.5-flash",
-      ];
+        "gemini-2.0-flash",
+        "gemini-flash-latest",
+        "gemini-1.5-flash",
+      ].filter((m): m is string => Boolean(m && m.trim()));
 
       const contents = [
         ...history.slice(-6).map((h: ChatMessage) => ({

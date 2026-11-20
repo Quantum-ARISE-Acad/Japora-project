@@ -136,25 +136,30 @@ export function buildSystemPrompt(
 
 const TIMEOUT_MS = 9000;
 
-async function callGemini(
+export async function callGeminiWithDiagnostics(
   system: string,
   user: string,
   vendorGeminiKey?: string,
-): Promise<string | null> {
-  const key =
+): Promise<{ text: string | null; modelUsed?: string; error?: string }> {
+  const key = (
     vendorGeminiKey ||
     process.env.GEMINI_API_KEY ||
-    process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-  if (!key) return null;
+    process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
+    ""
+  ).trim();
+  if (!key) {
+    return { text: null, error: "Aucune clé API Gemini configurée (GEMINI_API_KEY)." };
+  }
 
   const candidateModels = [
     process.env.JAPORA_LLM_MODEL,
-    "gemini-3.8-flash",
-    "gemini-3.5-flash",
-    "gemini-flash-latest",
     "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-flash-latest",
+    "gemini-1.5-flash",
   ].filter((m): m is string => Boolean(m && m.trim()));
 
+  let lastError = "";
   for (const modelName of candidateModels) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
@@ -181,20 +186,36 @@ async function callGemini(
         signal: ctrl.signal,
       });
       if (!res.ok) {
+        const errBody = await res.text().catch(() => "");
+        lastError = `Gemini ${modelName} HTTP ${res.status}: ${errBody.slice(0, 260)}`;
+        // If 400 API_KEY_INVALID or 403 PERMISSION_DENIED, no point retrying 4 other model names with the same invalid key
+        if (res.status === 400 && errBody.includes("API_KEY_INVALID")) {
+          break;
+        }
         continue;
       }
       const data = (await res.json()) as {
         candidates?: { content?: { parts?: { text?: string }[] } }[];
       };
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-      if (text) return text;
+      if (text) return { text, modelUsed: modelName };
     } catch (e) {
+      lastError = `Gemini ${modelName} network/timeout error: ${e instanceof Error ? e.message : String(e)}`;
       logger.warn("llm.gemini_failed", { model: modelName, error: String(e) });
     } finally {
       clearTimeout(timer);
     }
   }
-  return null;
+  return { text: null, error: lastError || "Gemini API a renvoyé une réponse vide." };
+}
+
+async function callGemini(
+  system: string,
+  user: string,
+  vendorGeminiKey?: string,
+): Promise<string | null> {
+  const res = await callGeminiWithDiagnostics(system, user, vendorGeminiKey);
+  return res.text;
 }
 
 async function callAnthropic(system: string, user: string): Promise<string | null> {
@@ -273,12 +294,7 @@ async function callOpenAI(system: string, user: string): Promise<string | null> 
   }
 }
 
-/**
- * Generate a grounded answer to an open-ended customer question. Returns null
- * if no provider is configured or the call fails — the caller MUST fall back to
- * the keyword bot in that case.
- */
-export async function generateBotReply(opts: {
+export async function generateBotReplyWithDiagnostics(opts: {
   shopName: string;
   question: string;
   catalog: CatalogItem[];
@@ -286,8 +302,10 @@ export async function generateBotReply(opts: {
   deliveryInfo?: string;
   customInstructions?: string;
   vendorGeminiKey?: string;
-}): Promise<string | null> {
-  if (!isLlmConfigured(opts.vendorGeminiKey)) return null;
+}): Promise<{ reply: string | null; provider: string; error?: string }> {
+  if (!isLlmConfigured(opts.vendorGeminiKey)) {
+    return { reply: null, provider: "none", error: "Aucune clé IA (Gemini/Anthropic/OpenAI) configurée." };
+  }
   const system = buildSystemPrompt(opts.shopName, {
     assistantName: opts.assistantName,
     deliveryInfo: opts.deliveryInfo,
@@ -302,8 +320,12 @@ export async function generateBotReply(opts: {
 
   const provider = llmProviderName(opts.vendorGeminiKey);
   let answer: string | null = null;
+  let lastError: string | undefined;
+
   if (provider === "gemini") {
-    answer = await callGemini(system, user, opts.vendorGeminiKey);
+    const g = await callGeminiWithDiagnostics(system, user, opts.vendorGeminiKey);
+    answer = g.text;
+    lastError = g.error;
   } else if (provider === "anthropic") {
     answer = await callAnthropic(system, user);
   } else if (provider === "openai") {
@@ -312,11 +334,31 @@ export async function generateBotReply(opts: {
 
   // Fallback to Gemini if primary failed and Gemini key is available
   if (!answer && provider !== "gemini") {
-    answer = await callGemini(system, user, opts.vendorGeminiKey);
+    const g = await callGeminiWithDiagnostics(system, user, opts.vendorGeminiKey);
+    answer = g.text;
+    lastError = g.error || lastError;
   }
 
   if (answer) logger.info("llm.reply", { provider, shopName: opts.shopName });
-  return answer;
+  return { reply: answer, provider, error: answer ? undefined : lastError };
+}
+
+/**
+ * Generate a grounded answer to an open-ended customer question. Returns null
+ * if no provider is configured or the call fails — the caller MUST fall back to
+ * the keyword bot in that case.
+ */
+export async function generateBotReply(opts: {
+  shopName: string;
+  question: string;
+  catalog: CatalogItem[];
+  assistantName?: string;
+  deliveryInfo?: string;
+  customInstructions?: string;
+  vendorGeminiKey?: string;
+}): Promise<string | null> {
+  const res = await generateBotReplyWithDiagnostics(opts);
+  return res.reply;
 }
 
 export const __testing = { formatCatalogForPrompt, buildSystemPrompt };

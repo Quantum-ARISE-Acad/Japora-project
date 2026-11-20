@@ -15,6 +15,7 @@ type Msg = {
   contact: string;
   body: string;
   status: string;
+  direction?: string;
   createdAt: Date | string;
 };
 
@@ -67,17 +68,44 @@ export default function DeliveryLog({ messages }: { messages: Msg[] }) {
         )}
       </p>
       <ul className="divide-y divide-arctic-400/20 rounded-lg border border-arctic-400/20">
-        {messages.map((m) => (
-          <li key={m.id} className="flex items-center justify-between gap-3 px-3 py-2">
-            <div className="min-w-0">
-              <p className="truncate text-sm text-arctic-800">{m.body}</p>
-              <p className="text-xs text-arctic-500">
-                {tr("vers", "to")} {m.contact}
-              </p>
-            </div>
-            <Ticks status={m.status} />
-          </li>
-        ))}
+        {messages.map((m) => {
+          const errMatch = m.body.match(/\[ERROR:\s*([\s\S]+)\]$/);
+          const cleanBody = errMatch ? m.body.replace(errMatch[0], "").trim() : m.body;
+          const errDetail = errMatch ? errMatch[1].trim() : null;
+          const isInbound = m.direction === "IN" || m.status === "received";
+          return (
+            <li key={m.id} className="flex flex-col gap-1 px-3 py-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm text-arctic-800">
+                    <span
+                      className={`mr-1.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                        isInbound
+                          ? "bg-sky-100 text-sky-800"
+                          : m.status === "failed"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-emerald-100 text-emerald-800"
+                      }`}
+                    >
+                      {isInbound ? "Reçu (Webhook)" : "Réponse Bot"}
+                    </span>
+                    {cleanBody}
+                  </p>
+                  <p className="text-xs text-arctic-500">
+                    {isInbound ? tr("de", "from") : tr("vers", "to")} {m.contact} •{" "}
+                    {new Date(m.createdAt).toLocaleString("fr-FR")}
+                  </p>
+                </div>
+                <Ticks status={m.status} />
+              </div>
+              {errDetail && (
+                <div className="rounded bg-red-50 border border-red-200 px-2.5 py-1.5 text-[11px] text-red-800 font-mono whitespace-pre-wrap">
+                  🚨 Motif exact de l&apos;échec : {errDetail}
+                </div>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

@@ -2,10 +2,19 @@ import { NextRequest } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/db";
-import { sendWhatsApp, sendWhatsAppInteractive, applyStatusUpdate } from "@/lib/whatsapp";
+import {
+  sendWhatsApp,
+  sendWhatsAppInteractive,
+  applyStatusUpdate,
+  recordVendorDiagnostic,
+  resolveVendorCloudCredentials,
+} from "@/lib/whatsapp";
 import { respondTo, logBotEvent, parseIntent } from "@/lib/bot";
 import { recordTouchFromText } from "@/lib/campaigns";
-import { parseWhatsAppAssistantConfig } from "@/lib/whatsapp-config";
+import {
+  parseWhatsAppAssistantConfig,
+  explainWhatsAppOrAiError,
+} from "@/lib/whatsapp-config";
 import { digitsOnly } from "@/lib/utils";
 
 /**
@@ -58,66 +67,109 @@ function verifyMetaSignature(rawBody: string, signatureHeader: string | null): b
 
 /**
  * Resolve the target Vendor for an incoming WhatsApp webhook message:
- * 1) `Vendor.whatsappPhoneNumberId` matching incoming `phone_number_id` (always synced to the logged-in Dashboard vendor!)
- * 2) Explicit env override (`VENDOR_ID_FOR_PHONE_NUMBER_ID_<id>`)
- * 3) Explicit shopSlug mention in message text (e.g. from QR code scan)
+ * 1) Explicit shopSlug or shopName mention in message text (e.g. from QR code scan)
+ * 2) `Vendor.whatsappPhoneNumberId` matching incoming `phone_number_id`
+ * 3) Explicit env override (`VENDOR_ID_FOR_PHONE_NUMBER_ID_<id>`)
  * 4) Recent conversation history (`WhatsAppMessage`)
- * 5) Fallback to active vendor
+ * 5) Fallback to most recently created active vendor
  */
-async function resolveVendorIdForInbound(
+async function resolveVendorForInbound(
   phoneNumberId: string | undefined,
   fromPhone: string,
   text: string,
-): Promise<string | null> {
-  // 1) Primary: Vendor bound to this WhatsApp Phone Number ID (auto-synced to the active Dashboard vendor)
-  if (phoneNumberId) {
-    const mapped = process.env[`VENDOR_ID_FOR_PHONE_NUMBER_ID_${phoneNumberId}`];
-    if (mapped) return mapped;
+): Promise<{
+  vendorId: string | null;
+  matchedBy: "slug_mention" | "phone_number_id" | "env_map" | "recent_chat" | "latest_vendor" | "none";
+  conflictingShopName?: string;
+}> {
+  const allVendors = await prisma.vendor.findMany({
+    where: { deletedAt: null },
+    select: {
+      id: true,
+      shopName: true,
+      shopSlug: true,
+      whatsappPhoneNumberId: true,
+      uiPrefs: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
 
-    const owner = await prisma.vendor.findFirst({
-      where: { whatsappPhoneNumberId: phoneNumberId, deletedAt: null },
-      select: { id: true },
-    });
-    if (owner) return owner.id;
+  if (allVendors.length === 0) {
+    return { vendorId: null, matchedBy: "none" };
   }
 
-  // 2) If the message mentions a specific shopSlug (e.g. from QR code prefill)
+  // 1) If the message explicitly mentions a specific shopSlug or shopName (e.g. from QR code prefill)
   const lowerText = (text || "").toLowerCase();
   if (lowerText.length > 2) {
-    const allVendors = await prisma.vendor.findMany({
-      where: { deletedAt: null },
-      select: { id: true, shopName: true, shopSlug: true },
-      take: 50,
-    });
-    const bySlug = allVendors.find(
-      (v) => v.shopSlug && lowerText.includes(`(${v.shopSlug.toLowerCase()})`),
+    const bySlugOrName = allVendors.find(
+      (v) =>
+        (v.shopSlug &&
+          (lowerText.includes(`(${v.shopSlug.toLowerCase()})`) ||
+            lowerText.includes(`/c/${v.shopSlug.toLowerCase()}`) ||
+            lowerText.includes(`[${v.shopSlug.toLowerCase()}]`))) ||
+        (v.shopName &&
+          v.shopName.length >= 3 &&
+          (lowerText.includes(`[${v.shopName.toLowerCase()}]`) ||
+            lowerText.includes(`chez ${v.shopName.toLowerCase()}`))),
     );
-    if (bySlug) return bySlug.id;
+    if (bySlugOrName) {
+      return { vendorId: bySlugOrName.id, matchedBy: "slug_mention" };
+    }
   }
 
-  // 3) Recent conversation history
+  // 2) Vendor bound to this WhatsApp Phone Number ID
+  if (phoneNumberId) {
+    const mapped = process.env[`VENDOR_ID_FOR_PHONE_NUMBER_ID_${phoneNumberId}`];
+    if (mapped) {
+      return { vendorId: mapped, matchedBy: "env_map" };
+    }
+
+    const owner = allVendors.find((v) => v.whatsappPhoneNumberId === phoneNumberId);
+    if (owner) {
+      // Check if a newer shop was created that doesn't have a phoneNumberId set yet
+      const newestVendor = allVendors[0];
+      const conflictingShopName =
+        newestVendor && newestVendor.id !== owner.id && !newestVendor.whatsappPhoneNumberId
+          ? owner.shopName
+          : undefined;
+      return {
+        vendorId: owner.id,
+        matchedBy: "phone_number_id",
+        conflictingShopName,
+      };
+    }
+  }
+
+  // 3) Vendor that has configured a WhatsApp Access Token in their Assistant settings
+  const withToken = allVendors.find(
+    (v) => Boolean(parseWhatsAppAssistantConfig(v.uiPrefs).whatsappAccessToken),
+  );
+  if (withToken) {
+    return { vendorId: withToken.id, matchedBy: "phone_number_id" };
+  }
+
+  // 4) Recent conversation history
   const cleanPhone = digitsOnly(fromPhone);
   if (cleanPhone) {
     const recentMsg = await prisma.whatsAppMessage.findFirst({
       where: {
         OR: [
           { contact: cleanPhone },
-          { contact: { endsWith: cleanPhone.slice(-8) } },
+          ...(cleanPhone.length >= 8 ? [{ contact: { endsWith: cleanPhone.slice(-8) } }] : []),
         ],
       },
       orderBy: { createdAt: "desc" },
       select: { vendorId: true },
     });
-    if (recentMsg?.vendorId) return recentMsg.vendorId;
+    if (recentMsg?.vendorId) {
+      return { vendorId: recentMsg.vendorId, matchedBy: "recent_chat" };
+    }
   }
 
-  // 4) Fallback to first active vendor
-  const first = await prisma.vendor.findFirst({
-    where: { deletedAt: null },
-    orderBy: { createdAt: "desc" },
-    select: { id: true },
-  });
-  return first?.id ?? null;
+  // 5) Fallback to most recently created active vendor
+  return { vendorId: allVendors[0].id, matchedBy: "latest_vendor" };
 }
 
 type MetaText = { body?: string };
@@ -134,10 +186,17 @@ type MetaMessage = {
   button?: { payload?: string; text?: string };
   referral?: MetaReferral;
 };
+type MetaStatusError = {
+  code?: number;
+  title?: string;
+  message?: string;
+  error_data?: { details?: string };
+};
 type MetaStatus = {
   id?: string;
   status?: string;
   recipient_id?: string;
+  errors?: MetaStatusError[];
 };
 type MetaValue = {
   metadata?: { phone_number_id?: string };
@@ -193,6 +252,29 @@ export async function POST(req: NextRequest) {
           if (s.id && s.status) {
             try {
               await applyStatusUpdate(s.id, s.status);
+              if (s.status.toLowerCase() === "failed" && Array.isArray(s.errors) && s.errors.length > 0) {
+                const errObj = s.errors[0];
+                const rawErr = `Code ${errObj.code ?? ""}: ${errObj.title || ""} ${errObj.message || ""} ${errObj.error_data?.details || ""}`.trim();
+                const msgRow = await prisma.whatsAppMessage.findFirst({
+                  where: { messageId: s.id },
+                  select: { vendorId: true, contact: true },
+                });
+                const targetVendorId =
+                  msgRow?.vendorId ||
+                  (await resolveVendorForInbound(phoneNumberId, s.recipient_id || "", "")).vendorId;
+                if (targetVendorId) {
+                  const explained = explainWhatsAppOrAiError(rawErr, "whatsapp_status");
+                  await recordVendorDiagnostic(targetVendorId, {
+                    stage: "whatsapp_status",
+                    severity: "error",
+                    title: explained.title,
+                    message: explained.message,
+                    details: rawErr,
+                    fixHint: explained.fixHint,
+                    contact: s.recipient_id || msgRow?.contact,
+                  });
+                }
+              }
             } catch (e) {
               logger.warn("whatsapp.webhook.status_update_failed", { error: String(e) });
             }
@@ -202,12 +284,15 @@ export async function POST(req: NextRequest) {
         for (const m of value?.messages ?? []) {
           const from = m.from || "";
           const text = extractText(m);
-          const vendorId = await resolveVendorIdForInbound(phoneNumberId, from, text);
+          const resolved = await resolveVendorForInbound(phoneNumberId, from, text);
+          const vendorId = resolved.vendorId;
 
           logger.info("whatsapp.webhook.inbound", {
             from,
             type: m.type,
             vendorId,
+            matchedBy: resolved.matchedBy,
+            phoneNumberId,
             preview: text.slice(0, 80),
           });
 
@@ -227,6 +312,26 @@ export async function POST(req: NextRequest) {
                 error: String(e),
               });
             }
+
+            // If a newer shop exists without phoneNumberId while an older shop claimed this phoneNumberId, notify both so the colleague sees it!
+            if (resolved.conflictingShopName) {
+              const newestVendor = await prisma.vendor.findFirst({
+                where: { deletedAt: null, whatsappPhoneNumberId: null },
+                orderBy: { createdAt: "desc" },
+                select: { id: true, shopName: true },
+              });
+              if (newestVendor && newestVendor.id !== vendorId) {
+                await recordVendorDiagnostic(newestVendor.id, {
+                  stage: "webhook_routing",
+                  severity: "warning",
+                  title: `Message WhatsApp reçu mais routé vers « ${resolved.conflictingShopName} »`,
+                  message: `Un message de ${from} est arrivé sur le Phone Number ID (${phoneNumberId}), qui est actuellement lié à la boutique « ${resolved.conflictingShopName} ».`,
+                  fixHint: `Dans Dashboard → Assistant WhatsApp de « ${newestVendor.shopName} », renseignez le Phone Number ID ${phoneNumberId} et cliquez sur « Enregistrer » (puis confirmez le transfert) pour recevoir les messages sur cette boutique.`,
+                  contact: from,
+                  markWebhookReceived: true,
+                });
+              }
+            }
           }
 
           if (!vendorId) {
@@ -240,6 +345,34 @@ export async function POST(req: NextRequest) {
             logger.warn("whatsapp.webhook.touch_failed", { error: String(e) });
           }
 
+          // Check credentials before sending so we can warn if the shop is running in Stub mode
+          const creds = await resolveVendorCloudCredentials(vendorId);
+          if (!creds.token || !(phoneNumberId || creds.phoneNumberId)) {
+            const explained = explainWhatsAppOrAiError("MISSING_CREDENTIALS", "whatsapp_send");
+            await recordVendorDiagnostic(vendorId, {
+              stage: "whatsapp_send",
+              severity: "error",
+              title: explained.title,
+              message: explained.message,
+              details: `Message reçu de ${from}: "${text.slice(0, 80)}". Aucun token Meta Cloud API configuré.`,
+              fixHint: explained.fixHint,
+              contact: from,
+              markWebhookReceived: true,
+            });
+          } else {
+            await recordVendorDiagnostic(vendorId, {
+              stage: "system",
+              severity: "ok",
+              title: "Message Webhook WhatsApp reçu",
+              message: `Message entrant reçu de ${from} : "${text.slice(0, 80)}"`,
+              contact: from,
+              markWebhookReceived: true,
+            });
+          }
+
+          // Use the incoming webhook's phone_number_id if present so replies always exit from the exact Meta test number that received the message
+          const outboundPhoneNumberId = phoneNumberId || creds.phoneNumberId;
+
           let responded = false;
           let intent = parseIntent(text).intent;
           try {
@@ -252,20 +385,46 @@ export async function POST(req: NextRequest) {
                   to: from,
                   body: result.reply,
                   buttons: result.buttons.slice(0, 3),
+                  overrideToken: creds.token,
+                  overridePhoneNumberId: outboundPhoneNumberId,
                 });
                 if (interactiveRes.status === "failed") {
-                  await sendWhatsApp({ vendorId, to: from, body: result.reply });
+                  const fallbackRes = await sendWhatsApp({
+                    vendorId,
+                    to: from,
+                    body: result.reply,
+                    overrideToken: creds.token,
+                    overridePhoneNumberId: outboundPhoneNumberId,
+                  });
+                  responded = fallbackRes.status === "sent";
+                } else {
+                  responded = interactiveRes.status === "sent";
                 }
               } else {
-                await sendWhatsApp({ vendorId, to: from, body: result.reply });
+                const sendRes = await sendWhatsApp({
+                  vendorId,
+                  to: from,
+                  body: result.reply,
+                  overrideToken: creds.token,
+                  overridePhoneNumberId: outboundPhoneNumberId,
+                });
+                responded = sendRes.status === "sent";
               }
-              responded = true;
             }
           } catch (e) {
+            const errStr = e instanceof Error ? e.message : String(e);
             logger.error("whatsapp.webhook.respond_failed", {
               vendorId,
               from,
-              error: String(e),
+              error: errStr,
+            });
+            await recordVendorDiagnostic(vendorId, {
+              stage: "system",
+              severity: "error",
+              title: "Erreur interne lors de la génération de la réponse automatique",
+              message: errStr.slice(0, 260),
+              fixHint: "Vérifiez les journaux dans Dashboard → Assistant WhatsApp.",
+              contact: from,
             });
           }
 
