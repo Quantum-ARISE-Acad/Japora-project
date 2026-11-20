@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # Sépare l'espace de Japora de celui du système, sans toucher aux partitions.
 #
-# Un fichier de taille fixe (/srv/japora-data.img), formaté en ext4 et monté sur
-# /srv/japora-data, reçoit tout ce qui grossit : les données de Docker (images,
+# Même organisation que le guide Olga (« disque de données monté sur /srv/data »,
+# Docker dans /srv/data/docker, sauvegardes dans /srv/data/backups) : quand la VM
+# n'a pas de second disque, ce script en crée un dans un fichier.
+#
+# Un fichier de taille fixe (/srv/data.img), formaté en ext4 et monté sur
+# /srv/data, reçoit tout ce qui grossit : les données de Docker (images,
 # base PostgreSQL, photos, supervision) et les sauvegardes. S'il se remplit, seul
 # Japora s'arrête : le système (SSH, journaux, mises à jour) garde son espace.
 #
@@ -13,8 +17,8 @@
 set -euo pipefail
 
 SIZE="${1:-}"
-IMG=/srv/japora-data.img
-MNT=/srv/japora-data
+IMG=/srv/data.img
+MNT=/srv/data
 SYSTEM_RESERVE_GB=5          # espace minimum laissé au système
 APP_DIR="${JAPORA_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 BACKUPS="$APP_DIR/backups"
@@ -43,7 +47,9 @@ else
   mkdir -p "$(dirname "$IMG")" "$MNT"
   fallocate -l "$SIZE" "$IMG"
   chmod 600 "$IMG"
-  mkfs.ext4 -q -m 1 -L japora-data "$IMG"
+  # nodiscard : sinon le formatage libère les blocs réservés et le fichier redevient « creux ».
+  mkfs.ext4 -q -m 1 -E nodiscard -L data "$IMG"
+  fallocate -l "$SIZE" "$IMG"   # au cas où : réserve vraiment toute la taille sur le disque
   # nofail : si le montage échoue, la VM démarre quand même (seul Docker attend).
   grep -qF "$IMG $MNT " /etc/fstab \
     || echo "$IMG $MNT ext4 loop,nofail,x-systemd.device-timeout=30s 0 2" >> /etc/fstab
@@ -52,7 +58,7 @@ else
 fi
 
 # 2. Les sauvegardes sur le disque de Japora ------------------------------------
-echo "2. Sauvegardes : $BACKUPS -> $MNT/backups"
+echo "2. Sauvegardes : $BACKUPS -> $MNT/backups (comme dans le guide Olga)"
 mkdir -p "$MNT/backups" "$BACKUPS"
 chown "$(stat -c %u:%g "$APP_DIR")" "$MNT/backups" "$BACKUPS"
 if ! mountpoint -q "$BACKUPS"; then

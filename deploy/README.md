@@ -51,9 +51,9 @@ système reste utilisable même si Japora remplit son espace :
 | Espace | Contenu | Si plein |
 |---|---|---|
 | `/` (système) | Ubuntu, SSH, journaux, mises à jour | — |
-| `/srv/japora-data` | Docker (images, base, photos, supervision) et `backups/` | seul Japora s'arrête ; SSH marche toujours |
+| `/srv/data` | Docker (images, base, photos, supervision) et `backups/` | seul Japora s'arrête ; SSH marche toujours |
 
-`/srv/japora-data` est un fichier de taille fixe (`/srv/japora-data.img`) formaté et
+`/srv/data` est un fichier de taille fixe (`/srv/data.img`) formaté et
 monté : aucune partition n'est modifiée. `sudo deploy/host/split-disk.sh <taille>`
 le crée **avant le premier `up`** (le script refuse si Docker contient déjà des
 données), y place Docker et les sauvegardes, et empêche Docker de démarrer tant que
@@ -73,10 +73,10 @@ puis vérifier les sauvegardes (`du -sh ~/japora/backups/* | sort -h | tail`).
 
 ```bash
 deploy/mvp.sh down && sudo systemctl stop docker docker.socket
-sudo umount ~/japora/backups /srv/japora-data
-sudo truncate -s +2G /srv/japora-data.img
-sudo e2fsck -f /srv/japora-data.img && sudo resize2fs /srv/japora-data.img
-sudo mount /srv/japora-data && sudo mount ~/japora/backups && sudo systemctl start docker
+sudo umount ~/japora/backups /srv/data
+sudo truncate -s +2G /srv/data.img
+sudo e2fsck -f /srv/data.img && sudo resize2fs /srv/data.img
+sudo mount /srv/data && sudo mount ~/japora/backups && sudo systemctl start docker
 deploy/mvp.sh up
 ```
 
