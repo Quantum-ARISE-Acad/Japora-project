@@ -4,10 +4,12 @@ import { getCooperativeByCode } from "@/lib/cooperative";
 import { getCurrentVendor } from "@/lib/auth";
 import { regionLabel } from "@/lib/regions";
 import JoinButton from "./JoinButton";
+import { getServerTr } from "@/lib/public-locale";
 
 export const dynamic = "force-dynamic";
 
 export default async function JoinPage({ params }: { params: Promise<{ code: string }> }) {
+  const tr = await getServerTr();
   const { code } = await params;
   const coop = await getCooperativeByCode(code);
   if (!coop) notFound();
@@ -23,11 +25,13 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
         </Link>
 
         <div className="glass glass-edge rounded-shape-xl p-6 text-center">
-          <p className="a-label-md text-arctic-500">Vous êtes invité à rejoindre</p>
+          <p className="a-label-md text-arctic-500">{tr("Vous êtes invité à rejoindre", "You are invited to join")}</p>
           <h1 className="a-headline-sm mt-1 text-arctic-900">{coop.name}</h1>
           {coop.region && <p className="a-body-sm text-arctic-600">{regionLabel(coop.region)}</p>}
           <p className="mt-2 a-body-sm text-arctic-600">
-            {coop.memberCount} boutique{coop.memberCount > 1 ? "s" : ""} vend{coop.memberCount > 1 ? "ent" : ""} déjà sur WhatsApp avec Japora.
+            {coop.memberCount > 1
+              ? tr(`${coop.memberCount} boutiques vendent déjà sur WhatsApp avec Japora.`, `${coop.memberCount} shops already sell on WhatsApp with Japora.`)
+              : tr(`${coop.memberCount} boutique vend déjà sur WhatsApp avec Japora.`, `${coop.memberCount} shop already sells on WhatsApp with Japora.`)}
           </p>
 
           <div className="mt-6 space-y-3 text-left">
@@ -36,24 +40,24 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
             ) : (
               <>
                 <Link href={`/start?coop=${coop.joinCode}`} className="btn-primary block w-full text-center">
-                  Créer ma boutique et rejoindre
+                  {tr("Créer ma boutique et rejoindre", "Create my shop and join")}
                 </Link>
                 <Link
                   href={`/login?coop=${coop.joinCode}`}
                   className="btn-ghost block w-full text-center"
                 >
-                  J&apos;ai déjà une boutique Japora
+                  {tr("J'ai déjà une boutique Japora", "I already have a Japora shop")}
                 </Link>
               </>
             )}
             <p className="a-label-md text-center text-arctic-500">
-              Gratuit pour commencer. Aucune application à installer : Japora fonctionne avec votre WhatsApp habituel.
+              {tr("Gratuit pour commencer. Aucune application à installer : Japora fonctionne avec votre WhatsApp habituel.", "Free to start. Nothing to install: Japora works with your usual WhatsApp.")}
             </p>
           </div>
         </div>
 
         <p className="mt-4 text-center a-label-md text-arctic-500">
-          Code d&apos;adhésion : <span className="font-semibold text-arctic-700">{coop.joinCode}</span>
+          {tr("Code d'adhésion :", "Membership code:")} <span className="font-semibold text-arctic-700">{coop.joinCode}</span>
         </p>
       </div>
     </div>

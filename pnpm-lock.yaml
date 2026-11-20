@@ -38,6 +38,16 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.2.6(react@19.2.6)
+    optionalDependencies:
+      '@aws-sdk/client-s3':
+        specifier: ^3.700.0
+        version: 3.1062.0
+      sharp:
+        specifier: ^0.34.0
+        version: 0.34.5
+      stripe:
+        specifier: ^17.5.0
+        version: 17.7.0
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3.3.1
@@ -81,16 +91,6 @@ importers:
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
-    optionalDependencies:
-      '@aws-sdk/client-s3':
-        specifier: ^3.700.0
-        version: 3.1062.0
-      sharp:
-        specifier: ^0.34.0
-        version: 0.34.5
-      stripe:
-        specifier: ^17.5.0
-        version: 17.7.0
 
 packages:
 

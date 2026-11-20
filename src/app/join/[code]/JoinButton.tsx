@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 /** One-click join for an already-logged-in vendor. */
 export default function JoinButton({ code, coopName }: { code: string; coopName: string }) {
+  const { tr } = usePublicLang();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -20,7 +22,7 @@ export default function JoinButton({ code, coopName }: { code: string; coopName:
     const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(data.error || "Impossible de rejoindre cette coopérative.");
+      setError(data.error || tr("Impossible de rejoindre cette coopérative.", "Could not join this cooperative."));
       return;
     }
     router.push("/dashboard/settings");
@@ -30,7 +32,7 @@ export default function JoinButton({ code, coopName }: { code: string; coopName:
   return (
     <div className="space-y-2">
       <button onClick={join} disabled={loading} className="btn-primary w-full">
-        {loading ? "Adhésion en cours…" : `Rejoindre ${coopName}`}
+        {loading ? tr("Adhésion en cours…", "Joining…") : tr(`Rejoindre ${coopName}`, `Join ${coopName}`)}
       </button>
       {error && <p className="text-sm text-red-600">{error}</p>}
     </div>

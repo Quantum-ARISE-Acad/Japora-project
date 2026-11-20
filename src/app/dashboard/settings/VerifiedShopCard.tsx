@@ -1,10 +1,7 @@
-/**
- * Verified-shop status card for settings. Presentational — fed by
- * verificationProgress(). Shows the badge when earned, or a checklist of what's
- * left (phone verified + N paid orders).
- */
+"use client";
 
 import VerifiedBadge from "@/components/VerifiedBadge";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 type Progress = {
   verified: boolean;
@@ -30,30 +27,43 @@ function Check({ done, children }: { done: boolean; children: React.ReactNode })
 }
 
 export default function VerifiedShopCard({ progress }: { progress: Progress }) {
+  const { tr } = usePublicLang();
+
   return (
     <section className="card p-5">
       <div className="mb-1 flex items-center gap-2">
-        <h2 className="font-bold text-arctic-900">Verified shop</h2>
+        <h2 className="font-bold text-arctic-900">
+          {tr("Boutique vérifiée", "Verified shop")}
+        </h2>
         {progress.verified && <VerifiedBadge size="sm" />}
       </div>
 
       {progress.verified ? (
         <p className="text-sm text-arctic-600">
-          Your shop is verified. Buyers see the ✓ badge on your catalog and across the marketplace —
-          a trust signal that lifts conversion.
+          {tr(
+            "Votre boutique est vérifiée. Les acheteurs voient le badge ✓ sur votre catalogue et sur le marketplace — un gage de confiance qui augmente vos ventes.",
+            "Your shop is verified. Buyers see the ✓ badge on your catalog and across the marketplace — a trust signal that lifts conversion.",
+          )}
         </p>
       ) : (
         <>
           <p className="mb-3 text-sm text-arctic-600">
-            Earn the trust badge automatically. Clear both and the ✓ appears on your catalog and
-            marketplace listing.
+            {tr(
+              "Obtenez automatiquement le badge de confiance. Validez ces deux étapes pour afficher le ✓ sur votre catalogue et le marketplace.",
+              "Earn the trust badge automatically. Clear both and the ✓ appears on your catalog and marketplace listing.",
+            )}
           </p>
           <ul className="space-y-2">
-            <Check done={progress.phoneVerified}>WhatsApp number verified</Check>
+            <Check done={progress.phoneVerified}>
+              {tr("Numéro WhatsApp vérifié", "WhatsApp number verified")}
+            </Check>
             <Check done={progress.paidOrdersNeeded === 0}>
               {progress.paidOrdersNeeded === 0
-                ? "Enough fulfilled orders"
-                : `${progress.paidOrders} paid order${progress.paidOrders === 1 ? "" : "s"} — ${progress.paidOrdersNeeded} more to go`}
+                ? tr("Nombre suffisant de commandes honorées", "Enough fulfilled orders")
+                : tr(
+                    `${progress.paidOrders} commande${progress.paidOrders === 1 ? "" : "s"} payée${progress.paidOrders === 1 ? "" : "s"} — encore ${progress.paidOrdersNeeded} requise${progress.paidOrdersNeeded === 1 ? "" : "s"}`,
+                    `${progress.paidOrders} paid order${progress.paidOrders === 1 ? "" : "s"} — ${progress.paidOrdersNeeded} more to go`,
+                  )}
             </Check>
           </ul>
         </>

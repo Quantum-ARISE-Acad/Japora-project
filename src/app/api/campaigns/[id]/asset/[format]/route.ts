@@ -23,6 +23,7 @@ import {
 import { goPath } from "@/lib/campaigns";
 import { formatMoney, slugify } from "@/lib/utils";
 import { logger } from "@/lib/logger";
+import { getServerTr } from "@/lib/public-locale";
 
 type Params = { params: Promise<{ id: string; format: string }> };
 
@@ -43,19 +44,20 @@ function baseHost(req: NextRequest): string {
 }
 
 export async function GET(req: NextRequest, { params }: Params) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const { id, format } = await params;
   if (!isAssetFormat(format)) {
-    return NextResponse.json({ error: "Unknown format. Use: status, ig, tiktok." }, { status: 400 });
+    return NextResponse.json({ error: tr("Format inconnu. Utilisez : status, ig ou tiktok.", "Unknown format. Use: status, ig, tiktok.") }, { status: 400 });
   }
 
   try {
     const campaign = await prisma.campaign.findFirst({
       where: { id, vendorId: vendor.id, deletedAt: null },
     });
-    if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+    if (!campaign) return NextResponse.json({ error: tr("Campagne introuvable", "Campaign not found") }, { status: 404 });
 
     let productName = campaign.name;
     let priceLabel = "";
@@ -93,6 +95,6 @@ export async function GET(req: NextRequest, { params }: Params) {
     });
   } catch (e) {
     logger.error("campaign.asset_failed", { campaignId: id, format, error: String(e) });
-    return NextResponse.json({ error: "Failed to render creative" }, { status: 500 });
+    return NextResponse.json({ error: tr("Impossible de générer le visuel.", "Failed to render creative") }, { status: 500 });
   }
 }

@@ -3,10 +3,13 @@ import { revalidatePath } from "next/cache";
 import { getCurrentVendor } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/utils";
+import { recordVendorActivity } from "@/lib/clerk-vendor-sync";
+import { getServerTr } from "@/lib/public-locale";
 
 export async function GET() {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const collections = await prisma.collection.findMany({
     where: { vendorId: vendor.id },
@@ -22,17 +25,19 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const body = await req.json().catch(() => null);
-  if (!body) return NextResponse.json({ error: "Corps de requête invalide" }, { status: 400 });
+  if (!body) return NextResponse.json({ error: tr("Corps de requête invalide", "Invalid request body") }, { status: 400 });
 
   const name = String(body.name || "").trim();
-  if (!name) return NextResponse.json({ error: "Le nom de la collection est obligatoire" }, { status: 400 });
+  if (!name) return NextResponse.json({ error: tr("Le nom de la collection est obligatoire", "The collection name is required") }, { status: 400 });
 
   const baseSlug = slugify(String(body.slug || "").trim() || name) || `collection-${Date.now().toString(36)}`;
   const description = String(body.description || "").trim();
+  const imageUrl = typeof body.imageUrl === "string" ? body.imageUrl.trim() : "";
 
   // Ensure unique slug per vendor (if custom slug was not forced, auto-suffix; if forced, check conflict)
   let finalSlug = baseSlug;
@@ -41,7 +46,7 @@ export async function POST(req: NextRequest) {
   });
   if (existing) {
     if (body.slug && String(body.slug).trim()) {
-      return NextResponse.json({ error: "Une collection avec cet identifiant URL (slug) existe déjà." }, { status: 409 });
+      return NextResponse.json({ error: tr("Une collection avec cet identifiant URL (slug) existe déjà.", "A collection with this URL identifier (slug) already exists.") }, { status: 409 });
     }
     let counter = 2;
     while (
@@ -60,6 +65,7 @@ export async function POST(req: NextRequest) {
       name,
       slug: finalSlug,
       description,
+      imageUrl,
     },
   });
 
@@ -86,6 +92,18 @@ export async function POST(req: NextRequest) {
   revalidatePath("/dashboard/collections");
   revalidatePath("/dashboard/products");
   revalidatePath(`/c/${vendor.shopSlug}`);
+
+  await recordVendorActivity({
+    vendorId: vendor.id,
+    type: "catalog.collection.created",
+    subjectType: "collection",
+    subjectId: created.id,
+    data: {
+      name: created.name,
+      slug: created.slug,
+      productsCount: collection?.products.length ?? 0,
+    },
+  });
 
   return NextResponse.json({ ok: true, collection });
 }

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { getServerTr } from "@/lib/public-locale";
 import { prisma } from "@/lib/db";
 import { parseWhatsAppAssistantConfig } from "@/lib/whatsapp-config";
 import CatalogClient from "./CatalogClient";
@@ -9,10 +10,11 @@ type Params = { params: Promise<{ slug: string }>; searchParams?: Promise<{ prod
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
   const vendor = await prisma.vendor.findUnique({ where: { shopSlug: slug } });
-  if (!vendor) return { title: "Shop not found" };
+  const tr = await getServerTr();
+  if (!vendor) return { title: tr("Boutique introuvable", "Shop not found") };
   return {
-    title: `${vendor.shopName} — Catalog`,
-    description: vendor.tagline || `Browse and order from ${vendor.shopName} on WhatsApp.`,
+    title: tr(`${vendor.shopName} — Catalogue`, `${vendor.shopName} — Catalog`),
+    description: vendor.tagline || tr(`Parcourez et commandez chez ${vendor.shopName} sur WhatsApp.`, `Browse and order from ${vendor.shopName} on WhatsApp.`),
   };
 }
 
@@ -70,7 +72,7 @@ export default async function CatalogPage({ params, searchParams }: Params) {
         slug: c.slug,
         description: c.description,
         productCount: c.products.length,
-        coverImageUrl: c.products.find((p) => p.imageUrl)?.imageUrl || "",
+        coverImageUrl: c.imageUrl || c.products.find((p) => p.imageUrl)?.imageUrl || "",
       }))}
       products={products.map((p) => ({
         id: p.id,

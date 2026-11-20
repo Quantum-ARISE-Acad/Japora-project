@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentVendor } from "@/lib/auth";
-import { createProductForVendor } from "@/lib/products";
+import { createProductForVendor, priceFloorsForVendor } from "@/lib/products";
+import { recordVendorActivity } from "@/lib/clerk-vendor-sync";
+import { getServerTr } from "@/lib/public-locale";
 
 export async function GET(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const sp = req.nextUrl.searchParams;
   const page = Math.max(1, parseInt(sp.get("page") || "1", 10) || 1);
@@ -21,16 +24,24 @@ export async function GET(req: NextRequest) {
     }),
     prisma.product.count({ where }),
   ]);
-  return NextResponse.json({ products, page, pageSize, total });
+  // The vendor's own secret minimum prices, for the dashboard form.
+  const floors = await priceFloorsForVendor(vendor.id);
+  return NextResponse.json({
+    products: products.map((p) => ({ ...p, minPriceCents: floors.get(p.id) ?? null })),
+    page,
+    pageSize,
+    total,
+  });
 }
 
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const b = await req.json().catch(() => null);
   if (!b || typeof b !== "object" || Array.isArray(b)) {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    return NextResponse.json({ error: tr("Requête invalide.", "Invalid request") }, { status: 400 });
   }
 
   const result = await createProductForVendor(vendor, b as Record<string, unknown>);
@@ -38,5 +49,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
 
+  await recordVendorActivity({
+    vendorId: vendor.id,
+    type: "catalog.product.created",
+    subjectType: "product",
+    subjectId: result.product.id,
+    data: {
+      name: result.product.name,
+      priceCents: result.product.priceCents,
+      stock: result.product.stock,
+      collectionId: result.product.collectionId,
+    },
+  });
   return NextResponse.json({ ok: true, product: result.product });
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkWhatsAppNumber } from "@/lib/whatsapp-number";
 import { prisma } from "@/lib/db";
 import { hashPassword, validateEmail, validatePassword } from "@/lib/auth";
 import { createSession } from "@/lib/session";
@@ -13,10 +14,12 @@ import { appUrl } from "@/lib/token";
 import { newVendorTrialDates } from "@/lib/billing";
 import { ensureReferralCode, recordSignupReferral } from "@/lib/referral";
 import { joinByCode } from "@/lib/cooperative";
+import { getServerTr } from "@/lib/public-locale";
 
 const SUPPORTED_CURRENCIES = new Set(["XOF", "XAF", "USD", "EUR", "GHS", "NGN", "KES"]);
 
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const ip = getClientIp(req);
   const rl = rateLimit({ key: `signup:${ip}`, limit: envLimit("SIGNUP_RATE_LIMIT", 3), windowMs: 60 * 60_000 });
   if (!rl.allowed) {
@@ -25,32 +28,36 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => null);
-  if (!body) return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
+  if (!body) return NextResponse.json({ error: tr("Requête invalide.", "Invalid request.") }, { status: 400 });
 
   const email = String(body.email || "").trim().toLowerCase();
   const password = String(body.password || "");
   const shopName = String(body.shopName || "").trim();
-  // Digits only (wa.me format): strip spaces, "+", dashes and parentheses.
-  const whatsappNumber = String(body.whatsappNumber || "").replace(/[^0-9]/g, "");
+  // The country code is required ("+228…"): it is what makes the shop's wa.me links work.
+  const waCheck = checkWhatsAppNumber(String(body.whatsappNumber || ""));
   const currencyInput = String(body.currency || "").trim().toUpperCase();
   const currency = SUPPORTED_CURRENCIES.has(currencyInput) ? currencyInput : "XOF";
 
   const language = String(body.language || "fr").trim() || "fr";
 
   if (!validateEmail(email)) {
-    return NextResponse.json({ error: "Entrez une adresse email valide." }, { status: 400 });
+    return NextResponse.json({ error: tr("Entrez une adresse email valide.", "Enter a valid email address.") }, { status: 400 });
   }
   const pwCheck = validatePassword(password);
   if (!pwCheck.ok) {
     return NextResponse.json({ error: pwCheck.reason }, { status: 400 });
   }
   if (!shopName) {
-    return NextResponse.json({ error: "Entrez le nom de votre boutique." }, { status: 400 });
+    return NextResponse.json({ error: tr("Entrez le nom de votre boutique.", "Enter your shop name.") }, { status: 400 });
   }
+  if (!waCheck.ok) {
+    return NextResponse.json({ error: tr(waCheck.error, waCheck.errorEn), field: "whatsappNumber" }, { status: 400 });
+  }
+  const whatsappNumber = waCheck.digits;
 
   const existing = await prisma.vendor.findUnique({ where: { email } });
   if (existing) {
-    return NextResponse.json({ error: "Un compte existe déjà avec cet email." }, { status: 409 });
+    return NextResponse.json({ error: tr("Un compte existe déjà avec cet email.", "An account already exists with this email.") }, { status: 409 });
   }
 
   // Derive a unique catalog slug from the shop name.

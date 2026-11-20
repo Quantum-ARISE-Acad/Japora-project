@@ -68,6 +68,18 @@ export const CATEGORIES: Category[] = [
   { slug: "other", label: "Other", icon: "✨" },
 ];
 
+/** French names of the categories, shown in the marketplace and used by search. */
+export const CATEGORY_LABEL_FR: Record<string, string> = {
+  fashion: "Mode & Wax",
+  food: "Alimentation",
+  beauty: "Beauté & Soins",
+  electronics: "Électronique",
+  home: "Maison & Déco",
+  groceries: "Épicerie",
+  services: "Services",
+  other: "Autres",
+};
+
 /** Popular West African market names offered as starting points; custom names remain accepted. */
 export const COOPERATIVE_NAME_SUGGESTIONS = [
   "Grand Marché de Lomé (Assigamé)",
@@ -95,4 +107,38 @@ export function regionLabel(value: string): string {
 
 export function findCategory(slug: string): Category | undefined {
   return CATEGORIES.find((c) => c.slug === slug);
+}
+
+/** Country names as [français, English], for tr(...countryName(c)). */
+const COUNTRY_NAMES: Record<string, [string, string]> = {
+  "Bénin": ["Bénin", "Benin"],
+  "Burkina Faso": ["Burkina Faso", "Burkina Faso"],
+  "Cap-Vert": ["Cap-Vert", "Cape Verde"],
+  "Côte d'Ivoire": ["Côte d'Ivoire", "Côte d'Ivoire"],
+  "Gambie": ["Gambie", "Gambia"],
+  "Ghana": ["Ghana", "Ghana"],
+  "Guinée": ["Guinée", "Guinea"],
+  "Guinée-Bissau": ["Guinée-Bissau", "Guinea-Bissau"],
+  "Kenya": ["Kenya", "Kenya"],
+  "Liberia": ["Liberia", "Liberia"],
+  "Mali": ["Mali", "Mali"],
+  "Mauritanie": ["Mauritanie", "Mauritania"],
+  "Niger": ["Niger", "Niger"],
+  "Nigeria": ["Nigeria", "Nigeria"],
+  "Rwanda": ["Rwanda", "Rwanda"],
+  "Sénégal": ["Sénégal", "Senegal"],
+  "Sierra Leone": ["Sierra Leone", "Sierra Leone"],
+  "South Africa": ["Afrique du Sud", "South Africa"],
+  "Tanzania": ["Tanzanie", "Tanzania"],
+  "Togo": ["Togo", "Togo"],
+  "Uganda": ["Ouganda", "Uganda"],
+};
+
+export function countryName(country: string): [string, string] {
+  return COUNTRY_NAMES[country] ?? [country, country];
+}
+
+/** Category name as [français, English], for tr(...categoryName(c)). */
+export function categoryName(c: { slug: string; label: string }): [string, string] {
+  return [CATEGORY_LABEL_FR[c.slug] ?? c.label, c.label];
 }

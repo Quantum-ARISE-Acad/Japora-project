@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { digitsOnly } from "@/lib/utils";
 import { getClientIp, rateLimit, tooManyRequests, envLimit } from "@/lib/ratelimit";
 import { logger } from "@/lib/logger";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
  * POST /api/follow  { shopSlug, phone, name? }
@@ -11,6 +12,7 @@ import { logger } from "@/lib/logger";
  * (vendor, phone); re-following clears any prior unsubscribe. Rate-limited.
  */
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const ip = getClientIp(req);
   const rl = rateLimit({ key: `follow:${ip}`, limit: envLimit("FOLLOW_RATE_LIMIT", 20), windowMs: 60_000 });
   if (!rl.allowed) return tooManyRequests(rl);
@@ -20,16 +22,16 @@ export async function POST(req: NextRequest) {
   const phone = digitsOnly(String(body?.phone || ""));
   const name = String(body?.name || "").trim().slice(0, 80);
 
-  if (!shopSlug) return NextResponse.json({ error: "Missing shop." }, { status: 400 });
+  if (!shopSlug) return NextResponse.json({ error: tr("Boutique manquante.", "Missing shop.") }, { status: 400 });
   if (phone.length < 8 || phone.length > 15) {
-    return NextResponse.json({ error: "Enter a valid WhatsApp number." }, { status: 400 });
+    return NextResponse.json({ error: tr("Entrez un numéro WhatsApp valide.", "Enter a valid WhatsApp number.") }, { status: 400 });
   }
 
   const vendor = await prisma.vendor.findFirst({
     where: { shopSlug, deletedAt: null },
     select: { id: true, shopName: true },
   });
-  if (!vendor) return NextResponse.json({ error: "Shop not found." }, { status: 404 });
+  if (!vendor) return NextResponse.json({ error: tr("Boutique introuvable.", "Shop not found.") }, { status: 404 });
 
   await prisma.follower.upsert({
     where: { vendorId_phone: { vendorId: vendor.id, phone } },

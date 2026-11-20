@@ -3,14 +3,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import CatalogClient from "../../CatalogClient";
-import { getPublicLocale, publicText } from "@/lib/public-locale";
+import { getPublicLocale, publicText, getServerTr } from "@/lib/public-locale";
 
 type Params = { params: Promise<{ slug: string; colSlug: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug, colSlug } = await params;
   const vendor = await prisma.vendor.findUnique({ where: { shopSlug: slug } });
-  if (!vendor) return { title: "Shop not found" };
+  if (!vendor) return { title: (await getServerTr())("Boutique introuvable", "Shop not found") };
 
   const collection = await prisma.collection.findUnique({
     where: { vendorId_slug: { vendorId: vendor.id, slug: colSlug } },
@@ -85,7 +85,7 @@ export default async function PublicCollectionPage({ params }: Params) {
           slug: c.slug,
           description: c.description,
           productCount: c.products.length,
-          coverImageUrl: c.products.find((p) => p.imageUrl)?.imageUrl || "",
+          coverImageUrl: c.imageUrl || c.products.find((p) => p.imageUrl)?.imageUrl || "",
         }))}
         initialCollectionId={collection.id}
         products={collection.products.map((p) => ({

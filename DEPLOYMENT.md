@@ -138,8 +138,11 @@ Supabase Storage):
 
 `STORAGE_S3_BUCKET`, `STORAGE_S3_REGION`, `STORAGE_S3_ACCESS_KEY_ID`,
 `STORAGE_S3_SECRET_ACCESS_KEY`, `STORAGE_S3_ENDPOINT`, `STORAGE_S3_PUBLIC_URL`
-(see `.env.example` for per-provider endpoint/URL formats). Requires
-`pnpm add @aws-sdk/client-s3` (optional dep).
+(see `.env.example` for per-provider endpoint/URL formats). If the bucket is set
+but a required setting is blank, photos stay local and Settings > Stockage des
+photos lists what is missing. Move the photos already on the server with
+`npx tsx scripts/migrate-uploads-to-s3.ts [--apply]` (`deploy/mvp.sh photos-s3`
+on the MVP server). Step-by-step R2 setup: `deploy/README.md`.
 
 ---
 

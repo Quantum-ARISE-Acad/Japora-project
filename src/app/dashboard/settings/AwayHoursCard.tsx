@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 /**
  * Business hours + away message. When hours are on and the shop is closed, the
@@ -18,6 +19,7 @@ export default function AwayHoursCard({
 }: {
   initial: { awayMessage: string; businessHours: Hours };
 }) {
+  const { tr } = usePublicLang();
   const [awayMessage, setAwayMessage] = useState(initial.awayMessage || "");
   const [enabled, setEnabled] = useState(Boolean(initial.businessHours?.enabled));
   const [open, setOpen] = useState(initial.businessHours?.open || "08:00");
@@ -51,7 +53,7 @@ export default function AwayHoursCard({
     const data = await res.json().catch(() => ({}));
     setSaving(false);
     if (!res.ok) {
-      setError(data.error || "Could not save.");
+      setError(data.error || tr("Impossible d'enregistrer.", "Could not save."));
       return;
     }
     setSavedAt(Date.now());
@@ -62,22 +64,32 @@ export default function AwayHoursCard({
     <div className="card p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-arctic-900">Hours &amp; away message</h2>
+          <h2 className="text-sm font-semibold text-arctic-900">
+            {tr("Horaires & message d'absence", "Hours & away message")}
+          </h2>
           <p className="mt-1 text-sm text-arctic-600">
-            Outside your hours, the bot opens with this message so customers know when you&apos;re back.
+            {tr(
+              "En dehors de vos horaires d'ouverture, l'assistant commence sa réponse par ce message pour prévenir les clients.",
+              "Outside your hours, the bot opens with this message so customers know when you're back.",
+            )}
           </p>
         </div>
         {savedAt && (
-          <span className="rounded-full bg-arctic-200/70 px-2 py-0.5 a-label-md text-arctic-900">✓ Saved</span>
+          <span className="rounded-full bg-arctic-200/70 px-2 py-0.5 a-label-md text-arctic-900">
+            {tr("✓ Enregistré", "✓ Saved")}
+          </span>
         )}
       </div>
 
       <div className="mt-4 space-y-4">
         <div>
-          <label className="label">Away message</label>
+          <label className="label">{tr("Message d'absence", "Away message")}</label>
           <textarea
             className="input min-h-[64px]"
-            placeholder="Merci ! We're closed now — we'll reply first thing tomorrow."
+            placeholder={tr(
+              "Merci ! Nous sommes actuellement fermés — nous vous répondrons dès demain matin.",
+              "Merci ! We're closed now — we'll reply first thing tomorrow.",
+            )}
             value={awayMessage}
             onChange={(e) => setAwayMessage(e.target.value)}
             maxLength={300}
@@ -91,18 +103,20 @@ export default function AwayHoursCard({
             onChange={(e) => setEnabled(e.target.checked)}
             className="h-4 w-4 rounded border-arctic-400/45 text-brand focus:ring-brand"
           />
-          <span className="a-label-md text-arctic-800">Set business hours</span>
+          <span className="a-label-md text-arctic-800">
+            {tr("Activer les horaires d'ouverture", "Set business hours")}
+          </span>
         </label>
 
         {enabled && (
           <div className="space-y-3 rounded-shape-md border border-arctic-400/30 bg-arctic-100/40 p-3">
             <div className="flex flex-wrap items-center gap-3">
               <label className="flex items-center gap-2 text-sm text-arctic-800">
-                Open
+                {tr("Ouverture", "Open")}
                 <input type="time" className="input !min-h-0 w-32 py-1.5" value={open} onChange={(e) => setOpen(e.target.value)} />
               </label>
               <label className="flex items-center gap-2 text-sm text-arctic-800">
-                Close
+                {tr("Fermeture", "Close")}
                 <input type="time" className="input !min-h-0 w-32 py-1.5" value={close} onChange={(e) => setClose(e.target.value)} />
               </label>
             </div>
@@ -132,7 +146,7 @@ export default function AwayHoursCard({
         )}
 
         <button onClick={save} disabled={saving} className="btn-primary">
-          {saving ? "Saving…" : "Save hours"}
+          {saving ? tr("Enregistrement…", "Saving…") : tr("Enregistrer les horaires", "Save hours")}
         </button>
       </div>
     </div>

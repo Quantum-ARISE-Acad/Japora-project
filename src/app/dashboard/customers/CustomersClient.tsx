@@ -190,7 +190,7 @@ export default function CustomersClient({
       </div>
 
       {/* Toolbar filters */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-shape-lg border border-arctic-300/40 bg-white p-3">
+      <div className="customers-filter-track mb-4 flex flex-wrap items-center justify-between gap-3 rounded-shape-lg border border-arctic-300/40 bg-white p-3">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -204,7 +204,7 @@ export default function CustomersClient({
               type="button"
               onClick={() => setSegmentFilter("all")}
               className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                segmentFilter === "all" ? "bg-arctic-800 text-white" : "text-arctic-700 hover:text-arctic-900"
+                segmentFilter === "all" ? "bg-arctic-800 text-white" : "customers-filter-inactive text-arctic-700 hover:text-arctic-900"
               }`}
             >
               {tr("Tous", "All")} ({rows.length})
@@ -213,7 +213,7 @@ export default function CustomersClient({
               type="button"
               onClick={() => setSegmentFilter("vip")}
               className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                segmentFilter === "vip" ? "bg-amber-600 text-white" : "text-arctic-700 hover:text-arctic-900"
+                segmentFilter === "vip" ? "bg-amber-600 text-white" : "customers-filter-inactive text-arctic-700 hover:text-arctic-900"
               }`}
             >
               ⭐ VIP (≥3 {tr("cmd", "orders")})
@@ -222,7 +222,7 @@ export default function CustomersClient({
               type="button"
               onClick={() => setSegmentFilter("recent")}
               className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                segmentFilter === "recent" ? "bg-emerald-600 text-white" : "text-arctic-700 hover:text-arctic-900"
+                segmentFilter === "recent" ? "bg-emerald-600 text-white" : "customers-filter-inactive text-arctic-700 hover:text-arctic-900"
               }`}
             >
               {tr("Récents (30 j)", "Recent (30d)")}
@@ -231,7 +231,7 @@ export default function CustomersClient({
               type="button"
               onClick={() => setSegmentFilter("inactive")}
               className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                segmentFilter === "inactive" ? "bg-rose-600 text-white" : "text-arctic-700 hover:text-arctic-900"
+                segmentFilter === "inactive" ? "bg-rose-600 text-white" : "customers-filter-inactive text-arctic-700 hover:text-arctic-900"
               }`}
             >
               {tr("Inactifs (≥30 j)", "Inactive (≥30d)")}

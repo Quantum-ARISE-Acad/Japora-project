@@ -19,6 +19,7 @@ import {
 } from "@/lib/assets";
 import { formatMoney, slugify } from "@/lib/utils";
 import { logger } from "@/lib/logger";
+import { getServerTr } from "@/lib/public-locale";
 
 type Params = { params: Promise<{ id: string; format: string }> };
 
@@ -34,11 +35,12 @@ function render(format: AssetFormat, opts: AssetOpts): string {
 }
 
 export async function GET(_req: NextRequest, { params }: Params) {
+  const tr = await getServerTr();
   const { id, format } = await params;
 
   if (!isAssetFormat(format)) {
     return NextResponse.json(
-      { error: "Unknown format. Use one of: status, ig, tiktok." },
+      { error: tr("Format inconnu. Utilisez : status, ig ou tiktok.", "Unknown format. Use one of: status, ig, tiktok.") },
       { status: 400 },
     );
   }
@@ -61,7 +63,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     });
 
     if (!product || !product.vendor || product.vendor.deletedAt) {
-      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+      return NextResponse.json({ error: tr("Produit introuvable", "Product not found") }, { status: 404 });
     }
 
     const opts: AssetOpts = {
@@ -90,6 +92,6 @@ export async function GET(_req: NextRequest, { params }: Params) {
       format,
       error: String(e),
     });
-    return NextResponse.json({ error: "Failed to render asset" }, { status: 500 });
+    return NextResponse.json({ error: tr("Impossible de générer l'image.", "Failed to render asset") }, { status: 500 });
   }
 }

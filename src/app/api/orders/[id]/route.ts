@@ -12,6 +12,7 @@ import { parseDealNote } from "@/lib/bot";
 import { createForUnpaidOrder } from "@/lib/receivables";
 import { logger } from "@/lib/logger";
 import { publicOrigin } from "@/lib/public-origin";
+import { getServerTr } from "@/lib/public-locale";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -86,15 +87,16 @@ function buildOrderStatusWhatsAppMessage(opts: {
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const { id } = await params;
   const order = await prisma.order.findFirst({
     where: { id, vendorId: vendor.id, deletedAt: null },
     include: { items: true },
   });
-  if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+  if (!order) return NextResponse.json({ error: tr("Commande introuvable", "Order not found") }, { status: 404 });
 
   const b = await req.json().catch(() => ({}));
   const data: Record<string, unknown> = {};
@@ -107,7 +109,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   if (typeof b.status === "string") {
     if (!isOrderStatus(b.status)) {
-      return NextResponse.json({ error: "Invalid status." }, { status: 400 });
+      return NextResponse.json({ error: tr("Statut invalide.", "Invalid status.") }, { status: 400 });
     }
     data.status = b.status;
   }
@@ -226,14 +228,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
             ],
       });
       if (ir.status === "failed") {
-        const tr = await sendWhatsApp({
+        const textResult = await sendWhatsApp({
           vendorId: vendor.id,
           to: targetPhone,
           body: msgBody,
           orderId: id,
         });
         // If outside the 24h Meta session window (error 131047), fall back to Meta's approved template
-        if (tr.status === "failed" && newStatus === "CONFIRMED") {
+        if (textResult.status === "failed" && newStatus === "CONFIRMED") {
           const refShort = id.slice(-6).toUpperCase();
           const dateLabel = new Date().toLocaleDateString("en-US", {
             month: "short",
@@ -260,15 +262,16 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const { id } = await params;
   const order = await prisma.order.findFirst({
     where: { id, vendorId: vendor.id, deletedAt: null },
     include: { items: true },
   });
-  if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+  if (!order) return NextResponse.json({ error: tr("Commande introuvable", "Order not found") }, { status: 404 });
 
   await prisma.$transaction(async (tx) => {
     if (order.status !== "CANCELLED") {

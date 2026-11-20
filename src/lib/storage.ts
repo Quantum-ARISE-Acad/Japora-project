@@ -1,11 +1,14 @@
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
+import { logger } from "./logger";
 
 export type SaveInput = {
   buffer: Buffer;
   contentType: string;
   ext: string;
+  /** Sub-folder used by Firebase and S3 (e.g. "products/<vendorId>"). Local files stay flat. */
+  folder?: string;
 };
 
 export type SaveResult = {
@@ -47,6 +50,74 @@ class LocalStorageProvider implements StorageProvider {
 }
 
 /**
+ * Firebase Cloud Storage provider (Google Cloud Storage for Firebase).
+ *
+ * Uses the official Firebase Storage v0 REST API with `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+ * (or `FIREBASE_STORAGE_BUCKET`) so it works on both Node.js and serverless runtimes
+ * (Vercel) with zero native binary dependencies.
+ *
+ * Uploaded objects receive a permanent public download URL (`alt=media&token=...`)
+ * suitable for `<img src>`, WhatsApp Cloud API media messages, Meta catalogs,
+ * and downloadable documents.
+ */
+class FirebaseStorageProvider implements StorageProvider {
+  name = "firebase";
+
+  constructor(
+    private bucket: string,
+    private apiKey?: string,
+  ) {}
+
+  async save({ buffer, contentType, ext, folder }: SaveInput): Promise<SaveResult> {
+    const cleanBucket = this.bucket.replace(/^gs:\/\//i, "").replace(/\/+$/, "").trim();
+    const subFolder = folder
+      ? folder.replace(/[^a-z0-9/_-]/gi, "").replace(/^\/+|\/+$/g, "")
+      : "uploads";
+    const key = `japora/${subFolder}/${randomUUID()}.${ext}`;
+
+    const endpoint = new URL(
+      `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(cleanBucket)}/o`,
+    );
+    endpoint.searchParams.set("uploadType", "media");
+    endpoint.searchParams.set("name", key);
+    if (this.apiKey) {
+      endpoint.searchParams.set("key", this.apiKey);
+    }
+
+    const res = await fetch(endpoint.toString(), {
+      method: "POST",
+      headers: {
+        "Content-Type": contentType || "application/octet-stream",
+        "Cache-Control": "public, max-age=31536000, immutable",
+      },
+      body: new Uint8Array(buffer),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      throw new Error(
+        `Firebase Storage upload failed (${res.status}): ${errText.slice(0, 300)}`,
+      );
+    }
+
+    const meta = (await res.json().catch(() => ({}))) as {
+      name?: string;
+      bucket?: string;
+      downloadTokens?: string;
+    };
+
+    const objectName = meta.name || key;
+    const token = meta.downloadTokens?.split(",")[0]?.trim();
+    const encodedPath = encodeURIComponent(objectName);
+    const url = token
+      ? `https://firebasestorage.googleapis.com/v0/b/${cleanBucket}/o/${encodedPath}?alt=media&token=${encodeURIComponent(token)}`
+      : `https://firebasestorage.googleapis.com/v0/b/${cleanBucket}/o/${encodedPath}?alt=media`;
+
+    return { url, key: objectName };
+  }
+}
+
+/**
  * S3-compatible provider. One implementation, three back-ends:
  *
  *   - AWS S3:           no endpoint, virtual-hosted addressing
@@ -55,14 +126,14 @@ class LocalStorageProvider implements StorageProvider {
  *
  * The @aws-sdk/client-s3 package is loaded lazily — install it with
  * `pnpm add @aws-sdk/client-s3` to enable this provider. Until then,
- * getStorageProvider() falls back to LocalStorageProvider.
+ * the upload fails with a clear message in the logs.
  *
  * STORAGE_S3_PUBLIC_URL is required so we can construct browser-reachable
  * image URLs (e.g. https://<bucket>.s3.<region>.amazonaws.com for AWS,
  * https://pub-<hash>.r2.dev for R2, or
  * https://<project>.supabase.co/storage/v1/object/public/<bucket> for Supabase).
  */
-class S3StorageProvider implements StorageProvider {
+export class S3StorageProvider implements StorageProvider {
   name = "s3";
   private clientPromise: Promise<{
     client: { send: (cmd: unknown) => Promise<unknown> };
@@ -86,10 +157,12 @@ class S3StorageProvider implements StorageProvider {
       let sdk: typeof import("@aws-sdk/client-s3");
       try {
         sdk = await import("@aws-sdk/client-s3");
-      } catch {
+      } catch (e) {
+        // Optional dependency: npm skips it on Node < 20 (the production image runs Node 20).
         throw new Error(
-          "S3 storage is configured (STORAGE_S3_BUCKET is set) but the " +
-            "@aws-sdk/client-s3 package is not installed. Run: pnpm add @aws-sdk/client-s3",
+          "S3 storage is configured but @aws-sdk/client-s3 could not be loaded " +
+            `(Node ${process.versions.node}; it needs Node 20+ and npm ci): ` +
+            (e instanceof Error ? e.message : String(e)),
         );
       }
       const client = new sdk.S3Client({
@@ -111,9 +184,9 @@ class S3StorageProvider implements StorageProvider {
     return this.clientPromise;
   }
 
-  async save({ buffer, contentType, ext }: SaveInput): Promise<SaveResult> {
+  /** Upload under a chosen key (the photo migration keeps the local file name). */
+  async put(key: string, buffer: Buffer, contentType: string): Promise<string> {
     const { client, PutObjectCommand } = await this.getClient();
-    const key = `${randomUUID()}.${ext}`;
     await client.send(
       new PutObjectCommand({
         Bucket: this.bucket,
@@ -123,34 +196,109 @@ class S3StorageProvider implements StorageProvider {
         CacheControl: "public, max-age=31536000, immutable",
       }),
     );
-    const base = this.publicUrlBase.replace(/\/$/, "");
-    return { url: `${base}/${key}`, key };
+    return this.publicUrl(key);
   }
+
+  publicUrl(key: string): string {
+    return `${this.publicUrlBase.replace(/\/$/, "")}/${key}`;
+  }
+
+  async save({ buffer, contentType, ext, folder }: SaveInput): Promise<SaveResult> {
+    const cleanFolder = folder ? folder.replace(/[^a-z0-9/_-]/gi, "").replace(/^\/+|\/+$/g, "") : "";
+    const filename = `${randomUUID()}.${ext}`;
+    const key = cleanFolder ? `${cleanFolder}/${filename}` : filename;
+    const url = await this.put(key, buffer, contentType);
+    return { url, key };
+  }
+}
+
+/** The six STORAGE_S3_* settings; `missing` lists the required ones left blank. */
+export function s3Settings(env: Record<string, string | undefined> = process.env) {
+  const v = (name: string) => (env[name] || "").trim();
+  const settings = {
+    bucket: v("STORAGE_S3_BUCKET"),
+    accessKeyId: v("STORAGE_S3_ACCESS_KEY_ID"),
+    secretAccessKey: v("STORAGE_S3_SECRET_ACCESS_KEY"),
+    publicUrl: v("STORAGE_S3_PUBLIC_URL"),
+    region: v("STORAGE_S3_REGION") || "auto",
+    endpoint: v("STORAGE_S3_ENDPOINT"),
+  };
+  const required: Array<[string, string]> = [
+    ["STORAGE_S3_BUCKET", settings.bucket],
+    ["STORAGE_S3_ACCESS_KEY_ID", settings.accessKeyId],
+    ["STORAGE_S3_SECRET_ACCESS_KEY", settings.secretAccessKey],
+    ["STORAGE_S3_PUBLIC_URL", settings.publicUrl],
+  ];
+  const missing = required.filter(([, value]) => !value).map(([name]) => name);
+  return { ...settings, missing };
+}
+
+/** The S3 provider, or null when the settings are incomplete. */
+export function createS3Provider(env: Record<string, string | undefined> = process.env): S3StorageProvider | null {
+  const s = s3Settings(env);
+  if (s.missing.length) return null;
+  return new S3StorageProvider(s.bucket, s.publicUrl, {
+    region: s.region,
+    endpoint: s.endpoint || undefined,
+    accessKeyId: s.accessKeyId,
+    secretAccessKey: s.secretAccessKey,
+  });
+}
+
+/**
+ * The file name of a photo stored on this server ("/uploads/<key>" or
+ * "https://<site>/uploads/<key>"), or null for anything else (an S3 link,
+ * an outside link, an empty value).
+ */
+export function localUploadKey(url: string, appUrl = ""): string | null {
+  let u = (url || "").trim();
+  const site = appUrl.trim().replace(/\/$/, "");
+  if (site && u.startsWith(`${site}/`)) u = u.slice(site.length);
+  const m = u.match(/^\/uploads\/([A-Za-z0-9][A-Za-z0-9._-]*)$/);
+  return m && !m[1].includes("..") ? m[1] : null;
 }
 
 let cached: StorageProvider | null = null;
 
+/** Firebase Storage bucket (FIREBASE_STORAGE_BUCKET or NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET), or "". */
+export function getFirebaseBucket(): string {
+  return (process.env.FIREBASE_STORAGE_BUCKET || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "").trim();
+}
+
+/** Order: Firebase Storage, then S3 / R2, then this server (UPLOADS_DIR). */
 export function getStorageProvider(): StorageProvider {
   if (cached) return cached;
-
-  const bucket = process.env.STORAGE_S3_BUCKET;
-  const accessKeyId = process.env.STORAGE_S3_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.STORAGE_S3_SECRET_ACCESS_KEY;
-  const publicUrl = process.env.STORAGE_S3_PUBLIC_URL;
-
-  if (bucket && accessKeyId && secretAccessKey && publicUrl) {
-    cached = new S3StorageProvider(bucket, publicUrl, {
-      region: process.env.STORAGE_S3_REGION || "auto",
-      endpoint: process.env.STORAGE_S3_ENDPOINT || undefined,
-      accessKeyId,
-      secretAccessKey,
-    });
+  const firebaseBucket = getFirebaseBucket();
+  if (firebaseBucket) {
+    const apiKey = (process.env.FIREBASE_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "").trim();
+    cached = new FirebaseStorageProvider(firebaseBucket, apiKey || undefined);
+    return cached;
+  }
+  const s3 = createS3Provider();
+  if (s3) {
+    cached = s3;
   } else {
+    const { bucket, missing } = s3Settings();
+    if (bucket) {
+      // Half-configured: keep photos working on this server, but say why.
+      logger.error("storage.s3_incomplete", { missing });
+    }
     cached = new LocalStorageProvider();
   }
   return cached;
 }
 
-export function storageMode(): "local" | "s3" {
-  return process.env.STORAGE_S3_BUCKET ? "s3" : "local";
+/** "incomplete": a bucket is set but other required settings are blank (photos stay local). */
+export function storageMode(): "firebase" | "local" | "s3" | "incomplete" {
+  if (getFirebaseBucket()) return "firebase";
+  const { bucket, missing } = s3Settings();
+  if (!bucket) return "local";
+  return missing.length ? "incomplete" : "s3";
+}
+
+/** Required S3 settings left blank, for the settings page. */
+export function storageMissingSettings(): string[] {
+  if (getFirebaseBucket()) return [];
+  const { bucket, missing } = s3Settings();
+  return bucket ? missing : [];
 }

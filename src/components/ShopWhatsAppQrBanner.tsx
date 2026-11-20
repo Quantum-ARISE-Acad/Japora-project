@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { SaasIcon } from "@/components/ui/SaasIcons";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import { shopWhatsAppLink } from "@/lib/shop-picker";
 
 export default function ShopWhatsAppQrBanner({
   shopName,
@@ -28,18 +29,15 @@ export default function ShopWhatsAppQrBanner({
 
   // The Japora bot number (Meta Cloud API) when configured: the webhook routes the
   // chat to this shop through "(shopSlug)" in the prefill. Otherwise the vendor's own number.
-  const botNumber = (process.env.NEXT_PUBLIC_WHATSAPP_BOT_NUMBER || "").replace(/\D/g, "");
-  const cleanPhone = botNumber || (whatsappNumber || "").replace(/\D/g, "");
-  const defaultPrefill =
-    whatsappPrefillMessage ||
-    `Bonjour ${shopName} (${shopSlug}) ! Je viens de scanner votre QR code sur Japora. Pouvez-vous me présenter vos produits disponibles ?`;
-  // Always carry the "(slug)" tag the webhook reads, even in a custom message.
-  const enrichedPrefill = defaultPrefill.toLowerCase().includes(`(${shopSlug.toLowerCase()})`)
-    ? defaultPrefill
-    : `${defaultPrefill} (${shopSlug})`;
-
-  const whatsappUrl = cleanPhone
-    ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(enrichedPrefill)}`
+  const waLink = shopWhatsAppLink({
+    shopName,
+    shopSlug,
+    vendorNumber: whatsappNumber,
+    botNumber: process.env.NEXT_PUBLIC_WHATSAPP_BOT_NUMBER,
+    prefill: whatsappPrefillMessage,
+  });
+  const whatsappUrl = waLink
+    ? waLink.url
     : typeof window !== "undefined"
     ? `${window.location.origin}/c/${shopSlug}?assistant=open`
     : `/c/${shopSlug}?assistant=open`;
@@ -91,10 +89,10 @@ export default function ShopWhatsAppQrBanner({
 
             <div>
               <h2 className="text-base sm:text-lg font-extrabold text-white">
-                {assistantName} de {shopName}
+                {assistantName} {tr("de", "of")} {shopName}
               </h2>
               <p className="mt-1 text-xs sm:text-sm text-slate-300 leading-relaxed max-w-2xl">
-                {tr("Scannez le", "Scan the")} <strong>QR Code WhatsApp</strong> {tr("ci-contre pour discuter avec notre assistant IA directement dans votre WhatsApp (voir le catalogue, chercher un produit disponible, commander et suivre votre colis), ou ouvrez l’assistant directement ici sur le site :", "to chat with our AI assistant in WhatsApp (browse the catalog, find available products, place an order, and track your delivery), or open the assistant right here on the website:")}
+                {tr("Scannez le", "Scan the")} <strong>{tr("QR Code WhatsApp", "WhatsApp QR code")}</strong> {tr("ci-contre pour discuter avec notre assistant IA directement dans votre WhatsApp (voir le catalogue, chercher un produit disponible, commander et suivre votre colis), ou ouvrez l’assistant directement ici sur le site :", "to chat with our AI assistant in WhatsApp (browse the catalog, find available products, place an order, and track your delivery), or open the assistant right here on the website:")}
               </p>
             </div>
 
@@ -108,7 +106,7 @@ export default function ShopWhatsAppQrBanner({
                 <span>{tr("Ouvrir l’Assistant IA sur le site", "Open the AI assistant on the website")}</span>
               </button>
 
-              {cleanPhone && (
+              {waLink && (
                 <a
                   href={whatsappUrl}
                   target="_blank"
@@ -200,7 +198,7 @@ export default function ShopWhatsAppQrBanner({
             </div>
 
             <div className="mt-4 flex flex-col gap-2">
-              {cleanPhone && (
+              {waLink && (
                 <a
                   href={whatsappUrl}
                   target="_blank"

@@ -1,15 +1,12 @@
 import { requireVendor } from "@/lib/auth";
 import { computeMonth, defaultPeriod } from "@/lib/bookkeeping";
+import { getDashboardLocale, trServer } from "@/lib/dashboard-lang";
 import BookkeepingClient from "./BookkeepingClient";
 
-/**
- * Bookkeeping dashboard — KPI cards for the current month + last month, and
- * a month picker that opens the printable HTML report in a new tab. The
- * heavy aggregation runs server-side so the client just needs to redirect
- * to the API route to fetch new periods.
- */
 export default async function BookkeepingPage() {
   const vendor = await requireVendor();
+  const locale = await getDashboardLocale(vendor.language);
+  const tr = <T = string,>(frVal: T, enVal: T): T => trServer(locale, frVal, enVal);
 
   const now = new Date();
   const currentYear = now.getUTCFullYear();
@@ -26,9 +23,14 @@ export default async function BookkeepingPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-arctic-900">Bookkeeping</h1>
+        <h1 className="text-2xl font-bold text-arctic-900">
+          {tr("Comptabilité & Rapports", "Bookkeeping & Reports")}
+        </h1>
         <p className="text-sm text-arctic-600">
-          Monthly revenue summaries you can print, save as PDF, or hand to your accountant or loan officer.
+          {tr(
+            "Bilans mensuels de revenus à imprimer, enregistrer en PDF ou transmettre à votre comptable ou banquier.",
+            "Monthly revenue summaries you can print, save as PDF, or hand to your accountant or loan officer.",
+          )}
         </p>
       </div>
       <BookkeepingClient

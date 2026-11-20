@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { placeDealOrder } from "@/lib/bot";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
  * Public endpoint allowing a customer from the Shop AI Assistant to submit a
@@ -8,6 +9,7 @@ import { placeDealOrder } from "@/lib/bot";
  * (/dashboard/orders) for validation.
  */
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   try {
     const body = await req.json().catch(() => ({}));
     const shopSlug = String(body.shopSlug || "").trim();
@@ -20,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     if (!shopSlug || !productId || !Number.isFinite(proposedPrice) || proposedPrice <= 0) {
       return NextResponse.json(
-        { error: "Veuillez sélectionner un produit et indiquer votre prix proposé." },
+        { error: tr("Veuillez sélectionner un produit et indiquer votre prix proposé.", "Please select a product and enter your offered price.") },
         { status: 400 },
       );
     }
@@ -30,14 +32,14 @@ export async function POST(req: NextRequest) {
       select: { id: true, shopName: true, currency: true },
     });
     if (!vendor) {
-      return NextResponse.json({ error: "Boutique introuvable." }, { status: 404 });
+      return NextResponse.json({ error: tr("Boutique introuvable.", "Shop not found.") }, { status: 404 });
     }
 
     const product = await prisma.product.findFirst({
       where: { id: productId, vendorId: vendor.id, isActive: true },
     });
     if (!product) {
-      return NextResponse.json({ error: "Produit introuvable dans cette boutique." }, { status: 404 });
+      return NextResponse.json({ error: tr("Produit introuvable dans cette boutique.", "Product not found in this shop.") }, { status: 404 });
     }
 
     const proposedTotalCents = Math.round(proposedPrice * 100);
@@ -62,7 +64,7 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     console.error("Deal creation error:", e);
     return NextResponse.json(
-      { error: "Erreur lors de l'envoi de votre proposition de deal." },
+      { error: tr("Erreur lors de l'envoi de votre proposition de deal.", "Error while sending your deal offer.") },
       { status: 500 },
     );
   }

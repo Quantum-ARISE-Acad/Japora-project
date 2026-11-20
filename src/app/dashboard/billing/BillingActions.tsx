@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 export default function BillingActions({
   hasSubscription,
@@ -9,6 +10,7 @@ export default function BillingActions({
   hasSubscription: boolean;
   priceDisplay: string;
 }) {
+  const { tr } = usePublicLang();
   const [loading, setLoading] = useState<"" | "checkout" | "portal">("");
   const [error, setError] = useState("");
 
@@ -19,7 +21,7 @@ export default function BillingActions({
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.url) {
       setLoading("");
-      setError(data.error || "Could not open Stripe.");
+      setError(data.error || tr("Impossible d'ouvrir Stripe.", "Could not open Stripe."));
       return;
     }
     window.location.href = data.url;
@@ -29,16 +31,16 @@ export default function BillingActions({
     <div className="space-y-3">
       {hasSubscription ? (
         <button onClick={() => go("portal")} className="btn-primary w-full" disabled={loading !== ""}>
-          {loading === "portal" ? "Opening…" : "Manage subscription"}
+          {loading === "portal" ? tr("Ouverture…", "Opening…") : tr("Gérer l'abonnement", "Manage subscription")}
         </button>
       ) : (
         <button onClick={() => go("checkout")} className="btn-primary w-full" disabled={loading !== ""}>
-          {loading === "checkout" ? "Opening Stripe…" : `Subscribe — ${priceDisplay}`}
+          {loading === "checkout" ? tr("Ouverture de Stripe…", "Opening Stripe…") : tr(`S'abonner — ${priceDisplay}`, `Subscribe — ${priceDisplay}`)}
         </button>
       )}
       {hasSubscription && (
         <button onClick={() => go("checkout")} className="btn-ghost w-full" disabled={loading !== ""}>
-          {loading === "checkout" ? "Opening…" : "Start a new subscription"}
+          {loading === "checkout" ? tr("Ouverture…", "Opening…") : tr("Démarrer un nouvel abonnement", "Start a new subscription")}
         </button>
       )}
       {error && (

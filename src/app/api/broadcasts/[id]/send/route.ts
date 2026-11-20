@@ -2,14 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentVendor } from "@/lib/auth";
 import { processBroadcastQueue, queueBroadcast } from "@/lib/broadcast";
 import { logger } from "@/lib/logger";
+import { getServerTr } from "@/lib/public-locale";
 
 type Params = { params: Promise<{ id: string }> };
 
 /** Validate vendor ownership and persist a recipient snapshot for the cron worker. */
 export async function POST(_req: NextRequest, { params }: Params) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
   if (!vendor) {
-    return NextResponse.json({ error: "Veuillez vous connecter pour continuer." }, { status: 401 });
+    return NextResponse.json({ error: tr("Veuillez vous connecter pour continuer.", "Please sign in to continue.") }, { status: 401 });
   }
 
   const { id } = await params;

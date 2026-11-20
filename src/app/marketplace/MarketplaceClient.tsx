@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import type { ShopCard as ShopCardType } from "@/lib/directory";
-import { REGIONS, CATEGORIES, findRegion, findCategory } from "@/lib/regions";
+import type { ProductHit, SearchType } from "@/lib/search";
+import { REGIONS, CATEGORIES, CATEGORY_LABEL_FR, findRegion, findCategory, countryName } from "@/lib/regions";
 import { formatMoney } from "@/lib/utils";
 import { AuroraIsoscout } from "@/components/aurora";
 import VerifiedBadge from "@/components/VerifiedBadge";
@@ -11,16 +12,7 @@ import PublicFooter from "@/components/PublicFooter";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
 import { SaasIcon, CategoryIcon } from "@/components/ui/SaasIcons";
 
-const CATEGORY_FR: Record<string, string> = {
-  fashion: "Mode & Wax",
-  food: "Alimentation",
-  beauty: "Beauté & Soins",
-  electronics: "Électronique",
-  home: "Maison & Déco",
-  groceries: "Épicerie",
-  services: "Services",
-  other: "Autres",
-};
+const CATEGORY_FR = CATEGORY_LABEL_FR;
 
 function ShopCard({ shop }: { shop: ShopCardType }) {
   const { tr } = usePublicLang();
@@ -135,7 +127,7 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
             >
               <SaasIcon name="map-pin" size={12} className="text-brand-dark" />
               <span>
-                {region.label}, {region.country}
+                {region.label}, {tr(...countryName(region.country))}
               </span>
             </Link>
           ) : null}
@@ -170,13 +162,76 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
   );
 }
 
+function ProductResultCard({ product }: { product: ProductHit }) {
+  const { tr } = usePublicLang();
+  const region = findRegion(product.shop.region);
+  return (
+    <Link
+      href={`/c/${product.shop.shopSlug}?product=${product.id}`}
+      className="glass glass-edge group flex flex-col overflow-hidden rounded-shape-xl transition-all duration-short ease-spring hover:-translate-y-1 hover:shadow-elev-2"
+    >
+      <div className="relative aspect-square w-full overflow-hidden bg-arctic-100/70">
+        {product.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-short group-hover:scale-105"
+          />
+        ) : (
+          <div className="grid h-full w-full place-items-center a-title-md text-arctic-500">
+            {product.name.charAt(0).toUpperCase()}
+          </div>
+        )}
+        {!product.available && (
+          <span className="absolute left-2 top-2 rounded-full bg-arctic-900/80 px-2 py-0.5 text-[11px] font-semibold text-arctic-50">
+            {product.preOrder ? tr("Précommande", "Pre-order") : tr("Épuisé", "Sold out")}
+          </span>
+        )}
+      </div>
+      <div className="flex flex-1 flex-col gap-1 p-3">
+        <div className="a-body-md line-clamp-2 font-semibold text-arctic-900 group-hover:text-brand-dark">
+          {product.name}
+        </div>
+        <div className="a-num a-title-sm text-brand-dark">
+          {formatMoney(product.priceCents, product.shop.currency || "XOF")}
+        </div>
+        <div className="mt-auto flex items-center gap-1 pt-1 text-xs text-arctic-600">
+          <SaasIcon name="store" size={12} className="shrink-0 text-arctic-500" />
+          <span className="truncate">{product.shop.shopName}</span>
+          {product.shop.verified && <VerifiedBadge size="sm" withLabel={false} className="shrink-0" />}
+        </div>
+        {region && (
+          <div className="flex items-center gap-1 text-xs text-arctic-500">
+            <SaasIcon name="map-pin" size={12} className="shrink-0" />
+            <span className="truncate">{region.label}</span>
+          </div>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+const SEARCH_TYPES: Array<{ value: SearchType; fr: string; en: string }> = [
+  { value: "all", fr: "Tout", en: "All" },
+  { value: "shops", fr: "Boutiques", en: "Shops" },
+  { value: "products", fr: "Produits", en: "Products" },
+];
+
 export default function MarketplaceClient({
   shops,
+  products = [],
+  shopsFirst = true,
+  searchType = "all",
   activeCategory,
   activeRegion,
   query,
 }: {
   shops: ShopCardType[];
+  products?: ProductHit[];
+  shopsFirst?: boolean;
+  searchType?: SearchType;
   activeCategory: string;
   activeRegion: string;
   query: string;
@@ -186,7 +241,7 @@ export default function MarketplaceClient({
   const selectedCategoryObj = CATEGORIES.find((c) => c.slug === activeCategory);
   const selectedRegionObj = REGIONS.find((r) => r.slug === activeRegion);
 
-  const makeFilterUrl = (params: { category?: string; region?: string; q?: string }) => {
+  const makeFilterUrl = (params: { category?: string; region?: string; q?: string; type?: SearchType }) => {
     const qp = new URLSearchParams();
     const c = params.category !== undefined ? params.category : activeCategory;
     const r = params.region !== undefined ? params.region : activeRegion;
@@ -195,10 +250,100 @@ export default function MarketplaceClient({
     if (c) qp.set("category", c);
     if (r) qp.set("region", r);
     if (search) qp.set("q", search);
+    const t = params.type !== undefined ? params.type : searchType;
+    if (search && t !== "all") qp.set("type", t);
 
     const s = qp.toString();
     return s ? `/marketplace?${s}` : "/marketplace";
   };
+
+  const shopsSection = (
+      <section className="mb-16">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-2 border-b border-arctic-200/70 pb-3">
+          <div>
+            <div className="a-eyebrow">
+              {tr("Catalogue Marchands", "Merchant Directory")}
+            </div>
+            <h2 className="a-headline-md text-arctic-900">
+              {activeCategory || activeRegion || query
+                ? tr("Boutiques correspondantes", "Matching shops")
+                : tr("Boutiques à la une", "Featured shops")}
+            </h2>
+          </div>
+          <span className="rounded-full bg-arctic-200/70 px-3 py-1 a-body-sm font-semibold text-arctic-800">
+            {shops.length}{" "}
+            {shops.length === 1
+              ? tr("boutique disponible", "shop available")
+              : tr("boutiques disponibles", "shops available")}
+          </span>
+        </div>
+
+        {shops.length === 0 ? (
+          <div className="glass glass-edge rounded-shape-xl p-8">
+            <AuroraIsoscout
+              variant="products"
+              title={tr(
+                "Aucune boutique trouvée pour cette recherche",
+                "No shops found for this search"
+              )}
+              body={tr(
+                "Essayez de modifier vos filtres de ville ou de catégorie, ou lancez la première boutique Japora sur ce créneau.",
+                "Try adjusting your city or category filters, or open the first Japora shop in this category."
+              )}
+              action={
+                <div className="flex flex-wrap justify-center gap-3">
+                  <Link href="/marketplace" className="btn-primary">
+                    {tr("Voir toutes les boutiques", "View all shops")}
+                  </Link>
+                  <Link href="/signup" className="btn-ghost">
+                    {tr("Ouvrir ma boutique ici →", "Open my shop here →")}
+                  </Link>
+                </div>
+              }
+            />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {shops.map((shop) => (
+              <ShopCard key={shop.id} shop={shop} />
+            ))}
+          </div>
+        )}
+      </section>
+  );
+
+  const productsSection = (
+      <section className="mb-16" aria-labelledby="produits-trouves">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-2 border-b border-arctic-200/70 pb-3">
+          <div>
+            <div className="a-eyebrow">{tr("Produits", "Products")}</div>
+            <h2 id="produits-trouves" className="a-headline-md text-arctic-900">
+              {tr("Produits correspondants", "Matching products")}
+            </h2>
+          </div>
+          <span className="rounded-full bg-arctic-200/70 px-3 py-1 a-body-sm font-semibold text-arctic-800">
+            {products.length}{" "}
+            {products.length === 1 ? tr("produit trouvé", "product found") : tr("produits trouvés", "products found")}
+          </span>
+        </div>
+        {products.length === 0 ? (
+          <div className="glass glass-edge rounded-shape-xl p-6 text-center">
+            <p className="a-body-md text-arctic-700">
+              {tr(
+                `Aucun produit ne correspond à « ${query} ». Vérifiez l'orthographe ou essayez un mot plus court.`,
+                `No product matches "${query}". Check the spelling or try a shorter word.`,
+              )}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+            {products.map((p) => (
+              <ProductResultCard key={p.id} product={p} />
+            ))}
+          </div>
+        )}
+      </section>
+  );
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -250,18 +395,38 @@ export default function MarketplaceClient({
                 name="q"
                 defaultValue={query}
                 placeholder={tr(
-                  "Rechercher une boutique, un produit, une ville (ex: Lomé, Mode, Wax)...",
-                  "Search shops, products, or cities (e.g. Lomé, Fashion, Ankara)..."
+                  "Rechercher une boutique ou un produit (ex : robe wax, Lomé, téléphone)...",
+                  "Search shops or products (e.g. ankara dress, Lomé, phone)..."
                 )}
                 className="w-full bg-transparent px-2 py-2.5 a-body-md text-arctic-900 outline-none placeholder:text-arctic-400"
               />
               <button
                 type="submit"
-                className="rounded-shape-full bg-arctic-900 px-6 py-2.5 a-label-md font-bold text-white transition hover:bg-arctic-800"
+                className="rounded-shape-full bg-arctic-900 px-6 py-2.5 a-label-md font-bold text-arctic-50 transition hover:bg-arctic-800"
               >
                 {tr("Rechercher", "Search")}
               </button>
             </div>
+            <fieldset className="mt-3 flex flex-wrap items-center justify-center gap-2">
+              <legend className="sr-only">{tr("Rechercher parmi", "Search in")}</legend>
+              {SEARCH_TYPES.map((t) => (
+                <label key={t.value} className="cursor-pointer">
+                  <input
+                    type="radio"
+                    name="type"
+                    value={t.value}
+                    defaultChecked={searchType === t.value}
+                    onChange={(e) => {
+                      if (e.currentTarget.form?.q.value.trim()) e.currentTarget.form.requestSubmit();
+                    }}
+                    className="peer sr-only"
+                  />
+                  <span className="inline-flex min-h-[44px] items-center rounded-shape-full border border-arctic-300/75 bg-white/80 px-4 a-label-md font-semibold text-arctic-800 transition peer-checked:border-arctic-900 peer-checked:bg-arctic-900 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-brand">
+                    {tr(t.fr, t.en)}
+                  </span>
+                </label>
+              ))}
+            </fieldset>
           </form>
 
           {/* Marketplace Quick Stats */}
@@ -285,7 +450,7 @@ export default function MarketplaceClient({
               <span className="font-bold text-emerald-700">
                 {tr("Paiement direct", "Inline Payment")}
               </span>
-              <span>T-Money, Flooz, Wave &amp; Cash</span>
+              <span>{tr("T-Money, Flooz, Wave & Cash", "T-Money, Flooz, Wave & cash")}</span>
             </div>
           </div>
         </div>
@@ -346,6 +511,11 @@ export default function MarketplaceClient({
           </div>
         )}
 
+        {/* Search results come first, right under the search bar. */}
+        {query && searchType !== "shops" && !shopsFirst && productsSection}
+        {query && searchType !== "products" && shopsSection}
+        {query && searchType !== "shops" && shopsFirst && productsSection}
+
         {/* ============================================================
          * 3. CATEGORY SPOTLIGHT CARDS
          * ============================================================ */}
@@ -379,7 +549,7 @@ export default function MarketplaceClient({
                   <span
                     className={`grid h-9 w-9 place-items-center rounded-shape-md ${
                       isSelected
-                        ? "bg-white/15 text-white"
+                        ? "bg-arctic-50/15 text-arctic-50"
                         : "bg-brand/10 text-brand-dark"
                     }`}
                   >
@@ -420,7 +590,7 @@ export default function MarketplaceClient({
                   href={makeFilterUrl({ region: isSelected ? "" : r.slug })}
                   className={`a-chip transition-all ${
                     isSelected
-                      ? "border-arctic-900 bg-arctic-900 text-white font-semibold shadow-xs"
+                      ? "border-arctic-900 bg-arctic-900 text-arctic-50 font-semibold shadow-xs"
                       : "hover:border-brand/60"
                   }`}
                 >
@@ -438,61 +608,7 @@ export default function MarketplaceClient({
           </div>
         </section>
 
-        {/* ============================================================
-         * 5. SHOPS DIRECTORY GRID
-         * ============================================================ */}
-        <section className="mb-16">
-          <div className="mb-5 flex flex-wrap items-end justify-between gap-2 border-b border-arctic-200/70 pb-3">
-            <div>
-              <div className="a-eyebrow">
-                {tr("Catalogue Marchands", "Merchant Directory")}
-              </div>
-              <h2 className="a-headline-md text-arctic-900">
-                {activeCategory || activeRegion || query
-                  ? tr("Boutiques correspondantes", "Matching shops")
-                  : tr("Boutiques à la une", "Featured shops")}
-              </h2>
-            </div>
-            <span className="rounded-full bg-arctic-200/70 px-3 py-1 a-body-sm font-semibold text-arctic-800">
-              {shops.length}{" "}
-              {shops.length === 1
-                ? tr("boutique disponible", "shop available")
-                : tr("boutiques disponibles", "shops available")}
-            </span>
-          </div>
-
-          {shops.length === 0 ? (
-            <div className="glass glass-edge rounded-shape-xl p-8">
-              <AuroraIsoscout
-                variant="products"
-                title={tr(
-                  "Aucune boutique trouvée pour cette recherche",
-                  "No shops found for this search"
-                )}
-                body={tr(
-                  "Essayez de modifier vos filtres de ville ou de catégorie, ou lancez la première boutique Japora sur ce créneau.",
-                  "Try adjusting your city or category filters, or open the first Japora shop in this category."
-                )}
-                action={
-                  <div className="flex flex-wrap justify-center gap-3">
-                    <Link href="/marketplace" className="btn-primary">
-                      {tr("Voir toutes les boutiques", "View all shops")}
-                    </Link>
-                    <Link href="/signup" className="btn-ghost">
-                      {tr("Ouvrir ma boutique ici →", "Open my shop here →")}
-                    </Link>
-                  </div>
-                }
-              />
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {shops.map((shop) => (
-                <ShopCard key={shop.id} shop={shop} />
-              ))}
-            </div>
-          )}
-        </section>
+        {!query && shopsSection}
 
         {/* ============================================================
          * 6. BUYER EXPERIENCE — Comment acheter en toute confiance
@@ -557,7 +673,7 @@ export default function MarketplaceClient({
                 className="rounded-shape-lg border border-arctic-200/80 bg-arctic-50/70 p-5"
               >
                 <div className="flex items-center justify-between">
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-arctic-900 font-display text-xs font-bold text-white">
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-arctic-900 font-display text-xs font-bold text-arctic-50">
                     {item.step}
                   </span>
                   <span className="rounded-full bg-brand/15 px-2.5 py-0.5 text-[10px] font-bold text-brand-dark">
@@ -684,7 +800,7 @@ export default function MarketplaceClient({
          * 8. VENDOR RECRUITMENT BANNER — List your shop
          * ============================================================ */}
         <section className="mb-8">
-          <div className="rounded-shape-xl bg-gradient-to-r from-arctic-900 via-arctic-800 to-slate-900 p-8 text-white shadow-elev-3 sm:p-10">
+          <div className="rounded-shape-xl bg-gradient-to-r from-stone-900 via-stone-800 to-slate-900 p-8 text-white shadow-elev-3 ring-1 ring-white/10 sm:p-10">
             <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
               <div className="max-w-xl space-y-2">
                 <span className="inline-block rounded-full bg-white/10 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-200">
@@ -696,7 +812,7 @@ export default function MarketplaceClient({
                     "List your shop for free in the Marketplace"
                   )}
                 </h2>
-                <p className="text-xs leading-relaxed text-arctic-200 sm:text-sm">
+                <p className="text-xs leading-relaxed text-stone-300 sm:text-sm">
                   {tr(
                     "Créez votre boutique en quelques instants, activez l'option « Marketplace public » dans vos paramètres et laissez de nouveaux clients vous découvrir chaque jour.",
                     "Open your shop in moments, enable the public marketplace toggle in your settings, and let new local buyers discover you every day."

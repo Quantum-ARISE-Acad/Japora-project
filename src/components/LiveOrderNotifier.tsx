@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { formatMoney } from "@/lib/utils";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 type NotifOrder = {
   id: string;
@@ -13,6 +14,7 @@ type NotifOrder = {
 };
 
 export default function LiveOrderNotifier({ currency = "USD" }: { currency?: string }) {
+  const { tr } = usePublicLang();
   const [latestToast, setLatestToast] = useState<NotifOrder | null>(null);
   const lastCheckRef = useRef<string>(new Date().toISOString());
 
@@ -53,7 +55,7 @@ export default function LiveOrderNotifier({ currency = "USD" }: { currency?: str
           </span>
           <div>
             <div className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
-              Nouvelle commande !
+              {tr("Nouvelle commande !", "New order!")}
             </div>
             <div className="text-sm font-semibold text-arctic-900 dark:text-white">
               {latestToast.customerName}
@@ -77,7 +79,7 @@ export default function LiveOrderNotifier({ currency = "USD" }: { currency?: str
           onClick={() => setLatestToast(null)}
           className="font-semibold text-emerald-700 underline hover:no-underline dark:text-emerald-400"
         >
-          Voir la commande →
+          {tr("Voir la commande →", "View the order →")}
         </Link>
       </div>
     </div>

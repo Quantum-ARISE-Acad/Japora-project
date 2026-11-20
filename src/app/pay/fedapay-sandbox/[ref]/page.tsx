@@ -1,29 +1,41 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { getVendorFedaPayConfig } from "@/lib/payments/fedapay";
 import FedaPaySandboxClient from "./FedaPaySandboxClient";
+import { getServerTr } from "@/lib/public-locale";
 
 type Params = { params: Promise<{ ref: string }> };
 
 export default async function FedaPaySandboxPage({ params }: Params) {
+  const tr = await getServerTr();
   const { ref } = await params;
 
   const intent = await prisma.paymentIntent.findFirst({
-    where: { providerRef: ref },
+    where: {
+      OR: [
+        { providerRef: ref },
+        { metadata: { contains: ref } },
+      ],
+    },
+    orderBy: { createdAt: "desc" },
   });
 
   if (!intent) notFound();
 
-  const vendor = await prisma.vendor.findUnique({
-    where: { id: intent.vendorId },
-    select: {
-      id: true,
-      shopName: true,
-      shopSlug: true,
-      currency: true,
-      avatarUrl: true,
-      whatsappNumber: true,
-    },
-  });
+  const [vendor, fedaConfig] = await Promise.all([
+    prisma.vendor.findUnique({
+      where: { id: intent.vendorId },
+      select: {
+        id: true,
+        shopName: true,
+        shopSlug: true,
+        currency: true,
+        avatarUrl: true,
+        whatsappNumber: true,
+      },
+    }),
+    getVendorFedaPayConfig(intent.vendorId, "sandbox"),
+  ]);
 
   let orderSummary: {
     id: string;
@@ -60,21 +72,30 @@ export default async function FedaPaySandboxPage({ params }: Params) {
       amountCents={intent.amountCents}
       currency={intent.currency || vendor?.currency || "XOF"}
       initialStatus={intent.status}
+      fedaPublicKey={fedaConfig.publicKey}
+      fedaEnvironment={fedaConfig.environment}
       shopName={vendor?.shopName || "Boutique Japora"}
       shopSlug={vendor?.shopSlug || ""}
       shopLogo={vendor?.avatarUrl || ""}
       title={
         meta.title ||
         (orderSummary
-          ? `Commande #${orderSummary.id.slice(-6).toUpperCase()}`
-          : "Paiement Japora")
+          ? tr(`Commande #${orderSummary.id.slice(-6).toUpperCase()}`, `Order #${orderSummary.id.slice(-6).toUpperCase()}`)
+          : tr("Paiement Japora", "Japora payment"))
       }
       defaultCustomerName={orderSummary?.customerName || meta.customerName || ""}
       defaultCustomerPhone={orderSummary?.customerPhone || meta.customerPhone || "+22890000001"}
       defaultWallet={meta.network || "T-Money Togo"}
       returnUrl={
         meta.returnUrl ||
-        (orderSummary ? `/pay/${orderSummary.id}` : "/dashboard/billing")
+        (orderSummary ? `/pay/${orderSummary.id}?paid=1` : "/dashboard/billing?ok=1")
+      }
+      cancelUrl={
+        orderSummary
+          ? `/pay/${orderSummary.id}?failed=1`
+          : meta.paymentLinkId
+            ? `/pay/link/${meta.paymentLinkId}`
+            : "/dashboard/billing?canceled=1"
       }
     />
   );

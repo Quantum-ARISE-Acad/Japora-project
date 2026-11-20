@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { renderQrSvg } from "@/lib/qr";
 import { getClientIp, rateLimit, tooManyRequests, envLimit } from "@/lib/ratelimit";
 import { logger } from "@/lib/logger";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
  * GET /api/qr?data=<url>&download=1
@@ -13,6 +14,7 @@ import { logger } from "@/lib/logger";
  * Cache for a day — QR for a given URL never changes.
  */
 export async function GET(req: NextRequest) {
+  const tr = await getServerTr();
   const ip = getClientIp(req);
   const rl = rateLimit({ key: `qr:${ip}`, limit: envLimit("QR_RATE_LIMIT", 60), windowMs: 60_000 });
   if (!rl.allowed) return tooManyRequests(rl);
@@ -37,6 +39,6 @@ export async function GET(req: NextRequest) {
     return new Response(svg, { status: 200, headers });
   } catch (e) {
     logger.error("qr.render_failed", { error: e instanceof Error ? e.message : String(e) });
-    return NextResponse.json({ error: "Could not generate QR." }, { status: 500 });
+    return NextResponse.json({ error: tr("Impossible de générer le QR code.", "Could not generate QR.") }, { status: 500 });
   }
 }

@@ -6,13 +6,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { listShops, type ShopCard as ShopCardType } from "@/lib/directory";
-import { CATEGORIES, REGIONS, findRegion, findCategory } from "@/lib/regions";
+import { CATEGORIES, REGIONS, findRegion, findCategory, categoryName, countryName } from "@/lib/regions";
 import { formatMoney } from "@/lib/utils";
 import { AuroraIsoscout } from "@/components/aurora";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 import { SaasIcon, CategoryIcon } from "@/components/ui/SaasIcons";
+import { getServerTr } from "@/lib/public-locale";
 
 export const revalidate = 300;
 
@@ -21,14 +22,20 @@ type Params = { params: Promise<{ region: string }> };
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { region } = await params;
   const r = findRegion(region);
-  if (!r) return { title: "Region not found — Japora" };
+  const tr = await getServerTr();
+  if (!r) return { title: tr("Région introuvable — Japora", "Region not found — Japora") };
+  const [countryFr, countryEn] = countryName(r.country);
   return {
-    title: `Boutiques WhatsApp à ${r.label} (${r.country}) — Japora`,
-    description: `Découvrez les vendeurs WhatsApp vérifiés à ${r.label}, ${r.country}. Mode, alimentation, beauté, électronique et services.`,
+    title: tr(`Boutiques WhatsApp à ${r.label} (${countryFr}) — Japora`, `WhatsApp shops in ${r.label} (${countryEn}) — Japora`),
+    description: tr(
+      `Découvrez les vendeurs WhatsApp vérifiés à ${r.label}, ${countryFr}. Mode, alimentation, beauté, électronique et services.`,
+      `Discover the verified WhatsApp vendors in ${r.label}, ${countryEn}. Fashion, food, beauty, electronics and services.`,
+    ),
   };
 }
 
-function ShopCard({ shop }: { shop: ShopCardType }) {
+async function ShopCard({ shop }: { shop: ShopCardType }) {
+  const tr = await getServerTr();
   const category = findCategory(shop.category);
   const initial = shop.shopName.charAt(0).toUpperCase() || "S";
   const cur = shop.currency || "XOF";
@@ -69,7 +76,7 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
           <p className="mt-3 a-body-md line-clamp-2 text-arctic-700">{shop.bio}</p>
         ) : (
           <p className="mt-3 a-body-sm italic text-arctic-500">
-            Catalogue disponible en commande directe sur WhatsApp.
+            {tr("Catalogue disponible en commande directe sur WhatsApp.", "Catalog available to order directly on WhatsApp.")}
           </p>
         )}
 
@@ -97,7 +104,7 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
         {category ? (
           <span className="inline-flex items-center gap-1 rounded-shape-sm border border-arctic-400/45 bg-arctic-200/65 px-2 py-0.5 a-label-md text-arctic-900 backdrop-blur-glass-thin">
             <CategoryIcon slug={category.slug} size={13} className="text-brand-dark" />
-            <span>{category.label}</span>
+            <span>{tr(...categoryName(category))}</span>
           </span>
         ) : (
           <span />
@@ -106,7 +113,7 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
           href={`/shop/${shop.shopSlug}`}
           className="inline-flex items-center gap-1 a-label-md font-bold text-brand-dark group-hover:underline"
         >
-          <span>Voir la boutique</span>
+          <span>{tr("Voir la boutique", "View the shop")}</span>
           <SaasIcon name="arrow-right" size={13} />
         </Link>
       </div>
@@ -115,6 +122,7 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
 }
 
 export default async function MarketplaceRegionPage({ params }: Params) {
+  const tr = await getServerTr();
   const { region } = await params;
   const r = findRegion(region);
   if (!r) notFound();
@@ -135,16 +143,16 @@ export default async function MarketplaceRegionPage({ params }: Params) {
             <span className="inline-flex items-center gap-1 font-bold text-brand-dark">
               <SaasIcon name="map-pin" size={13} />
               <span>
-                {r.label} ({r.country})
+                {r.label} ({tr(...countryName(r.country))})
               </span>
             </span>
           </div>
 
           <h1 className="a-display-sm text-arctic-900 sm:a-display-md">
-            Boutiques WhatsApp à {r.label}
+            {tr("Boutiques WhatsApp à", "WhatsApp shops in")} {r.label}
           </h1>
           <p className="a-body-lg a-measure mt-2 text-arctic-700">
-            Explorez les marchands vérifiés de {r.label} ({r.country}). Consultez leurs catalogues en ligne et commandez directement sur WhatsApp.
+            {tr("Explorez les marchands vérifiés de", "Explore the verified vendors of")} {r.label} ({tr(...countryName(r.country))}{tr("). Consultez leurs catalogues en ligne et commandez directement sur WhatsApp.", "). Browse their online catalogs and order directly on WhatsApp.")}
           </p>
         </div>
       </section>
@@ -152,7 +160,7 @@ export default async function MarketplaceRegionPage({ params }: Params) {
       <main className="mx-auto max-w-6xl flex-1 px-4 py-10">
         <section className="mb-10">
           <h2 className="mb-3 a-label-md uppercase tracking-wider text-arctic-700">
-            Filtrer par rayon à {r.label}
+            {tr("Filtrer par rayon à", "Filter by aisle in")} {r.label}
           </h2>
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((c) => (
@@ -168,7 +176,7 @@ export default async function MarketplaceRegionPage({ params }: Params) {
           </div>
 
           <div className="mt-5 flex flex-wrap items-center gap-2">
-            <span className="a-label-md text-arctic-600">Autres villes :</span>
+            <span className="a-label-md text-arctic-600">{tr("Autres villes :", "Other cities:")}</span>
             {REGIONS.filter((x) => x.slug !== r.slug)
               .slice(0, 8)
               .map((x) => (
@@ -186,24 +194,27 @@ export default async function MarketplaceRegionPage({ params }: Params) {
         <section className="mb-12">
           <div className="mb-5 flex items-end justify-between border-b border-arctic-200/70 pb-3">
             <h2 className="a-headline-md text-arctic-900">
-              {shops.length} {shops.length === 1 ? "boutique active" : "boutiques actives"} à {r.label}
+              {shops.length} {shops.length === 1 ? tr("boutique active", "active shop") : tr("boutiques actives", "active shops")} à {r.label}
             </h2>
             <Link
               href="/marketplace"
               className="text-xs font-semibold text-brand-dark hover:underline"
             >
-              ← Toutes les régions
+              {tr("← Toutes les régions", "← All regions")}
             </Link>
           </div>
           {shops.length === 0 ? (
             <div className="glass glass-edge rounded-shape-xl p-8">
               <AuroraIsoscout
                 variant="products"
-                title={`Aucune boutique publique à ${r.label} pour le moment`}
-                body={`Soyez le premier commerçant à référencer votre boutique WhatsApp à ${r.label}. L'inscription est rapide et 100% gratuite.`}
+                title={tr(`Aucune boutique publique à ${r.label} pour le moment`, `No public shop in ${r.label} yet`)}
+                body={tr(
+                  `Soyez le premier commerçant à référencer votre boutique WhatsApp à ${r.label}. L'inscription est rapide et 100 % gratuite.`,
+                  `Be the first trader to list your WhatsApp shop in ${r.label}. Sign-up is quick and 100% free.`,
+                )}
                 action={
                   <Link href="/signup" className="btn-primary">
-                    Ouvrir la première boutique à {r.label} →
+                    {tr("Ouvrir la première boutique à", "Open the first shop in")} {r.label} →
                   </Link>
                 }
               />
