@@ -384,7 +384,7 @@ export default function ShopOnboardingModal({
                     onChange={(e) => setMomoNumber(e.target.value)}
                   />
                   <span className="mt-1 block text-[11px] text-arctic-500">
-                    {tr("Numéro marchand pour recevoir les paiements USSD & FedaPay.", "Merchant number to receive USSD & FedaPay payments.")}
+                    {tr("Votre numéro Mobile Money (T-Money, Flooz…).", "Your Mobile Money number (T-Money, Flooz…).")}
                   </span>
                 </div>
               </div>

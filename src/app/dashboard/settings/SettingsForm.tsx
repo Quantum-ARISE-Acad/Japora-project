@@ -302,7 +302,7 @@ export default function SettingsForm({
               onChange={(e) => setMomoNumber(e.target.value)}
             />
             <p className="mt-1 text-xs text-arctic-600">
-              {tr("Le numéro marchand auquel les clients envoient l'argent quand ils paient par code USSD (T-Money, Flooz…). Laissez vide pour utiliser votre numéro WhatsApp.", "The merchant number buyers send to when paying by dial code (T-Money, Flooz…). Leave empty to use your WhatsApp number.")}
+              {tr("Votre numéro Mobile Money (T-Money, Flooz…). Laissez vide pour utiliser votre numéro WhatsApp.", "Your Mobile Money number (T-Money, Flooz…). Leave empty to use your WhatsApp number.")}
             </p>
           </div>
           <div>
