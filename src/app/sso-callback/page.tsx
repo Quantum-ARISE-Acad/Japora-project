@@ -45,8 +45,10 @@ export default function SsoCallbackPage() {
     <div className="flex min-h-screen flex-col items-center justify-center gap-3">
       <AuthenticateWithRedirectCallback
         continueSignUpUrl="/signup"
-        signInForceRedirectUrl="/sso-callback?finalize=1"
-        signUpForceRedirectUrl="/sso-callback?finalize=1"
+        signInForceRedirectUrl="/dashboard"
+        signUpForceRedirectUrl="/dashboard"
+        signInFallbackRedirectUrl="/dashboard"
+        signUpFallbackRedirectUrl="/dashboard"
       />
       {finalizationError ? (
         <div role="alert" className="mx-4 max-w-md space-y-3 rounded-shape-md border border-red-300 bg-red-50 p-4 text-sm text-red-800">

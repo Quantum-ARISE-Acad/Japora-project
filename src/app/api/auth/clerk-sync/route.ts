@@ -13,9 +13,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
     }
 
-    const clerkUser = await currentUser();
+    const clerkUser = await currentUser().catch(() => null);
     if (!clerkUser || clerkUser.id !== clerkAuth.userId) {
-      return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
+      return NextResponse.json(
+        { error: tr("Session expirée ou compte introuvable. Veuillez vous reconnecter.", "Session expired or user not found. Please sign in again.") },
+        { status: 401 },
+      );
     }
 
     const body = await req.json().catch(() => ({}));

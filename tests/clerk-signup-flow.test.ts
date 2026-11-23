@@ -12,6 +12,7 @@ import {
   verifySignInOtpAndAdvance,
 } from "../src/lib/clerk-signup-flow";
 import { getStoreSetupStatus } from "../src/lib/onboarding";
+import { resolveOrProvisionClerkVendor } from "../src/lib/auth";
 
 describe("Clerk SignUp Flow & State-Transition Regression Tests", () => {
   test("buildSignUpCreatePayload never passes phoneNumber to Clerk during email signup even if whatsappNumber is present", () => {
@@ -343,5 +344,74 @@ describe("Clerk SignUp Flow & State-Transition Regression Tests", () => {
       "region",
       "category",
     ]);
+  });
+
+  test("resolveOrProvisionClerkVendor frees clerkId from soft-deleted vendor and provisions new active vendor", async () => {
+    const deletedVendor = {
+      id: "v_deleted_123",
+      clerkId: "user_deleted_999",
+      email: "koffi@example.com",
+      deletedAt: new Date("2026-01-01"),
+      phone: "+22890112233",
+      shopSlug: "koffi-mode",
+    };
+
+    let updatedTombstone: Record<string, unknown> | null = null;
+    let createdVendor: Record<string, unknown> | null = null;
+
+    const mockDb: any = {
+      vendor: {
+        findFirst: async ({ where }: any) => {
+          if (where?.clerkId === "user_deleted_999" && !updatedTombstone) {
+            return deletedVendor;
+          }
+          if (where?.clerkId === "user_deleted_999" && updatedTombstone) {
+            return createdVendor;
+          }
+          return null;
+        },
+        findUnique: async ({ where }: any) => {
+          if (where?.email === "koffi@example.com" && !updatedTombstone) {
+            return deletedVendor;
+          }
+          return null;
+        },
+        update: async ({ where, data }: any) => {
+          if (where?.id === "v_deleted_123") {
+            updatedTombstone = data;
+            return { ...deletedVendor, ...data };
+          }
+          return null;
+        },
+        create: async ({ data }: any) => {
+          createdVendor = { id: "v_new_456", ...data, deletedAt: null };
+          return createdVendor;
+        },
+      },
+    };
+
+    const clerkUser: any = {
+      id: "user_deleted_999",
+      primaryEmailAddressId: "email_1",
+      emailAddresses: [
+        { id: "email_1", emailAddress: "koffi@example.com", verification: { status: "verified" } },
+      ],
+      firstName: "Koffi",
+      lastName: "Mensah",
+    };
+
+    const vendor = await resolveOrProvisionClerkVendor(
+      "user_deleted_999",
+      clerkUser,
+      { shopName: "Koffi Nouvelle Boutique" },
+      mockDb,
+    );
+
+    assert.ok(vendor, "Vendor must not be null when recreating deleted account");
+    assert.equal(vendor?.id, "v_new_456");
+    assert.equal(vendor?.shopName, "Koffi Nouvelle Boutique");
+    assert.equal(vendor?.clerkId, "user_deleted_999");
+    assert.equal(vendor?.deletedAt, null);
+    assert.deepEqual(updatedTombstone, { clerkId: null, phone: null });
   });
 });

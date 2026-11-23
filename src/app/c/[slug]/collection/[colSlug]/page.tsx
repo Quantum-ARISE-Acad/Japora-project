@@ -10,7 +10,7 @@ type Params = { params: Promise<{ slug: string; colSlug: string }> };
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug, colSlug } = await params;
   const vendor = await prisma.vendor.findUnique({ where: { shopSlug: slug } });
-  if (!vendor) return { title: (await getServerTr())("Boutique introuvable", "Shop not found") };
+  if (!vendor || vendor.deletedAt) return { title: (await getServerTr())("Boutique introuvable", "Shop not found") };
 
   const collection = await prisma.collection.findUnique({
     where: { vendorId_slug: { vendorId: vendor.id, slug: colSlug } },
@@ -30,7 +30,7 @@ export default async function PublicCollectionPage({ params }: Params) {
   const t = (fr: string, en: string) => publicText(fr, en, locale);
 
   const vendor = await prisma.vendor.findUnique({ where: { shopSlug: slug } });
-  if (!vendor) notFound();
+  if (!vendor || vendor.deletedAt) notFound();
 
   const [collection, allCollections] = await Promise.all([
     prisma.collection.findUnique({

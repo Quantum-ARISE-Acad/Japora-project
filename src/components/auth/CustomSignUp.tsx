@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useClerk } from "@clerk/nextjs";
 // @clerk/nextjs v7: the root `useSignUp` is the new Signal API (no isLoaded/setActive).
 // This custom flow uses the classic SignUp resource API, exposed under /legacy.
 import { useSignUp } from "@clerk/nextjs/legacy";
@@ -44,16 +44,20 @@ export default function CustomSignUp() {
 
   let signUpHook: ClerkResource = null;
   let authHook: { isLoaded?: boolean; isSignedIn?: boolean; userId?: string | null } | null = null;
+  let clerkClient: { signOut?: () => Promise<unknown> } | null = null;
   try {
     if (clerkActive) {
       // eslint-disable-next-line react-hooks/rules-of-hooks
       signUpHook = useSignUp();
       // eslint-disable-next-line react-hooks/rules-of-hooks
       authHook = useAuth();
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      clerkClient = useClerk();
     }
   } catch {
     signUpHook = null;
     authHook = null;
+    clerkClient = null;
   }
 
   const isLoaded = signUpHook?.isLoaded ?? false;
@@ -92,8 +96,13 @@ export default function CustomSignUp() {
   // Returning Clerk sessions use the same sync-and-redirect finalizer.
   useEffect(() => {
     if (!clerkActive || !authHook?.isLoaded || !authHook?.isSignedIn || !authHook?.userId) return;
-    void finalize({ payload: getSyncPayload() });
-  }, [clerkActive, authHook?.isLoaded, authHook?.isSignedIn, authHook?.userId, finalize]); // eslint-disable-line react-hooks/exhaustive-deps
+    void finalize({ payload: getSyncPayload() }).then((ok) => {
+      if (!ok) {
+        // Stale or deleted session: clear Clerk session so the user can register afresh
+        void clerkClient?.signOut?.();
+      }
+    });
+  }, [clerkActive, authHook?.isLoaded, authHook?.isSignedIn, authHook?.userId, finalize, clerkClient]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Detect true OAuth continuation (`externalAccount` verified) without false-matching normal signups
   useEffect(() => {
@@ -170,14 +179,20 @@ export default function CustomSignUp() {
     if (action.type === "verify_email") {
       setVerificationStep("email");
       setCode("");
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      const prepareFn = activeSignUp?.prepareEmailAddressVerification ?? signUp?.prepareEmailAddressVerification;
+      if (prepareFn) {
+        await prepareFn.call(activeSignUp ?? signUp, { strategy: "email_code" });
+      }
       return;
     }
 
     if (action.type === "verify_phone") {
       setVerificationStep("phone");
       setCode("");
-      await signUp.preparePhoneNumberVerification({ strategy: "phone_code" });
+      const prepareFn = activeSignUp?.preparePhoneNumberVerification ?? signUp?.preparePhoneNumberVerification;
+      if (prepareFn) {
+        await prepareFn.call(activeSignUp ?? signUp, { strategy: "phone_code" });
+      }
       return;
     }
 
@@ -238,7 +253,7 @@ export default function CustomSignUp() {
       await signUp.authenticateWithRedirect({
         strategy: "oauth_google",
         redirectUrl: `${origin}/sso-callback`,
-        redirectUrlComplete: `${origin}/sso-callback?finalize=1`,
+        redirectUrlComplete: `${origin}/dashboard`,
         unsafeMetadata: {
           role: "seller",
           ...(name.trim() ? { name: name.trim() } : {}),

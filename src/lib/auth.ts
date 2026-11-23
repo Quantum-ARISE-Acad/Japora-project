@@ -77,19 +77,30 @@ export async function resolveOrProvisionClerkVendor(
   const metaCurrency = typeof meta.currency === "string" ? meta.currency.trim().toUpperCase() : "";
   const metaCategory = typeof meta.category === "string" ? meta.category.trim() : "";
 
+  const primaryEmailObj = clerkUser?.emailAddresses?.find(
+    (e: ClerkResource) => e.id === clerkUser.primaryEmailAddressId,
+  );
   const verifiedEmailObj =
-    clerkUser?.emailAddresses?.find(
-      (e: ClerkResource) => e.id === clerkUser.primaryEmailAddressId && e.verification?.status === "verified",
-    ) ?? clerkUser?.emailAddresses?.find((e: ClerkResource) => e.verification?.status === "verified");
+    (primaryEmailObj?.verification?.status === "verified" ? primaryEmailObj : null) ??
+    clerkUser?.emailAddresses?.find((e: ClerkResource) => e.verification?.status === "verified") ??
+    primaryEmailObj ??
+    clerkUser?.emailAddresses?.[0];
   const clerkEmail = verifiedEmailObj?.emailAddress?.trim().toLowerCase() || "";
 
+  const primaryPhoneObj = clerkUser?.phoneNumbers?.find(
+    (p: ClerkResource) => p.id === clerkUser.primaryPhoneNumberId,
+  );
   const verifiedPhoneObj =
-    clerkUser?.phoneNumbers?.find(
-      (p: ClerkResource) => p.id === clerkUser.primaryPhoneNumberId && p.verification?.status === "verified",
-    ) ?? clerkUser?.phoneNumbers?.find((p: ClerkResource) => p.verification?.status === "verified");
+    (primaryPhoneObj?.verification?.status === "verified" ? primaryPhoneObj : null) ??
+    clerkUser?.phoneNumbers?.find((p: ClerkResource) => p.verification?.status === "verified") ??
+    primaryPhoneObj ??
+    clerkUser?.phoneNumbers?.[0];
   const clerkPhone = verifiedPhoneObj?.phoneNumber?.trim() || "";
   const clerkPhoneDigits = clerkPhone.replace(/\D/g, "");
-  const isPhoneVerified = Boolean(clerkPhoneDigits && verifiedPhoneObj?.verification?.status === "verified");
+  const isPhoneVerified = Boolean(
+    clerkPhoneDigits &&
+      (verifiedPhoneObj?.verification?.status === "verified" || verifiedPhoneObj === primaryPhoneObj),
+  );
 
   const fallbackPhoneEmail =
     isPhoneVerified && clerkPhoneDigits ? `wa_${clerkPhoneDigits}@japora.local` : "";
@@ -100,6 +111,7 @@ export async function resolveOrProvisionClerkVendor(
     const owner = await database.vendor.findFirst({
       where: {
         phone: candidatePhone,
+        deletedAt: null,
         ...(excludeVendorId ? { id: { not: excludeVendorId } } : {}),
       },
       select: { id: true },
@@ -113,25 +125,37 @@ export async function resolveOrProvisionClerkVendor(
   });
 
   if (vendor) {
-    if (vendor.deletedAt) return null;
-    const updates: Record<string, unknown> = {};
-    if (clerkPhone && !vendor.phone && (await canClaimPhone(clerkPhone, vendor.id))) {
-      updates.phone = clerkPhone;
-    }
-    if (isPhoneVerified && !vendor.phoneVerifiedAt) {
-      updates.phoneVerifiedAt = new Date();
-    }
-    if (!vendor.whatsappNumber) {
-      const candidateWa = metaWhatsappNumber || hints?.whatsappNumber?.trim() || clerkPhone;
-      if (candidateWa) updates.whatsappNumber = candidateWa;
-    }
-    if (Object.keys(updates).length > 0) {
-      vendor = await database.vendor.update({
+    if (vendor.deletedAt) {
+      // The user previously had an account with this clerkId that was deleted.
+      // Free the clerkId from the deleted tombstone so the user can re-register or provision a new shop.
+      await database.vendor.update({
         where: { id: vendor.id },
-        data: updates,
-      });
+        data: {
+          clerkId: null,
+          phone: null,
+        },
+      }).catch(() => {});
+      vendor = null;
+    } else {
+      const updates: Record<string, unknown> = {};
+      if (clerkPhone && !vendor.phone && (await canClaimPhone(clerkPhone, vendor.id))) {
+        updates.phone = clerkPhone;
+      }
+      if (isPhoneVerified && !vendor.phoneVerifiedAt) {
+        updates.phoneVerifiedAt = new Date();
+      }
+      if (!vendor.whatsappNumber) {
+        const candidateWa = metaWhatsappNumber || hints?.whatsappNumber?.trim() || clerkPhone;
+        if (candidateWa) updates.whatsappNumber = candidateWa;
+      }
+      if (Object.keys(updates).length > 0) {
+        vendor = await database.vendor.update({
+          where: { id: vendor.id },
+          data: updates,
+        });
+      }
+      return vendor;
     }
-    return vendor;
   }
 
   if (!effectiveEmail) return null;
@@ -139,6 +163,19 @@ export async function resolveOrProvisionClerkVendor(
   // 2. Match existing vendor by verified email or verified phone
   if (clerkEmail) {
     vendor = await database.vendor.findUnique({ where: { email: clerkEmail } });
+    if (vendor && vendor.deletedAt) {
+      // The email belongs to a deleted tombstone vendor.
+      // Anonymize the deleted vendor's email so the user can recreate their shop with this email.
+      await database.vendor.update({
+        where: { id: vendor.id },
+        data: {
+          email: `deleted_${vendor.id}_${vendor.email}`,
+          clerkId: null,
+          phone: null,
+        },
+      }).catch(() => {});
+      vendor = null;
+    }
   }
   if (!vendor && isPhoneVerified && clerkPhone) {
     const phoneOrConditions: Record<string, string>[] = [{ phone: clerkPhone }];
@@ -151,12 +188,21 @@ export async function resolveOrProvisionClerkVendor(
     vendor = await database.vendor.findFirst({
       where: { OR: phoneOrConditions },
     });
+    if (vendor && vendor.deletedAt) {
+      await database.vendor.update({
+        where: { id: vendor.id },
+        data: {
+          phone: null,
+          clerkId: null,
+        },
+      }).catch(() => {});
+      vendor = null;
+    }
   }
 
   const now = new Date();
 
   if (vendor) {
-    if (vendor.deletedAt) return null;
     const updates: Record<string, unknown> = {
       clerkId: clerkUserId,
     };
@@ -180,8 +226,8 @@ export async function resolveOrProvisionClerkVendor(
       });
     } catch (error) {
       if ((error as { code?: string })?.code !== "P2002") throw error;
-      vendor = await database.vendor.findFirst({ where: { clerkId: clerkUserId } });
-      if (!vendor || vendor.deletedAt) throw error;
+      vendor = await database.vendor.findFirst({ where: { clerkId: clerkUserId, deletedAt: null } });
+      if (!vendor) throw error;
     }
     return vendor;
   }

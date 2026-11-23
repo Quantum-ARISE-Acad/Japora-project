@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useClerk } from "@clerk/nextjs";
 // @clerk/nextjs v7: the root `useSignIn` is the new Signal API (no isLoaded/setActive).
 // This custom flow uses the classic SignIn resource API, exposed under /legacy.
 import { useSignIn } from "@clerk/nextjs/legacy";
@@ -38,16 +38,20 @@ export default function CustomSignIn() {
 
   let signInHook: ClerkResource = null;
   let authHook: { isLoaded?: boolean; isSignedIn?: boolean; userId?: string | null } | null = null;
+  let clerkClient: { signOut?: () => Promise<unknown> } | null = null;
   try {
     if (clerkActive) {
       // eslint-disable-next-line react-hooks/rules-of-hooks
       signInHook = useSignIn();
       // eslint-disable-next-line react-hooks/rules-of-hooks
       authHook = useAuth();
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      clerkClient = useClerk();
     }
   } catch {
     signInHook = null;
     authHook = null;
+    clerkClient = null;
   }
 
   const isLoaded = signInHook?.isLoaded ?? false;
@@ -72,8 +76,12 @@ export default function CustomSignIn() {
   // Returning Clerk sessions use the same sync-and-redirect finalizer.
   useEffect(() => {
     if (!clerkActive || !authHook?.isLoaded || !authHook?.isSignedIn || !authHook?.userId) return;
-    void finalize();
-  }, [clerkActive, authHook?.isLoaded, authHook?.isSignedIn, authHook?.userId, finalize]);
+    void finalize().then((ok) => {
+      if (!ok) {
+        void clerkClient?.signOut?.();
+      }
+    });
+  }, [clerkActive, authHook?.isLoaded, authHook?.isSignedIn, authHook?.userId, finalize, clerkClient]);
 
   // Forward an incoming Wataru SSO ticket, if any.
   useEffect(() => {
@@ -123,7 +131,7 @@ export default function CustomSignIn() {
       await signIn.authenticateWithRedirect({
         strategy: "oauth_google",
         redirectUrl: `${origin}/sso-callback`,
-        redirectUrlComplete: `${origin}/sso-callback?finalize=1`,
+        redirectUrlComplete: `${origin}/dashboard`,
       });
     } catch (err: unknown) {
       if (isSessionExistsError(err)) {

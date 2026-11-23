@@ -46,6 +46,13 @@ export function extractClerkError(err: unknown, fallback: string): string {
       message?: string;
     };
     const first = clerkErr.errors?.[0];
+    const code = first?.code;
+    const msg = (first?.longMessage || first?.message || clerkErr.message || "").trim();
+
+    if (code === "resource_not_found" || msg.toLowerCase() === "not found") {
+      return fallback || "Session expirée ou introuvable. Veuillez réessayer.";
+    }
+
     if (typeof first?.longMessage === "string" && first.longMessage.trim()) {
       return first.longMessage.trim();
     }

@@ -28,20 +28,50 @@ export async function DELETE(req: NextRequest) {
     );
   }
 
+  const oldSlug = vendor.shopSlug;
   const tombstoneEmail = `deleted_${vendor.id}@deleted.local`;
   const tombstoneSlug = `deleted-${vendor.id}`;
-  await prisma.vendor.update({
-    where: { id: vendor.id },
-    data: {
-      deletedAt: new Date(),
-      email: tombstoneEmail,
-      shopSlug: tombstoneSlug,
-      // Wipe identifying details — keep aggregate stats for our records.
-      shopName: "(deleted account)",
-      whatsappNumber: "",
-      tagline: "",
-    },
-  });
+
+  if (vendor.clerkId && process.env.CLERK_SECRET_KEY) {
+    try {
+      const { clerkClient } = await import("@clerk/nextjs/server");
+      const client = await clerkClient();
+      await client.users.deleteUser(vendor.clerkId).catch(() => {});
+    } catch {
+      // Ignore Clerk API deletion errors if offline or not configured
+    }
+  }
+
+  await prisma.$transaction([
+    prisma.vendor.update({
+      where: { id: vendor.id },
+      data: {
+        deletedAt: new Date(),
+        isPublic: false,
+        email: tombstoneEmail,
+        shopSlug: tombstoneSlug,
+        clerkId: null,
+        phone: null,
+        // Wipe identifying details — keep aggregate stats for our records.
+        shopName: "(deleted account)",
+        whatsappNumber: "",
+        tagline: "",
+      },
+    }),
+    prisma.product.updateMany({
+      where: { vendorId: vendor.id },
+      data: { isActive: false },
+    }),
+  ]);
+
+  try {
+    const { revalidatePath } = await import("next/cache");
+    revalidatePath("/marketplace");
+    revalidatePath(`/shop/${oldSlug}`);
+    revalidatePath(`/c/${oldSlug}`);
+  } catch {
+    // Ignore cache revalidation errors
+  }
 
   await destroySession();
   logger.info("account.deleted", { vendorId: vendor.id });

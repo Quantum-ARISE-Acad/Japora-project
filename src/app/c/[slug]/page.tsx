@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
   const vendor = await prisma.vendor.findUnique({ where: { shopSlug: slug } });
   const tr = await getServerTr();
-  if (!vendor) return { title: tr("Boutique introuvable", "Shop not found") };
+  if (!vendor || vendor.deletedAt) return { title: tr("Boutique introuvable", "Shop not found") };
   return {
     title: tr(`${vendor.shopName} — Catalogue`, `${vendor.shopName} — Catalog`),
     description: vendor.tagline || tr(`Parcourez et commandez chez ${vendor.shopName} sur WhatsApp.`, `Browse and order from ${vendor.shopName} on WhatsApp.`),
@@ -23,7 +23,7 @@ export default async function CatalogPage({ params, searchParams }: Params) {
   const { product: directProductId } = (await searchParams) ?? {};
 
   const vendor = await prisma.vendor.findUnique({ where: { shopSlug: slug } });
-  if (!vendor) notFound();
+  if (!vendor || vendor.deletedAt) notFound();
 
   const [products, collections] = await Promise.all([
     prisma.product.findMany({

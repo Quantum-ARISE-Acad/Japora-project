@@ -3,10 +3,22 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import { useClerk } from "@clerk/nextjs";
+import { isClerkConfigured } from "@/components/auth/ClerkAuthProvider";
 
 export default function DangerZone({ shopName }: { shopName: string }) {
   const { tr } = usePublicLang();
   const router = useRouter();
+  const clerkActive = isClerkConfigured();
+  let clerk: { signOut?: () => Promise<unknown> } | null = null;
+  try {
+    if (clerkActive) {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      clerk = useClerk();
+    }
+  } catch {
+    clerk = null;
+  }
   const [open, setOpen] = useState(false);
   const [confirm, setConfirm] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -35,6 +47,13 @@ export default function DangerZone({ shopName }: { shopName: string }) {
     if (!res.ok) {
       setError(data.error || tr("Impossible de supprimer le compte.", "Could not delete account."));
       return;
+    }
+    if (clerkActive && clerk?.signOut) {
+      try {
+        await clerk.signOut();
+      } catch {
+        // Ignore client signout error
+      }
     }
     router.push("/");
     router.refresh();

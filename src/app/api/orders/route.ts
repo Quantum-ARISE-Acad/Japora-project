@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     const shopSlug = String(b.shopSlug || "").trim();
     vendor = shopSlug ? await prisma.vendor.findUnique({ where: { shopSlug } }) : null;
   }
-  if (!vendor) {
+  if (!vendor || vendor.deletedAt) {
     return source === "manual"
       ? NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 })
       : NextResponse.json({ error: tr("Boutique introuvable", "Shop not found") }, { status: 404 });
