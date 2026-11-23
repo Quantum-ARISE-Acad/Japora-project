@@ -10,6 +10,7 @@ import {
   determineNextSignUpStep,
   verifySignUpOtpAndAdvance,
   verifySignInOtpAndAdvance,
+  type ClerkResource,
 } from "../src/lib/clerk-signup-flow";
 import { getStoreSetupStatus } from "../src/lib/onboarding";
 import { resolveOrProvisionClerkVendor } from "../src/lib/auth";
@@ -359,9 +360,10 @@ describe("Clerk SignUp Flow & State-Transition Regression Tests", () => {
     let updatedTombstone: Record<string, unknown> | null = null;
     let createdVendor: Record<string, unknown> | null = null;
 
-    const mockDb: any = {
+    type MockQuery = { where?: Record<string, unknown>; data?: Record<string, unknown> };
+    const mockDb = {
       vendor: {
-        findFirst: async ({ where }: any) => {
+        findFirst: async ({ where }: MockQuery) => {
           if (where?.clerkId === "user_deleted_999" && !updatedTombstone) {
             return deletedVendor;
           }
@@ -370,27 +372,27 @@ describe("Clerk SignUp Flow & State-Transition Regression Tests", () => {
           }
           return null;
         },
-        findUnique: async ({ where }: any) => {
+        findUnique: async ({ where }: MockQuery) => {
           if (where?.email === "koffi@example.com" && !updatedTombstone) {
             return deletedVendor;
           }
           return null;
         },
-        update: async ({ where, data }: any) => {
+        update: async ({ where, data }: MockQuery) => {
           if (where?.id === "v_deleted_123") {
-            updatedTombstone = data;
+            updatedTombstone = data ?? null;
             return { ...deletedVendor, ...data };
           }
           return null;
         },
-        create: async ({ data }: any) => {
+        create: async ({ data }: MockQuery) => {
           createdVendor = { id: "v_new_456", ...data, deletedAt: null };
           return createdVendor;
         },
       },
     };
 
-    const clerkUser: any = {
+    const clerkUser: ClerkResource = {
       id: "user_deleted_999",
       primaryEmailAddressId: "email_1",
       emailAddresses: [

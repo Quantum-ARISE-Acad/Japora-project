@@ -77,30 +77,21 @@ export async function resolveOrProvisionClerkVendor(
   const metaCurrency = typeof meta.currency === "string" ? meta.currency.trim().toUpperCase() : "";
   const metaCategory = typeof meta.category === "string" ? meta.category.trim() : "";
 
-  const primaryEmailObj = clerkUser?.emailAddresses?.find(
-    (e: ClerkResource) => e.id === clerkUser.primaryEmailAddressId,
-  );
+  // Only a VERIFIED email may identify a vendor: an unverified address added to a
+  // Clerk account must never be enough to take over the shop that uses it.
   const verifiedEmailObj =
-    (primaryEmailObj?.verification?.status === "verified" ? primaryEmailObj : null) ??
-    clerkUser?.emailAddresses?.find((e: ClerkResource) => e.verification?.status === "verified") ??
-    primaryEmailObj ??
-    clerkUser?.emailAddresses?.[0];
+    clerkUser?.emailAddresses?.find(
+      (e: ClerkResource) => e.id === clerkUser.primaryEmailAddressId && e.verification?.status === "verified",
+    ) ?? clerkUser?.emailAddresses?.find((e: ClerkResource) => e.verification?.status === "verified");
   const clerkEmail = verifiedEmailObj?.emailAddress?.trim().toLowerCase() || "";
 
-  const primaryPhoneObj = clerkUser?.phoneNumbers?.find(
-    (p: ClerkResource) => p.id === clerkUser.primaryPhoneNumberId,
-  );
   const verifiedPhoneObj =
-    (primaryPhoneObj?.verification?.status === "verified" ? primaryPhoneObj : null) ??
-    clerkUser?.phoneNumbers?.find((p: ClerkResource) => p.verification?.status === "verified") ??
-    primaryPhoneObj ??
-    clerkUser?.phoneNumbers?.[0];
+    clerkUser?.phoneNumbers?.find(
+      (p: ClerkResource) => p.id === clerkUser.primaryPhoneNumberId && p.verification?.status === "verified",
+    ) ?? clerkUser?.phoneNumbers?.find((p: ClerkResource) => p.verification?.status === "verified");
   const clerkPhone = verifiedPhoneObj?.phoneNumber?.trim() || "";
   const clerkPhoneDigits = clerkPhone.replace(/\D/g, "");
-  const isPhoneVerified = Boolean(
-    clerkPhoneDigits &&
-      (verifiedPhoneObj?.verification?.status === "verified" || verifiedPhoneObj === primaryPhoneObj),
-  );
+  const isPhoneVerified = Boolean(clerkPhoneDigits && verifiedPhoneObj?.verification?.status === "verified");
 
   const fallbackPhoneEmail =
     isPhoneVerified && clerkPhoneDigits ? `wa_${clerkPhoneDigits}@japora.local` : "";
