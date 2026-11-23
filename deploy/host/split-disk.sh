@@ -92,12 +92,32 @@ with open(path, "w") as f:
     json.dump(cfg, f, indent=2)
     f.write("\n")
 PY
+# 4. containerd sur le disque de Japora -----------------------------------------
+# Depuis Docker 29, les images sont rangées par containerd (dans /var/lib/containerd),
+# pas dans le data-root de Docker : sans ce réglage, la première construction remplit
+# le disque système (vu sur la VM wataru : « no space left on device »).
+echo "4. containerd : données dans $MNT/containerd"
+mkdir -p "$MNT/containerd" /etc/containerd /etc/systemd/system/containerd.service.d
+cat > /etc/systemd/system/containerd.service.d/japora-data.conf <<UNIT
+[Unit]
+RequiresMountsFor=$MNT
+UNIT
+touch /etc/containerd/config.toml
+if grep -qE '^\s*root\s*=' /etc/containerd/config.toml; then
+  sed -i -E "s#^\s*root\s*=.*#root = \"$MNT/containerd\"#" /etc/containerd/config.toml
+else
+  sed -i "1i root = \"$MNT/containerd\"" /etc/containerd/config.toml
+fi
 systemctl daemon-reload
-systemctl restart docker
+systemctl stop docker docker.socket containerd
+# Une VM neuve n'a encore aucune image : l'ancien dossier de containerd ne contient rien d'utile.
+if [ -d /var/lib/containerd ] && [ ! -L /var/lib/containerd ]; then rm -rf /var/lib/containerd; fi
+systemctl start containerd docker
 root_dir="$(docker info -f '{{.DockerRootDir}}')"
 [ "$root_dir" = "$MNT/docker" ] || die "Docker utilise encore $root_dir."
+grep -qE "^root = \"$MNT/containerd\"" /etc/containerd/config.toml || die "containerd n'utilise pas $MNT/containerd."
 
 echo
 df -h / "$MNT" | sed 's/^/   /'
-echo "Terminé. Docker et les sauvegardes utilisent $MNT ; le système garde le reste de /."
+echo "Terminé. Docker, containerd et les sauvegardes utilisent $MNT ; le système garde le reste de /."
 echo "Installez ensuite l'alerte : sudo deploy/host/install-disk-alert.sh"
