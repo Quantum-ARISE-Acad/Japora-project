@@ -10,16 +10,15 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { sendDailySummary } from "@/lib/hustle";
+import { isAuthorizedCron } from "@/lib/cron-auth";
 
 async function handle(req: NextRequest) {
-  const expected = process.env.CRON_SECRET;
-  const provided =
-    req.nextUrl.searchParams.get("key") || req.headers.get("x-cron-key");
+  const auth = isAuthorizedCron(req);
 
-  if (!expected || provided !== expected) {
+  if (!auth.ok) {
     logger.warn("cron.daily_summary.unauthorized", {
-      hasProvided: Boolean(provided),
-      hasExpected: Boolean(expected),
+      hasProvided: auth.hasProvided,
+      hasExpected: auth.hasExpected,
     });
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }

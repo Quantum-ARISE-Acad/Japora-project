@@ -7,10 +7,78 @@ Caddy, les sauvegardes et la supervision.
 
 | Module | Fichier | Services |
 |---|---|---|
-| Proxy | `compose/proxy.yml` | Caddy : seul service ouvert sur Internet (80 et 443) |
+| Proxy | `compose/proxy.yml` | Caddy : seul service ouvert sur Internet (80 et 443, ou 8080 sur Olga) |
 | Données | `compose/data.yml` | PostgreSQL, sauvegarde toutes les 6 heures |
 | Application | `compose/app.yml` | Japora, planificateur des tâches |
 | Supervision | `compose/observability.yml` | Prometheus, Grafana, collecteurs de mesures |
+
+## Sur une VM Olga (cas de l'équipe)
+
+Sur Olga, c'est le serveur frontal d'Olga qui reçoit les visiteurs en HTTPS, avec son
+certificat et l'adresse publique qu'il donne (par exemple `https://wataru.quantum-arise.com`).
+Il transmet en HTTP à **un seul port** de la VM. Pas de nom de domaine à acheter, pas
+de Cloudflare, pas de Let's Encrypt : Caddy écoute simplement sur le port 8080
+(`caddy/Caddyfile.olga`). Les sections « Premier déploiement » 1 et 2 ne s'appliquent pas.
+
+```bash
+ssh -J wataru-jump@192.168.105.250 wataru@10.77.0.12
+curl -fsSL https://get.docker.com | sudo sh && sudo usermod -aG docker wataru   # puis se reconnecter
+git clone https://github.com/Quantum-ARISE-Acad/Japora-project.git japora && cd japora
+deploy/mvp.sh init-olga wataru.quantum-arise.com   # adresse provisoire si elle n'est pas encore connue
+sudo deploy/host/split-disk.sh 11G                 # espace séparé pour Docker et les sauvegardes (voir « Espace disque »)
+sudo deploy/host/install-disk-alert.sh             # alerte e-mail si un disque se remplit
+# copier .env.keys depuis votre ordinateur (scp), puis :
+deploy/mvp.sh up
+curl -I http://10.77.0.12:8080/                     # doit répondre depuis la VM
+```
+
+Puis demandez à l'administrateur d'Olga de publier le port 8080. Quand il donne
+l'adresse publique : `deploy/mvp.sh set-url <adresse>` puis `deploy/mvp.sh update`
+(l'adresse est inscrite dans Japora à la construction). Déclarez ensuite cette adresse
+dans Meta (webhook WhatsApp) et dans Clerk.
+
+- Grafana n'est pas publié : `ssh -L 3000:127.0.0.1:3000 -J wataru-jump@192.168.105.250 wataru@10.77.0.12`,
+  puis http://localhost:3000 sur votre ordinateur.
+- Olga ne sauvegarde pas la VM : copiez régulièrement `~/japora/backups` sur une autre
+  machine (`scp -r -J wataru-jump@192.168.105.250 wataru@10.77.0.12:japora/backups .`).
+- Pas de vrais clients ni de clients payants sans l'accord de l'administrateur d'Olga.
+
+## Espace disque : système et Japora séparés
+
+Sur une petite VM (20 Go sur Olga), tout ce qui grossit est mis à part, pour que le
+système reste utilisable même si Japora remplit son espace :
+
+| Espace | Contenu | Si plein |
+|---|---|---|
+| `/` (système) | Ubuntu, SSH, journaux, mises à jour | — |
+| `/srv/data` | Docker (images, base, photos, supervision) et `backups/` | seul Japora s'arrête ; SSH marche toujours |
+
+`/srv/data` est un fichier de taille fixe (`/srv/data.img`) formaté et
+monté : aucune partition n'est modifiée. `sudo deploy/host/split-disk.sh <taille>`
+le crée **avant le premier `up`** (le script refuse si Docker contient déjà des
+données), y place Docker et les sauvegardes, et empêche Docker de démarrer tant que
+cet espace n'est pas monté. Le script laisse au moins 5 Go libres au système.
+
+**Alertes.** `sudo deploy/host/install-disk-alert.sh` installe une vérification toutes
+les 5 minutes, hors de Docker : e-mail à 80 % d'espace utilisé, « URGENT » à 90 %,
+rappel toutes les 12 heures tant que ça reste plein, et un e-mail quand c'est revenu
+à la normale. Remplissez `/etc/japora/alerts.env` (identifiants SMTP, modèle :
+`host/alerts.env.example`), puis testez : `sudo /usr/local/sbin/japora-disk-alert --test`.
+Les mêmes seuils apparaissent dans Prometheus/Grafana (`DisquePresquePlein`, `DisquePlein`).
+
+**Si l'espace de Japora se remplit** : `docker builder prune -f && docker image prune -f`,
+puis vérifier les sauvegardes (`du -sh ~/japora/backups/* | sort -h | tail`).
+
+**Agrandir** (exemple : +2 Go, s'il reste assez de place sur `/`) :
+
+```bash
+deploy/mvp.sh down && sudo systemctl stop docker docker.socket
+sudo umount ~/japora/backups /srv/data
+sudo truncate -s +2G /srv/data.img
+sudo e2fsck -f /srv/data.img && sudo resize2fs /srv/data.img
+sudo mount /srv/data && sudo mount ~/japora/backups && sudo systemctl start docker
+deploy/mvp.sh up
+```
 
 ## Premier déploiement
 
@@ -141,6 +209,45 @@ ne pourrait pas fonctionner. Le journal des versions déployées est dans `deplo
 Le dépôt reste en SQLite pour le développement, et le serveur utilise PostgreSQL.
 Chaque changement de `schema.prisma` doit donc être accompagné d'une migration
 PostgreSQL dans `prisma/migrations/`.
+
+## Photos dans Cloudflare R2 (stockage externe, facultatif)
+
+Facultatif : il faut un compte Cloudflare, que l'équipe n'a pas encore. Par défaut, les photos des produits sont enregistrées sur le serveur. Pour libérer
+son disque et faire survivre les photos à une panne du serveur, placez-les dans
+Cloudflare R2. Jusqu'à 10 Go, R2 est gratuit et ne facture pas les téléchargements.
+
+1. Dans Cloudflare, ouvrez **R2**, puis créez un bucket, par exemple `japora-photos`.
+2. Dans les réglages du bucket, activez l'accès public : l'adresse `r2.dev` ou,
+   mieux, un sous-domaine à vous, comme `photos.votre-domaine`.
+3. Dans **R2 > Manage API tokens**, créez une clé avec le droit
+   « Object Read & Write » limitée à ce bucket. Notez l'Access Key ID et le Secret.
+4. Ajoutez dans `.env.keys`, sur le serveur :
+
+   ```bash
+   STORAGE_S3_BUCKET=japora-photos
+   STORAGE_S3_REGION=auto
+   STORAGE_S3_ENDPOINT=https://<ID_DU_COMPTE>.r2.cloudflarestorage.com
+   STORAGE_S3_ACCESS_KEY_ID=...
+   STORAGE_S3_SECRET_ACCESS_KEY=...
+   STORAGE_S3_PUBLIC_URL=https://photos.votre-domaine
+   ```
+
+5. Pour appliquer les réglages, lancez `deploy/mvp.sh up`. Dans Japora, **Réglages >
+   Stockage des photos** doit alors afficher « Stockage externe (S3 / R2) ». S'il
+   affiche « Configuration incomplète », la page liste les réglages manquants.
+6. Transférez les photos déjà présentes sur le serveur :
+
+   ```bash
+   deploy/mvp.sh photos-s3           # essai : affiche ce qui sera copié
+   deploy/mvp.sh photos-s3 --apply   # copie les photos et met à jour les liens
+   ```
+
+   Vous pouvez relancer la commande sans risque. Les fichiers restent sur le serveur
+   et dans ses sauvegardes jusqu'à ce que vous les effaciez vous-même.
+
+Les sauvegardes toutes les 6 heures ne copient pas les photos rangées dans R2.
+Cloudflare les conserve en plusieurs exemplaires. Pour garder une copie
+supplémentaire, activez une règle de réplication sur le bucket.
 
 ## Sauvegardes
 

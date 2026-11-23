@@ -10,13 +10,18 @@ import { formatMoney } from "@/lib/utils";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 import PricingCalculator from "./PricingCalculator";
-import { getPublicLocale, publicText } from "@/lib/public-locale";
+import { getPublicLocale, publicText, getServerTr } from "@/lib/public-locale";
 
-export const metadata: Metadata = {
-  title: "Tarifs & Commissions — Japora",
-  description:
-    "0 FCFA d'abonnement mensuel. Démarrez gratuitement sur WhatsApp et gardez 97% sur les paiements Mobile Money intégrés.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const tr = await getServerTr();
+  return {
+    title: tr("Tarifs & commissions — Japora", "Pricing & fees — Japora"),
+    description: tr(
+      "0 FCFA d'abonnement mensuel. Démarrez gratuitement sur WhatsApp et gardez 97 % sur les paiements Mobile Money intégrés.",
+      "0 FCFA monthly subscription. Start free on WhatsApp and keep 97% of built-in Mobile Money payments.",
+    ),
+  };
+}
 
 export default async function PricingPage() {
   const vendor = await getCurrentVendor();
@@ -160,10 +165,10 @@ export default async function PricingPage() {
                 <tr className="border-b border-arctic-200 bg-arctic-100/70 text-arctic-900">
                   <th className="p-4 font-display font-bold">{t("Fonctionnalité", "Feature")}</th>
                   <th className="p-4 text-center font-display font-bold">
-                    Starter (Gratuit)
+                    {t("Starter (gratuit)", "Starter (free)")}
                   </th>
                   <th className="p-4 text-center font-display font-bold text-brand-dark">
-                    Pay-as-you-sell (Keep 97%)
+                    {t("Payez à la vente (gardez 97 %)", "Pay-as-you-sell (keep 97%)")}
                   </th>
                 </tr>
               </thead>

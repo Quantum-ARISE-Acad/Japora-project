@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { isStoredWhatsAppNumberValid } from "@/lib/whatsapp-number";
 import QRCode from "qrcode";
 import type { ShopAiActionButton } from "@/app/api/ai/shop-chat/route";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 interface Message {
   id: string;
@@ -65,6 +67,7 @@ export default function ShopAiAssistant({
   onBuyNowProductById,
   onViewProductById,
 }: ShopAiAssistantProps) {
+  const { tr } = usePublicLang();
   const displayAssistantName = assistantName || `Assistant IA ${shopName}`;
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"chat" | "deal" | "track" | "qr">("chat");
@@ -108,7 +111,8 @@ export default function ShopAiAssistant({
   // WhatsApp QR code state
   const [waQrSvg, setWaQrSvg] = useState<string>("");
 
-  const cleanPhone = whatsappNumber ? whatsappNumber.replace(/\D/g, "") : "";
+  // Without its country code the number would open a wrong WhatsApp contact: no link then.
+  const cleanPhone = isStoredWhatsAppNumberValid(whatsappNumber) ? (whatsappNumber || "").replace(/\D/g, "") : "";
   const defaultWaText =
     whatsappPrefillMessage ||
     `Bonjour ${shopName} (${shopSlug}) ! Je viens de scanner votre QR code sur Japora. Pouvez-vous m'aider avec vos articles ?`;
@@ -240,7 +244,7 @@ export default function ShopAiAssistant({
           id: `err-${Date.now()}`,
           role: "assistant",
           content:
-            "Une erreur réseau est survenue. Vous pouvez réessayer ou ouvrir directement WhatsApp.",
+            tr("Une erreur réseau est survenue. Vous pouvez réessayer ou ouvrir directement WhatsApp.", "A network error occurred. You can try again or open WhatsApp directly."),
           timestamp: new Date().toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
@@ -449,18 +453,18 @@ export default function ShopAiAssistant({
             className="hidden sm:flex items-center gap-2 bg-slate-900/95 border border-emerald-500/40 text-emerald-300 text-xs font-medium px-3.5 py-2 rounded-full shadow-lg backdrop-blur-md cursor-pointer hover:border-emerald-400 transition"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span>Questions, Catalogue, Deal ou Suivi ? Demandez à l&apos;IA ✨</span>
+            <span>{tr("Questions, Catalogue, Deal ou Suivi ? Demandez à l'IA ✨", "Questions, catalog, deal or tracking? Ask the AI ✨")}</span>
           </div>
         )}
 
         <button
           onClick={() => setIsOpen(!isOpen)}
-          aria-label="Ouvrir l'Assistant IA de la boutique"
+          aria-label={tr("Ouvrir l'Assistant IA de la boutique", "Open the shop's AI assistant")}
           className="group relative flex items-center gap-2.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 text-white font-bold px-5 py-3.5 rounded-full shadow-2xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
         >
           <span className="text-xl">{isOpen ? "✕" : "✨"}</span>
           <span className="text-sm tracking-wide">
-            {isOpen ? "Fermer" : "Assistant IA & WhatsApp"}
+            {isOpen ? tr("Fermer", "Close") : tr("Assistant IA & WhatsApp", "AI & WhatsApp assistant")}
           </span>
         </button>
       </div>
@@ -483,7 +487,7 @@ export default function ShopAiAssistant({
                     </span>
                   </h3>
                   <p className="text-[11px] text-emerald-100/80 truncate max-w-[230px]">
-                    Catalogue • Recherche • Deals • Commandes • Suivi
+                    {tr("Catalogue • Recherche • Deals • Commandes • Suivi", "Catalog • Search • Deals • Orders • Tracking")}
                   </p>
                 </div>
               </div>
@@ -507,7 +511,7 @@ export default function ShopAiAssistant({
                     : "text-slate-300 hover:text-white"
                 }`}
               >
-                💬 Chat IA
+                {tr("💬 Chat IA", "💬 AI chat")}
               </button>
               <button
                 type="button"
@@ -518,7 +522,7 @@ export default function ShopAiAssistant({
                     : "text-slate-300 hover:text-white"
                 }`}
               >
-                🤝 Deal
+                {tr("🤝 Deal", "🤝 Deal")}
               </button>
               <button
                 type="button"
@@ -529,7 +533,7 @@ export default function ShopAiAssistant({
                     : "text-slate-300 hover:text-white"
                 }`}
               >
-                📦 Suivi
+                {tr("📦 Suivi", "📦 Tracking")}
               </button>
               <button
                 type="button"
@@ -540,7 +544,7 @@ export default function ShopAiAssistant({
                     : "text-slate-300 hover:text-white"
                 }`}
               >
-                📲 QR WA
+                {tr("📲 QR WA", "📲 WA QR")}
               </button>
             </div>
           </div>
@@ -606,7 +610,7 @@ export default function ShopAiAssistant({
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce [animation-delay:0.15s]" />
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce [animation-delay:0.3s]" />
                       <span className="text-xs text-slate-400 ml-1">
-                        Gemini analyse la boutique...
+                        {tr("Gemini analyse la boutique...", "Gemini is analysing the shop...")}
                       </span>
                     </div>
                   </div>
@@ -641,7 +645,7 @@ export default function ShopAiAssistant({
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ex: Cherche-moi un produit disponible, ou quel est le prix..."
+                  placeholder={tr("Ex: Cherche-moi un produit disponible, ou quel est le prix...", "e.g. Find me an available product, or what is the price...")}
                   disabled={isLoading}
                   className="flex-1 bg-slate-800/90 border border-slate-700 focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none transition"
                 />
@@ -650,7 +654,7 @@ export default function ShopAiAssistant({
                   disabled={!input.trim() || isLoading}
                   className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-white font-semibold px-4 py-2.5 rounded-xl text-xs sm:text-sm transition cursor-pointer"
                 >
-                  Envoyer
+                  {tr("Envoyer", "Send")}
                 </button>
               </form>
             </>
@@ -661,17 +665,17 @@ export default function ShopAiAssistant({
             <div className="flex-1 overflow-y-auto p-4 space-y-4 text-white">
               <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-3.5">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-amber-300">
-                  🤝 Proposer un Deal au vendeur
+                  {tr("🤝 Proposer un Deal au vendeur", "🤝 Offer a deal to the vendor")}
                 </h4>
                 <p className="mt-1 text-xs text-slate-300">
-                  Proposez votre prix sur un article de <strong>{shopName}</strong>. Votre offre est envoyée directement dans le <strong>Dashboard du vendeur</strong> et vous recevez une confirmation WhatsApp dès qu&apos;il la valide !
+                  {tr("Proposez votre prix sur un article de", "Offer your price on an item from")} <strong>{shopName}</strong>{tr(". Votre offre est envoyée directement dans le", ". Your offer goes straight to the vendor's")} <strong>{tr("Dashboard du vendeur", "dashboard")}</strong> {tr("et vous recevez une confirmation WhatsApp dès qu'il la valide !", "and you get a WhatsApp confirmation as soon as they accept it!")}
                 </p>
               </div>
 
               <form onSubmit={handleDealSubmit} className="space-y-3">
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                    Article souhaité
+                    {tr("Article souhaité", "Item you want")}
                   </label>
                   <select
                     value={dealProductId}
@@ -688,7 +692,7 @@ export default function ShopAiAssistant({
                   >
                     {catalogList.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.name} — Prix catalogue : {p.priceFormatted} ({p.stock} en stock)
+                        {p.name} {tr("— Prix catalogue :", "— Catalog price:")} {p.priceFormatted} ({p.stock} {tr("en stock)", "in stock)")}
                       </option>
                     ))}
                   </select>
@@ -696,7 +700,7 @@ export default function ShopAiAssistant({
 
                 {selectedDealProduct && (
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[11px] text-slate-400">Offres rapides :</span>
+                    <span className="text-[11px] text-slate-400">{tr("Offres rapides :", "Quick offers:")}</span>
                     {[0.9, 0.85, 0.8].map((ratio) => {
                       const suggested = Math.max(1, Math.round(selectedDealProduct.priceMajor * ratio));
                       const pct = Math.round((1 - ratio) * 100);
@@ -717,7 +721,7 @@ export default function ShopAiAssistant({
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                      Votre prix total proposé
+                      {tr("Votre prix total proposé", "Your total offered price")}
                     </label>
                     <input
                       type="number"
@@ -730,7 +734,7 @@ export default function ShopAiAssistant({
                   </div>
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                      Quantité
+                      {tr("Quantité", "Quantity")}
                     </label>
                     <input
                       type="number"
@@ -746,11 +750,11 @@ export default function ShopAiAssistant({
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                      Votre nom
+                      {tr("Votre nom", "Your name")}
                     </label>
                     <input
                       type="text"
-                      placeholder="Ex: Kossi"
+                      placeholder={tr("Ex: Kossi", "e.g. Kossi")}
                       value={dealCustomerName}
                       onChange={(e) => setDealCustomerName(e.target.value)}
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-400 focus:outline-none"
@@ -758,11 +762,11 @@ export default function ShopAiAssistant({
                   </div>
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                      Numéro WhatsApp (pour réponse)
+                      {tr("Numéro WhatsApp (pour réponse)", "WhatsApp number (for the reply)")}
                     </label>
                     <input
                       type="tel"
-                      placeholder="Ex: 22893730817"
+                      placeholder={tr("Ex: 22893730817", "e.g. 22893730817")}
                       value={dealCustomerPhone}
                       onChange={(e) => setDealCustomerPhone(e.target.value)}
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-400 focus:outline-none"
@@ -773,11 +777,11 @@ export default function ShopAiAssistant({
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                    Message pour le vendeur (optionnel)
+                    {tr("Message pour le vendeur (optionnel)", "Message to the vendor (optional)")}
                   </label>
                   <input
                     type="text"
-                    placeholder="Ex: Je prends 2 pièces si vous acceptez ce prix !"
+                    placeholder={tr("Ex: Je prends 2 pièces si vous acceptez ce prix !", "e.g. I'll take 2 if you accept this price!")}
                     value={dealNote}
                     onChange={(e) => setDealNote(e.target.value)}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-400 focus:outline-none"
@@ -789,7 +793,7 @@ export default function ShopAiAssistant({
                   disabled={dealSubmitting || !dealProductId}
                   className="w-full rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 py-2.5 text-xs font-bold text-slate-950 transition cursor-pointer shadow-md"
                 >
-                  {dealSubmitting ? "Envoi au Dashboard du vendeur..." : "🤝 Envoyer ma proposition de Deal au vendeur"}
+                  {dealSubmitting ? tr("Envoi au Dashboard du vendeur...", "Sending to the vendor's dashboard...") : tr("🤝 Envoyer ma proposition de Deal au vendeur", "🤝 Send my deal offer to the vendor")}
                 </button>
               </form>
 
@@ -802,7 +806,7 @@ export default function ShopAiAssistant({
               {dealSuccess && (
                 <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/40 p-3.5 space-y-2 text-xs">
                   <div className="font-bold text-emerald-300">
-                    ✅ Deal #{dealSuccess.refCode} transmis au Dashboard du vendeur !
+                    {tr("✅ Deal #", "✅ Deal #")}{dealSuccess.refCode} {tr("transmis au Dashboard du vendeur !", "sent to the vendor's dashboard!")}
                   </div>
                   <p className="text-slate-200 whitespace-pre-line">{dealSuccess.message}</p>
                   <button
@@ -810,7 +814,7 @@ export default function ShopAiAssistant({
                     onClick={() => setActiveTab("track")}
                     className="mt-1 inline-flex items-center gap-1 rounded-lg bg-emerald-500 px-3 py-1.5 text-[11px] font-bold text-white cursor-pointer"
                   >
-                    📦 Suivre la validation de mon deal #{dealSuccess.refCode}
+                    {tr("📦 Suivre la validation de mon deal #", "📦 Track the approval of my deal #")}{dealSuccess.refCode}
                   </button>
                 </div>
               )}
@@ -822,10 +826,10 @@ export default function ShopAiAssistant({
             <div className="flex-1 overflow-y-auto p-4 space-y-4 text-white">
               <div className="rounded-xl border border-slate-700 bg-slate-800/70 p-3.5">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                  📦 Suivre ma commande ou mon deal en direct
+                  {tr("📦 Suivre ma commande ou mon deal en direct", "📦 Track my order or deal live")}
                 </h4>
                 <p className="mt-1 text-xs text-slate-300">
-                  Entrez votre code de référence (ex: <code className="text-emerald-300">#AB12CD</code>) ou le numéro de téléphone utilisé lors de la commande WhatsApp.
+                  {tr("Entrez votre code de référence (ex:", "Enter your reference code (e.g.")} <code className="text-emerald-300">#AB12CD</code>{tr(") ou le numéro de téléphone utilisé lors de la commande WhatsApp.", ") or the phone number used for the WhatsApp order.")}
                 </p>
 
                 <form onSubmit={handleTrackSearch} className="mt-3 space-y-2.5">
@@ -833,14 +837,14 @@ export default function ShopAiAssistant({
                     type="text"
                     value={trackRefInput}
                     onChange={(e) => setTrackRefInput(e.target.value)}
-                    placeholder="Référence commande ou deal (ex: #AB12CD)"
+                    placeholder={tr("Référence commande ou deal (ex: #AB12CD)", "Order or deal reference (e.g. #AB12CD)")}
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
                   />
                   <input
                     type="tel"
                     value={trackPhoneInput}
                     onChange={(e) => setTrackPhoneInput(e.target.value)}
-                    placeholder="Ou numéro de téléphone (ex: 22893730817)"
+                    placeholder={tr("Ou numéro de téléphone (ex: 22893730817)", "Or phone number (e.g. 22893730817)")}
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
                   />
                   <div className="flex gap-2">
@@ -849,7 +853,7 @@ export default function ShopAiAssistant({
                       disabled={trackLoading}
                       className="flex-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 py-2.5 text-xs font-bold text-white transition cursor-pointer"
                     >
-                      {trackLoading ? "Actualisation en direct..." : "🔍 Rechercher / Actualiser en direct"}
+                      {trackLoading ? tr("Actualisation en direct...", "Refreshing live...") : tr("🔍 Rechercher / Actualiser en direct", "🔍 Search / refresh live")}
                     </button>
                     {(trackRefInput || trackPhoneInput) && (
                       <button
@@ -860,9 +864,9 @@ export default function ShopAiAssistant({
                           void fetchTrackedOrders("", "");
                         }}
                         className="rounded-xl border border-slate-600 bg-slate-900 hover:bg-slate-800 px-3 py-2.5 text-xs font-semibold text-slate-300 cursor-pointer"
-                        title="Voir toutes les commandes récentes"
+                        title={tr("Voir toutes les commandes récentes", "See all recent orders")}
                       >
-                        Tout voir
+                        {tr("Tout voir", "See all")}
                       </button>
                     )}
                   </div>
@@ -882,7 +886,7 @@ export default function ShopAiAssistant({
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-emerald-300">
-                      Commande #{ord.refCode}
+                      {tr("Commande #", "Order #")}{ord.refCode}
                     </span>
                     <span className="text-[11px] text-slate-400">
                       {new Date(ord.createdAt).toLocaleDateString()}
@@ -917,7 +921,7 @@ export default function ShopAiAssistant({
                       rel="noreferrer"
                       className="rounded-lg bg-emerald-500 hover:bg-emerald-400 px-3 py-1.5 text-[11px] font-bold text-white transition"
                     >
-                      Voir page de suivi / paiement ↗
+                      {tr("Voir page de suivi / paiement ↗", "See the tracking / payment page ↗")}
                     </a>
                     {cleanPhone && (
                       <a
@@ -928,7 +932,7 @@ export default function ShopAiAssistant({
                         rel="noreferrer"
                         className="text-[11px] font-semibold text-emerald-300 hover:underline"
                       >
-                        💬 Suivre sur WhatsApp
+                        {tr("💬 Suivre sur WhatsApp", "💬 Track on WhatsApp")}
                       </a>
                     )}
                   </div>
@@ -941,15 +945,15 @@ export default function ShopAiAssistant({
           {activeTab === "qr" && (
             <div className="flex-1 overflow-y-auto p-5 flex flex-col items-center justify-center text-center space-y-4 text-white">
               <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 px-3 py-1 text-[11px] font-bold text-emerald-300">
-                📲 Accès direct à l&apos;Assistant sur WhatsApp
+                {tr("📲 Accès direct à l'Assistant sur WhatsApp", "📲 Direct access to the assistant on WhatsApp")}
               </div>
 
               <h4 className="text-base font-extrabold">
-                Scannez pour discuter sur WhatsApp
+                {tr("Scannez pour discuter sur WhatsApp", "Scan to chat on WhatsApp")}
               </h4>
               <p className="text-xs text-slate-300 max-w-xs">
-                Scannez ce QR code avec votre téléphone pour ouvrir l&apos;assistant IA de{" "}
-                <strong>{shopName}</strong> directement dans WhatsApp : posez vos questions, cherchez un produit, proposez un deal, commandez et suivez votre colis !
+                {tr("Scannez ce QR code avec votre téléphone pour ouvrir l'assistant IA de", "Scan this QR code with your phone to open the AI assistant of")}{" "}
+                <strong>{shopName}</strong> {tr("directement dans WhatsApp : posez vos questions, cherchez un produit, proposez un deal, commandez et suivez votre colis !", "directly in WhatsApp: ask your questions, find a product, offer a deal, order and track your parcel!")}
               </p>
 
               <div className="rounded-2xl bg-white p-4 shadow-xl">
@@ -960,7 +964,7 @@ export default function ShopAiAssistant({
                   />
                 ) : (
                   <div className="grid h-48 w-48 place-items-center text-xs text-slate-500">
-                    Génération du QR Code...
+                    {tr("Génération du QR Code...", "Generating the QR code...")}
                   </div>
                 )}
               </div>
@@ -972,7 +976,7 @@ export default function ShopAiAssistant({
                   rel="noreferrer"
                   className="w-full max-w-xs rounded-xl bg-[#25D366] hover:bg-[#1ebe5d] py-3 px-4 text-xs font-bold text-white shadow-lg transition flex items-center justify-center gap-2"
                 >
-                  <span>💬</span> Ouvrir directement dans WhatsApp ↗
+                  <span>💬</span> {tr("Ouvrir directement dans WhatsApp ↗", "Open directly in WhatsApp ↗")}
                 </a>
               )}
             </div>

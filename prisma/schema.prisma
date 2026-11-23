@@ -218,6 +218,9 @@ model Product {
   reviews             Review[]
   createdAt           DateTime    @default(now())
   orderItems          OrderItem[]
+  // Secret minimum price for automatic bargaining. Kept in its own table so a
+  // plain product query (public catalog, exports) can never leak it.
+  priceFloor          ProductPriceFloor?
 
   @@index([vendorId])
   @@index([collectionId])
@@ -626,6 +629,7 @@ model Collection {
   name        String
   slug        String
   description String    @default("")
+  imageUrl    String    @default("")
   createdAt   DateTime  @default(now())
   products    Product[]
 
@@ -664,3 +668,45 @@ model PaymentLink {
   @@index([vendorId])
 }
 
+
+/// Secret minimum price of a product: the WhatsApp assistant never accepts a
+/// deal below it. Read only by the bargaining engine and the vendor dashboard.
+model ProductPriceFloor {
+  productId     String   @id
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  vendorId      String
+  minPriceCents Int
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  @@index([vendorId])
+}
+
+/// One bargaining conversation between a customer and the assistant, per product.
+model Negotiation {
+  id              String   @id @default(cuid())
+  vendorId        String
+  contact         String
+  productId       String
+  quantity        Int      @default(1)
+  round           Int      @default(0)
+  lastCounterCents Int     @default(0)
+  updatedAt       DateTime @default(now()) @updatedAt
+
+  @@unique([vendorId, contact, productId])
+}
+
+/// The customer asked for the vendor: the assistant stays silent in this
+/// conversation until the vendor hands it back or the pause expires.
+model BotHandoff {
+  id          String    @id @default(cuid())
+  vendorId    String
+  contact     String
+  reason      String    @default("")
+  lastMessage String    @default("")
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+  resolvedAt  DateTime?
+
+  @@index([vendorId, contact])
+  @@index([vendorId, resolvedAt])
+}

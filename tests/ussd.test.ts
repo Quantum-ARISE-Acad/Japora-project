@@ -63,15 +63,12 @@ describe("USSD instructions", () => {
   });
 });
 
-describe("payment ordering — USSD is the default", () => {
-  test("USSD leads the rail list for XOF, cash closes it", () => {
-    const order = providersForCurrency("XOF");
-    assert.equal(order[0], "ussd");
-    assert.equal(order[order.length - 1], "cash");
+describe("payment rails — FedaPay and cash only", () => {
+  test("the shop offers FedaPay, then cash on delivery", () => {
+    assert.deepEqual(providersForCurrency("XOF"), ["fedapay", "cash"]);
   });
 
-  test("API fallback is null with no provider configured (stub-first)", () => {
-    // No CinetPay/PayGate creds in the test env → no automatic fallback.
-    assert.equal(apiFallbackForCurrency("XOF"), null);
+  test("the automatic online rail is FedaPay", () => {
+    assert.equal(apiFallbackForCurrency("XOF"), "fedapay");
   });
 });

@@ -2,14 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { formatMoney, waMeLink } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
 import VerifiedBadge from "@/components/VerifiedBadge";
-import { telHref } from "@/lib/payments/ussd";
-
-const DIAL_BUTTONS = [
-  { label: "T-Money", dial: "*145#" },
-  { label: "Flooz", dial: "*155#" },
-];
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 interface PaymentLinkClientProps {
   id: string;
@@ -40,25 +35,12 @@ export default function PaymentLinkClient({
   isExpired,
   vendor,
 }: PaymentLinkClientProps) {
-  const [copied, setCopied] = useState(false);
+  const { tr } = usePublicLang();
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [selectedNetwork, setSelectedNetwork] = useState("T-Money Togo");
   const [fedaLoading, setFedaLoading] = useState(false);
   const [fedaError, setFedaError] = useState("");
-
-  const payeePhone = vendor.momoNumber || vendor.whatsappNumber;
-
-  async function copyNumber() {
-    if (!payeePhone) return;
-    try {
-      await navigator.clipboard.writeText(payeePhone);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // ignore
-    }
-  }
 
   async function startFedaPayCheckout() {
     setFedaLoading(true);
@@ -89,11 +71,6 @@ export default function PaymentLinkClient({
   }
 
   const formattedAmount = formatMoney(amountCents, currency);
-  const waConfirmText = `Bonjour ${vendor.shopName}, je viens d'effectuer le paiement de ${formattedAmount}${
-    description ? ` pour : "${description}"` : ""
-  }. Pouvez-vous confirmer la réception s'il vous plaît ? Merci !`;
-
-  const waConfirmUrl = payeePhone ? waMeLink(payeePhone, waConfirmText) : "#";
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex flex-col justify-between p-4 sm:p-6">
@@ -121,7 +98,7 @@ export default function PaymentLinkClient({
               <span className="font-bold text-lg">{vendor.shopName}</span>
               {vendor.verifiedAt && <VerifiedBadge />}
             </Link>
-            <p className="text-xs text-emerald-100">Lien de paiement sécurisé Japora × FedaPay</p>
+            <p className="text-xs text-emerald-100">{tr("Lien de paiement sécurisé Japora × FedaPay", "Secure Japora × FedaPay payment link")}</p>
           </div>
 
           <div className="p-6 space-y-5">
@@ -130,17 +107,17 @@ export default function PaymentLinkClient({
               <div className="p-5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-center space-y-2">
                 <span className="text-4xl block">✅</span>
                 <h2 className="text-base font-bold text-emerald-800 dark:text-emerald-200">
-                  Paiement Confirmé !
+                  {tr("Paiement Confirmé !", "Payment confirmed!")}
                 </h2>
                 <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                  Ce montant de <strong>{formattedAmount}</strong> a bien été réglé. Merci pour votre confiance !
+                  {tr("Ce montant de", "This amount of")} <strong>{formattedAmount}</strong> {tr("a bien été réglé. Merci pour votre confiance !", "has been paid. Thank you for your trust!")}
                 </p>
                 <div className="pt-2">
                   <Link
                     href={`/c/${vendor.shopSlug}`}
                     className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700"
                   >
-                    Retourner sur la boutique {vendor.shopName} →
+                    {tr("Retourner sur la boutique", "Back to the shop")} {vendor.shopName} →
                   </Link>
                 </div>
               </div>
@@ -148,10 +125,10 @@ export default function PaymentLinkClient({
               <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-center space-y-1">
                 <span className="text-3xl">⏳</span>
                 <h2 className="text-base font-bold text-rose-800 dark:text-rose-200">
-                  Lien Expiré
+                  {tr("Lien Expiré", "Link expired")}
                 </h2>
                 <p className="text-xs text-rose-600 dark:text-rose-400">
-                  Ce lien de paiement n&apos;est plus valide. Veuillez contacter le vendeur.
+                  {tr("Ce lien de paiement n'est plus valide. Veuillez contacter le vendeur.", "This payment link is no longer valid. Please contact the vendor.")}
                 </p>
               </div>
             ) : (
@@ -159,7 +136,7 @@ export default function PaymentLinkClient({
                 {/* Amount Display */}
                 <div className="text-center py-2 border-b border-slate-100 dark:border-slate-800">
                   <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                    Montant à payer
+                    {tr("Montant à payer", "Amount to pay")}
                   </span>
                   <div className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white mt-1">
                     {formattedAmount}
@@ -175,22 +152,22 @@ export default function PaymentLinkClient({
                 <div className="rounded-2xl border-2 border-emerald-500/80 bg-emerald-50/50 p-4 space-y-3 shadow-sm">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
-                      <span>⚡</span> Payer en ligne avec FedaPay
+                      <span>⚡</span> {tr("Payer en ligne avec FedaPay", "Pay online with FedaPay")}
                     </span>
                     <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
-                      Sandbox Actif
+                      {tr("Paiement Sécurisé", "Secure payment")}
                     </span>
                   </div>
 
                   <p className="text-[11px] text-slate-600">
-                    Réglez instantanément par <strong>T-Money</strong>, <strong>Flooz Moov</strong>,{" "}
-                    <strong>MTN MoMo</strong> ou <strong>Carte Bancaire</strong> et recevez votre reçu sur WhatsApp.
+                    {tr("Réglez instantanément par", "Pay instantly with")} <strong>T-Money</strong>, <strong>Flooz Moov</strong>,{" "}
+                    <strong>MTN MoMo</strong> {tr("ou", "or")} <strong>{tr("Carte Bancaire", "bank card")}</strong> {tr("et recevez votre reçu sur WhatsApp.", "and get your receipt on WhatsApp.")}
                   </p>
 
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       type="text"
-                      placeholder="Votre nom"
+                      placeholder={tr("Votre nom", "Your name")}
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
                       className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs focus:border-emerald-600 focus:outline-none"
@@ -236,71 +213,20 @@ export default function PaymentLinkClient({
                     <span>💳</span>
                     <span>
                       {fedaLoading
-                        ? "Ouverture de FedaPay…"
-                        : `Payer ${formattedAmount} avec FedaPay`}
+                        ? tr("Ouverture de FedaPay…", "Opening FedaPay…")
+                        : tr(`Payer ${formattedAmount} avec FedaPay`, `Pay ${formattedAmount} with FedaPay`)}
                     </span>
                   </button>
                 </div>
 
-                {/* Direct Mobile Money Payee Info */}
-                {payeePhone && (
-                  <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-4 border border-slate-200 dark:border-slate-700 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                        Ou transfert Mobile Money direct
-                      </span>
-                      <button
-                        type="button"
-                        onClick={copyNumber}
-                        className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold hover:underline"
-                      >
-                        {copied ? "Copié !" : "Copier"}
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between font-mono font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-900 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm">
-                      <span>{payeePhone}</span>
-                      <span className="text-xs font-sans text-slate-400">Direct</span>
-                    </div>
-
-                    {/* Direct USSD dial: opens the phone's dialer with the wallet code. */}
-                    <div className="grid grid-cols-2 gap-2">
-                      {DIAL_BUTTONS.map((b) => (
-                        <a
-                          key={b.dial}
-                          href={telHref(b.dial)}
-                          className="min-h-[44px] rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-2 py-2 text-center text-xs font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 flex flex-col items-center justify-center"
-                        >
-                          <span>Appeler {b.label}</span>
-                          <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400">{b.dial}</span>
-                        </a>
-                      ))}
-                    </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Composez le code, choisissez « Transfert », puis envoyez {formattedAmount} au numéro ci-dessus.
-                    </p>
-                  </div>
-                )}
-
                 {/* Action: WhatsApp confirmation */}
                 <div className="space-y-2 pt-1">
-                  {payeePhone && (
-                    <a
-                      href={waConfirmUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full py-2.5 px-4 rounded-xl border border-emerald-600 text-emerald-700 hover:bg-emerald-50 font-semibold text-xs flex items-center justify-center gap-2 transition-all"
-                    >
-                      <span>💬</span>
-                      <span>J&apos;ai fait un transfert direct — Confirmer sur WhatsApp</span>
-                    </a>
-                  )}
 
                   <Link
                     href={`/c/${vendor.shopSlug}`}
                     className="w-full py-2 px-4 rounded-xl text-xs text-center text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 block transition-colors"
                   >
-                    Visiter la boutique {vendor.shopName}
+                    {tr("Visiter la boutique", "Visit the shop")} {vendor.shopName}
                   </Link>
                 </div>
               </>
@@ -310,7 +236,7 @@ export default function PaymentLinkClient({
       </div>
 
       <footer className="text-center text-xs text-slate-400 py-4">
-        Propulsé en toute sécurité par Japora × FedaPay
+        {tr("Propulsé en toute sécurité par Japora × FedaPay", "Securely powered by Japora × FedaPay")}
       </footer>
     </div>
   );

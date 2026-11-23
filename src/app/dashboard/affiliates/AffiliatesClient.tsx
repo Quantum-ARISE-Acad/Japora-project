@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoney } from "@/lib/utils";
 import { AuroraIsoscout } from "@/components/aurora";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 type Affiliate = {
   id: string;
@@ -25,6 +26,7 @@ export default function AffiliatesClient({
   initialAffiliates: Affiliate[];
   currency: string;
 }) {
+  const { tr } = usePublicLang();
   const router = useRouter();
   const [affiliates, setAffiliates] = useState<Affiliate[]>(initialAffiliates);
   const [form, setForm] = useState(EMPTY);
@@ -68,7 +70,7 @@ export default function AffiliatesClient({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error || "Could not create affiliate.");
+        setError(data.error || tr("Impossible de créer l'affilié.", "Could not create affiliate."));
         return;
       }
       setForm(EMPTY);
@@ -79,7 +81,7 @@ export default function AffiliatesClient({
   }
 
   async function remove(id: string) {
-    if (!confirm("Remove this affiliate code? Past attributions are kept.")) return;
+    if (!confirm(tr("Supprimer ce code d'affilié ? Les attributions passées sont conservées.", "Remove this affiliate code? Past attributions are kept."))) return;
     const res = await fetch(`/api/affiliate/${id}`, { method: "DELETE" });
     if (res.ok) await reload();
   }
@@ -87,15 +89,19 @@ export default function AffiliatesClient({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="a-headline-md text-arctic-900">Affiliates</h1>
+        <h1 className="a-headline-md text-arctic-900">{tr("Affiliés & Ambassadeurs", "Affiliates")}</h1>
         <p className="text-sm text-arctic-600">
-          Give influencers and resellers a code. They share; you pay commission only on
-          paid orders.
+          {tr(
+            "Donnez un code à vos influenceurs et revendeurs. Ils partagent ; vous ne payez de commission que sur les commandes payées.",
+            "Give influencers and resellers a code. They share; you pay commission only on paid orders.",
+          )}
         </p>
       </div>
 
       <form onSubmit={submit} className="card space-y-3 p-5">
-        <h2 className="text-sm font-semibold text-arctic-900">New affiliate code</h2>
+        <h2 className="text-sm font-semibold text-arctic-900">
+          {tr("Nouveau code affilié", "New affiliate code")}
+        </h2>
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="block text-sm">
             <span className="text-arctic-800">Code</span>
@@ -112,13 +118,13 @@ export default function AffiliatesClient({
             />
           </label>
           <label className="block text-sm">
-            <span className="text-arctic-800">Partner name</span>
+            <span className="text-arctic-800">{tr("Nom du partenaire", "Partner name")}</span>
             <input
               type="text"
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="Amara on IG"
+              placeholder={tr("Amara sur IG", "Amara on IG")}
               className="mt-1 w-full rounded-lg border border-arctic-400/45 px-3 py-2 text-sm"
             />
           </label>
@@ -141,21 +147,24 @@ export default function AffiliatesClient({
           disabled={saving}
           className="rounded-lg bg-brand-dark px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
         >
-          {saving ? "Saving..." : "Create code"}
+          {saving ? tr("Enregistrement...", "Saving...") : tr("Créer le code", "Create code")}
         </button>
       </form>
 
       <div className="card overflow-hidden">
         <div className="border-b border-arctic-400/30 px-5 py-3">
-          <h2 className="text-sm font-semibold text-arctic-900">Your codes</h2>
+          <h2 className="text-sm font-semibold text-arctic-900">{tr("Vos codes", "Your codes")}</h2>
         </div>
         {affiliates.length === 0 ? (
           <div className="p-2">
             <AuroraIsoscout
               compact
               variant="broadcasts"
-              title="No affiliate codes yet"
-              body="Give an influencer their own code (e.g. STYLEBYAMA). When customers use it, a slice of the order automatically tracks back to them."
+              title={tr("Aucun code affilié pour le moment", "No affiliate codes yet")}
+              body={tr(
+                "Attribuez un code dédié à un influenceur (ex: STYLEBYAMA). Quand des clients l'utilisent, sa commission est calculée automatiquement.",
+                "Give an influencer their own code (e.g. STYLEBYAMA). When customers use it, a slice of the order automatically tracks back to them.",
+              )}
             />
           </div>
         ) : (
@@ -163,10 +172,10 @@ export default function AffiliatesClient({
             <thead className="bg-arctic-100/55 text-left text-xs uppercase tracking-wide text-arctic-600">
               <tr>
                 <th className="px-5 py-3">Code</th>
-                <th className="px-5 py-3">Partner</th>
-                <th className="px-5 py-3">Rate</th>
-                <th className="px-5 py-3">Orders</th>
-                <th className="px-5 py-3">Earned</th>
+                <th className="px-5 py-3">{tr("Partenaire", "Partner")}</th>
+                <th className="px-5 py-3">{tr("Taux", "Rate")}</th>
+                <th className="px-5 py-3">{tr("Commandes", "Orders")}</th>
+                <th className="px-5 py-3">{tr("Gains", "Earned")}</th>
                 <th className="px-5 py-3" />
               </tr>
             </thead>
@@ -185,7 +194,7 @@ export default function AffiliatesClient({
                       onClick={() => remove(a.id)}
                       className="text-xs font-semibold text-red-600 hover:underline"
                     >
-                      Remove
+                      {tr("Supprimer", "Remove")}
                     </button>
                   </td>
                 </tr>

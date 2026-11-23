@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 export type ShopThemeId = "arctic" | "sunset" | "emerald" | "midnight" | "indigo";
 
@@ -24,6 +25,7 @@ export default function ShopThemeSelector({
 }: {
   shopSlug: string;
 }) {
+  const { tr } = usePublicLang();
   const [currentTheme, setCurrentTheme] = useState<ShopThemeId>("arctic");
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -66,8 +68,8 @@ export default function ShopThemeSelector({
         type="button"
         onClick={() => setOpen(!open)}
         className="btn-ghost gap-1.5 px-3 py-1.5 text-xs font-semibold"
-        title="Personnaliser le thème visuel de la boutique"
-        aria-label="Changer le thème de la boutique"
+        title={tr("Personnaliser le thème visuel de la boutique", "Customise the shop's visual theme")}
+        aria-label={tr("Changer le thème de la boutique", "Change the shop theme")}
       >
         <span>{active.icon}</span>
         <span className="hidden sm:inline">{active.name}</span>
@@ -77,7 +79,7 @@ export default function ShopThemeSelector({
       {open && (
         <div className="absolute right-0 top-full mt-2 z-50 w-52 rounded-shape-xl border border-arctic-400/40 bg-white/95 p-1.5 shadow-xl backdrop-blur-md a-scale-in dark:bg-arctic-900/95">
           <div className="px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-arctic-500 border-b border-arctic-200/50 dark:border-arctic-800">
-            Thème de la boutique
+            {tr("Thème de la boutique", "Shop theme")}
           </div>
           <div className="mt-1 space-y-0.5">
             {SHOP_THEMES.map((theme) => {

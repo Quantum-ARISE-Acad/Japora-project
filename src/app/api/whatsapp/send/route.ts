@@ -1,22 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentVendor } from "@/lib/auth";
 import { sendCustomerUpdate, sendWhatsAppTemplate } from "@/lib/whatsapp";
+import { getServerTr } from "@/lib/public-locale";
 
 /**
  * Vendor-triggered customer update (the orders board "Update" action & Bot test button).
- * Routed through sendCustomerUpdate so it goes out FREE inside the customer's 24h
- * service window, falling back to Meta's pre-approved template when the 24h window is closed.
+ * Supports optional unsaved credentials (`whatsappAccessToken`, `whatsappPhoneNumberId`)
+ * so the merchant can test their Cloud API configuration directly on the Bot page
+ * before or while saving.
  */
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const b = await req.json().catch(() => ({}));
   const to = String(b.to || "").trim();
   const body = String(b.body || "").trim();
   if (!to || !body) {
-    return NextResponse.json({ error: "Recipient and message are required." }, { status: 400 });
+    return NextResponse.json({ error: tr("Le destinataire et le message sont obligatoires.", "Recipient and message are required.") }, { status: 400 });
   }
+
+  const overrideToken =
+    typeof b.whatsappAccessToken === "string" && b.whatsappAccessToken.trim()
+      ? b.whatsappAccessToken.trim()
+      : undefined;
+  const overridePhoneNumberId =
+    typeof b.whatsappPhoneNumberId === "string" && b.whatsappPhoneNumberId.trim()
+      ? b.whatsappPhoneNumberId.trim()
+      : undefined;
 
   const result = await sendCustomerUpdate({
     vendorId: vendor.id,
@@ -25,11 +37,16 @@ export async function POST(req: NextRequest) {
     orderId: b.orderId ?? null,
     templateName: typeof b.templateName === "string" ? b.templateName : undefined,
     languageCode: typeof b.languageCode === "string" ? b.languageCode : undefined,
+    overrideToken,
+    overridePhoneNumberId,
   });
 
-  // If free-form text failed (e.g. customer hasn't messaged the Meta Test Number in the last 24h),
-  // automatically fall back to Meta's pre-approved sandbox template so the message still arrives!
-  if (result.status === "failed" && !b.templateName) {
+  // If free-form text failed because the 24h customer window is closed (and NOT
+  // because of a 401 Invalid OAuth Token), fall back to Meta's pre-approved sandbox template.
+  const isAuthError = Boolean(
+    result.error && (result.error.includes("401") || result.error.includes('"code":190')),
+  );
+  if (result.status === "failed" && !b.templateName && !isAuthError) {
     const todayStr = new Date().toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
@@ -51,6 +68,8 @@ export async function POST(req: NextRequest) {
         },
       ],
       orderId: b.orderId ?? null,
+      overrideToken,
+      overridePhoneNumberId,
     });
     if (tplResult.status !== "failed") {
       return NextResponse.json({
@@ -63,12 +82,18 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  let friendlyError = result.error;
+  if (isAuthError) {
+    friendlyError =
+      "Token Meta Cloud API expiré ou invalide (Code 190 / 401). Générez un nouveau Access Token dans Meta for Developers → WhatsApp → API Setup, collez-le dans le champ « Meta Cloud API Access Token » ci-dessus, puis enregistrez.";
+  }
+
   return NextResponse.json({
     ok: result.status !== "failed",
     status: result.status,
     provider: result.provider,
     inWindow: result.inWindow, // true ⇒ sent free
     billable: result.billable,
-    error: result.error,
+    error: friendlyError,
   });
 }

@@ -5,10 +5,12 @@ import {
   listReferrals,
   rewardCount,
 } from "@/lib/referral";
+import { getServerTr } from "@/lib/public-locale";
 
 export async function GET() {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const referralCode = await ensureReferralCode(vendor.id);
   const base = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");

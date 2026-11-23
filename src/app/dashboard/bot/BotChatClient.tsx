@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 type Btn = { id: string; title: string };
 type Msg =
@@ -21,6 +22,7 @@ const QUICK_TRIES = [
 ];
 
 export default function BotChatClient({ shopName }: { shopName: string }) {
+  const { tr } = usePublicLang();
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "system",
@@ -56,7 +58,7 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
       if (!res.ok) {
         setMessages((m) => [
           ...m,
-          { role: "system", text: data.error || "La simulation a échoué.", at: stamp + 1 },
+          { role: "system", text: data.error || tr("La simulation a échoué.", "The simulation failed."), at: stamp + 1 },
         ]);
         return;
       }
@@ -73,7 +75,7 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
     } catch {
       setMessages((m) => [
         ...m,
-        { role: "system", text: "Impossible de joindre le simulateur. Réessayez.", at: stamp + 1 },
+        { role: "system", text: tr("Impossible de joindre le simulateur. Réessayez.", "Could not reach the simulator. Try again."), at: stamp + 1 },
       ]);
     } finally {
       setSending(false);
@@ -84,7 +86,7 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
     setMessages([
       {
         role: "system",
-        text: `Simulation réinitialisée. Aucun message WhatsApp n’est envoyé.`,
+        text: tr("Simulation réinitialisée. Aucun message WhatsApp n’est envoyé.", "Simulation reset. No WhatsApp message is sent."),
         at: 0,
       },
     ]);
@@ -98,11 +100,11 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
             <span className="grid h-7 w-7 place-items-center rounded-full bg-brand text-xs font-black text-white">J</span>
             <div className="leading-tight">
               <div className="font-semibold text-arctic-900">{shopName}</div>
-              <div className="text-xs text-arctic-700 dark:text-arctic-300">Aperçu du bot Japora</div>
+              <div className="text-xs text-arctic-700 dark:text-arctic-300">{tr("Aperçu du bot Japora", "Japora bot preview")}</div>
             </div>
           </div>
           <button onClick={reset} className="bot-chat-control text-xs font-semibold text-arctic-700 hover:text-arctic-900 dark:text-arctic-200 dark:hover:text-white">
-            Réinitialiser
+            {tr("Réinitialiser", "Reset")}
           </button>
         </div>
 
@@ -134,7 +136,7 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
               >
                 <div
                   className={
-                    "bot-chat-message max-w-[78%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm shadow " +
+                    "bot-chat-message max-w-[78%] whitespace-pre-wrap rounded-lg px-3 py-2 text-[15px] leading-relaxed shadow " +
                     (isCustomer
                       ? "bot-chat-message-customer self-end bg-[#dcf8c6] text-arctic-900 dark:border dark:border-emerald-700 dark:bg-[#174b3a] dark:text-white"
                       : "bot-chat-message-bot border border-arctic-300 bg-white text-arctic-900 dark:border-arctic-600 dark:bg-[#293330] dark:text-arctic-50")
@@ -167,7 +169,7 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
           {sending && (
             <div className="flex justify-start">
               <div className="rounded-lg border border-arctic-300 bg-white px-3 py-2 text-sm text-arctic-700 shadow dark:border-arctic-600 dark:bg-[#293330] dark:text-arctic-200">
-                Le bot répond…
+                {tr("Le bot répond…", "The bot is replying…")}
               </div>
             </div>
           )}
@@ -182,34 +184,34 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
         >
           <input
             className="input flex-1"
-            placeholder="Écrivez un message client à tester…"
+            placeholder={tr("Écrivez un message client à tester…", "Write a customer message to test…")}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             disabled={sending}
           />
           <button className="btn-primary" disabled={sending || !draft.trim()}>
-            Envoyer au simulateur
+            {tr("Envoyer au simulateur", "Send to the simulator")}
           </button>
         </form>
       </div>
 
       <aside className="space-y-4">
         <div className="card p-4">
-          <h2 className="text-sm font-semibold text-arctic-900">Téléphone du client simulé</h2>
+          <h2 className="text-sm font-semibold text-arctic-900">{tr("Téléphone du client simulé", "Simulated customer phone")}</h2>
           <p className="bot-chat-help mb-2 mt-1 text-xs text-arctic-700 dark:text-arctic-300">
-            Sert à rechercher les soldes impayés déjà enregistrés pour ce numéro lorsque vous testez « balance / solde ». Ce champ ne déclenche aucun envoi WhatsApp.
+            {tr("Sert à rechercher les soldes impayés déjà enregistrés pour ce numéro lorsque vous testez « balance / solde ». Ce champ ne déclenche aucun envoi WhatsApp.", "Used to look up unpaid balances already recorded for this number when you test “balance / solde”. This field never sends a WhatsApp message.")}
           </p>
           <input
             className="input"
             inputMode="tel"
-            placeholder="Ex. +228 90 00 00 00"
+            placeholder={tr("Ex. +228 90 00 00 00", "e.g. +228 90 00 00 00")}
             value={fromPhone}
             onChange={(e) => setFromPhone(e.target.value)}
           />
         </div>
 
         <div className="card p-4">
-          <h2 className="text-sm font-semibold text-arctic-900">Exemples à tester</h2>
+          <h2 className="text-sm font-semibold text-arctic-900">{tr("Exemples à tester", "Examples to try")}</h2>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {QUICK_TRIES.map((t) => (
               <button
@@ -223,8 +225,7 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
             ))}
           </div>
           <p className="bot-chat-help mt-3 text-xs text-arctic-700 dark:text-arctic-300">
-            Testez les fautes (&quot;ankra&quot;), le pidgin (&quot;wetin you get&quot;), le swahili
-            (&quot;bei gani&quot;) et le français (&quot;je veux&quot;) pour vérifier la recherche tolérante.
+            {tr("Testez les fautes (\"ankra\"), le pidgin (\"wetin you get\"), le swahili (\"bei gani\") et le français (\"je veux\") pour vérifier la recherche tolérante.", "Try typos (\"ankra\"), pidgin (\"wetin you get\"), Swahili (\"bei gani\") and French (\"je veux\") to check the tolerant search.")}
           </p>
         </div>
       </aside>

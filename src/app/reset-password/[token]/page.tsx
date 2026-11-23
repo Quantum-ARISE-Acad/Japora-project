@@ -3,12 +3,14 @@
 import { useState, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 export default function ResetPasswordPage({
   params,
 }: {
   params: Promise<{ token: string }>;
 }) {
+  const { tr } = usePublicLang();
   const { token } = use(params);
   const router = useRouter();
   const [password, setPassword] = useState("");
@@ -21,7 +23,7 @@ export default function ResetPasswordPage({
     e.preventDefault();
     setError("");
     if (password !== confirm) {
-      setError("Passwords don't match.");
+      setError(tr("Les mots de passe ne correspondent pas.", "Passwords don't match."));
       return;
     }
     setLoading(true);
@@ -33,7 +35,7 @@ export default function ResetPasswordPage({
     const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(data.error || "Could not reset password.");
+      setError(data.error || tr("Impossible de réinitialiser le mot de passe.", "Could not reset password."));
       return;
     }
     setDone(true);
@@ -52,18 +54,18 @@ export default function ResetPasswordPage({
           {done ? (
             <div className="space-y-2 text-center">
               <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-arctic-200/80 text-2xl backdrop-blur-glass-thin a-pulse">✅</div>
-              <h1 className="a-headline-sm text-arctic-900">Password updated</h1>
-              <p className="a-body-md text-arctic-600">Redirecting you to sign in…</p>
+              <h1 className="a-headline-sm text-arctic-900">{tr("Mot de passe mis à jour", "Password updated")}</h1>
+              <p className="a-body-md text-arctic-600">{tr("Redirection vers la connexion…", "Redirecting you to sign in…")}</p>
             </div>
           ) : (
             <>
-              <h1 className="a-headline-sm text-arctic-900">Set a new password</h1>
+              <h1 className="a-headline-sm text-arctic-900">{tr("Choisir un nouveau mot de passe", "Set a new password")}</h1>
               <p className="a-body-md mt-1 text-arctic-600">
                 8+ characters. Mix letters and numbers.
               </p>
               <form onSubmit={onSubmit} className="mt-5 space-y-4">
                 <div>
-                  <label className="label">New password</label>
+                  <label className="label">{tr("Nouveau mot de passe", "New password")}</label>
                   <input
                     className="input"
                     type="password"
@@ -74,7 +76,7 @@ export default function ResetPasswordPage({
                   />
                 </div>
                 <div>
-                  <label className="label">Confirm new password</label>
+                  <label className="label">{tr("Confirmer le nouveau mot de passe", "Confirm new password")}</label>
                   <input
                     className="input"
                     type="password"
@@ -88,7 +90,7 @@ export default function ResetPasswordPage({
                   <p className="rounded-shape-md border border-red-200/70 bg-red-50/80 px-3 py-2 a-body-sm text-red-700 backdrop-blur-glass-thin">{error}</p>
                 )}
                 <button className="btn-primary w-full" disabled={loading}>
-                  {loading ? "Saving…" : "Update password"}
+                  {loading ? tr("Enregistrement…", "Saving…") : tr("Mettre à jour le mot de passe", "Update password")}
                 </button>
               </form>
             </>

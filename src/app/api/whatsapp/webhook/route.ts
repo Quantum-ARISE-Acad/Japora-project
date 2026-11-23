@@ -2,11 +2,37 @@ import { NextRequest } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/db";
-import { sendWhatsApp, sendWhatsAppInteractive, applyStatusUpdate } from "@/lib/whatsapp";
-import { respondTo, logBotEvent, parseIntent } from "@/lib/bot";
+import {
+  sendWhatsApp,
+  sendWhatsAppInteractive,
+  sendSharedNumberPicker,
+  applyStatusUpdate,
+  downloadWhatsAppMedia,
+} from "@/lib/whatsapp";
+import {
+  respondTo,
+  respondToPhoto,
+  transcribeVoiceNote,
+  voiceNotHeardReply,
+  logBotEvent,
+  parseIntent,
+  type BotReply,
+} from "@/lib/bot";
+import { activeHandoff } from "@/lib/handoff";
 import { recordTouchFromText } from "@/lib/campaigns";
 import { parseWhatsAppAssistantConfig } from "@/lib/whatsapp-config";
 import { digitsOnly } from "@/lib/utils";
+import { publicOrigin } from "@/lib/public-origin";
+import {
+  allShopsReply,
+  buildShopPicker,
+  isSharedBotNumber,
+  matchShopsByName,
+  parseShopPick,
+  shopChosenPreamble,
+  wantsShopSwitch,
+  type PickerShop,
+} from "@/lib/shop-picker";
 
 /**
  * Meta WhatsApp Cloud API webhook verification handshake.
@@ -56,27 +82,66 @@ function verifyMetaSignature(rawBody: string, signatureHeader: string | null): b
   }
 }
 
+/** Where an inbound message goes: a shop, or the "Quelle boutique ?" list. */
+type InboundRoute =
+  | { kind: "vendor"; vendorId: string; chosenShopName?: string; qrOpening?: boolean }
+  | { kind: "ask"; shops: PickerShop[] }
+  | { kind: "all_shops" }
+  | { kind: "none" };
+
+/** Public shops offered in the "Quelle boutique ?" list (most recent first). */
+async function pickerShops(): Promise<(PickerShop & { id: string })[]> {
+  const rows = await prisma.vendor.findMany({
+    where: { deletedAt: null, isPublic: true },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    select: { id: true, shopName: true, shopSlug: true, category: true, tagline: true },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    shopName: r.shopName,
+    shopSlug: r.shopSlug,
+    description: r.tagline || r.category || "",
+  }));
+}
+
 /**
- * Resolve the target Vendor for an incoming WhatsApp webhook message:
+ * Route an incoming WhatsApp message:
  * 1) Explicit env override (`VENDOR_ID_FOR_PHONE_NUMBER_ID_<id>`)
- * 2) Shop slug in the message text, e.g. "(ma-boutique)" from a QR code prefill.
- *    It comes before the number owner because several shops share one bot number.
- * 3) `Vendor.whatsappPhoneNumberId` matching the incoming `phone_number_id`
- * 4) Recent conversation history (`WhatsAppMessage`)
- * 5) Fallback to the most recent active vendor
+ * 2) A choice from the "Quelle boutique ?" list ("japora-shop:<slug>")
+ * 3) Shop slug in the message text, e.g. "(ma-boutique)" from a QR code prefill
+ * 4) A vendor's own number: `Vendor.whatsappPhoneNumberId` = incoming `phone_number_id`
+ *    (skipped on the shared Japora number, which serves every shop)
+ * 5) On the shared number, "changer de boutique" shows the list again
+ * 6) Recent conversation history (`WhatsAppMessage`): the customer stays with their shop
+ * 7) On the shared number: a single shop, or the shop the customer named;
+ *    otherwise ask "Avec quelle boutique voulez-vous parler ?"
+ * 8) Elsewhere, fallback to the most recent active vendor
  */
-async function resolveVendorIdForInbound(
+async function routeInbound(
   phoneNumberId: string | undefined,
   fromPhone: string,
   text: string,
-): Promise<string | null> {
+): Promise<InboundRoute> {
   // 1) Explicit operator mapping always wins.
   if (phoneNumberId) {
     const mapped = process.env[`VENDOR_ID_FOR_PHONE_NUMBER_ID_${phoneNumberId}`];
-    if (mapped) return mapped;
+    if (mapped) return { kind: "vendor", vendorId: mapped };
   }
 
-  // 2) Shop slug from the QR prefill: "(slug)". Look each candidate up directly
+  // 2) A row of the "Quelle boutique ?" list.
+  const pick = parseShopPick(text);
+  if (pick === "*") return { kind: "all_shops" };
+  if (pick) {
+    const chosen = await prisma.vendor.findFirst({
+      where: { shopSlug: pick, deletedAt: null },
+      select: { id: true, shopName: true },
+    });
+    if (chosen) return { kind: "vendor", vendorId: chosen.id, chosenShopName: chosen.shopName };
+    return { kind: "ask", shops: await pickerShops() };
+  }
+
+  // 3) Shop slug from the QR prefill: "(slug)". Look each candidate up directly
   // so every shop can match, not only the first few.
   const candidates = [...new Set(
     Array.from((text || "").toLowerCase().matchAll(/\(([a-z0-9][a-z0-9-]{0,80})\)/g), (m) => m[1]),
@@ -86,19 +151,28 @@ async function resolveVendorIdForInbound(
       where: { shopSlug: { in: candidates }, deletedAt: null },
       select: { id: true },
     });
-    if (bySlug) return bySlug.id;
+    // The QR prefill ("Je viens de scanner votre QR code…") opens the conversation.
+    if (bySlug) return { kind: "vendor", vendorId: bySlug.id, qrOpening: /scann/i.test(text) };
   }
 
-  // 3) Vendor bound to this WhatsApp Phone Number ID.
-  if (phoneNumberId) {
+  const shared = isSharedBotNumber(phoneNumberId);
+
+  // 4) Vendor bound to this WhatsApp Phone Number ID (their own line).
+  if (phoneNumberId && !shared) {
     const owner = await prisma.vendor.findFirst({
       where: { whatsappPhoneNumberId: phoneNumberId, deletedAt: null },
       select: { id: true },
     });
-    if (owner) return owner.id;
+    if (owner) return { kind: "vendor", vendorId: owner.id };
   }
 
-  // 4) Recent conversation history
+  // 5) "changer de boutique" on the shared number.
+  if (shared && wantsShopSwitch(text)) {
+    const shops = await pickerShops();
+    if (shops.length > 1) return { kind: "ask", shops };
+  }
+
+  // 6) Recent conversation history
   const cleanPhone = digitsOnly(fromPhone);
   if (cleanPhone) {
     const recentMsg = await prisma.whatsAppMessage.findFirst({
@@ -111,16 +185,27 @@ async function resolveVendorIdForInbound(
       orderBy: { createdAt: "desc" },
       select: { vendorId: true },
     });
-    if (recentMsg?.vendorId) return recentMsg.vendorId;
+    if (recentMsg?.vendorId) return { kind: "vendor", vendorId: recentMsg.vendorId };
   }
 
-  // 5) Fallback to the most recent active vendor
+  // 7) Shared number, new customer, no tag: never guess between several shops.
+  if (shared) {
+    const shops = await pickerShops();
+    if (shops.length === 1) return { kind: "vendor", vendorId: shops[0].id };
+    const named = matchShopsByName(text, shops);
+    if (named.length === 1) {
+      return { kind: "vendor", vendorId: named[0].id, chosenShopName: named[0].shopName };
+    }
+    if (shops.length > 1) return { kind: "ask", shops };
+  }
+
+  // 8) Fallback to the most recent active vendor
   const first = await prisma.vendor.findFirst({
     where: { deletedAt: null },
     orderBy: { createdAt: "desc" },
     select: { id: true },
   });
-  return first?.id ?? null;
+  return first ? { kind: "vendor", vendorId: first.id } : { kind: "none" };
 }
 
 type MetaText = { body?: string };
@@ -136,6 +221,8 @@ type MetaMessage = {
   interactive?: MetaInteractive;
   button?: { payload?: string; text?: string };
   referral?: MetaReferral;
+  audio?: { id?: string; mime_type?: string; voice?: boolean };
+  image?: { id?: string; mime_type?: string; caption?: string };
 };
 type MetaStatus = {
   id?: string;
@@ -156,6 +243,8 @@ function extractText(m: MetaMessage): string {
   if (m.interactive?.list_reply?.title) return m.interactive.list_reply.title;
   if (m.button?.text) return m.button.text;
   if (m.text?.body) return m.text.body;
+  // A photo's caption can carry the "(slug)" tag and the customer's question.
+  if (m.image?.caption) return m.image.caption;
   return "";
 }
 
@@ -204,8 +293,71 @@ export async function POST(req: NextRequest) {
 
         for (const m of value?.messages ?? []) {
           const from = m.from || "";
-          const text = extractText(m);
-          const vendorId = await resolveVendorIdForInbound(phoneNumberId, from, text);
+          const rawText = extractText(m);
+          const route = await routeInbound(phoneNumberId, from, rawText);
+
+          // No shop chosen yet on the shared number: ask, or send the directory.
+          if (route.kind === "ask" || route.kind === "all_shops") {
+            const origin = process.env.NEXT_PUBLIC_PUBLIC_TUNNEL_URL || publicOrigin(req);
+            let sent: { status: string };
+            if (route.kind === "ask") {
+              const picker = buildShopPicker(route.shops, { text: rawText, origin });
+              sent = await sendSharedNumberPicker({
+                to: from,
+                phoneNumberId,
+                body: picker.body,
+                footer: picker.footer,
+                listButton: picker.listButton,
+                sections: picker.sections,
+                textFallback: picker.textFallback,
+              });
+            } else {
+              const reply = allShopsReply(origin);
+              sent = await sendSharedNumberPicker({ to: from, phoneNumberId, body: reply, textFallback: reply });
+            }
+            logger.info("whatsapp.webhook.shop_picker", { from, kind: route.kind, preview: rawText.slice(0, 80) });
+            await logBotEvent(null, from, "menu", rawText, sent.status !== "failed");
+            continue;
+          }
+
+          const vendorId = route.kind === "vendor" ? route.vendorId : null;
+          const chosenShopName = route.kind === "vendor" ? route.chosenShopName : undefined;
+          const picked = parseShopPick(rawText) !== null;
+          // A list choice or a QR scan opens the conversation with the shop's
+          // welcome, which does not depend on Gemini being available.
+          const opening = picked || (route.kind === "vendor" && route.qrOpening === true);
+          let text = opening ? "Bonjour" : rawText;
+          let storedBody = picked ? "Bonjour (boutique choisie dans la liste)" : rawText;
+
+          // Voice notes are transcribed and answered like text; photos are
+          // searched in the shop's catalog. Both use Gemini.
+          let mediaReply: BotReply | null = null;
+          let voicePrefix = "";
+          if (vendorId && m.type === "audio" && m.audio?.id) {
+            const transcript = await transcribeVoiceNote(
+              vendorId,
+              await downloadWhatsAppMedia(vendorId, m.audio.id),
+            );
+            if (transcript) {
+              text = transcript;
+              storedBody = `[vocal] ${transcript}`;
+              voicePrefix = `Vous avez dit : « ${transcript.slice(0, 300)} »\n\n`;
+            } else {
+              storedBody = "[vocal non transcrit]";
+              mediaReply = (await activeHandoff(vendorId, from))
+                ? { reply: "", intent: "handoff" }
+                : voiceNotHeardReply();
+            }
+          } else if (vendorId && m.type === "image" && m.image?.id) {
+            const caption = m.image.caption || "";
+            storedBody = caption ? `[photo] ${caption}` : "[photo]";
+            mediaReply = await respondToPhoto(
+              vendorId,
+              from,
+              await downloadWhatsAppMedia(vendorId, m.image.id),
+              caption,
+            );
+          }
 
           logger.info("whatsapp.webhook.inbound", {
             from,
@@ -221,7 +373,7 @@ export async function POST(req: NextRequest) {
                   vendorId,
                   direction: "IN",
                   contact: digitsOnly(from) || from,
-                  body: text,
+                  body: storedBody,
                   status: "received",
                 },
               });
@@ -246,8 +398,12 @@ export async function POST(req: NextRequest) {
           let responded = false;
           let intent = parseIntent(text).intent;
           try {
-            const result = await respondTo(vendorId, from, text);
+            const result = mediaReply ?? (await respondTo(vendorId, from, text));
             intent = result.intent;
+            if (voicePrefix && result.reply) result.reply = `${voicePrefix}${result.reply}`;
+            if (chosenShopName && result.reply) {
+              result.reply = `${shopChosenPreamble(chosenShopName)}\n\n${result.reply}`;
+            }
             if (from && result.reply) {
               if (result.buttons && result.buttons.length > 0) {
                 const interactiveRes = await sendWhatsAppInteractive({

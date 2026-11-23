@@ -1,9 +1,12 @@
 import { requireVendor } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getDashboardLocale, trServer } from "@/lib/dashboard-lang";
 import CollectionsClient from "./CollectionsClient";
 
 export default async function CollectionsPage() {
   const vendor = await requireVendor();
+  const locale = await getDashboardLocale(vendor.language);
+  const tr = <T = string,>(frVal: T, enVal: T): T => trServer(locale, frVal, enVal);
 
   const [collections, allProducts] = await Promise.all([
     prisma.collection.findMany({
@@ -27,7 +30,10 @@ export default async function CollectionsPage() {
       <div>
         <h1 className="a-headline-md text-arctic-900">Collections</h1>
         <p className="a-body-md mt-1 text-arctic-600">
-          Organisez vos produits en collections thématiques (ex: &quot;Nouveautés&quot;, &quot;Promos&quot;, &quot;Meilleures ventes&quot;) avec un lien dédié.
+          {tr(
+            "Organisez vos produits en collections thématiques (ex: \"Nouveautés\", \"Promos\", \"Meilleures ventes\") avec un lien dédié.",
+            "Group your products into themed collections (e.g. \"New Arrivals\", \"Sale\", \"Best Sellers\") with a dedicated shareable link.",
+          )}
         </p>
       </div>
 
@@ -37,6 +43,7 @@ export default async function CollectionsPage() {
           name: c.name,
           slug: c.slug,
           description: c.description,
+          imageUrl: c.imageUrl || "",
           productCount: c.products.length,
           products: c.products,
         }))}

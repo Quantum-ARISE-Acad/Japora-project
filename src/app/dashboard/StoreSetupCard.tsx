@@ -12,6 +12,8 @@ import {
   type StoreSetupCandidate,
 } from "@/lib/onboarding";
 import Glyph from "@/components/Glyph";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
+import { categoryName } from "@/lib/regions";
 
 const REGIONS_BY_COUNTRY = REGIONS.reduce<Record<string, typeof REGIONS>>(
   (acc, r) => {
@@ -26,6 +28,7 @@ export default function StoreSetupCard({
 }: {
   initial: Required<StoreSetupCandidate>;
 }) {
+  const { tr } = usePublicLang();
   const router = useRouter();
   const initialStatus = getStoreSetupStatus(initial);
 
@@ -58,7 +61,7 @@ export default function StoreSetupCard({
     });
 
     if (!validation.ok) {
-      setError(validation.error);
+      setError(tr(validation.error, validation.errorEn));
       return;
     }
 
@@ -77,7 +80,7 @@ export default function StoreSetupCard({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error || "Could not save store setup. Please try again.");
+        setError(data.error || tr("Impossible d'enregistrer la configuration de la boutique. Réessayez.", "Could not save store setup. Please try again."));
         setSaving(false);
         return;
       }
@@ -86,27 +89,27 @@ export default function StoreSetupCard({
       setSaving(false);
       router.refresh();
     } catch {
-      setError("Network error while saving store setup. Please try again.");
+      setError(tr("Erreur réseau pendant l'enregistrement. Réessayez.", "Network error while saving store setup. Please try again."));
       setSaving(false);
     }
   }
 
   return (
     <section
-      aria-label="Store Setup Onboarding"
+      aria-label={tr("Configuration de la boutique", "Store Setup Onboarding")}
       className="glass glass-edge rounded-shape-lg border-2 border-brand/40 bg-brand/5 p-6 shadow-sm"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="inline-flex items-center gap-1.5 rounded-shape-full bg-brand/15 px-2.5 py-0.5 text-xs font-semibold text-brand-dark">
-            <Glyph name="sparkle" size={13} /> Action Required · Store Setup
+            <Glyph name="sparkle" size={13} /> {tr("Action requise · Configuration de la boutique", "Action Required · Store Setup")}
           </div>
           <h2 className="a-title-lg mt-2 text-arctic-900">
-            Complete your store setup to go live on the Marketplace
+            {tr("Terminez la configuration de votre boutique pour apparaître sur la Marketplace", "Complete your store setup to go live on the Marketplace")}
           </h2>
           <p className="a-body-md mt-1 text-arctic-700">
-            Add your shop details below so buyers can discover your store on{" "}
-            <span className="font-semibold">/marketplace</span> and send you orders on WhatsApp.
+            {tr("Ajoutez les informations de votre boutique ci-dessous pour que les acheteurs la trouvent sur", "Add your shop details below so buyers can discover your store on")}{" "}
+            <span className="font-semibold">/marketplace</span> {tr("et vous envoient leurs commandes sur WhatsApp.", "and send you orders on WhatsApp.")}
           </p>
         </div>
       </div>
@@ -115,13 +118,13 @@ export default function StoreSetupCard({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="onboarding-shop-name" className="label">
-              Shop Name
+              {tr("Nom de la boutique", "Shop Name")}
             </label>
             <input
               id="onboarding-shop-name"
               className="input"
               type="text"
-              placeholder="e.g. Amina Boutique Lomé"
+              placeholder={tr("ex. Amina Boutique Lomé", "e.g. Amina Boutique Lomé")}
               value={shopName}
               onChange={(e) => setShopName(e.target.value)}
               required
@@ -130,7 +133,7 @@ export default function StoreSetupCard({
 
           <div>
             <label htmlFor="onboarding-whatsapp" className="label">
-              WhatsApp Number
+              {tr("Numéro WhatsApp", "WhatsApp Number")}
             </label>
             <input
               id="onboarding-whatsapp"
@@ -143,13 +146,13 @@ export default function StoreSetupCard({
               required
             />
             <p className="mt-1 text-xs text-arctic-600">
-              Include country code (e.g. +228 for Togo, +234 for Nigeria).
+              {tr("Avec l'indicatif du pays (ex. +228 pour le Togo, +234 pour le Nigeria).", "Include country code (e.g. +228 for Togo, +234 for Nigeria).")}
             </p>
           </div>
 
           <div>
             <label htmlFor="onboarding-region" className="label">
-              Region
+              {tr("Région", "Region")}
             </label>
             <select
               id="onboarding-region"
@@ -158,7 +161,7 @@ export default function StoreSetupCard({
               onChange={(e) => setRegion(e.target.value)}
               required
             >
-              <option value="">— Select your region —</option>
+              <option value="">{tr("— Choisissez votre région —", "— Select your region —")}</option>
               {Object.entries(REGIONS_BY_COUNTRY).map(([country, list]) => (
                 <optgroup key={country} label={country}>
                   {list.map((r) => (
@@ -173,7 +176,7 @@ export default function StoreSetupCard({
 
           <div>
             <label htmlFor="onboarding-category" className="label">
-              Category
+              {tr("Catégorie", "Category")}
             </label>
             <select
               id="onboarding-category"
@@ -182,10 +185,10 @@ export default function StoreSetupCard({
               onChange={(e) => setCategory(e.target.value)}
               required
             >
-              <option value="">— Select your category —</option>
+              <option value="">{tr("— Choisissez votre catégorie —", "— Select your category —")}</option>
               {CATEGORIES.map((c) => (
                 <option key={c.slug} value={c.slug}>
-                  {c.icon} {c.label}
+                  {c.icon} {tr(...categoryName(c))}
                 </option>
               ))}
             </select>
@@ -203,7 +206,7 @@ export default function StoreSetupCard({
 
         <div className="flex items-center justify-end pt-1">
           <button type="submit" className="btn-primary" disabled={saving}>
-            {saving ? "Saving…" : "Complete Store Setup"}
+            {saving ? tr("Enregistrement…", "Saving…") : tr("Terminer la configuration", "Complete Store Setup")}
           </button>
         </div>
       </form>

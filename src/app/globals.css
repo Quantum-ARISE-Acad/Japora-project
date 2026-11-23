@@ -17,19 +17,69 @@
  * instead of literal colors (see the design system).
  * ===================================================================== */
 .dark .bg-white { background-color: rgb(var(--c-200)) !important; }
+.dark .hover\:bg-white:hover { background-color: rgb(var(--c-300)) !important; }
+.dark .bg-white\/35,
+.dark .bg-white\/40,
+.dark .bg-white\/45 { background-color: rgb(var(--c-200) / 0.45) !important; }
+.dark .bg-white\/50,
 .dark .bg-white\/55,
 .dark .bg-white\/60,
 .dark .bg-white\/62,
 .dark .bg-white\/65,
 .dark .bg-white\/70,
+.dark .bg-white\/75,
 .dark .bg-white\/80,
 .dark .bg-white\/85,
 .dark .bg-white\/90,
 .dark .bg-white\/95 { background-color: rgb(var(--c-200) / 0.7) !important; }
 
+/* Gradients that start/pass through white (hero + section washes). Only the
+   colour stop is swapped; Tailwind's --tw-gradient-stops picks it up. */
+.dark .from-white,
+.dark .from-white\/95,
+.dark .from-white\/75 { --tw-gradient-from: rgb(var(--c-100) / 0.85) var(--tw-gradient-from-position) !important; }
+.dark .via-white { --tw-gradient-via: rgb(var(--c-100) / 0.85) var(--tw-gradient-via-position) !important; }
+
+/* Hairlines drawn in literal white become glaring on dark surfaces. */
+.dark .border-white\/70,
+.dark .border-white\/65 { border-color: rgb(255 255 255 / 0.10) !important; }
+
+/* "Active / selected" pills use the ink ramp (bg-arctic-800/900) with literal
+   white text. The ramp flips to light in dark mode, so the white text would
+   vanish — re-ink it with the flipped canvas colour instead. */
+.dark [class*="bg-arctic-900"].text-white,
+.dark [class*="bg-arctic-800"].text-white { color: rgb(var(--c-50)) !important; }
+.dark [class*="bg-arctic-900"] > .text-arctic-200,
+.dark [class*="bg-arctic-800"] > .text-arctic-200,
+.dark [class*="bg-arctic-900"] .text-arctic-200 { color: rgb(var(--c-300)) !important; }
+.dark [class*="bg-arctic-900"] > .bg-white\/20.text-white,
+.dark [class*="bg-arctic-800"] > .bg-white\/20.text-white,
+.dark [class*="bg-arctic-900"] > .bg-white\/15.text-white,
+.dark [class*="bg-arctic-800"] > .bg-white\/15.text-white {
+  background-color: rgb(var(--c-50) / 0.16) !important;
+  color: rgb(var(--c-50)) !important;
+}
+
+/* Neutralise redundant `dark:*-arctic-*` modifiers written by authors who didn't
+   realise the `arctic` ramp already inverts via CSS channel triples (--c-N).
+   Without this, `dark:bg-arctic-900` becomes near-white in dark mode. */
+.dark .dark\:bg-arctic-900,
+.dark .dark\:bg-arctic-900\/95,
+.dark .dark\:bg-arctic-900\/60,
+.dark .dark\:bg-arctic-900\/40,
+.dark .dark\:bg-arctic-800,
+.dark .dark\:bg-arctic-800\/60 { background-color: rgb(var(--c-100)) !important; }
+.dark .dark\:hover\:bg-arctic-800\/80:hover { background-color: rgb(var(--c-200)) !important; }
+.dark .dark\:text-arctic-300 { color: rgb(var(--c-700)) !important; }
+.dark .dark\:text-arctic-200,
+.dark .dark\:text-arctic-100 { color: rgb(var(--c-800)) !important; }
+.dark .dark\:border-arctic-800,
+.dark .dark\:border-arctic-700 { border-color: rgb(var(--c-300)) !important; }
+
 /* Pale status tints → translucent warm-dark equivalents (kanban, badges). */
 .dark .bg-emerald-50 { background-color: rgb(16 70 52 / 0.35) !important; }
 .dark .bg-amber-50   { background-color: rgb(120 90 20 / 0.26) !important; }
+.dark .bg-amber-50\/70 { background-color: rgb(120 90 20 / 0.34) !important; }
 .dark .bg-sky-50,
 .dark .bg-blue-50    { background-color: rgb(30 64 110 / 0.30) !important; }
 .dark .bg-indigo-50  { background-color: rgb(54 50 110 / 0.30) !important; }
@@ -48,15 +98,44 @@
 
 /* Status-tint text needs to lighten so it stays legible on the dark tints. */
 .dark .text-emerald-700,
-.dark .text-emerald-800 { color: #6ee7b7 !important; }
+.dark .text-emerald-800,
+.dark .text-emerald-900 { color: #6ee7b7 !important; }
 .dark .text-amber-700,
 .dark .text-amber-800,
 .dark .text-amber-900   { color: #fcd34d !important; }
 .dark .text-red-600,
-.dark .text-red-700     { color: #fca5a5 !important; }
+.dark .text-red-700,
+.dark .text-red-800     { color: #fca5a5 !important; }
 .dark .text-sky-600,
 .dark .text-sky-700,
 .dark .text-blue-700    { color: #7dd3fc !important; }
+.dark .text-indigo-700  { color: #a5b4fc !important; }
+
+/* Segmented controls with a pale selected chip need dark text on dark mode. */
+.dark .orders-status-filter-inactive,
+.dark .customers-filter-inactive {
+  background-color: rgb(var(--c-300) / 0.82) !important;
+  color: rgb(var(--c-900)) !important;
+  text-decoration-color: rgb(var(--c-700) / 0.75);
+}
+.dark .orders-filter-toolbar {
+  background-color: rgb(var(--c-100)) !important;
+}
+.dark .customers-filter-track {
+  background-color: rgb(var(--c-200)) !important;
+}
+.dark .orders-status-filter-inactive:hover,
+.dark .customers-filter-inactive:hover {
+  background-color: rgb(var(--c-400) / 0.8) !important;
+  color: #fff !important;
+}
+.dark .products-view-toggle-inactive {
+  color: rgb(var(--c-800)) !important;
+}
+.dark .products-view-toggle-inactive:hover {
+  color: #fff !important;
+  background-color: rgb(var(--c-300) / 0.7) !important;
+}
 
 /* Keep WhatsApp preview content readable over its dark transcript surface. */
 .dark .bot-chat-transcript { background-color: #111916 !important; color: #f5f3ef !important; }
@@ -67,6 +146,25 @@
   background-color: #293330 !important;
   border-color: #66736d !important;
   color: #f5f3ef !important;
+}
+.dark .bot-chat-message-bot {
+  background-color: #263b34 !important;
+  border-color: #71877d !important;
+  color: #ffffff !important;
+}
+.dark .broadcast-simulation-preview {
+  background-color: #211d2b !important;
+  border-color: #8b7aa8 !important;
+  color: #f8f5ff !important;
+}
+.dark .broadcast-simulation-badge {
+  background-color: #453765 !important;
+  color: #ffffff !important;
+}
+.dark .broadcast-simulation-message {
+  background-color: #302a3c !important;
+  border-color: #8b7aa8 !important;
+  color: #ffffff !important;
 }
 .dark .bot-chat-message-customer {
   background-color: #174b3a !important;

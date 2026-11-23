@@ -41,7 +41,7 @@ services:
     ports:
       - '127.0.0.1::443'
     volumes:
-      - ../../deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../../deploy/caddy:/etc/caddy:ro
       - uploads:/srv/public/uploads:ro
       - caddy_data:/data
       - caddy_config:/config

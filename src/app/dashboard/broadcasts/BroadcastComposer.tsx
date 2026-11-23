@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AuroraIsoscout } from "@/components/aurora";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 type Segment = "all" | "recent" | "unpaid" | "wholesale" | "vip" | "inactive" | "reactivation";
 
@@ -43,6 +44,7 @@ export default function BroadcastComposer({
   whatsappLive: boolean;
   shopName: string;
 }) {
+  const { tr } = usePublicLang();
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>(initialBroadcasts);
   const [segment, setSegment] = useState<Segment>("all");
   const [recipientCount, setRecipientCount] = useState<number | null>(null);
@@ -65,9 +67,9 @@ export default function BroadcastComposer({
       const data = (await res.json()) as { broadcasts: Broadcast[] };
       setBroadcasts(data.broadcasts);
     } catch {
-      setError("Impossible d’actualiser l’historique pour le moment.");
+      setError(tr("Impossible d’actualiser l’historique pour le moment.", "Could not refresh the history right now."));
     }
-  }, []);
+  }, [tr]);
 
   // Live recipient count for the active segment. Re-runs whenever the user
   // flips chips so the button label always matches what they'll actually
@@ -120,15 +122,15 @@ export default function BroadcastComposer({
     setError("");
     setInfo("");
     if (messageMode === "text" && !body.trim()) {
-      setError("Écrivez un message avant de continuer.");
+      setError(tr("Écrivez un message avant de continuer.", "Write a message before continuing."));
       return;
     }
     if (messageMode === "text" && body.length > MAX_BODY) {
-      setError(`Le message ne peut pas dépasser ${MAX_BODY} caractères.`);
+      setError(tr(`Le message ne peut pas dépasser ${MAX_BODY} caractères.`, `The message cannot be longer than ${MAX_BODY} characters.`));
       return;
     }
     if (countError) {
-      setError("Impossible de calculer le nombre de destinataires. Réessayez.");
+      setError(tr("Impossible de calculer le nombre de destinataires. Réessayez.", "Could not count the recipients. Try again."));
       return;
     }
     if (!recipientCount) {
@@ -137,19 +139,19 @@ export default function BroadcastComposer({
           .replace(/\{\{\s*name\s*\}\}/gi, "Client de démonstration")
           .replace(/\{\{\s*store\s*\}\}/gi, shopName);
         setDemoPreview(rendered);
-        setInfo("Aperçu local uniquement : aucun destinataire réel, aucune campagne créée et aucun message envoyé.");
+        setInfo(tr("Aperçu local uniquement : aucun destinataire réel, aucune campagne créée et aucun message envoyé.", "Local preview only: no real recipient, no campaign created and no message sent."));
         return;
       }
-      setError("Aucun client consentant ne correspond à ce segment.");
+      setError(tr("Aucun client consentant ne correspond à ce segment.", "No consenting customer matches this segment."));
       return;
     }
     if (whatsappLive && messageMode !== "template") {
-      setError("Un envoi Marketing réel nécessite un modèle WhatsApp approuvé par Meta.");
+      setError(tr("Un envoi Marketing réel nécessite un modèle WhatsApp approuvé par Meta.", "A real Marketing send needs a WhatsApp template approved by Meta."));
       return;
     }
     const params = templateParams.split(",").map((param) => param.trim()).filter(Boolean);
     if (messageMode === "template" && (!templateName.trim() || !templateLanguage.trim() || params.some((param) => param !== "name" && param !== "store") || params.length > 5)) {
-      setError("Vérifiez le nom du modèle, sa langue et ses variables (name ou store).");
+      setError(tr("Vérifiez le nom du modèle, sa langue et ses variables (name ou store).", "Check the template name, its language and its variables (name or store)."));
       return;
     }
     setSending(true);
@@ -161,7 +163,7 @@ export default function BroadcastComposer({
       });
       const createData = await createRes.json().catch(() => ({}));
       if (!createRes.ok) {
-        setError(createData.error || "Impossible de préparer l’envoi.");
+        setError(createData.error || tr("Impossible de préparer l’envoi.", "Could not prepare the send."));
         return;
       }
       const id = createData.id as string;
@@ -171,17 +173,17 @@ export default function BroadcastComposer({
       });
       if (!sendRes.ok) {
         const sendData = await sendRes.json().catch(() => ({}));
-        setError(sendData.error || "Impossible de lancer l’envoi.");
+        setError(sendData.error || tr("Impossible de lancer l’envoi.", "Could not start the send."));
         await reloadBroadcasts();
         return;
       }
       setBody("");
       setInfo(whatsappLive
-        ? `Campagne mise en file pour ${createData.targetCount} client${createData.targetCount > 1 ? "s" : ""} consentant${createData.targetCount > 1 ? "s" : ""}. Le traitement se poursuit en arrière-plan.`
-        : `Simulation mise en file pour ${createData.targetCount} client${createData.targetCount > 1 ? "s" : ""}. Aucun message réel ne sera envoyé.`);
+        ? tr(`Campagne mise en file pour ${createData.targetCount} client${createData.targetCount > 1 ? "s" : ""} consentant${createData.targetCount > 1 ? "s" : ""}. Le traitement se poursuit en arrière-plan.`, `Campaign queued for ${createData.targetCount} consenting customer${createData.targetCount > 1 ? "s" : ""}. Processing continues in the background.`)
+        : tr(`Simulation mise en file pour ${createData.targetCount} client${createData.targetCount > 1 ? "s" : ""}. Aucun message réel ne sera envoyé.`, `Simulation queued for ${createData.targetCount} customer${createData.targetCount > 1 ? "s" : ""}. No real message will be sent.`));
       await reloadBroadcasts();
     } catch {
-      setError("Erreur réseau : l’envoi n’a pas pu être lancé. Vérifiez l’historique avant de réessayer.");
+      setError(tr("Erreur réseau : l’envoi n’a pas pu être lancé. Vérifiez l’historique avant de réessayer.", "Network error: the send could not start. Check the history before trying again."));
     } finally {
       setSending(false);
     }
@@ -196,21 +198,21 @@ export default function BroadcastComposer({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="a-headline-md text-arctic-900">Marketing WhatsApp</h1>
+        <h1 className="a-headline-md text-arctic-900">{tr("Marketing WhatsApp", "WhatsApp marketing")}</h1>
         <p className="text-sm text-arctic-600">
-          Envoyez un message à vos clients qui ont accepté de recevoir vos communications.
+          {tr("Envoyez un message à vos clients qui ont accepté de recevoir vos communications.", "Send a message to the customers who agreed to receive your messages.")}
         </p>
       </div>
 
       {!whatsappLive && (
         <div role="status" className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Mode démo : les envois sont simulés. Aucun message ne sera transmis aux clients sans configuration de WhatsApp Cloud API.
+          {tr("Mode démo : les envois sont simulés. Aucun message ne sera transmis aux clients sans configuration de WhatsApp Cloud API.", "Demo mode: sends are simulated. No message reaches customers until the WhatsApp Cloud API is set up.")}
         </div>
       )}
 
       <div className="card space-y-4 p-5">
         <div>
-          <label className="label">Destinataires</label>
+          <label className="label">{tr("Destinataires", "Recipients")}</label>
           <div className="flex flex-wrap gap-2">
             {SEGMENTS.map((s) => {
               const active = s.id === segment;
@@ -233,15 +235,15 @@ export default function BroadcastComposer({
             })}
           </div>
           <p className="mt-2 text-xs text-arctic-600">
-            Cet envoi concernera <span className="font-semibold text-arctic-800">{countLabel}</span>.
+            {tr("Cet envoi concernera", "This send will reach")} <span className="font-semibold text-arctic-800">{countLabel}</span>.
           </p>
-          {countError && <p role="alert" className="mt-1 text-xs text-red-700">Impossible de charger le nombre de destinataires. L’envoi est désactivé jusqu’à la prochaine vérification.</p>}
+          {countError && <p role="alert" className="mt-1 text-xs text-red-700">{tr("Impossible de charger le nombre de destinataires. L’envoi est désactivé jusqu’à la prochaine vérification.", "Could not load the number of recipients. Sending is disabled until the next check.")}</p>}
         </div>
 
         <div>
           <div className="flex items-center justify-between">
             <label className="label" htmlFor="broadcast-body">
-              Votre message
+              {tr("Votre message", "Your message")}
             </label>
             {messageMode === "text" && <span
               className={
@@ -253,24 +255,24 @@ export default function BroadcastComposer({
                     : "text-arctic-500")
               }
             >
-              {remaining} caractères restants
+              {remaining} {tr("caractères restants", "characters left")}
             </span>}
           </div>
-          <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Type de message">
-            <button type="button" onClick={() => { setMessageMode("template"); setDemoPreview(""); }} aria-pressed={messageMode === "template"} className={`rounded-full border px-3 py-1.5 text-sm ${messageMode === "template" ? "border-brand bg-brand text-white" : "border-arctic-400/40"}`}>Modèle approuvé</button>
-            <button type="button" onClick={() => { setMessageMode("text"); setDemoPreview(""); }} aria-pressed={messageMode === "text"} className={`rounded-full border px-3 py-1.5 text-sm ${messageMode === "text" ? "border-brand bg-brand text-white" : "border-arctic-400/40"}`}>Texte libre</button>
+          <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label={tr("Type de message", "Message type")}>
+            <button type="button" onClick={() => { setMessageMode("template"); setDemoPreview(""); }} aria-pressed={messageMode === "template"} className={`rounded-full border px-3 py-1.5 text-sm ${messageMode === "template" ? "border-brand bg-brand text-white" : "border-arctic-400/40"}`}>{tr("Modèle approuvé", "Approved template")}</button>
+            <button type="button" onClick={() => { setMessageMode("text"); setDemoPreview(""); }} aria-pressed={messageMode === "text"} className={`rounded-full border px-3 py-1.5 text-sm ${messageMode === "text" ? "border-brand bg-brand text-white" : "border-arctic-400/40"}`}>{tr("Texte libre", "Free text")}</button>
           </div>
           {messageMode === "template" ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              <div><label className="label" htmlFor="broadcast-template-name">Nom exact du modèle Meta</label><input id="broadcast-template-name" className="input" value={templateName} onChange={(event) => setTemplateName(event.target.value)} placeholder="ex. nouvelle_collection" /></div>
-              <div><label className="label" htmlFor="broadcast-template-language">Langue du modèle</label><input id="broadcast-template-language" className="input" value={templateLanguage} onChange={(event) => setTemplateLanguage(event.target.value)} placeholder="fr ou en_US" /></div>
-              <div className="sm:col-span-2"><label className="label" htmlFor="broadcast-template-params">Variables du corps, dans l’ordre du modèle</label><input id="broadcast-template-params" className="input" value={templateParams} onChange={(event) => setTemplateParams(event.target.value)} placeholder="name, store" /><p className="mt-1 text-xs text-arctic-600">Utilisez name ou store, séparés par des virgules. Laissez vide si le modèle n’a aucune variable.</p></div>
-              <p className="sm:col-span-2 text-sm text-arctic-600">Le contenu du message est défini et approuvé dans WhatsApp Manager. Saisissez son nom et sa langue exactement comme dans Meta.</p>
+              <div><label className="label" htmlFor="broadcast-template-name">{tr("Nom exact du modèle Meta", "Exact Meta template name")}</label><input id="broadcast-template-name" className="input" value={templateName} onChange={(event) => setTemplateName(event.target.value)} placeholder={tr("ex. nouvelle_collection", "e.g. new_collection")} /></div>
+              <div><label className="label" htmlFor="broadcast-template-language">{tr("Langue du modèle", "Template language")}</label><input id="broadcast-template-language" className="input" value={templateLanguage} onChange={(event) => setTemplateLanguage(event.target.value)} placeholder={tr("fr ou en_US", "fr or en_US")} /></div>
+              <div className="sm:col-span-2"><label className="label" htmlFor="broadcast-template-params">{tr("Variables du corps, dans l’ordre du modèle", "Body variables, in template order")}</label><input id="broadcast-template-params" className="input" value={templateParams} onChange={(event) => setTemplateParams(event.target.value)} placeholder="name, store" /><p className="mt-1 text-xs text-arctic-600">{tr("Utilisez name ou store, séparés par des virgules. Laissez vide si le modèle n’a aucune variable.", "Use name or store, separated by commas. Leave empty if the template has no variables.")}</p></div>
+              <p className="sm:col-span-2 text-sm text-arctic-600">{tr("Le contenu du message est défini et approuvé dans WhatsApp Manager. Saisissez son nom et sa langue exactement comme dans Meta.", "The message content is defined and approved in WhatsApp Manager. Enter its name and language exactly as in Meta.")}</p>
             </div>
           ) : (
             <>
-              {whatsappLive && <p role="alert" className="mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">Le texte libre est bloqué pour les campagnes réelles, car l’application ne vérifie pas si chaque client a récemment écrit à la boutique.</p>}
-              <textarea id="broadcast-body" className="input min-h-[140px]" placeholder="Bonjour {{name}}, découvrez les nouveautés de {{store}}. Répondez à ce message pour en savoir plus." value={body} maxLength={MAX_BODY} onChange={(e) => { setBody(e.target.value); setDemoPreview(""); }} />
+              {whatsappLive && <p role="alert" className="mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">{tr("Le texte libre est bloqué pour les campagnes réelles, car l’application ne vérifie pas si chaque client a récemment écrit à la boutique.", "Free text is blocked for real campaigns, because the app does not check whether each customer recently wrote to the shop.")}</p>}
+              <textarea id="broadcast-body" className="input min-h-[140px]" placeholder={tr("Bonjour {{name}}, découvrez les nouveautés de {{store}}. Répondez à ce message pour en savoir plus.", "Hello {{name}}, discover what's new at {{store}}. Reply to this message to learn more.")} value={body} maxLength={MAX_BODY} onChange={(e) => { setBody(e.target.value); setDemoPreview(""); }} />
             </>
           )}
         </div>
@@ -287,18 +289,18 @@ export default function BroadcastComposer({
         )}
 
         {demoPreview && (
-          <section aria-live="polite" className="rounded-xl border border-violet-300 bg-violet-50 p-4 text-violet-950">
+          <section aria-live="polite" className="broadcast-simulation-preview rounded-xl border border-violet-300 bg-violet-50 p-4 text-violet-950">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold">Aperçu de la simulation</h2>
-              <span className="rounded-full bg-violet-200 px-2 py-1 text-xs font-medium">Client fictif · aucun envoi</span>
+              <h2 className="text-sm font-semibold">{tr("Aperçu de la simulation", "Simulation preview")}</h2>
+              <span className="broadcast-simulation-badge rounded-full bg-violet-200 px-2 py-1 text-xs font-medium">{tr("Client fictif · aucun envoi", "Fictional customer · nothing sent")}</span>
             </div>
-            <p className="mt-3 whitespace-pre-wrap rounded-lg border border-violet-200 bg-white p-3 text-sm">{demoPreview}</p>
+            <p className="broadcast-simulation-message mt-3 whitespace-pre-wrap rounded-lg border border-violet-200 bg-white p-3 text-sm">{demoPreview}</p>
           </section>
         )}
 
         {!whatsappLive && recipientCount === 0 && !countError && (
           <p className="text-xs text-arctic-600">
-            Aucun client consentant ne correspond au segment. En mode démo, vous pouvez quand même prévisualiser un texte libre ; pour simuler une campagne, ajoutez des clients avec un numéro valide et un consentement marketing enregistré.
+            {tr("Aucun client consentant ne correspond au segment. En mode démo, vous pouvez quand même prévisualiser un texte libre ; pour simuler une campagne, ajoutez des clients avec un numéro valide et un consentement marketing enregistré.", "No consenting customer matches the segment. In demo mode you can still preview free text; to simulate a campaign, add customers with a valid number and recorded marketing consent.")}
           </p>
         )}
 
@@ -310,24 +312,24 @@ export default function BroadcastComposer({
             className="btn-primary"
           >
             {sending
-              ? "Envoi en cours…"
+              ? tr("Envoi en cours…", "Sending…")
               : recipientCount === 0
                 ? !whatsappLive && messageMode === "text" && body.trim()
-                  ? "Prévisualiser la simulation"
-                  : "Aucun destinataire éligible"
+                  ? tr("Prévisualiser la simulation", "Preview the simulation")
+                  : tr("Aucun destinataire éligible", "No eligible recipient")
                 : `${whatsappLive ? "Envoyer maintenant" : "Simuler l’envoi"}${recipientCount ? ` (${recipientCount})` : ""}`}
           </button>
         </div>
       </div>
 
       <div>
-        <h2 className="mb-3 a-title-lg text-arctic-900">Historique</h2>
+        <h2 className="mb-3 a-title-lg text-arctic-900">{tr("Historique", "History")}</h2>
         {broadcasts.length === 0 ? (
           <div className="glass glass-edge rounded-shape-lg p-6">
             <AuroraIsoscout
               variant="broadcasts"
-              title="Aucun envoi pour le moment"
-              body="Rédigez un message et choisissez un segment de clients consentants. Les envois et leur état apparaîtront ici."
+              title={tr("Aucun envoi pour le moment", "Nothing sent yet")}
+              body={tr("Rédigez un message et choisissez un segment de clients consentants. Les envois et leur état apparaîtront ici.", "Write a message and pick a segment of consenting customers. Sends and their status will appear here.")}
             />
           </div>
         ) : (
@@ -341,9 +343,9 @@ export default function BroadcastComposer({
                   <StatusPill status={b.status} />
                   <span
                     className="text-arctic-500"
-                    title={b.status === "stubbed" ? "La simulation n’a envoyé aucun message réel." : "Ce nombre indique les messages acceptés par l’API WhatsApp. Il ne confirme pas leur livraison au téléphone."}
+                    title={b.status === "stubbed" ? tr("La simulation n’a envoyé aucun message réel.", "The simulation sent no real message.") : tr("Ce nombre indique les messages acceptés par l’API WhatsApp. Il ne confirme pas leur livraison au téléphone.", "This number counts the messages accepted by the WhatsApp API. It does not confirm delivery to the phone.")}
                   >
-                    {b.sentCount} / {b.targetCount} {b.status === "stubbed" ? "simulés" : "acceptés par WhatsApp"}
+                    {b.sentCount} / {b.targetCount} {b.status === "stubbed" ? tr("simulés", "simulated") : tr("acceptés par WhatsApp", "accepted by WhatsApp")}
                   </span>
                   <span className="ml-auto text-arctic-500">
                     {new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short" }).format(new Date(b.createdAt))}
@@ -351,11 +353,11 @@ export default function BroadcastComposer({
                 </div>
                 {(b.failedCount > 0 || b.skippedCount > 0 || b.uncertainCount > 0) && (
                   <p className={`text-xs ${b.uncertainCount > 0 ? "text-red-700" : "text-amber-800"}`} role={b.uncertainCount > 0 ? "alert" : "status"}>
-                    {b.failedCount > 0 && `${b.failedCount} échec${b.failedCount > 1 ? "s" : ""}`}
+                    {b.failedCount > 0 && tr(`${b.failedCount} échec${b.failedCount > 1 ? "s" : ""}`, `${b.failedCount} failure${b.failedCount > 1 ? "s" : ""}`)}
                     {b.failedCount > 0 && b.skippedCount > 0 ? " · " : ""}
-                    {b.skippedCount > 0 && `${b.skippedCount} ignoré${b.skippedCount > 1 ? "s" : ""} (consentement retiré ou numéro invalide)`}
+                    {b.skippedCount > 0 && tr(`${b.skippedCount} ignoré${b.skippedCount > 1 ? "s" : ""} (consentement retiré ou numéro invalide)`, `${b.skippedCount} skipped (consent withdrawn or invalid number)`)}
                     {(b.failedCount > 0 || b.skippedCount > 0) && b.uncertainCount > 0 ? " · " : ""}
-                    {b.uncertainCount > 0 && `${b.uncertainCount} envoi${b.uncertainCount > 1 ? "s" : ""} interrompu${b.uncertainCount > 1 ? "s" : ""} à vérifier dans WhatsApp avant toute relance`}
+                    {b.uncertainCount > 0 && tr(`${b.uncertainCount} envoi${b.uncertainCount > 1 ? "s" : ""} interrompu${b.uncertainCount > 1 ? "s" : ""} à vérifier dans WhatsApp avant toute relance`, `${b.uncertainCount} send${b.uncertainCount > 1 ? "s" : ""} interrupted — check WhatsApp before trying again`)}
                   </p>
                 )}
                 <p className="whitespace-pre-wrap text-sm text-arctic-800">{b.body}</p>
@@ -369,6 +371,7 @@ export default function BroadcastComposer({
 }
 
 function StatusPill({ status }: { status: string }) {
+  const { tr } = usePublicLang();
   const statuses: Record<string, { label: string; style: string }> = {
     draft: { label: "Brouillon", style: "bg-arctic-200/65 text-arctic-700" },
     queued: { label: "En file d’attente", style: "bg-blue-100 text-blue-700" },
@@ -385,7 +388,7 @@ function StatusPill({ status }: { status: string }) {
   return (
     <span
       className={`rounded-full px-2 py-0.5 font-medium ${current.style}`}
-      title={status === "sent" ? "WhatsApp a accepté les demandes d’envoi, mais cet écran ne reçoit pas les accusés de livraison par campagne." : undefined}
+      title={status === "sent" ? tr("WhatsApp a accepté les demandes d’envoi, mais cet écran ne reçoit pas les accusés de livraison par campagne.", "WhatsApp accepted the send requests, but this screen does not receive delivery receipts per campaign.") : undefined}
     >
       {current.label}
     </span>

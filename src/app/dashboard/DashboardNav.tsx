@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 const LINKS = [
   { href: "/dashboard", label: "Overview" },
@@ -13,7 +14,6 @@ const LINKS = [
   { href: "/dashboard/bookkeeping", label: "Bookkeeping" },
   { href: "/dashboard/payment-links", label: "Payment Links" },
   { href: "/dashboard/analytics", label: "Analytics" },
-  { href: "/dashboard/cooperative", label: "Cooperative" },
   { href: "/dashboard/bot", label: "Bot" },
   { href: "/dashboard/broadcasts", label: "Marketing" },
   { href: "/dashboard/campaigns", label: "Ads" },
@@ -28,6 +28,7 @@ export default function DashboardNav({
   shopName: string;
   shopSlug: string;
 }) {
+  const { tr } = usePublicLang();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -78,10 +79,10 @@ export default function DashboardNav({
             rel="noreferrer"
             className="btn-ghost hidden sm:inline-flex"
           >
-            View catalog ↗
+            {tr("Voir le catalogue ↗", "View catalog ↗")}
           </a>
           <button onClick={logout} className="btn-ghost">
-            Sign out
+            {tr("Se déconnecter", "Sign out")}
           </button>
         </div>
       </div>

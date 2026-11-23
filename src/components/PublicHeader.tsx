@@ -99,7 +99,7 @@ export default function PublicHeader({ isAuthenticated = false, shopSlug }: Publ
         </div>
 
         {/* Desktop Navigation */}
-        <nav className="hidden items-center gap-1.5 lg:flex" aria-label="Navigation principale">
+        <nav className="hidden items-center gap-1.5 lg:flex" aria-label={tr("Navigation principale", "Main navigation")}>
           {navLinks.map((item) => {
             const active =
               pathname === item.href ||

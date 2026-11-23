@@ -58,6 +58,49 @@ export async function verifyVendorCollectionOwnership(
   return { ok: true, collectionId: collection.id };
 }
 
+type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+/**
+ * Reads the optional secret minimum price from a request body ("minPrice" in
+ * major units, or "minPriceCents"). undefined = not sent, null = remove it.
+ */
+export function parseMinPriceInput(b: Record<string, unknown>): number | null | undefined {
+  if (b.minPrice === undefined && b.minPriceCents === undefined) return undefined;
+  const raw = b.minPrice ?? b.minPriceCents;
+  if (raw === null || raw === "" || raw === 0 || raw === "0") return null;
+  const cents = parsePriceToCents(raw as string | number);
+  return cents > 0 ? cents : null;
+}
+
+const MIN_PRICE_TOO_HIGH = "Le prix minimum doit être inférieur ou égal au prix affiché.";
+
+/** Saves (or removes) the secret minimum price, never above the shown price. */
+async function savePriceFloor(
+  tx: Tx,
+  vendorId: string,
+  productId: string,
+  minPriceCents: number | null,
+): Promise<void> {
+  if (minPriceCents === null) {
+    await tx.productPriceFloor.deleteMany({ where: { productId } });
+    return;
+  }
+  await tx.productPriceFloor.upsert({
+    where: { productId },
+    create: { productId, vendorId, minPriceCents },
+    update: { minPriceCents },
+  });
+}
+
+/** Secret minimum prices of a vendor's products, for the dashboard only. */
+export async function priceFloorsForVendor(vendorId: string): Promise<Map<string, number>> {
+  const rows = await prisma.productPriceFloor.findMany({
+    where: { vendorId },
+    select: { productId: true, minPriceCents: true },
+  });
+  return new Map(rows.map((r) => [r.productId, r.minPriceCents]));
+}
+
 export type ProductMutationResult =
   | { ok: true; product: Product }
   | { ok: false; status: 400 | 403 | 404; error: string };
@@ -78,6 +121,11 @@ export async function createProductForVendor(
   const priceCents = parsePriceToCents((b.price ?? b.priceCents ?? 0) as string | number);
   if (priceCents <= 0) {
     return { ok: false, status: 400, error: "Enter a valid price." };
+  }
+
+  const minPriceCents = parseMinPriceInput(b);
+  if (minPriceCents && minPriceCents > priceCents) {
+    return { ok: false, status: 400, error: MIN_PRICE_TOO_HIGH };
   }
 
   const collectionCheck = await verifyVendorCollectionOwnership(vendor.id, b.collectionId);
@@ -116,6 +164,9 @@ export async function createProductForVendor(
         depositPercent,
       },
     });
+    if (minPriceCents) {
+      await savePriceFloor(tx, vendor.id, created.id, minPriceCents);
+    }
     if (becamePublished(null, created)) {
       await enqueue(tx, productPublished(created, vendor));
     }
@@ -183,11 +234,27 @@ export async function updateProductForVendor(
     data.collectionId = collectionCheck.collectionId;
   }
 
+  const minPriceCents = parseMinPriceInput(b);
+  const finalPriceCents = (data.priceCents as number | undefined) ?? existing.priceCents;
+  if (minPriceCents && minPriceCents > finalPriceCents) {
+    return { ok: false, status: 400, error: MIN_PRICE_TOO_HIGH };
+  }
+
   const product = await prisma.$transaction(async (tx) => {
     const updated = await tx.product.update({
       where: { id: existing.id },
       data,
     });
+
+    if (minPriceCents !== undefined) {
+      await savePriceFloor(tx, vendor.id, existing.id, minPriceCents);
+    } else if (updated.priceCents < existing.priceCents) {
+      // A lower shown price pulls a higher minimum down with it.
+      await tx.productPriceFloor.updateMany({
+        where: { productId: existing.id, minPriceCents: { gt: updated.priceCents } },
+        data: { minPriceCents: updated.priceCents },
+      });
+    }
 
     const before = productRecord(existing, vendor);
     const after = productRecord(updated, vendor);

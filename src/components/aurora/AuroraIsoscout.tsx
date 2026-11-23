@@ -117,7 +117,7 @@ export default function AuroraIsoscout({
           className="absolute inset-0 rounded-full blur-2xl"
           style={{
             background:
-              "radial-gradient(closest-side, rgba(230,230,250,0.85), rgba(176,196,222,0.4) 60%, transparent)",
+              "radial-gradient(closest-side, rgb(var(--c-200) / 0.85), rgb(var(--c-300) / 0.4) 60%, transparent)",
           }}
         />
         <svg

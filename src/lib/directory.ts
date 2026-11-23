@@ -26,11 +26,10 @@ export type ShopCard = {
 export type ListShopsOpts = {
   region?: string;
   category?: string;
-  q?: string;
   take?: number;
 };
 
-const PUBLIC_SHOP_SELECT = {
+export const PUBLIC_SHOP_SELECT = {
   id: true,
   shopName: true,
   shopSlug: true,
@@ -49,14 +48,15 @@ const PUBLIC_SHOP_SELECT = {
 } as const;
 
 /** Map the raw row (verifiedAt) into the public ShopCard (verified boolean). */
-function toCard<T extends { verifiedAt: Date | null }>(row: T): Omit<T, "verifiedAt"> & { verified: boolean } {
+export function toCard<T extends { verifiedAt: Date | null }>(row: T): Omit<T, "verifiedAt"> & { verified: boolean } {
   const { verifiedAt, ...rest } = row;
   return { ...rest, verified: Boolean(verifiedAt) };
 }
 
 /**
  * List public shops. Filters are additive and all optional; pass nothing to
- * get the most recent 24 public shops site-wide.
+ * get the most recent 24 public shops site-wide. Text search lives in
+ * src/lib/search.ts (shops and products, accents ignored).
  */
 export async function listShops(opts: ListShopsOpts = {}): Promise<ShopCard[]> {
   const where: Record<string, unknown> = {
@@ -66,9 +66,6 @@ export async function listShops(opts: ListShopsOpts = {}): Promise<ShopCard[]> {
 
   if (opts.region && opts.region.trim()) where.region = opts.region.trim();
   if (opts.category && opts.category.trim()) where.category = opts.category.trim();
-  if (opts.q && opts.q.trim()) {
-    where.shopName = { contains: opts.q.trim(), mode: "insensitive" };
-  }
 
   const shops = await prisma.vendor.findMany({
     where,

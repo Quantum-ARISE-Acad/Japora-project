@@ -99,7 +99,7 @@ jobs:
       - name: Analyze deployment and CI shell scripts (ShellCheck)
         run: |
           docker run --rm -v "$PWD:/repo:ro" -w /repo koalaman/shellcheck:v0.10.0 --severity=warning \
-            deploy/mvp.sh deploy/backup/backup.sh deploy/scheduler/run.sh scripts/ci/infrastructure.sh
+            deploy/mvp.sh deploy/host/split-disk.sh deploy/host/disk-alert.sh deploy/host/install-disk-alert.sh deploy/backup/backup.sh deploy/scheduler/run.sh scripts/ci/infrastructure.sh
 
   lint:
     name: Stage 1 · Lint (ESLint, no warnings)
@@ -117,6 +117,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Lint React and TypeScript
         run: npm run lint
+      - name: Every visible text exists in French and English
+        run: npm run i18n:check
 
   typecheck:
     name: Stage 1 · Typecheck & Prisma Schema
@@ -216,11 +218,19 @@ jobs:
         run: |
           bash deploy/mvp.sh init localhost ci@example.invalid
           docker compose --env-file .env.mvp --env-file .env.keys -f docker-compose.mvp.yml config --quiet
+          # Même vérification pour une VM Olga (proxy HTTPS d'Olga, port 8080).
+          rm .env.mvp
+          bash deploy/mvp.sh init-olga japora.example.invalid
+          docker compose --env-file .env.mvp --env-file .env.keys -f docker-compose.mvp.yml config --quiet
+          bash deploy/mvp.sh set-url https://wataru.example.invalid/
+          grep -qx 'PUBLIC_URL=https://wataru.example.invalid' .env.mvp
       - name: Validate Caddy, Prometheus and Grafana configuration
         run: |
-          docker run --rm -e DOMAIN=localhost -e ACME_EMAIL=ci@example.invalid \
-            -v "$PWD/deploy/caddy:/etc/caddy:ro" caddy:2.10-alpine \
-            caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          for config in Caddyfile Caddyfile.olga; do
+            docker run --rm -e DOMAIN=localhost -e ACME_EMAIL=ci@example.invalid \
+              -v "$PWD/deploy/caddy:/etc/caddy:ro" caddy:2.10-alpine \
+              caddy validate --config "/etc/caddy/$config" --adapter caddyfile
+          done
           docker run --rm --entrypoint promtool -v "$PWD/deploy/prometheus:/etc/prometheus:ro" \
             prom/prometheus:v2.55.1 check config /etc/prometheus/prometheus.yml
           for f in deploy/grafana/dashboards/*.json; do node -e 'JSON.parse(require("fs").readFileSync(process.argv[1]))' "$f"; done

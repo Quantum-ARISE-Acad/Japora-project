@@ -11,11 +11,13 @@ import {
 } from "@/lib/ad-copy";
 import { findCategory, findRegion } from "@/lib/regions";
 import { logger } from "@/lib/logger";
+import { getServerTr } from "@/lib/public-locale";
 
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
   if (!vendor) {
-    return NextResponse.json({ error: "Veuillez vous connecter pour générer un texte." }, { status: 401 });
+    return NextResponse.json({ error: tr("Veuillez vous connecter pour générer un texte.", "Please sign in to generate a text.") }, { status: 401 });
   }
 
   const ip = getClientIp(req);
@@ -26,7 +28,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "La demande est invalide." }, { status: 400 });
+    return NextResponse.json({ error: tr("La demande est invalide.", "The request is invalid.") }, { status: 400 });
   }
 
   const platform = normalizeAdPlatform(body.platform);
@@ -42,7 +44,7 @@ export async function POST(req: NextRequest) {
       select: { name: true, priceCents: true, stock: true },
     });
     if (!product) {
-      return NextResponse.json({ error: "Ce produit est introuvable dans votre catalogue actif." }, { status: 400 });
+      return NextResponse.json({ error: tr("Ce produit est introuvable dans votre catalogue actif.", "This product is not in your active catalog.") }, { status: 400 });
     }
   }
 

@@ -4,6 +4,7 @@ import { errorMessage } from "@/lib/errors";
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 export default function EmailVerificationBanner({
   email,
@@ -12,6 +13,7 @@ export default function EmailVerificationBanner({
   email: string;
   verified: boolean;
 }) {
+  const { tr } = usePublicLang();
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [verifyUrl, setVerifyUrl] = useState<string | null>(null);
@@ -28,7 +30,7 @@ export default function EmailVerificationBanner({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error || "Impossible d'envoyer l'email de vérification.");
+        setError(data.error || tr("Impossible d'envoyer l'email de vérification.", "Could not send the verification email."));
       } else {
         setSent(true);
         if (data.verifyUrl) {
@@ -49,10 +51,10 @@ export default function EmailVerificationBanner({
           <span className="text-xl">⚠️</span>
           <div>
             <h3 className="text-sm font-semibold">
-              Votre adresse email n&apos;est pas encore vérifiée ({email})
+              {tr("Votre adresse email n'est pas encore vérifiée (", "Your email address is not verified yet (")}{email})
             </h3>
             <p className="mt-0.5 text-xs opacity-90">
-              La vérification protège votre boutique et vous permet de recevoir les notifications de commandes.
+              {tr("La vérification protège votre boutique et vous permet de recevoir les notifications de commandes.", "Verification protects your shop and lets you receive order notifications.")}
             </p>
           </div>
         </div>
@@ -61,14 +63,14 @@ export default function EmailVerificationBanner({
           {sent ? (
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                ✓ Email envoyé !
+                {tr("✓ Email envoyé !", "✓ Email sent!")}
               </span>
               {verifyUrl && (
                 <Link
                   href={verifyUrl}
                   className="rounded-shape-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-amber-700 transition"
                 >
-                  ⚡ Valider maintenant (Démo)
+                  {tr("⚡ Valider maintenant (Démo)", "⚡ Verify now (demo)")}
                 </Link>
               )}
             </div>
@@ -79,7 +81,7 @@ export default function EmailVerificationBanner({
               disabled={loading}
               className="rounded-shape-md bg-amber-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-amber-700 transition disabled:opacity-50"
             >
-              {loading ? "Envoi en cours…" : "Renvoyer l'email de confirmation"}
+              {loading ? tr("Envoi en cours…", "Sending…") : tr("Renvoyer l'email de confirmation", "Resend the confirmation email")}
             </button>
           )}
         </div>

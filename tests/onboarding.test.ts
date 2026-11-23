@@ -88,7 +88,7 @@ describe("store setup onboarding completion logic", () => {
 
     const valid = validateStoreSetupInput({
       shopName: "  Kossi Shop  ",
-      whatsappNumber: "228 90 12 34 56",
+      whatsappNumber: "+228 90 12 34 56",
       region: "lome",
       category: "fashion",
     });

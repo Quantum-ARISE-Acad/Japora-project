@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkWhatsAppNumber } from "@/lib/whatsapp-number";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getCurrentVendor } from "@/lib/auth";
@@ -9,12 +10,15 @@ import {
   parseWhatsAppAssistantConfig,
   sanitizeWhatsAppAssistantPatch,
 } from "@/lib/whatsapp-config";
+import { recordVendorActivity } from "@/lib/clerk-vendor-sync";
+import { getServerTr } from "@/lib/public-locale";
 
 const LANG_KEYS = new Set(Object.keys(LANG_NAMES) as Lang[]);
 
 export async function GET() {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const prefs =
     vendor.uiPrefs && typeof vendor.uiPrefs === "object" && !Array.isArray(vendor.uiPrefs)
@@ -50,8 +54,9 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
 
   const b = await req.json().catch(() => ({}));
   const data: Record<string, unknown> = {};
@@ -63,7 +68,13 @@ export async function PATCH(req: NextRequest) {
     data.tagline = b.tagline.trim().slice(0, 450);
   }
   if (typeof b.whatsappNumber === "string") {
-    data.whatsappNumber = digitsOnly(b.whatsappNumber);
+    // The country code is required: without it the shop's WhatsApp links and QR code
+    // open the wrong number (see src/lib/whatsapp-number.ts).
+    const wa = checkWhatsAppNumber(b.whatsappNumber);
+    if (!wa.ok) {
+      return NextResponse.json({ error: tr(wa.error, wa.errorEn), field: "whatsappNumber" }, { status: 400 });
+    }
+    data.whatsappNumber = wa.digits;
   }
   // Mobile-money payee number for USSD/dial-code payments — digits only; empty
   // string clears it (pay surface then falls back to whatsappNumber).
@@ -71,16 +82,24 @@ export async function PATCH(req: NextRequest) {
     data.momoNumber = digitsOnly(b.momoNumber);
   }
   // Meta Cloud API phone_number_id — digits only; empty string clears it.
+  const forceClaimPhoneNumberId = Boolean(b.forceClaimPhoneNumberId);
   if (typeof b.whatsappPhoneNumberId === "string") {
     const v = b.whatsappPhoneNumberId.trim();
     const cleaned = v ? digitsOnly(v) : null;
     if (cleaned) {
       const takenPhoneId = await prisma.vendor.findFirst({
         where: { whatsappPhoneNumberId: cleaned, NOT: { id: vendor.id } },
+        select: { id: true, shopName: true, shopSlug: true, email: true },
       });
-      if (takenPhoneId) {
+      if (takenPhoneId && !forceClaimPhoneNumberId) {
         return NextResponse.json(
-          { error: "Ce Phone Number ID WhatsApp est déjà associé à une autre boutique." },
+          {
+            error: `Ce Phone Number ID WhatsApp (${cleaned}) est déjà utilisé par la boutique « ${takenPhoneId.shopName} » (/c/${takenPhoneId.shopSlug}). Voulez-vous le transférer et l'associer à votre boutique actuelle ?`,
+            conflictCode: "WHATSAPP_PHONE_ID_TAKEN",
+            existingShopName: takenPhoneId.shopName,
+            existingShopSlug: takenPhoneId.shopSlug,
+            phoneNumberId: cleaned,
+          },
           { status: 409 },
         );
       }
@@ -118,7 +137,7 @@ export async function PATCH(req: NextRequest) {
   if (typeof b.bio === "string") {
     const bio = b.bio.trim();
     if (bio.length > 1000) {
-      return NextResponse.json({ error: "La biographie est trop longue (1000 caractères max)." }, { status: 400 });
+      return NextResponse.json({ error: tr("La biographie est trop longue (1000 caractères max).", "The bio is too long (1000 characters max).") }, { status: 400 });
     }
     data.bio = bio;
   }
@@ -133,7 +152,7 @@ export async function PATCH(req: NextRequest) {
           if (!/^https?:$/.test(parsed.protocol)) throw new Error("bad_scheme");
         } catch {
           return NextResponse.json(
-            { error: "Le logo doit être une image téléversée (/uploads/...) ou une URL http(s)." },
+            { error: tr("Le logo doit être une image téléversée (/uploads/...) ou une URL http(s).", "The logo must be an uploaded image (/uploads/...) or an http(s) URL.") },
             { status: 400 },
           );
         }
@@ -187,7 +206,7 @@ export async function PATCH(req: NextRequest) {
   if (b.uiPrefs !== undefined) {
     const patch = validateUiPrefsPatch(b.uiPrefs);
     if (!patch) {
-      return NextResponse.json({ error: "Invalid uiPrefs payload." }, { status: 400 });
+      return NextResponse.json({ error: tr("Préférences d'affichage invalides.", "Invalid uiPrefs payload.") }, { status: 400 });
     }
     Object.assign(currentUiPrefs, patch);
     uiPrefsChanged = true;
@@ -204,16 +223,43 @@ export async function PATCH(req: NextRequest) {
       currentUiPrefs.fedapayConfig && typeof currentUiPrefs.fedapayConfig === "object"
         ? (currentUiPrefs.fedapayConfig as Record<string, unknown>)
         : {};
+    const env: "sandbox" | "live" = fc.environment === "live" ? "live" : "sandbox";
+
+    const cleanKey = (val: unknown, fallback: unknown) => {
+      if (typeof val === "string") {
+        const trimmed = val.trim();
+        if (trimmed.includes("••••")) return typeof fallback === "string" ? fallback : "";
+        return trimmed;
+      }
+      return typeof fallback === "string" ? fallback : "";
+    };
+
+    const sandboxPublicKey = cleanKey(
+      fc.sandboxPublicKey !== undefined ? fc.sandboxPublicKey : env === "sandbox" ? fc.publicKey : undefined,
+      existingFc.sandboxPublicKey ?? (typeof existingFc.publicKey === "string" && existingFc.publicKey.startsWith("pk_sandbox_") ? existingFc.publicKey : ""),
+    );
+    const sandboxSecretKey = cleanKey(
+      fc.sandboxSecretKey !== undefined ? fc.sandboxSecretKey : env === "sandbox" ? fc.secretKey : undefined,
+      existingFc.sandboxSecretKey ?? (typeof existingFc.secretKey === "string" && existingFc.secretKey.startsWith("sk_sandbox_") ? existingFc.secretKey : ""),
+    );
+    const livePublicKey = cleanKey(
+      fc.livePublicKey !== undefined ? fc.livePublicKey : env === "live" ? fc.publicKey : undefined,
+      existingFc.livePublicKey ?? (typeof existingFc.publicKey === "string" && existingFc.publicKey.startsWith("pk_live_") ? existingFc.publicKey : ""),
+    );
+    const liveSecretKey = cleanKey(
+      fc.liveSecretKey !== undefined ? fc.liveSecretKey : env === "live" ? fc.secretKey : undefined,
+      existingFc.liveSecretKey ?? (typeof existingFc.secretKey === "string" && existingFc.secretKey.startsWith("sk_live_") ? existingFc.secretKey : ""),
+    );
+
     currentUiPrefs.fedapayConfig = {
-      environment: fc.environment === "live" ? "live" : "sandbox",
-      publicKey:
-        typeof fc.publicKey === "string"
-          ? fc.publicKey.trim()
-          : (existingFc.publicKey ?? ""),
-      secretKey:
-        typeof fc.secretKey === "string" && !fc.secretKey.includes("••••")
-          ? fc.secretKey.trim()
-          : (existingFc.secretKey ?? ""),
+      environment: env,
+      publicKey: env === "live" ? livePublicKey : sandboxPublicKey,
+      secretKey: env === "live" ? liveSecretKey : sandboxSecretKey,
+      sandboxPublicKey,
+      sandboxSecretKey,
+      livePublicKey,
+      liveSecretKey,
+      webhookSecret: cleanKey(fc.webhookSecret, existingFc.webhookSecret ?? ""),
       enabled: typeof fc.enabled === "boolean" ? fc.enabled : true,
     };
     uiPrefsChanged = true;
@@ -241,6 +287,27 @@ export async function PATCH(req: NextRequest) {
   }
 
   const updated = await prisma.vendor.update({ where: { id: vendor.id }, data });
+
+  await recordVendorActivity({
+    vendorId: updated.id,
+    type:
+      b.completeOnboarding === true
+        ? "shop.onboarding.completed"
+        : "shop.settings.updated",
+    subjectType: "vendor",
+    subjectId: updated.id,
+    data: {
+      shopName: updated.shopName,
+      shopSlug: updated.shopSlug,
+      currency: updated.currency,
+      language: updated.language,
+      region: updated.region,
+      category: updated.category,
+      whatsappNumber: updated.whatsappNumber,
+      momoNumber: updated.momoNumber,
+      onboardedAt: updated.onboardedAt?.toISOString() ?? null,
+    },
+  });
 
   try {
     revalidatePath("/dashboard", "layout");

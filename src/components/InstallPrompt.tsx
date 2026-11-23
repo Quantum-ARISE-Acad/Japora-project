@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 /**
  * PWA install prompt. Three flavours:
@@ -56,6 +57,7 @@ function wasRecentlyDismissed(): boolean {
 }
 
 export default function InstallPrompt() {
+  const { tr } = usePublicLang();
   const [variant, setVariant] = useState<"chromium" | "ios" | null>(null);
   const [savedEvent, setSavedEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [hidden, setHidden] = useState(false);
@@ -125,35 +127,35 @@ export default function InstallPrompt() {
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold text-arctic-900">
-            Add Japora to your home screen
+            {tr("Ajoutez Japora à votre écran d'accueil", "Add Japora to your home screen")}
           </div>
           {variant === "chromium" ? (
             <p className="mt-0.5 text-xs text-arctic-500">
-              Faster opens, works without WiFi, and no app-store install.
+              {tr("Ouverture plus rapide, fonctionne sans WiFi, sans passer par une boutique d'applications.", "Faster opens, works without WiFi, and no app-store install.")}
             </p>
           ) : (
             <p className="mt-0.5 text-xs text-arctic-500">
-              Tap the <span className="font-semibold">Share</span> icon, then{" "}
-              <span className="font-semibold">Add to Home Screen</span>.
+              {tr("Touchez l'icône", "Tap the")} <span className="font-semibold">{tr("Partager", "Share")}</span> {tr(", puis", "icon, then")}{" "}
+              <span className="font-semibold">{tr("Sur l'écran d'accueil", "Add to Home Screen")}</span>.
             </p>
           )}
           <div className="mt-2 flex items-center gap-2">
             {variant === "chromium" && (
               <button onClick={install} className="btn-primary !py-1 text-xs">
-                Install
+                {tr("Installer", "Install")}
               </button>
             )}
             <button
               onClick={dismiss}
               className="rounded-md px-2 py-1 text-xs font-medium text-arctic-500 hover:bg-arctic-100"
             >
-              Not now
+              {tr("Plus tard", "Not now")}
             </button>
           </div>
         </div>
         <button
           onClick={dismiss}
-          aria-label="Dismiss"
+          aria-label={tr("Fermer", "Dismiss")}
           className="grid h-6 w-6 place-items-center rounded text-arctic-400 hover:bg-arctic-100 hover:text-arctic-700"
         >
           ✕
