@@ -1938,7 +1938,7 @@ export default function CampaignsClient({
       {/* ===================================================================== */}
       {showConfigModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-arctic-950/60 p-4 backdrop-blur-xs">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-arctic-400/30 bg-white p-6 shadow-2xl space-y-5">
+          <div className="max-h-[90dvh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-2xl border border-arctic-400/30 bg-white p-6 shadow-2xl space-y-5">
             <div className="flex items-start justify-between gap-3 border-b border-arctic-200 pb-4">
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
@@ -2097,7 +2097,7 @@ export default function CampaignsClient({
       {/* ===================================================================== */}
       {inspectedCampaign && inspectedCampaign.metaDetails && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-arctic-950/60 p-4 backdrop-blur-xs">
-          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-arctic-400/30 bg-white p-6 shadow-2xl space-y-4">
+          <div className="max-h-[90dvh] w-full max-w-3xl overflow-y-auto overscroll-contain rounded-2xl border border-arctic-400/30 bg-white p-6 shadow-2xl space-y-4">
             <div className="flex items-start justify-between gap-3 border-b border-arctic-200 pb-3">
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">

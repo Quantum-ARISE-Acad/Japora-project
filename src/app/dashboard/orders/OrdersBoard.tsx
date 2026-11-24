@@ -766,12 +766,12 @@ function ManualOrderModal({
 
   return (
     <div className="fixed inset-0 z-30 grid place-items-center bg-arctic-900/40 p-4">
-      <div className="card w-full max-w-lg overflow-hidden">
-        <div className="flex items-center justify-between border-b border-arctic-400/30 px-5 py-3">
+      <div className="card w-full max-w-lg overflow-hidden flex flex-col max-h-[92dvh]">
+        <div className="flex items-center justify-between border-b border-arctic-400/30 px-5 py-3 shrink-0">
           <h2 className="font-bold text-arctic-900">{tr("Nouvelle commande", "New order")}</h2>
           <button onClick={onClose} className="text-arctic-500 hover:text-arctic-800">✕</button>
         </div>
-        <form onSubmit={submit} className="max-h-[75vh] space-y-4 overflow-y-auto p-5">
+        <form onSubmit={submit} className="flex-1 max-h-[82dvh] space-y-4 overflow-y-auto overscroll-contain p-5">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">{tr("Nom du client", "Customer name")}</label>

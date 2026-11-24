@@ -400,8 +400,8 @@ export default function CollectionsClient({
       {/* Create / Edit Modal */}
       {open && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-arctic-900/50 backdrop-blur-xs p-4">
-          <div className="card w-full max-w-xl overflow-hidden shadow-2xl">
-            <div className="flex items-center justify-between border-b border-arctic-300/40 bg-arctic-50 px-5 py-3.5">
+          <div className="card w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[92dvh]">
+            <div className="flex items-center justify-between border-b border-arctic-300/40 bg-arctic-50 px-5 py-3.5 shrink-0">
               <div>
                 <h3 className="font-bold text-arctic-900">
                   {editingId ? tr("Modifier la collection et ses produits", "Edit collection and products") : tr("Créer une nouvelle collection", "Create a new collection")}
@@ -419,7 +419,7 @@ export default function CollectionsClient({
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="max-h-[80vh] space-y-4 overflow-y-auto p-5">
+            <form onSubmit={handleSave} className="flex-1 max-h-[80dvh] space-y-4 overflow-y-auto overscroll-contain p-5">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="label">{tr("Nom de la collection", "Collection name")} *</label>

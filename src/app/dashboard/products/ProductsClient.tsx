@@ -605,8 +605,8 @@ export default function ProductsClient({
       {/* Add / Edit Modal */}
       {open && (
         <div className="fixed inset-0 z-30 grid place-items-center bg-arctic-900/40 p-4">
-          <div className="card w-full max-w-lg overflow-hidden">
-            <div className="flex items-center justify-between border-b border-arctic-400/30 px-5 py-3">
+          <div className="card w-full max-w-lg overflow-hidden flex flex-col max-h-[92dvh]">
+            <div className="flex items-center justify-between border-b border-arctic-400/30 px-5 py-3 shrink-0">
               <h2 className="font-bold text-arctic-900">
                 {editingId ? tr("Modifier le produit", "Edit product") : tr("Ajouter un produit", "Add product")}
               </h2>
@@ -614,7 +614,7 @@ export default function ProductsClient({
                 ✕
               </button>
             </div>
-            <form onSubmit={save} className="max-h-[75vh] space-y-4 overflow-y-auto p-5">
+            <form onSubmit={save} className="flex-1 max-h-[80dvh] space-y-4 overflow-y-auto overscroll-contain p-5">
               <div className="flex gap-4">
                 <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-lg bg-arctic-200/65">
                   {form.imageUrl ? (

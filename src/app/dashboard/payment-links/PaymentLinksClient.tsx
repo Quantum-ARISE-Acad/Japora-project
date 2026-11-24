@@ -453,7 +453,7 @@ export default function PaymentLinksClient({
       {/* Create Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4 max-h-[90dvh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-slate-900 dark:text-white">
                 {tr("Nouveau lien de paiement (FedaPay)", "New payment link (FedaPay)")}
@@ -569,7 +569,7 @@ export default function PaymentLinksClient({
       {/* Send via WhatsApp Cloud API Modal */}
       {waModalLink && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 space-y-4">
+          <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 space-y-4 max-h-[90dvh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-slate-900">
                 📲 {tr("Envoyer via WhatsApp Cloud API", "Send via WhatsApp Cloud API")}

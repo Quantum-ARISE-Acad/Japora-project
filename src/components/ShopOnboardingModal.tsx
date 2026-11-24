@@ -179,9 +179,9 @@ export default function ShopOnboardingModal({
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
-      <div className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-arctic-300/60 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900 a-rise-in">
+      <div className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-arctic-300/60 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900 a-rise-in flex flex-col max-h-[92dvh]">
         {/* Top Gradient Header */}
-        <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 px-6 py-5 text-white">
+        <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 px-6 py-5 text-white shrink-0">
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-0.5 text-xs font-bold backdrop-blur-xs">
               {tr("✨ Configuration de votre boutique Japora", "✨ Set up your Japora shop")}
@@ -198,7 +198,7 @@ export default function ShopOnboardingModal({
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="max-h-[78vh] overflow-y-auto p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 max-h-[75dvh] overflow-y-auto overscroll-contain p-6 space-y-4">
           {step === 1 ? (
             <>
               <div>

@@ -471,7 +471,7 @@ export default function ShopAiAssistant({
 
       {/* Chat & Tools Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-[440px] max-h-[650px] h-[80vh] bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div className="fixed bottom-24 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-[440px] max-h-[calc(100dvh-7rem)] h-[80dvh] bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-emerald-600/95 via-teal-600/95 to-slate-900 px-4 py-3 border-b border-slate-700/60">
             <div className="flex items-center justify-between">

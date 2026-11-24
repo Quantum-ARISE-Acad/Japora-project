@@ -81,7 +81,7 @@ export default function DangerZone({ shopName }: { shopName: string }) {
 
       {open && (
         <div className="fixed inset-0 z-30 grid place-items-center bg-arctic-900/40 p-4">
-          <div className="card w-full max-w-md p-6">
+          <div className="card w-full max-w-md p-6 max-h-[90dvh] overflow-y-auto overscroll-contain">
             <h2 className="text-lg font-bold text-arctic-900">
               {tr("Supprimer le compte", "Delete account")}
             </h2>

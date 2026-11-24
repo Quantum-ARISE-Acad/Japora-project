@@ -64,7 +64,7 @@ export default function AuroraDialog({
       />
 
       <div
-        className={`relative w-full ${maxW} glass glass-edge a-rise-in rounded-shape-xl p-6`}
+        className={`relative w-full ${maxW} glass glass-edge a-rise-in rounded-shape-xl p-6 max-h-[90dvh] overflow-y-auto overscroll-contain`}
       >
         {title && (
           <div className="a-headline-sm mb-3 text-arctic-900">{title}</div>

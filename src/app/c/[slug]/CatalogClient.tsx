@@ -819,7 +819,7 @@ export default function CatalogClient({
 
       {/* Sticky Bottom Cart Bar */}
       {cart.length > 0 && !open && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-emerald-500/40 bg-white/95 px-4 py-3.5 shadow-2xl backdrop-blur">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-emerald-500/40 bg-white/95 px-4 pt-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] shadow-2xl backdrop-blur">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-100 text-lg">
@@ -844,14 +844,14 @@ export default function CatalogClient({
       {/* Product Detail Modal */}
       {selectedProduct && (
         <div className="fixed inset-0 z-[60] grid place-items-center bg-arctic-900/60 p-4 backdrop-blur-sm">
-          <div className="relative w-full max-w-lg overflow-hidden rounded-shape-xl bg-white shadow-elev-3 dark:bg-arctic-900">
+          <div className="relative w-full max-w-lg overflow-hidden rounded-shape-xl bg-white shadow-elev-3 dark:bg-arctic-900 flex flex-col max-h-[90dvh]">
             <button
               onClick={() => setSelectedProduct(null)}
               className="absolute right-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-full bg-white/80 text-arctic-700 shadow hover:bg-white"
             >
               ✕
             </button>
-            <div className="max-h-[85vh] overflow-y-auto">
+            <div className="flex-1 max-h-[90dvh] overflow-y-auto overscroll-contain">
               <div className="relative aspect-video w-full bg-arctic-200/60">
                 {selectedProduct.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -931,9 +931,9 @@ export default function CatalogClient({
       {/* Checkout Drawer / Modal */}
       {open && (
         <div className="fixed inset-0 z-[60] grid place-items-end bg-arctic-900/50 sm:place-items-center p-0 sm:p-4">
-          <div className="card w-full max-w-md overflow-hidden rounded-b-none sm:rounded-b-xl">
+          <div className="card w-full max-w-md overflow-hidden rounded-b-none sm:rounded-b-xl flex flex-col max-h-[92dvh] pb-[max(0px,env(safe-area-inset-bottom))]">
             {/* Progress Indicator */}
-            <div className="border-b border-arctic-400/30 bg-arctic-100/50 px-5 py-3">
+            <div className="border-b border-arctic-400/30 bg-arctic-100/50 px-5 py-3 shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-semibold">
                   <span
@@ -976,7 +976,7 @@ export default function CatalogClient({
             </div>
 
             {step === "cart" && (
-              <div className="max-h-[70vh] space-y-3 overflow-y-auto p-5">
+              <div className="flex-1 max-h-[75dvh] space-y-3 overflow-y-auto overscroll-contain p-5">
                 {cart.map((l, i) => (
                   <div key={`${l.productId}-${l.size}-${i}`} className="flex items-center gap-3">
                     <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-arctic-200/65">
@@ -1052,7 +1052,7 @@ export default function CatalogClient({
             )}
 
             {step === "form" && (
-              <form onSubmit={submitOrder} className="space-y-3.5 p-5">
+              <form onSubmit={submitOrder} className="flex-1 max-h-[75dvh] space-y-3.5 overflow-y-auto overscroll-contain p-5">
                 <div>
                   <label className="label">{tr("Nom complet *", "Your full name *")}</label>
                   <input
@@ -1286,7 +1286,7 @@ export default function CatalogClient({
             {step === "success" && placedSummary && (() => {
 
               return (
-                <div className="space-y-4 p-5 text-center">
+                <div className="flex-1 max-h-[75dvh] space-y-4 overflow-y-auto overscroll-contain p-5 text-center">
                   <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-100 text-3xl">
                     🎉
                   </div>
