@@ -262,9 +262,36 @@ export default async function OverviewPage() {
             <Glyph name="moon" size={13} className="text-brand-dark" /> {t("Envoyé à 18 h", "Sent at 6 PM")}
           </span>
         </div>
-        <pre className="mt-3 whitespace-pre-wrap rounded-shape-md border border-arctic-400/30 bg-arctic-200/35 p-4 a-body-sm text-arctic-800 backdrop-blur-glass-thin">
-{hustlePreviewLines.join("\n")}
-        </pre>
+        {/* This is the message that goes out tonight, so show it as a message.
+            A <pre> rendered it as a terminal block, asterisks and all, to a
+            market vendor who has never seen one. */}
+        <div className="mt-3 max-w-md rounded-shape-md rounded-tl-sm border border-arctic-400/30 bg-arctic-200/35 p-4 backdrop-blur-glass-thin">
+          {hustlePreviewLines
+            .filter((line) => line.trim() !== "")
+            .map((line, i) => {
+              const clean = line.replace(/\*/g, "").trim();
+              const bullet = clean.startsWith("•");
+              if (i === 0) {
+                return (
+                  <p key={line} className="a-title-md text-arctic-900">
+                    {clean}
+                  </p>
+                );
+              }
+              return (
+                <p
+                  key={line}
+                  className={
+                    bullet
+                      ? "a-body-sm mt-0.5 pl-3 text-arctic-700"
+                      : "a-body-sm mt-1.5 text-arctic-800"
+                  }
+                >
+                  {clean}
+                </p>
+              );
+            })}
+        </div>
       </section>
 
       <NotifyFollowers followerCount={followerCount} />

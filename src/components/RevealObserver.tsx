@@ -96,7 +96,9 @@ export default function RevealObserver() {
         (entries) => {
           entries.forEach((entry) => {
             if (!entry.isIntersecting) return;
-            reveal(entry.target as HTMLElement);
+            const el = entry.target as HTMLElement;
+            if (el.hasAttribute("data-reveal")) reveal(el);
+            else runCount(el);
             observer?.unobserve(entry.target);
           });
         },
@@ -105,6 +107,11 @@ export default function RevealObserver() {
         { rootMargin: "0px 0px -12% 0px", threshold: 0.01 }
       );
       nodes.forEach((el) => observer?.observe(el));
+      // A figure outside any [data-reveal] still deserves to be counted when
+      // it arrives, rather than waiting for the safety net.
+      counters
+        .filter((el) => !el.closest("[data-reveal]"))
+        .forEach((el) => observer?.observe(el));
     } else {
       nodes.forEach(reveal);
       counters.forEach(runCount);

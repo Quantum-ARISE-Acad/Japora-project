@@ -23,9 +23,11 @@ export default function CopyableLink({ slug }: { slug: string }) {
 
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-      <code className="flex-1 truncate rounded-lg bg-arctic-200/65 px-3 py-2 text-sm text-arctic-800">
-        {url}
-      </code>
+      {/* The vendor's own shop address, not a code sample — so it is set in
+          the UI face, and the protocol is dropped because nobody reads it. */}
+      <span className="min-w-0 flex-1 truncate rounded-shape-md bg-arctic-200/65 px-3 py-2.5 text-sm font-medium text-arctic-900">
+        {url.replace(/^https?:\/\//, "")}
+      </span>
       <div className="flex gap-2">
         <button onClick={copy} className="btn-primary whitespace-nowrap">
           {copied ? tr("Copié !", "Copied!") : tr("Copier le lien", "Copy link")}
@@ -36,7 +38,8 @@ export default function CopyableLink({ slug }: { slug: string }) {
           rel="noreferrer"
           className="btn-ghost whitespace-nowrap"
         >
-          {tr("Ouvrir ↗", "Open ↗")}
+          {tr("Ouvrir", "Open")}
+          <span className="sr-only">{tr(" (nouvel onglet)", " (new tab)")}</span>
         </a>
       </div>
     </div>

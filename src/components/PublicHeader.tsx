@@ -21,7 +21,6 @@ export default function PublicHeader({ isAuthenticated = false, shopSlug }: Publ
     {
       href: "/marketplace",
       label: tr("Marketplace", "Marketplace"),
-      badge: tr("Boutiques", "Shops"),
     },
     {
       href: "/how-to-use",
@@ -50,28 +49,6 @@ export default function PublicHeader({ isAuthenticated = false, shopSlug }: Publ
           : "border-arctic-200/40 bg-white/60 backdrop-blur-md"
       }`}
     >
-      {/* Top Announcement Bar */}
-      <div className="border-b border-arctic-200/50 bg-arctic-900 px-4 py-1.5 text-center text-[11px] font-medium text-arctic-100">
-        <div className="mx-auto flex max-w-6xl items-center justify-center gap-2">
-          <span className="inline-flex h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-          <span>
-            <strong className="font-semibold text-white">
-              {tr("Commerce en ligne & WhatsApp :", "Online & WhatsApp Commerce:")}
-            </strong>{" "}
-            {tr(
-              "Bot IA 24h/24, suivi des ventes et paiements T-Money, Flooz, Wave & Orange Money intégrés.",
-              "24/7 AI Bot, sales tracking, and inline T-Money, Flooz, Wave & Orange Money payments."
-            )}
-          </span>
-          <Link
-            href="/how-to-use"
-            className="hidden underline decoration-gold/60 underline-offset-2 hover:text-gold-bright sm:inline-block"
-          >
-            {tr("Découvrir →", "Learn more →")}
-          </Link>
-        </div>
-      </div>
-
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
         {/* Brand Logo */}
         <div className="flex items-center gap-3">
@@ -82,19 +59,9 @@ export default function PublicHeader({ isAuthenticated = false, shopSlug }: Publ
             >
               J
             </span>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <span className="font-display text-lg font-bold tracking-tight text-arctic-900">
-                  Japora
-                </span>
-                <span className="rounded-full border border-brand/30 bg-brand/10 px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider text-brand-dark">
-                  {tr("Afrique", "Africa")}
-                </span>
-              </div>
-              <span className="hidden text-[10px] text-arctic-600 sm:block">
-                {tr("Boutiques en ligne & WhatsApp", "Online & WhatsApp Shops")}
-              </span>
-            </div>
+            <span className="font-display text-lg font-bold tracking-tight text-arctic-900">
+              Japora
+            </span>
           </Link>
         </div>
 
@@ -115,17 +82,6 @@ export default function PublicHeader({ isAuthenticated = false, shopSlug }: Publ
                 }`}
               >
                 <span>{item.label}</span>
-                {item.badge && (
-                  <span
-                    className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
-                      active
-                        ? "bg-gold text-white"
-                        : "bg-brand/15 text-brand-dark"
-                    }`}
-                  >
-                    {item.badge}
-                  </span>
-                )}
               </Link>
             );
           })}
@@ -202,11 +158,6 @@ export default function PublicHeader({ isAuthenticated = false, shopSlug }: Publ
                   }`}
                 >
                   <span>{item.label}</span>
-                  {item.badge && (
-                    <span className="rounded-full bg-brand/15 px-2 py-0.5 text-[10px] font-bold uppercase text-brand-dark">
-                      {item.badge}
-                    </span>
-                  )}
                 </Link>
               );
             })}

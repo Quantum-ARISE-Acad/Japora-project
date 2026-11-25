@@ -135,6 +135,34 @@ html.js [data-reveal].is-revealed {
 }
 
 /* =====================================================================
+ * M3 Expressive shape morph.
+ *
+ * The signature of M3 Expressive is that the *shape* reacts, not only the
+ * surface: a pill flattens toward a rounded rectangle under the press, then
+ * springs back. It costs one animatable property and reads as the control
+ * having give.
+ *
+ * Radius is not a compositor property, so this is deliberately limited to the
+ * buttons a person actually presses, and skipped under reduced motion.
+ * ===================================================================== */
+
+.a-btn,
+.btn {
+  transition-property: transform, background, box-shadow, color, border-radius;
+  transition-duration: 221ms;
+  transition-timing-function: var(--ease-fast);
+}
+.a-btn:not(:disabled):active,
+.btn:not(:disabled):active {
+  border-radius: var(--aurora-shape-md);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .a-btn:not(:disabled):active,
+  .btn:not(:disabled):active { border-radius: var(--aurora-shape-full); }
+}
+
+/* =====================================================================
  * Counted sets — [data-count].
  *
  * The one piece of motion on the page that carries meaning rather than
