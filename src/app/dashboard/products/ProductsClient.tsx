@@ -553,7 +553,7 @@ export default function ProductsClient({
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-arctic-500 truncate">{p.description || tr("Sans description", "No description")}</div>
+                  <div className="text-xs text-arctic-600 truncate">{p.description || tr("Sans description", "No description")}</div>
                 </div>
               </div>
 
@@ -610,7 +610,7 @@ export default function ProductsClient({
               <h2 className="font-bold text-arctic-900">
                 {editingId ? tr("Modifier le produit", "Edit product") : tr("Ajouter un produit", "Add product")}
               </h2>
-              <button onClick={() => setOpen(false)} className="text-arctic-500 hover:text-arctic-800">
+              <button onClick={() => setOpen(false)} className="text-arctic-600 hover:text-arctic-800">
                 ✕
               </button>
             </div>

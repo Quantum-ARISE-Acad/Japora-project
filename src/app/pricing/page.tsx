@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SaasIcon } from "@/components/ui/SaasIcons";
 import type { Metadata } from "next";
 import { getCurrentVendor } from "@/lib/auth";
 import {
@@ -35,7 +36,7 @@ export default async function PricingPage() {
     <div className="min-h-screen flex flex-col">
       <PublicHeader isAuthenticated={Boolean(vendor)} shopSlug={vendor?.shopSlug} />
 
-      <main className="mx-auto max-w-6xl flex-1 px-4 py-14">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-14">
         {/* ============================================================
          * 1. HERO
          * ============================================================ */}
@@ -86,7 +87,7 @@ export default async function PricingPage() {
                 t("200 notifications marketing offertes chaque mois", "200 free marketing notifications every month"),
               ].map((f) => (
                 <li key={f} className="flex items-start gap-2 text-xs sm:text-sm">
-                  <span className="mt-0.5 font-bold text-brand-dark">✓</span>
+                  <SaasIcon name="check" size={15} className="mt-0.5 shrink-0 text-brand-dark" />
                   <span>{f}</span>
                 </li>
               ))}
@@ -120,14 +121,16 @@ export default async function PricingPage() {
             <ul className="mt-6 flex-1 space-y-2.5 a-body-md text-arctic-800">
               {[
                 t("Tout ce qui est inclus dans l'offre Starter", "Everything included in the Starter plan"),
-                t("Paiement intégré — statut « ✓ Payé » automatique instantané", "Integrated payments — instant automatic “✓ Paid” status"),
+                t("Paiement intégré — statut « Payé » automatique instantané", "Integrated payments — instant automatic “Paid” status"),
                 t(`Commandes inférieures à ${floor} : 0 FCFA de frais (gratuit)`, "Orders below " + floor + ": no fees (free)"),
                 t(`Commission plafonnée à ${cap} maximum par commande`, "Commission capped at " + cap + " per order"),
                 t("Éligibilité au badge officiel « Boutique Vérifiée »", "Eligible for the official “Verified Shop” badge"),
                 t("Liens de paiement rapides & acomptes sur précommandes", "Quick payment links and pre-order deposits"),
               ].map((f) => (
                 <li key={f} className="flex items-start gap-2 text-xs sm:text-sm">
-                  <span className="mt-0.5 font-bold text-emerald-700">✓</span>
+                  <span className="mt-0.5 shrink-0" style={{ color: "var(--aurora-success-text)" }}>
+                    <SaasIcon name="check" size={15} />
+                  </span>
                   <span>{f}</span>
                 </li>
               ))}
@@ -175,15 +178,15 @@ export default async function PricingPage() {
               <tbody className="divide-y divide-arctic-200/60 text-arctic-800">
                 {[
                   [t("Abonnement mensuel", "Monthly subscription"), "0 FCFA", "0 FCFA"],
-                  [t("Catalogue produits & collections", "Product catalog and collections"), t("Illimité ✓", "Unlimited ✓"), t("Illimité ✓", "Unlimited ✓")],
-                  [t("Bot WhatsApp 24h/24 & Horaires", "24/7 WhatsApp bot and business hours"), t("Inclus ✓", "Included ✓"), t("Inclus ✓", "Included ✓")],
-                  [t("Affiche QR Code pour stand physique", "QR code for physical stalls"), t("Inclus ✓", "Included ✓"), t("Inclus ✓", "Included ✓")],
-                  [t("Présence sur le Marketplace public", "Public Marketplace listing"), t("Inclus ✓", "Included ✓"), t("Prioritaire + Badge Vérifié ✓", "Priority + Verified badge ✓")],
+                  [t("Catalogue produits & collections", "Product catalog and collections"), t("Illimité", "Unlimited"), t("Illimité", "Unlimited")],
+                  [t("Bot WhatsApp 24h/24 & Horaires", "24/7 WhatsApp bot and business hours"), t("Inclus", "Included"), t("Inclus", "Included")],
+                  [t("Affiche QR Code pour stand physique", "QR code for physical stalls"), t("Inclus", "Included"), t("Inclus", "Included")],
+                  [t("Présence sur le Marketplace public", "Public Marketplace listing"), t("Inclus", "Included"), t("Prioritaire + Badge Vérifié", "Priority + Verified badge")],
                   [t("Mode d'encaissement", "Payment method"), t("Direct vendeur (0%)", "Direct to seller (0%)"), t("Intégré T-Money / Flooz / Wave (3%)", "Integrated T-Money / Flooz / Wave (3%)")],
                   [t("Petites commandes (< 2 000 FCFA)", "Small orders (< 2,000 XOF)"), "0 FCFA", t("0 FCFA (Gratuit)", "0 XOF (Free)")],
                   [t("Plafond de commission par commande", "Commission cap per order"), "—", t("Maximum 1 000 FCFA", "Maximum 1,000 XOF")],
-                  [t("Bilan quotidien 18h & Comptabilité P&L", "Daily 6 PM summary and P&L bookkeeping"), t("Inclus ✓", "Included ✓"), t("Inclus ✓", "Included ✓")],
-                  [t("CRM Clients, Fidélité & Créances", "Customer CRM, loyalty, and receivables"), t("Inclus ✓", "Included ✓"), t("Inclus ✓", "Included ✓")],
+                  [t("Bilan quotidien 18h & Comptabilité P&L", "Daily 6 PM summary and P&L bookkeeping"), t("Inclus", "Included"), t("Inclus", "Included")],
+                  [t("CRM Clients, Fidélité & Créances", "Customer CRM, loyalty, and receivables"), t("Inclus", "Included"), t("Inclus", "Included")],
                 ].map(([feat, starter, pro]) => (
                   <tr key={feat} className="hover:bg-arctic-50/80">
                     <td className="p-3.5 font-medium text-arctic-900">{feat}</td>

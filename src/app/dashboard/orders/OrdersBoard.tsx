@@ -463,7 +463,7 @@ export default function OrdersBoard({
               </div>
               <div className="flex flex-col gap-2">
                 {items.length === 0 && (
-                  <p className="px-1 py-4 text-center text-xs text-arctic-500">{tr("Aucune commande ici", "No orders here")}</p>
+                  <p className="px-1 py-4 text-center text-xs text-arctic-600">{tr("Aucune commande ici", "No orders here")}</p>
                 )}
                 {items.map((o) => (
                   <OrderCard
@@ -490,7 +490,7 @@ export default function OrdersBoard({
             className="flex w-full items-center justify-between text-left text-sm font-semibold text-arctic-800"
           >
             <span>{tr("Annulées", "Cancelled")} ({cancelled.length})</span>
-            <span className="text-arctic-500">{showCancelled ? tr("Masquer", "Hide") : tr("Afficher", "Show")}</span>
+            <span className="text-arctic-600">{showCancelled ? tr("Masquer", "Hide") : tr("Afficher", "Show")}</span>
           </button>
           {showCancelled && (
             <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
@@ -592,11 +592,11 @@ function OrderCard({
         <div className="text-right">
           <div className="font-bold text-arctic-900">{formatMoney(o.totalCents, currency)}</div>
           {dealMeta.isDeal && dealMeta.originalCents && (
-            <div className="text-[10px] text-arctic-500 line-through">
+            <div className="text-[10px] text-arctic-600 line-through">
               {tr("Catalogue", "Catalog")}: {formatMoney(dealMeta.originalCents, currency)}
             </div>
           )}
-          <div className="text-[10px] uppercase tracking-wide text-arctic-500">{timeAgo(o.createdAt, locale)}</div>
+          <div className="text-[10px] uppercase tracking-wide text-arctic-600">{timeAgo(o.createdAt, locale)}</div>
         </div>
       </header>
 
@@ -604,7 +604,7 @@ function OrderCard({
         {o.items.map((it) => (
           <li key={it.id} className="truncate">
             {it.quantity}× {it.productName}
-            {it.size && <span className="text-arctic-500"> ({it.size})</span>}
+            {it.size && <span className="text-arctic-600"> ({it.size})</span>}
           </li>
         ))}
       </ul>
@@ -686,7 +686,7 @@ function OrderCard({
         </span>
       </div>
 
-      <div className="mt-1 flex items-center justify-between text-[10px] text-arctic-500">
+      <div className="mt-1 flex items-center justify-between text-[10px] text-arctic-600">
         <span className="uppercase tracking-wide">via {o.source} • #{refShort}</span>
         {toast && <span className="font-semibold text-emerald-700">{toast}</span>}
       </div>
@@ -769,7 +769,7 @@ function ManualOrderModal({
       <div className="card w-full max-w-lg overflow-hidden flex flex-col max-h-[92dvh]">
         <div className="flex items-center justify-between border-b border-arctic-400/30 px-5 py-3 shrink-0">
           <h2 className="font-bold text-arctic-900">{tr("Nouvelle commande", "New order")}</h2>
-          <button onClick={onClose} className="text-arctic-500 hover:text-arctic-800">✕</button>
+          <button onClick={onClose} className="text-arctic-600 hover:text-arctic-800">✕</button>
         </div>
         <form onSubmit={submit} className="flex-1 max-h-[82dvh] space-y-4 overflow-y-auto overscroll-contain p-5">
           <div className="grid grid-cols-2 gap-3">
@@ -841,7 +841,7 @@ function ManualOrderModal({
                         <li key={i} className="flex items-center justify-between px-3 py-2 text-sm">
                           <span className="truncate">
                             {l.qty}× {p.name}
-                            {l.size && <span className="text-arctic-500"> ({l.size})</span>}
+                            {l.size && <span className="text-arctic-600"> ({l.size})</span>}
                           </span>
                           <span className="flex items-center gap-3">
                             <span className="font-semibold">

@@ -39,17 +39,19 @@ export default function LandingClient({
     <div className="min-h-screen flex flex-col">
       <PublicHeader isAuthenticated={isAuthenticated} shopSlug={shopSlug} />
 
-      <main className="mx-auto max-w-6xl flex-1 px-4">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4">
         {/* ============================================================
          * 1. HERO — the promise, the price anchor, one primary action
          * ============================================================ */}
         <section className="grid items-center gap-10 py-10 md:grid-cols-[1.05fr,1.1fr] md:py-16 lg:gap-14">
           {/* LEFT: Generated Lifestyle Boutique Image + Floating Live Overlays */}
           <div className="relative order-1 a-fade-in">
-            {/* Soft aurora glow behind the image */}
+            {/* Soft aurora glow behind the image. It only spills outside its
+                box from sm up: at 320px a 16px spill is a horizontal
+                scrollbar, which WCAG 1.4.10 Reflow forbids. */}
             <div
               aria-hidden
-              className="a-halo absolute -inset-4 -z-10 rounded-[36px] opacity-75 blur-2xl"
+              className="a-halo absolute inset-0 -z-10 rounded-shape-xl opacity-75 blur-2xl sm:-inset-4"
               style={{
                 background:
                   "radial-gradient(closest-side, rgb(var(--gold) / 0.32), rgb(var(--c-300) / 0.4) 65%, transparent)",

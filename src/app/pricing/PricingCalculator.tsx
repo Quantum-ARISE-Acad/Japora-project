@@ -71,10 +71,10 @@ export default function PricingCalculator() {
           step={500}
           value={orderAmountXof}
           onChange={(e) => setOrderAmountXof(Number(e.target.value))}
-          className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-arctic-200 accent-arctic-900"
+          className="h-6 w-full cursor-pointer appearance-none bg-transparent accent-arctic-900 [&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-shape-sm [&::-moz-range-track]:bg-arctic-200 [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-shape-sm [&::-webkit-slider-runnable-track]:bg-arctic-200"
         />
 
-        <div className="flex justify-between text-[11px] text-arctic-500">
+        <div className="flex justify-between text-[11px] text-arctic-600">
           <span>{tr("500 FCFA (Petite commande)", "500 XOF (Small order)")}</span>
           <span>{tr("35 000 FCFA (Seuil du plafond)", "35,000 XOF (Cap threshold)")}</span>
           <span>100 000 FCFA</span>
@@ -88,7 +88,7 @@ export default function PricingCalculator() {
           <div className="a-num mt-1 font-display text-2xl font-bold text-arctic-900">
             {fmt(orderAmountXof)}
           </div>
-          <div className="mt-1 text-[11px] text-arctic-500">
+          <div className="mt-1 text-[11px] text-arctic-600">
             {tr("Via T-Money, Flooz, Wave ou Orange", "Via T-Money, Flooz, Wave, or Orange")}
           </div>
         </div>
@@ -104,11 +104,13 @@ export default function PricingCalculator() {
             {fmt(feeXof)}
           </div>
           <div className="mt-1 text-[11px] font-medium text-arctic-600">
+            {/* Rule 6: SVG, not emoji — and BRAND_VOICE names the party
+                popper as the exclamation mark it is. The sentence carries the news. */}
             {isFreeUnderFloor
-              ? tr("🎉 0 FCFA sous 2 000 FCFA !", "🎉 0 XOF under 2,000 XOF!")
+              ? tr("Gratuit sous 2 000 FCFA.", "Free under 2,000 XOF.")
               : isCapped
-              ? tr("🔒 Plafonné au maximum de 1 000 FCFA", "🔒 Capped at 1,000 XOF maximum")
-              : tr("3% standard (frais opérateur inclus)", "Standard 3% (operator fees included)")}
+              ? tr("Plafonné à 1 000 FCFA.", "Capped at 1,000 XOF.")
+              : tr("3 % tout compris, frais opérateur inclus.", "3% all-in, operator fees included.")}
           </div>
         </div>
 
@@ -120,7 +122,7 @@ export default function PricingCalculator() {
             {fmt(vendorKeepsXof)}
           </div>
           <div className="mt-1 text-[11px] font-medium text-emerald-800">
-            ✓ {tr("En mode Starter (paiement direct) :", "With Starter (direct payment):")} {fmt(orderAmountXof)}
+            {tr("En mode Starter (paiement direct) :", "With Starter (direct payment):")} {fmt(orderAmountXof)}
           </div>
         </div>
       </div>

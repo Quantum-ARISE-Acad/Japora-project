@@ -92,7 +92,7 @@ export default async function PayPage({
           <div className="border-b border-arctic-400/30 px-5 py-4">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
-                <p className="a-label-md text-arctic-500">{tr("Commande chez", "Order at")}</p>
+                <p className="a-label-md text-arctic-600">{tr("Commande chez", "Order at")}</p>
                 <span className="a-label-md font-semibold text-arctic-800">{order.vendor.shopName}</span>
                 {order.vendor.verifiedAt && <VerifiedBadge size="sm" withLabel={false} />}
               </div>
@@ -105,7 +105,7 @@ export default async function PayPage({
             <p className="mt-1 a-num text-3xl font-bold text-arctic-900">
               {formatMoney(fullyPaid ? order.totalCents : balanceCents, currency)}
             </p>
-            <p className="mt-0.5 a-label-md text-arctic-500">
+            <p className="mt-0.5 a-label-md text-arctic-600">
               {tr("Commande #", "Order #")}{ref}
               {order.paidCents > 0 && !fullyPaid && (
                 <> · {formatMoney(order.paidCents, currency)} {tr("déjà réglés", "already paid")}</>
@@ -174,7 +174,7 @@ export default async function PayPage({
           </div>
         </div>
 
-        <p className="mt-5 text-center a-label-md text-arctic-500">
+        <p className="mt-5 text-center a-label-md text-arctic-600">
           {tr("Propulsé par", "Powered by")} <span className="font-semibold text-arctic-700">Japora × FedaPay</span>
         </p>
       </div>

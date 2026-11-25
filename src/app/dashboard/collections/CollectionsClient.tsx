@@ -313,7 +313,7 @@ export default function CollectionsClient({
                     {/* Products thumbnails */}
                     {c.products.length > 0 ? (
                       <div className="mt-4">
-                        <div className="text-[11px] font-semibold uppercase tracking-wider text-arctic-500 mb-2">
+                        <div className="text-[11px] font-semibold uppercase tracking-wider text-arctic-600 mb-2">
                           {tr("Produits inclus", "Included products")}
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -348,7 +348,7 @@ export default function CollectionsClient({
                       </div>
                     ) : (
                       <div className="mt-4 rounded-lg border border-dashed border-arctic-300 bg-arctic-50/60 p-3 text-center">
-                        <p className="text-xs text-arctic-500">{tr("Aucun produit dans cette collection.", "No products in this collection.")}</p>
+                        <p className="text-xs text-arctic-600">{tr("Aucun produit dans cette collection.", "No products in this collection.")}</p>
                         <button
                           type="button"
                           onClick={() => openEdit(c)}
@@ -406,14 +406,14 @@ export default function CollectionsClient({
                 <h3 className="font-bold text-arctic-900">
                   {editingId ? tr("Modifier la collection et ses produits", "Edit collection and products") : tr("Créer une nouvelle collection", "Create a new collection")}
                 </h3>
-                <p className="text-xs text-arctic-500">
+                <p className="text-xs text-arctic-600">
                   {tr("Regroupez vos produits et affichez-les sur votre boutique.", "Group your products and feature them in your shop.")}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-lg p-1 text-arctic-500 hover:bg-arctic-200/60 hover:text-arctic-800"
+                className="rounded-lg p-1 text-arctic-600 hover:bg-arctic-200/60 hover:text-arctic-800"
               >
                 ✕
               </button>
@@ -518,7 +518,7 @@ export default function CollectionsClient({
                       <button
                         type="button"
                         onClick={() => setSelectedProductIds([])}
-                        className="font-medium text-arctic-500 hover:underline"
+                        className="font-medium text-arctic-600 hover:underline"
                       >
                         {tr("Tout désélectionner", "Deselect all")}
                       </button>
@@ -538,7 +538,7 @@ export default function CollectionsClient({
 
                 <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-xl border border-arctic-300/50 bg-arctic-50/60 p-2.5 text-xs">
                   {productsState.length === 0 ? (
-                    <div className="p-4 text-center text-arctic-500">
+                    <div className="p-4 text-center text-arctic-600">
                       {tr("Aucun produit dans votre catalogue.", "No products in your catalog.")}{" "}
                       <Link href="/dashboard/products" className="font-semibold text-brand-dark underline">
                         {tr("Créez d’abord un produit", "Create a product first")}

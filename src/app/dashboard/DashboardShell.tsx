@@ -193,7 +193,7 @@ export default function DashboardShell({
                       (on ? "opacity-100" : "opacity-0")
                     }
                   />
-                  <Icon name={it.icon} className={on ? "text-brand-dark" : "text-arctic-500 group-hover:text-arctic-700"} />
+                  <Icon name={it.icon} className={on ? "text-brand-dark" : "text-arctic-600 group-hover:text-arctic-700"} />
                   <span className="truncate">{it.label}</span>
                 </Link>
               );
@@ -209,14 +209,14 @@ export default function DashboardShell({
           rel="noreferrer"
           className="flex min-h-[44px] items-center gap-3 rounded-shape-md px-3 text-[14px] font-medium text-arctic-700 hover:bg-arctic-200/60 hover:text-arctic-900"
         >
-          <Icon name="catalog" className="text-arctic-500" />
+          <Icon name="catalog" className="text-arctic-600" />
           {tr("Voir le catalogue", "View catalog")}
         </a>
         <button
           onClick={logout}
           className="flex min-h-[44px] w-full items-center gap-3 rounded-shape-md px-3 text-[14px] font-medium text-arctic-700 hover:bg-arctic-200/60 hover:text-arctic-900"
         >
-          <Icon name="logout" className="text-arctic-500" />
+          <Icon name="logout" className="text-arctic-600" />
           {tr("Se déconnecter", "Sign out")}
         </button>
       </div>
@@ -265,7 +265,7 @@ export default function DashboardShell({
           >
             <Icon name="search" className="h-4 w-4" />
             <span className="hidden sm:inline">{tr("Rechercher", "Search")}</span>
-            <kbd className="hidden rounded border border-arctic-400/50 px-1.5 py-0.5 text-[10px] font-semibold text-arctic-500 sm:inline">
+            <kbd className="hidden rounded border border-arctic-400/50 px-1.5 py-0.5 text-[10px] font-semibold text-arctic-600 sm:inline">
               ⌘K
             </kbd>
           </button>
@@ -342,20 +342,20 @@ function CommandPalette({
       <div className="absolute inset-0 bg-arctic-900/45 backdrop-blur-[3px]" onClick={onClose} />
       <div className="glass-strong glass-edge relative w-full max-w-lg overflow-hidden rounded-shape-lg a-rise-in">
         <div className="flex items-center gap-3 border-b border-arctic-300/50 px-4">
-          <Icon name="search" className="text-arctic-500" />
+          <Icon name="search" className="text-arctic-600" />
           <input
             autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={onKey}
             placeholder={tr("Rechercher des pages et des actions…", "Search pages and actions…")}
-            className="h-14 flex-1 bg-transparent text-[15px] text-arctic-900 outline-none placeholder:text-arctic-500"
+            className="h-14 flex-1 bg-transparent text-[15px] text-arctic-900 outline-none placeholder:text-arctic-600"
           />
-          <kbd className="rounded border border-arctic-400/50 px-1.5 py-0.5 text-[10px] font-semibold text-arctic-500">Esc</kbd>
+          <kbd className="rounded border border-arctic-400/50 px-1.5 py-0.5 text-[10px] font-semibold text-arctic-600">Esc</kbd>
         </div>
         <ul className="max-h-[50vh] overflow-y-auto p-2">
           {results.length === 0 && (
-            <li className="px-3 py-6 text-center text-sm text-arctic-500">{tr("Aucun résultat.", "No matches.")}</li>
+            <li className="px-3 py-6 text-center text-sm text-arctic-600">{tr("Aucun résultat.", "No matches.")}</li>
           )}
           {results.map((a, i) => (
             <li key={a.label}>

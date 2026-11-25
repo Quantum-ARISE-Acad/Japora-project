@@ -48,7 +48,7 @@ export default function AuroraHeroPreview() {
       {/* Soft aurora ring behind the card */}
       <div
         aria-hidden
-        className="absolute -inset-6 -z-10 rounded-[40px] opacity-75 blur-2xl"
+        className="absolute -inset-6 -z-10 rounded-shape-xl opacity-75 blur-2xl"
         style={{
           background:
             "radial-gradient(closest-side, rgb(var(--gold) / 0.30), rgb(var(--c-300) / 0.38) 60%, transparent)",
@@ -164,7 +164,7 @@ export default function AuroraHeroPreview() {
               </div>
               <div className="text-right">
                 <div className="a-num text-xs font-bold text-arctic-900">12 000 FCFA</div>
-                <div className="text-[10px] text-arctic-500">{tr("il y a 4 min", "4 min ago")}</div>
+                <div className="text-[10px] text-arctic-600">{tr("il y a 4 min", "4 min ago")}</div>
               </div>
             </div>
 
@@ -196,7 +196,7 @@ export default function AuroraHeroPreview() {
         {activeTab === "bot" && (
           <div className="space-y-2.5 a-fade-in">
             <div className="rounded-shape-md bg-arctic-100/80 p-3 text-xs text-arctic-800">
-              <div className="text-[10px] font-bold text-arctic-500 mb-1">
+              <div className="text-[10px] font-bold text-arctic-600 mb-1">
                 {tr("Cliente (+228 90 •• •• 42)", "Customer (+228 90 •• •• 42)")}
               </div>
               {tr("Bonjour ! C'est combien la robe Ankara Maxi en taille M ?", "Hello! How much is the Ankara Maxi dress in size M?")}

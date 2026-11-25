@@ -16,7 +16,7 @@ function Check({ done, children }: { done: boolean; children: React.ReactNode })
       <span
         className={
           "grid h-5 w-5 shrink-0 place-items-center rounded-full text-xs font-bold " +
-          (done ? "bg-brand/15 text-brand-dark" : "bg-arctic-200/70 text-arctic-500")
+          (done ? "bg-brand/15 text-brand-dark" : "bg-arctic-200/70 text-arctic-600")
         }
       >
         {done ? "✓" : "•"}

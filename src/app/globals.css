@@ -234,7 +234,7 @@ html, body {
            px-3.5 py-2.5 text-[14px] text-arctic-900
            backdrop-blur-glass-thin outline-none
            transition duration-short ease-standard
-           placeholder:text-arctic-500
+           placeholder:text-arctic-600
            focus:border-brand/70
            focus:ring-[3px] focus:ring-brand/30;
     min-height: 44px;

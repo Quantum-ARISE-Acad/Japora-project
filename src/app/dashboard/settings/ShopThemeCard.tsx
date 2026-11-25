@@ -122,7 +122,7 @@ export default function ShopThemeCard({ shopSlug }: ShopThemeCardProps) {
                     {tr("Actif", "Active")}
                   </span>
                 ) : (
-                  <span className="text-[10px] text-arctic-500 uppercase font-semibold">
+                  <span className="text-[10px] text-arctic-600 uppercase font-semibold">
                     {theme.badge}
                   </span>
                 )}

@@ -307,7 +307,7 @@ export default function HowToUseClient() {
     <div ref={root} className="min-h-screen flex flex-col">
       <PublicHeader />
 
-      <main className="mx-auto max-w-6xl flex-1 px-4">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4">
         {/* ============================================================
          * 1. HERO SECTION
          * ============================================================ */}
@@ -456,7 +456,7 @@ export default function HowToUseClient() {
         {/* ============================================================
          * 4. INTERACTIVE WHATSAPP BOT & FLOW SIMULATOR
          * ============================================================ */}
-        <section className="mb-20 rounded-shape-xl border border-arctic-300/60 bg-white/85 p-6 shadow-elev-2 backdrop-blur-md sm:p-10">
+        <section className="mb-20 rounded-shape-xl border border-arctic-300/60 bg-white/85 p-4 shadow-elev-2 backdrop-blur-md sm:p-10">
           <div className="mx-auto max-w-2xl text-center">
             <span className="a-eyebrow">
               {tr("Démonstration Interactive", "Interactive Demo")}
@@ -527,7 +527,7 @@ export default function HowToUseClient() {
               </div>
             </div>
 
-            <div className="glass glass-edge rounded-shape-xl p-6 shadow-elev-2">
+            <div className="glass glass-edge rounded-shape-xl p-4 shadow-elev-2 sm:p-6">
               <div className="mb-4 flex items-center justify-between border-b border-arctic-200/70 pb-3">
                 <div className="flex items-center gap-2.5">
                   <div className="grid h-9 w-9 place-items-center rounded-full bg-emerald-700 text-xs font-bold text-white">
@@ -554,7 +554,7 @@ export default function HowToUseClient() {
 
               <div className="space-y-3">
                 <div className="max-w-md rounded-shape-lg rounded-tl-xs border border-arctic-200 bg-white p-3.5 text-xs text-arctic-800 shadow-xs">
-                  <div className="mb-1 text-[10px] font-bold text-arctic-500">
+                  <div className="mb-1 text-[10px] font-bold text-arctic-600">
                     {tr("Message entrant", "Incoming message")}
                   </div>
                   {currentScenario.buyerMsg}
@@ -589,7 +589,7 @@ export default function HowToUseClient() {
                 <span>{currentScenario.statusBadge}</span>
                 <Link
                   href="/signup"
-                  className="inline-flex items-center gap-1 font-bold text-brand-dark hover:underline"
+                  className="inline-flex min-h-[24px] items-center gap-1 font-bold text-brand-dark hover:underline"
                 >
                   <span>
                     {tr("Activer sur ma boutique", "Activate on my shop")}
@@ -705,13 +705,13 @@ export default function HowToUseClient() {
               )}
             </p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-arctic-800">
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-arctic-300/60 bg-white/80 px-2.5 py-1">
+              <span className="inline-flex items-center gap-1.5 rounded-shape-sm border border-arctic-300/60 bg-white/80 px-2.5 py-1">
                 <SaasIcon name="check" size={13} className="text-brand-dark" />
                 <span>
                   {tr("Format SVG haute définition", "High-res printable SVG")}
                 </span>
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-arctic-300/60 bg-white/80 px-2.5 py-1">
+              <span className="inline-flex items-center gap-1.5 rounded-shape-sm border border-arctic-300/60 bg-white/80 px-2.5 py-1">
                 <SaasIcon name="bell" size={13} className="text-brand-dark" />
                 <span>
                   {tr("Bouton « Suivre la boutique »", "'Follow shop' opt-in")}
@@ -737,7 +737,7 @@ export default function HowToUseClient() {
               )}
             </p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-arctic-800">
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-arctic-300/60 bg-white/80 px-2.5 py-1">
+              <span className="inline-flex items-center gap-1.5 rounded-shape-sm border border-arctic-300/60 bg-white/80 px-2.5 py-1">
                 <SaasIcon name="check" size={13} className="text-brand-dark" />
                 <span>
                   {tr(
@@ -746,7 +746,7 @@ export default function HowToUseClient() {
                   )}
                 </span>
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-arctic-300/60 bg-white/80 px-2.5 py-1">
+              <span className="inline-flex items-center gap-1.5 rounded-shape-sm border border-arctic-300/60 bg-white/80 px-2.5 py-1">
                 <SaasIcon name="check" size={13} className="text-brand-dark" />
                 <span>
                   {tr(

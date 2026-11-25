@@ -658,7 +658,7 @@ export default function CatalogClient({
                   <div className="text-sm font-bold leading-tight">{tr("Tout le catalogue", "All products")}</div>
                   <div
                     className={`text-[11px] ${
-                      selectedCollectionId === null ? "text-white/80" : "text-arctic-500"
+                      selectedCollectionId === null ? "text-white/80" : "text-arctic-600"
                     }`}
                   >
                     {products.length} {tr(products.length > 1 ? "articles" : "article", products.length > 1 ? "items" : "item")}
@@ -698,7 +698,7 @@ export default function CatalogClient({
                       <div className="truncate text-sm font-bold leading-tight">{col.name}</div>
                       <div
                         className={`text-[11px] ${
-                          active ? "text-emerald-100" : "text-arctic-500"
+                          active ? "text-emerald-100" : "text-arctic-600"
                         }`}
                       >
                         {col.productCount} {tr(col.productCount > 1 ? "produits" : "produit", col.productCount > 1 ? "products" : "product")}
@@ -876,7 +876,7 @@ export default function CatalogClient({
                     <h2 className="text-xl font-bold text-arctic-900 dark:text-white">
                       {selectedProduct.name}
                     </h2>
-                    <span className="text-xs text-arctic-500">
+                    <span className="text-xs text-arctic-600">
                       {selectedProduct.stock > 0
                         ? `${selectedProduct.stock} ${tr(selectedProduct.stock > 1 ? "unités disponibles" : "unité disponible", selectedProduct.stock > 1 ? "units available" : "unit available")}`
                         : tr("Rupture de stock", "Out of stock")}
@@ -887,7 +887,7 @@ export default function CatalogClient({
                       {formatConvertedPrice(selectedProduct.priceCents, currency, displayCurrency).primary}
                     </div>
                     {displayCurrency !== currency && (
-                      <div className="text-[11px] text-arctic-500">
+                      <div className="text-[11px] text-arctic-600">
                         ~{formatMoney(selectedProduct.priceCents, currency)}
                       </div>
                     )}
@@ -969,7 +969,7 @@ export default function CatalogClient({
                   </span>
                   <span className={step === "success" ? "text-arctic-900 font-bold" : "text-arctic-600"}>{tr("Terminé", "Done")}</span>
                 </div>
-                <button onClick={() => setOpen(false)} className="text-arctic-500 hover:text-arctic-800">
+                <button onClick={() => setOpen(false)} className="text-arctic-600 hover:text-arctic-800">
                   ✕
                 </button>
               </div>
@@ -990,7 +990,7 @@ export default function CatalogClient({
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-semibold text-arctic-900">
                         {l.name}
-                        {l.size && <span className="ml-1 text-xs text-arctic-500">({l.size})</span>}
+                        {l.size && <span className="ml-1 text-xs text-arctic-600">({l.size})</span>}
                       </div>
                       <div className="text-sm text-arctic-600">
                         {formatConvertedPrice(l.priceCents, currency, displayCurrency).primary} {tr("l’unité", "each")}
@@ -999,7 +999,7 @@ export default function CatalogClient({
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => updateQty(i, l.qty - 1)}
-                        className="grid h-7 w-7 place-items-center rounded-md bg-arctic-200/65 text-arctic-800 hover:bg-arctic-300"
+                        className="grid h-7 w-7 place-items-center rounded-shape-sm bg-arctic-200/65 text-arctic-800 hover:bg-arctic-300"
                       >
                         −
                       </button>
@@ -1007,13 +1007,13 @@ export default function CatalogClient({
                       <button
                         onClick={() => updateQty(i, l.qty + 1)}
                         disabled={l.qty >= l.stock}
-                        className="grid h-7 w-7 place-items-center rounded-md bg-arctic-200/65 text-arctic-800 hover:bg-arctic-300 disabled:opacity-40"
+                        className="grid h-7 w-7 place-items-center rounded-shape-sm bg-arctic-200/65 text-arctic-800 hover:bg-arctic-300 disabled:opacity-40"
                       >
                         +
                       </button>
                       <button
                         onClick={() => removeLine(i)}
-                        className="ml-1 text-arctic-500 hover:text-red-500"
+                        className="ml-1 text-arctic-600 hover:text-red-500"
                       >
                         ✕
                       </button>
@@ -1028,7 +1028,7 @@ export default function CatalogClient({
                       {formatConvertedPrice(total, currency, displayCurrency).primary}
                     </span>
                     {displayCurrency !== currency && (
-                      <span className="text-xs text-arctic-500 block">
+                      <span className="text-xs text-arctic-600 block">
                         ~{formatMoney(total, currency)}
                       </span>
                     )}
@@ -1072,7 +1072,7 @@ export default function CatalogClient({
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                   />
-                  <span className="text-[11px] text-arctic-500">{tr("Pour organiser la livraison et vous tenir informé", "For delivery coordination and updates")}</span>
+                  <span className="text-[11px] text-arctic-600">{tr("Pour organiser la livraison et vous tenir informé", "For delivery coordination and updates")}</span>
                 </div>
                 <div>
                   <label className="label">{tr("Adresse e-mail (facultatif)", "Email address (optional)")}</label>
@@ -1101,7 +1101,7 @@ export default function CatalogClient({
                         }`}
                       >
                         <span className="block font-bold">🏪 {tr("Retrait", "Pickup")}</span>
-                        <span className="text-[10px] text-arctic-500">{tr("Gratuit en boutique", "Free at the shop")}</span>
+                        <span className="text-[10px] text-arctic-600">{tr("Gratuit en boutique", "Free at the shop")}</span>
                       </button>
 
                       <button
@@ -1114,7 +1114,7 @@ export default function CatalogClient({
                         }`}
                       >
                         <span className="block font-bold">🛵 {tr("Livraison", "Delivery")}</span>
-                        <span className="text-[10px] text-arctic-500">{tr("À votre adresse", "To your address")}</span>
+                        <span className="text-[10px] text-arctic-600">{tr("À votre adresse", "To your address")}</span>
                       </button>
                     </div>
 
@@ -1204,7 +1204,7 @@ export default function CatalogClient({
                               {tr("Mode test actif", "Sandbox active")}
                             </span>
                           </div>
-                          <p className="text-[11px] text-arctic-500">
+                          <p className="text-[11px] text-arctic-600">
                             T-Money, Flooz Moov, MTN MoMo, Celtiis & Visa/Mastercard
                           </p>
                         </div>
@@ -1235,7 +1235,7 @@ export default function CatalogClient({
                           <span className="text-sm font-bold text-arctic-900 dark:text-white block">
                             💵 {tr("Paiement à la livraison", "Cash on delivery")}
                           </span>
-                          <p className="text-[11px] text-arctic-500">
+                          <p className="text-[11px] text-arctic-600">
                             {tr("En espèces, à la livraison ou au retrait", "In cash, on delivery or at pickup")}
                           </p>
                         </div>
@@ -1260,7 +1260,7 @@ export default function CatalogClient({
                     <div className="text-right">
                       <span>{formatConvertedPrice(grandTotal, currency, displayCurrency).primary}</span>
                       {displayCurrency !== currency && (
-                        <span className="text-[11px] font-normal text-arctic-500 block">
+                        <span className="text-[11px] font-normal text-arctic-600 block">
                           (~{formatMoney(grandTotal, currency)})
                         </span>
                       )}
@@ -1298,7 +1298,7 @@ export default function CatalogClient({
                       {tr("Votre commande a bien été enregistrée chez", "Your order has been placed with")} <strong>{shopName}</strong>.
                       {customerEmail ? ` ${tr("Un email récapitulatif vous a été envoyé.", "A confirmation email has been sent.")}` : ""}
                     </p>
-                    <p className="mt-1 text-xs text-arctic-500 font-mono">
+                    <p className="mt-1 text-xs text-arctic-600 font-mono">
                       {tr("Référence", "Ref.")} : #{placedSummary.orderId.slice(0, 8)}
                     </p>
                   </div>
@@ -1384,7 +1384,7 @@ export default function CatalogClient({
                       setOpen(false);
                       setStep("cart");
                     }}
-                    className="btn-ghost w-full text-xs text-arctic-500"
+                    className="btn-ghost w-full text-xs text-arctic-600"
                   >
                     {tr("Continuer mes achats", "Continue shopping")}
                   </button>
@@ -1432,7 +1432,7 @@ export default function CatalogClient({
         />
       )}
 
-      <footer className="mx-auto mt-8 max-w-5xl px-4 pb-6 text-center text-xs text-arctic-500">
+      <footer className="mx-auto mt-8 max-w-5xl px-4 pb-6 text-center text-xs text-arctic-600">
         {tr("Propulsé par", "Powered by")} <span className="font-semibold">Japora</span>
       </footer>
     </div>
@@ -1531,7 +1531,7 @@ function ProductCard({
               {converted.primary}
             </span>
             {converted.original && (
-              <span className="text-[10px] text-arctic-500 whitespace-nowrap">
+              <span className="text-[10px] text-arctic-600 whitespace-nowrap">
                 ~{converted.original}
               </span>
             )}

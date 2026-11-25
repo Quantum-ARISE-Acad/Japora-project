@@ -72,7 +72,7 @@ async function ShopCard({ shop }: { shop: ShopCardType }) {
         {shop.bio ? (
           <p className="mt-3 a-body-md line-clamp-3 text-arctic-700">{shop.bio}</p>
         ) : (
-          <p className="mt-3 a-body-sm italic text-arctic-500">
+          <p className="mt-3 a-body-sm italic text-arctic-600">
             {tr("Catalogue disponible en commande directe sur WhatsApp.", "Catalog available to order directly on WhatsApp.")}
           </p>
         )}
@@ -166,7 +166,7 @@ export default async function MarketplaceRegionCategoryPage({ params }: Params) 
         </div>
       </section>
 
-      <main className="mx-auto max-w-6xl flex-1 px-4 py-10">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10">
         <section className="mb-8">
           <h2 className="mb-3 a-label-md uppercase tracking-wider text-arctic-700">
             {tr("Autres rayons à", "Other aisles in")} {r.label}

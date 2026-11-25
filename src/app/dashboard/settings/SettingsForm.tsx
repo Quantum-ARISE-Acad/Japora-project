@@ -526,7 +526,7 @@ export default function SettingsForm({
                   placeholder={tr("Ex: Lomé: 1000, Agoè: 1500, Baguida: 2000", "e.g. Lomé: 1000, Agoè: 1500, Baguida: 2000")}
                   className="input mt-1 w-full text-xs font-mono"
                 />
-                <span className="block text-[11px] text-arctic-500 mt-0.5">
+                <span className="block text-[11px] text-arctic-600 mt-0.5">
                   {tr("Format: &ldquo;Nom de zone: Tarif&rdquo;, séparés par des virgules.", "Format: “Zone name: Price”, separated by commas.")}
                 </span>
               </div>
@@ -597,7 +597,7 @@ export default function SettingsForm({
             </div>
           </div>
         ) : (
-          <p className="mt-3 text-xs text-arctic-500">
+          <p className="mt-3 text-xs text-arctic-600">
             {tr("Votre code de parrainage apparaîtra après le prochain enregistrement.", "Your referral code will appear after your next save.")}
           </p>
         )}

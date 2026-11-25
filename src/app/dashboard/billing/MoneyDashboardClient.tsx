@@ -308,44 +308,44 @@ export default function MoneyDashboardClient({
       {/* Financial KPIs */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="card p-5 border-l-4 border-l-emerald-500">
-          <div className="text-xs font-semibold uppercase tracking-wider text-arctic-500">
+          <div className="text-xs font-semibold uppercase tracking-wider text-arctic-600">
             {tr("Total encaissé", "Total collected")}
           </div>
           <div className="mt-2 text-2xl font-extrabold text-emerald-700">
             {formatMoney(stats.totalCollectedCents, currency)}
           </div>
-          <div className="mt-1 text-xs text-arctic-500">
+          <div className="mt-1 text-xs text-arctic-600">
             {stats.paidOrdersCount} {tr("commande(s)", "order(s)")} + {stats.paidLinksCount} {tr("lien(s) payé(s)", "paid link(s)")}
           </div>
         </div>
 
         <div className="card p-5 border-l-4 border-l-amber-500">
-          <div className="text-xs font-semibold uppercase tracking-wider text-arctic-500">
+          <div className="text-xs font-semibold uppercase tracking-wider text-arctic-600">
             {tr("En attente d’encaissement", "Pending collection")}
           </div>
           <div className="mt-2 text-2xl font-extrabold text-amber-700">
             {formatMoney(stats.pendingCents, currency)}
           </div>
-          <div className="mt-1 text-xs text-arctic-500">
+          <div className="mt-1 text-xs text-arctic-600">
             {tr("Commandes et liens non réglés", "Unpaid orders & links")}
           </div>
         </div>
 
         <div className="card p-5 border-l-4 border-l-brand">
-          <div className="text-xs font-semibold uppercase tracking-wider text-arctic-500">
+          <div className="text-xs font-semibold uppercase tracking-wider text-arctic-600">
             {tr("Transactions FedaPay", "FedaPay transactions")}
           </div>
           <div className="mt-2 text-2xl font-extrabold text-arctic-900">
             {stats.fedaSuccessCount} {tr(stats.fedaSuccessCount > 1 ? "réussites" : "réussite", stats.fedaSuccessCount > 1 ? "successful" : "successful")}
           </div>
-          <div className="mt-1 text-xs text-arctic-500">
+          <div className="mt-1 text-xs text-arctic-600">
             {tr("T-Money, Flooz, MoMo & Carte", "T-Money, Flooz, MoMo & card")}
           </div>
         </div>
 
         <div className="card p-5">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-arctic-500">
+            <span className="text-xs font-semibold uppercase tracking-wider text-arctic-600">
               {tr("Commission ce mois", "Commission this month")}
             </span>
             <span className="rounded-full bg-arctic-200/70 px-2 py-0.5 text-[10px] font-bold text-arctic-700">
@@ -355,7 +355,7 @@ export default function MoneyDashboardClient({
           <div className="mt-2 text-2xl font-extrabold text-brand-dark">
             {formatMoney(stats.commissionCents, currency)}
           </div>
-          <div className="mt-1 text-xs text-arctic-500">
+          <div className="mt-1 text-xs text-arctic-600">
             {tr("Prélevée uniquement sur les ventes encaissées", "Charged only on collected sales")}
           </div>
         </div>
@@ -489,7 +489,7 @@ export default function MoneyDashboardClient({
               <div className="font-mono text-[11px] text-arctic-600 truncate bg-white px-2.5 py-1.5 rounded border border-arctic-200">
                 {webhookUrl}
               </div>
-              <p className="text-[11px] text-arctic-500">
+              <p className="text-[11px] text-arctic-600">
                 {tr("Intégré sur votre boutique", "Integrated with your shop")} <strong>{shopName}</strong> ({tr("panier, validation de commande et liens de paiement WhatsApp. Numéro de reversement :", "checkout, order confirmation and WhatsApp payment links. Payout number:")}{" "}
                 <strong>{momoNumber || whatsappNumber || tr("Non renseigné", "Not provided")}</strong>.
               </p>
@@ -508,7 +508,7 @@ export default function MoneyDashboardClient({
             )}
 
             <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-              <span className="text-xs text-arctic-500">
+              <span className="text-xs text-arctic-600">
                 {tr("Mode actif", "Active mode")}:{" "}
                 <strong className="text-emerald-700 uppercase">{fedaConfig.environment}</strong>
               </span>
@@ -607,7 +607,7 @@ export default function MoneyDashboardClient({
             <h2 className="text-base font-bold text-arctic-900">
               {tr("Journal des transactions (FedaPay et Mobile Money)", "Transaction ledger (FedaPay & Mobile Money)")}
             </h2>
-            <p className="text-xs text-arctic-500">
+            <p className="text-xs text-arctic-600">
               {tr("Historique des paiements du panier boutique, des liens WhatsApp et des tests Sandbox.", "Payment history for shop checkout, WhatsApp links and Sandbox tests.")}
             </p>
           </div>
@@ -617,7 +617,7 @@ export default function MoneyDashboardClient({
         </div>
 
         {transactions.length === 0 ? (
-          <div className="p-10 text-center text-arctic-500 space-y-2">
+          <div className="p-10 text-center text-arctic-600 space-y-2">
             <div className="text-3xl">💳</div>
             <p className="text-sm font-semibold text-arctic-800">
               {tr("Aucune transaction enregistrée pour le moment", "No transactions recorded yet")}
@@ -649,7 +649,7 @@ export default function MoneyDashboardClient({
                     <td className="px-5 py-3.5">
                       <div className="font-semibold text-arctic-900">{tx.title}</div>
                       {tx.customerName && (
-                        <div className="text-[11px] text-arctic-500">{tx.customerName}</div>
+                        <div className="text-[11px] text-arctic-600">{tx.customerName}</div>
                       )}
                     </td>
                     <td className="px-5 py-3.5">
@@ -678,7 +678,7 @@ export default function MoneyDashboardClient({
                         </span>
                       )}
                     </td>
-                    <td className="px-5 py-3.5 text-arctic-500">
+                    <td className="px-5 py-3.5 text-arctic-600">
                       {new Date(tx.createdAt).toLocaleString(locale === "fr" ? "fr-FR" : "en-US", {
                         day: "2-digit",
                         month: "short",

@@ -96,7 +96,7 @@ export default function PublicFooter() {
               {["T-Money", "Flooz", "Wave", "Orange Money", "MTN MoMo", "CinetPay"].map((rail) => (
                 <span
                   key={rail}
-                  className="rounded-md border border-arctic-300/60 bg-arctic-50 px-2 py-0.5 text-[10px] font-semibold text-arctic-700"
+                  className="rounded-shape-sm border border-arctic-300/60 bg-arctic-50 px-2 py-0.5 text-[10px] font-semibold text-arctic-700"
                 >
                   {rail}
                 </span>
@@ -232,18 +232,32 @@ export default function PublicFooter() {
             <span>·</span>
             <span className="text-arctic-600">Lomé · Cotonou · Abidjan · Dakar · Lagos · Nairobi</span>
           </div>
-          <div className="flex items-center gap-4">
-            <Link href="/how-to-use" className="hover:text-arctic-900">
+          {/* 16px tall was under the 24x24 floor of WCAG 2.5.8; these are
+              discrete links in a row, not words inside a sentence. */}
+          <div className="flex flex-wrap items-center gap-x-4">
+            <Link
+              href="/how-to-use"
+              className="inline-flex min-h-[24px] items-center hover:text-arctic-900"
+            >
               {tr("Comment ça marche", "How it works")}
             </Link>
-            <Link href="/terms" className="hover:text-arctic-900">
+            <Link
+              href="/terms"
+              className="inline-flex min-h-[24px] items-center hover:text-arctic-900"
+            >
               {tr("Conditions", "Terms")}
             </Link>
-            <Link href="/privacy" className="hover:text-arctic-900">
+            <Link
+              href="/privacy"
+              className="inline-flex min-h-[24px] items-center hover:text-arctic-900"
+            >
               {tr("Confidentialité", "Privacy")}
             </Link>
-            <Link href="/signup" className="font-bold text-arctic-900 hover:underline">
-              {tr("Ouvrir ma boutique →", "Open my shop →")}
+            <Link
+              href="/signup"
+              className="inline-flex min-h-[24px] items-center font-bold text-arctic-900 hover:underline"
+            >
+              {tr("Ouvrir ma boutique", "Open my shop")}
             </Link>
           </div>
         </div>
