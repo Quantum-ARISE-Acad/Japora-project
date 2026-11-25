@@ -5,6 +5,9 @@
 /* Aurora design system — tokens + glass utilities + M3 type scale. */
 @import "../styles/aurora.css";
 
+/* Lumière motion — springs, scroll reveal, sheen. Tokens stay in aurora.css. */
+@import "../styles/motion.css";
+
 /* =====================================================================
  * Dark-mode compatibility layer.
  *

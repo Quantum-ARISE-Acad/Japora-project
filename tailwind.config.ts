@@ -114,6 +114,10 @@ export default {
 
       // Elevation — kept low per the brief; depth comes from glass + blur.
       boxShadow: {
+        // `shadow-xs` is a Tailwind v4 name; on v3 it silently resolves to
+        // nothing, so the 40-odd hairline surfaces that asked for it were
+        // rendering flat. Define it here rather than rewrite every call site.
+        xs: "var(--aurora-elev-xs)",
         "elev-0": "none",
         "elev-1": "var(--aurora-elev-1)",
         "elev-2": "var(--aurora-elev-2)",

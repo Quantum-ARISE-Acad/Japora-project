@@ -8,6 +8,8 @@ import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
 import { SaasIcon, CategoryIcon, type SaasIconName } from "@/components/ui/SaasIcons";
+import WhatsAppDemo from "@/components/landing/WhatsAppDemo";
+import PricingPreview, { type PricingFacts } from "@/components/landing/PricingPreview";
 
 const CATEGORY_FR: Record<string, string> = {
   fashion: "Mode & Wax",
@@ -24,10 +26,12 @@ export default function LandingClient({
   featuredShops,
   isAuthenticated = false,
   shopSlug,
+  pricing,
 }: {
   featuredShops: ShopCard[];
   isAuthenticated?: boolean;
   shopSlug?: string;
+  pricing: PricingFacts;
 }) {
   const { tr } = usePublicLang();
 
@@ -54,20 +58,47 @@ export default function LandingClient({
 
             <div className="glass glass-edge relative overflow-hidden rounded-shape-xl p-2.5 shadow-elev-3">
               <div className="relative overflow-hidden rounded-shape-lg aspect-[4/3] bg-arctic-200">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/hero-merchant.jpg"
-                  alt={tr(
-                    "Commerçante africaine gérant sa boutique en ligne et ses ventes WhatsApp avec Japora",
-                    "African merchant managing her online shop and WhatsApp sales with Japora"
-                  )}
-                  className="h-full w-full object-cover object-center transition-transform duration-long hover:scale-105"
-                />
+                {/* The hero photo was one 842 KB JPEG — 5.6x this screen's
+                    entire 150 KB budget, on the one image that blocks the
+                    conversion moment for a merchant on a prepaid connection.
+                    Same photograph, served as WebP at the width actually used:
+                    20 KB on a phone, 67 KB on a desktop. The intrinsic size is
+                    declared so the frame never shifts while it loads, and the
+                    hover zoom is gone — it did nothing on the touch devices
+                    this launches on and fought the overlay text. */}
+                <picture>
+                  <source
+                    type="image/webp"
+                    srcSet="/hero-merchant-480.webp 480w, /hero-merchant-768.webp 768w, /hero-merchant-1120.webp 1120w"
+                    sizes="(min-width: 768px) 46vw, 92vw"
+                  />
+                  {/* next/image is deliberately not used here: sharp is an
+                      optional dependency in this project, so the built-in
+                      optimiser is not guaranteed at runtime, and the derivatives
+                      above are pre-encoded to a known byte budget. Inside a
+                      <picture>, @next/next/no-img-element stands down. */}
+                  <img
+                    src="/hero-merchant.jpg"
+                    width={1376}
+                    height={768}
+                    fetchPriority="high"
+                    decoding="async"
+                    alt={tr(
+                      "Commerçante africaine gérant sa boutique en ligne et ses ventes WhatsApp avec Japora",
+                      "African merchant managing her online shop and WhatsApp sales with Japora"
+                    )}
+                    className="h-full w-full object-cover object-center"
+                  />
+                </picture>
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
 
                 {/* Top-left floating badge */}
                 <div className="absolute left-3.5 top-3.5 inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/50 px-3 py-1.5 text-[11px] font-bold text-white backdrop-blur-md">
-                  <span className="h-2 w-2 animate-ping rounded-full bg-emerald-400" />
+                  <span
+                    aria-hidden
+                    className="h-2 w-2 animate-ping rounded-full"
+                    style={{ background: "var(--signal-live)" }}
+                  />
                   <span>
                     {tr(
                       "Boutique en ligne + Bot WhatsApp actif",
@@ -79,7 +110,11 @@ export default function LandingClient({
                 {/* Bottom overlay inside the image frame */}
                 <div className="absolute bottom-3.5 left-3.5 right-3.5 flex flex-wrap items-center justify-between gap-2 rounded-shape-md border border-white/25 bg-white/90 p-3 text-arctic-900 shadow-elev-2 backdrop-blur-md">
                   <div className="flex items-center gap-2.5">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-700 text-white">
+                    <span
+                      aria-hidden
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white"
+                      style={{ background: "var(--aurora-success)" }}
+                    >
                       <SaasIcon name="check" size={16} />
                     </span>
                     <div>
@@ -98,10 +133,10 @@ export default function LandingClient({
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="a-num font-display text-sm font-extrabold text-emerald-700">
+                    <div className="a-num font-display text-sm font-extrabold text-brand-dark">
                       +24 500 FCFA
                     </div>
-                    <div className="text-[10px] font-semibold text-arctic-500">
+                    <div className="text-[10px] font-semibold text-arctic-600">
                       {tr("Stock mis à jour", "Stock updated")}
                     </div>
                   </div>
@@ -111,7 +146,7 @@ export default function LandingClient({
               {/* Bottom mini KPI strip under image */}
               <div className="mt-2.5 grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-shape-md bg-white/75 px-2.5 py-2">
-                  <div className="text-[10px] font-semibold text-arctic-500">
+                  <div className="text-[10px] font-semibold text-arctic-600">
                     {tr("Réponse Bot", "Bot Reply")}
                   </div>
                   <div className="a-num text-xs font-bold text-arctic-900">
@@ -119,7 +154,7 @@ export default function LandingClient({
                   </div>
                 </div>
                 <div className="rounded-shape-md bg-white/75 px-2.5 py-2">
-                  <div className="text-[10px] font-semibold text-arctic-500">
+                  <div className="text-[10px] font-semibold text-arctic-600">
                     {tr("Encaissement", "Payments")}
                   </div>
                   <div className="text-xs font-bold text-brand-dark">
@@ -127,10 +162,10 @@ export default function LandingClient({
                   </div>
                 </div>
                 <div className="rounded-shape-md bg-white/75 px-2.5 py-2">
-                  <div className="text-[10px] font-semibold text-arctic-500">
+                  <div className="text-[10px] font-semibold text-arctic-600">
                     {tr("Bilan quotidien", "Daily Summary")}
                   </div>
-                  <div className="text-xs font-bold text-emerald-800">
+                  <div className="text-xs font-bold text-arctic-900">
                     {tr("Chaque soir à 18h", "Every evening at 6 PM")}
                   </div>
                 </div>
@@ -141,7 +176,11 @@ export default function LandingClient({
           {/* RIGHT: Headline, Refined Pitch & CTAs */}
           <div className="order-2 a-fade-in">
             <div className="inline-flex flex-wrap items-center gap-2 rounded-shape-full border border-brand/35 bg-white/80 px-3.5 py-1.5 shadow-elev-1 backdrop-blur-glass-thin">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-600" />
+              <span
+                aria-hidden
+                className="h-2 w-2 animate-pulse rounded-full"
+                style={{ background: "var(--signal-live)" }}
+              />
               <span className="a-label-md text-arctic-900">
                 {tr(
                   "La plateforme e-commerce & WhatsApp des marchands africains",
@@ -237,7 +276,7 @@ export default function LandingClient({
         {/* ============================================================
          * 2. PAYMENT RAILS & PAN-AFRICAN COVERAGE STRIP
          * ============================================================ */}
-        <section className="mb-16">
+        <section className="mb-16" data-reveal-group>
           <div className="glass glass-edge rounded-shape-xl px-6 py-5">
             <div className="flex flex-col items-center justify-between gap-4 lg:flex-row">
               <div className="text-center lg:text-left">
@@ -266,7 +305,7 @@ export default function LandingClient({
                   { name: "Paystack & M-Pesa", region: "NG · KE" },
                 ].map((p) => (
                   <div
-                    key={p.name}
+                    key={p.name} data-reveal="up"
                     className="inline-flex items-center gap-2 rounded-shape-full border border-arctic-300/70 bg-white/80 px-3 py-1.5 text-xs shadow-xs"
                   >
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
@@ -284,8 +323,11 @@ export default function LandingClient({
         {/* ============================================================
          * 3. PUBLIC SHOP SEARCH & MARKETPLACE DISCOVERY
          * ============================================================ */}
-        <section className="mb-20 rounded-shape-xl border border-arctic-300/60 bg-gradient-to-b from-white/95 to-arctic-50/85 p-6 shadow-elev-2 backdrop-blur-md md:p-10">
-          <div className="mx-auto max-w-3xl text-center">
+        <section
+          className="mb-20 rounded-shape-xl border border-arctic-300/60 bg-gradient-to-b from-white/95 to-arctic-50/85 p-6 shadow-elev-2 backdrop-blur-md md:p-10"
+          data-reveal-group
+        >
+          <div className="mx-auto max-w-3xl text-center" data-reveal="up">
             <span className="a-eyebrow">
               {tr(
                 "Annuaire Public & Découverte",
@@ -312,7 +354,7 @@ export default function LandingClient({
               className="mt-6 flex flex-col gap-2.5 sm:flex-row"
             >
               <div className="relative flex-1">
-                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-arctic-500">
+                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-arctic-600">
                   <SaasIcon name="search" size={18} />
                 </span>
                 <input
@@ -400,7 +442,7 @@ export default function LandingClient({
                   const categoryObj = findCategory(shop.category);
                   return (
                     <Link
-                      key={shop.id}
+                      key={shop.id} data-reveal="up"
                       href={`/shop/${shop.shopSlug}`}
                       className="group flex flex-col justify-between rounded-shape-xl border border-arctic-200/80 bg-white/90 p-5 shadow-sm transition-all duration-short hover:-translate-y-1 hover:border-brand/60 hover:shadow-elev-2"
                     >
@@ -425,7 +467,7 @@ export default function LandingClient({
                                 <VerifiedBadge size="sm" withLabel={false} />
                               )}
                             </div>
-                            <div className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-arctic-500">
+                            <div className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-arctic-600">
                               <SaasIcon name="map-pin" size={12} className="text-arctic-400" />
                               <span className="truncate">
                                 {regionObj
@@ -482,7 +524,7 @@ export default function LandingClient({
                                 )}
                               </div>
                             ))}
-                            <span className="text-[11px] font-medium text-arctic-500">
+                            <span className="text-[11px] font-medium text-arctic-600">
                               {tr("Catalogue actif", "Live catalog")}
                             </span>
                           </div>
@@ -528,8 +570,8 @@ export default function LandingClient({
         {/* ============================================================
          * 4. CORE PILLARS TRIO — Bot, Payment, 6 PM Summary
          * ============================================================ */}
-        <section className="mb-20">
-          <div className="mx-auto mb-10 max-w-2xl text-center">
+        <section className="mb-20" data-reveal-group>
+          <div className="mx-auto mb-10 max-w-2xl text-center" data-reveal="up">
             <div className="a-eyebrow">
               {tr(
                 "L'automatisation au service du marchand",
@@ -633,11 +675,11 @@ export default function LandingClient({
                 accent:
                   "linear-gradient(135deg, rgb(var(--gold) / 0.10), transparent 70%)",
               },
-            ].map((f, i) => (
+            ].map((f) => (
               <article
                 key={f.k}
-                className="glass glass-edge a-hover-lift relative flex flex-col justify-between rounded-shape-xl p-6"
-                style={{ animationDelay: `${i * 80}ms` }}
+                data-reveal="up"
+                className="glass glass-edge lift relative flex flex-col justify-between rounded-shape-xl p-6"
               >
                 <div
                   aria-hidden
@@ -674,8 +716,8 @@ export default function LandingClient({
         {/* ============================================================
          * 5. BEFORE / AFTER COMPARISON — Sans Japora vs Avec Japora
          * ============================================================ */}
-        <section className="mb-20">
-          <div className="mx-auto mb-10 max-w-2xl text-center">
+        <section className="mb-20" data-reveal-group>
+          <div className="mx-auto mb-10 max-w-2xl text-center" data-reveal="up">
             <div className="a-eyebrow">
               {tr("Pourquoi passer à Japora ?", "Why switch to Japora?")}
             </div>
@@ -789,8 +831,8 @@ export default function LandingClient({
         {/* ============================================================
          * 6. COMPLETE MERCHANT TOOLKIT — 8 Bento Cards
          * ============================================================ */}
-        <section className="mb-20">
-          <div className="mx-auto mb-10 max-w-2xl text-center">
+        <section className="mb-20" data-reveal-group>
+          <div className="mx-auto mb-10 max-w-2xl text-center" data-reveal="up">
             <span className="a-eyebrow">
               {tr("Boîte à outils tout-en-un", "All-in-One Merchant Toolkit")}
             </span>
@@ -910,7 +952,7 @@ export default function LandingClient({
               ] as const
             ).map((item) => (
               <div
-                key={item.title}
+                key={item.title} data-reveal="up"
                 className="glass glass-edge flex flex-col justify-between rounded-shape-lg p-5 transition-all duration-short hover:-translate-y-1 hover:shadow-elev-2"
               >
                 <div>
@@ -937,7 +979,10 @@ export default function LandingClient({
         {/* ============================================================
          * 7. HOW IT WORKS — 4-Step Visual Preview + Link to /how-to-use
          * ============================================================ */}
-        <section className="mb-20 rounded-shape-xl border border-arctic-300/60 bg-white/75 p-6 backdrop-blur-md sm:p-10">
+        <section
+          className="mb-20 rounded-shape-xl border border-arctic-300/60 bg-white/75 p-6 backdrop-blur-md sm:p-10"
+          data-reveal-group
+        >
           <div className="flex flex-col items-start justify-between gap-4 border-b border-arctic-200/70 pb-6 sm:flex-row sm:items-end">
             <div>
               <div className="a-eyebrow">
@@ -999,7 +1044,7 @@ export default function LandingClient({
                 ),
               },
             ].map((s) => (
-              <div key={s.step} className="relative flex flex-col">
+              <div key={s.step} data-reveal="up" className="relative flex flex-col">
                 <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand/50 bg-brand/10 font-display text-sm font-bold text-brand-dark">
                   {s.step}
                 </div>
@@ -1015,10 +1060,81 @@ export default function LandingClient({
         </section>
 
         {/* ============================================================
-         * 8. MERCHANT TESTIMONIALS
+         * 8. THE EXPERIENCE — the bot flow, playable, before signup
          * ============================================================ */}
-        <section className="mb-20">
-          <div className="mx-auto mb-8 max-w-xl text-center">
+        <section className="mb-20" data-reveal-group>
+          <div className="grid items-center gap-10 lg:grid-cols-[1fr,0.92fr] lg:gap-14">
+            <div data-reveal="up">
+              <span className="a-eyebrow">
+                {tr("L'expérience client", "The customer experience")}
+              </span>
+              <h2 className="a-headline-lg mt-2 text-arctic-900">
+                {tr(
+                  "Votre boutique vit dans la conversation.",
+                  "Your shop lives inside the conversation."
+                )}
+              </h2>
+              <p className="a-body-md a-measure mt-3 leading-relaxed text-arctic-700">
+                {tr(
+                  "Votre cliente n'installe rien et ne crée aucun compte. Elle écrit sur WhatsApp comme toujours — le bot répond avec le prix, le stock et un lien de paiement. Essayez : touchez les réponses ci-contre.",
+                  "Your customer installs nothing and creates no account. She writes on WhatsApp as she always has — the bot answers with the price, the stock and a way to pay. Try it: tap the replies."
+                )}
+              </p>
+
+              <ul className="mt-6 space-y-3.5">
+                {[
+                  {
+                    icon: "zap" as SaasIconName,
+                    title: tr("La réponse part en quelques secondes", "The reply goes out in seconds"),
+                    body: tr(
+                      "Même à 23 h, même quand vous dormez. Vous reprenez la main sur les demandes délicates.",
+                      "At 11 PM, and while you sleep. You take over the tricky ones."
+                    ),
+                  },
+                  {
+                    icon: "wallet" as SaasIconName,
+                    title: tr("Le paiement reste dans le fil", "Payment stays in the thread"),
+                    body: tr(
+                      "T-Money, Flooz, Wave. Pas de redirection, pas de lien perdu dans dix messages.",
+                      "T-Money, Flooz, Wave. No redirect, no link lost ten messages up."
+                    ),
+                  },
+                  {
+                    icon: "chart" as SaasIconName,
+                    title: tr("La commande arrive chez vous, déjà payée", "The order reaches you already paid"),
+                    body: tr(
+                      "Elle se range dans votre tableau de bord et compte dans le bilan de 18 h.",
+                      "It files itself into your dashboard and counts in the 6 PM summary."
+                    ),
+                  },
+                ].map((b) => (
+                  <li key={b.title} data-reveal="up" className="flex items-start gap-3">
+                    <span
+                      aria-hidden
+                      className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-shape-md border border-arctic-300/60 bg-brand/10"
+                    >
+                      <SaasIcon name={b.icon} size={16} className="text-brand-dark" />
+                    </span>
+                    <div>
+                      <div className="text-sm font-bold text-arctic-900">{b.title}</div>
+                      <p className="a-body-sm mt-0.5 text-arctic-700">{b.body}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div data-reveal="scale" className="lg:pl-2">
+              <WhatsAppDemo />
+            </div>
+          </div>
+        </section>
+
+        {/* ============================================================
+         * 9. MERCHANT TESTIMONIALS
+         * ============================================================ */}
+        <section className="mb-20" data-reveal-group>
+          <div className="mx-auto mb-8 max-w-xl text-center" data-reveal="up">
             <span className="a-eyebrow">
               {tr("Témoignages Commerçants", "Merchant Stories")}
             </span>
@@ -1067,7 +1183,7 @@ export default function LandingClient({
               },
             ].map((t) => (
               <div
-                key={t.author}
+                key={t.author} data-reveal="up"
                 className="glass glass-edge flex flex-col justify-between rounded-shape-xl p-6"
               >
                 <div>
@@ -1093,10 +1209,15 @@ export default function LandingClient({
         </section>
 
         {/* ============================================================
-         * 9. FREQUENTLY ASKED QUESTIONS (FAQ)
+         * 10. PRICING — the number, on the page where the decision is made
          * ============================================================ */}
-        <section className="mb-20">
-          <div className="mx-auto mb-8 max-w-2xl text-center">
+        <PricingPreview pricing={pricing} isAuthenticated={isAuthenticated} />
+
+        {/* ============================================================
+         * 11. FREQUENTLY ASKED QUESTIONS (FAQ)
+         * ============================================================ */}
+        <section className="mb-20" data-reveal-group>
+          <div className="mx-auto mb-8 max-w-2xl text-center" data-reveal="up">
             <span className="a-eyebrow">
               {tr("Questions Fréquentes", "Frequently Asked Questions")}
             </span>
@@ -1172,7 +1293,7 @@ export default function LandingClient({
               },
             ].map((faq) => (
               <div
-                key={faq.q}
+                key={faq.q} data-reveal="up"
                 className="rounded-shape-lg border border-arctic-300/60 bg-white/75 p-5 shadow-xs"
               >
                 <h3 className="font-display text-sm font-bold text-arctic-900">
@@ -1187,9 +1308,9 @@ export default function LandingClient({
         </section>
 
         {/* ============================================================
-         * 10. CLOSING CALL-TO-ACTION BANNER
+         * 12. CLOSING CALL-TO-ACTION BANNER
          * ============================================================ */}
-        <section className="mb-20">
+        <section className="mb-20" data-reveal-group>
           <div className="relative overflow-hidden rounded-shape-xl bg-gradient-to-br from-stone-900 via-stone-800 to-slate-900 p-8 text-center text-white shadow-elev-3 ring-1 ring-white/10 sm:p-14">
             <div
               aria-hidden
