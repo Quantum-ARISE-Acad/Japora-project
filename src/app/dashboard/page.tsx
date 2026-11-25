@@ -121,7 +121,7 @@ export default async function OverviewPage() {
             href={whatsappStatusShareUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-shape-md bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-emerald-700"
+            className="inline-flex items-center gap-2 rounded-shape-md bg-signal-fill px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-signal-fill-hover"
           >
             <Glyph name="chat" size={14} /> {t("Partager sur le statut WhatsApp", "Share on WhatsApp Status")}
           </a>
@@ -141,9 +141,9 @@ export default async function OverviewPage() {
 
       {/* Unconfirmed orders alert */}
       {unconfirmedOlderThan24h > 0 && (
-        <div className="flex items-center justify-between rounded-shape-md border border-amber-300/80 bg-amber-50 px-4 py-3 text-amber-900">
+        <div className="flex items-center justify-between rounded-shape-md border border-aurora-warning/35 bg-aurora-warning-bg px-4 py-3 text-aurora-warning-text">
           <div className="flex items-center gap-2 text-sm">
-            <Glyph name="alert" size={17} className="shrink-0 text-amber-700" />
+            <Glyph name="alert" size={17} className="shrink-0 text-aurora-warning-text" />
             <span>
               <strong>{unconfirmedOlderThan24h}</strong>{" "}
               {locale === "fr"
@@ -235,7 +235,7 @@ export default async function OverviewPage() {
                     </span>
                   )}
                   <div
-                    className={`w-full max-w-[32px] rounded-t-sm transition-all duration-medium ${
+                    className={`w-full max-w-[32px] rounded-t-shape-xs transition-all duration-medium ${
                       idx === 6 ? "bg-brand" : "bg-arctic-300/70 hover:bg-arctic-400"
                     }`}
                     style={{ height: `${heightPct}%` }}
@@ -265,7 +265,7 @@ export default async function OverviewPage() {
         {/* This is the message that goes out tonight, so show it as a message.
             A <pre> rendered it as a terminal block, asterisks and all, to a
             market vendor who has never seen one. */}
-        <div className="mt-3 max-w-md rounded-shape-md rounded-tl-sm border border-arctic-400/30 bg-arctic-200/35 p-4 backdrop-blur-glass-thin">
+        <div className="mt-3 max-w-md rounded-shape-md rounded-tl-shape-xs border border-arctic-400/30 bg-arctic-200/35 p-4 backdrop-blur-glass-thin">
           {hustlePreviewLines
             .filter((line) => line.trim() !== "")
             .map((line, i) => {
@@ -320,8 +320,8 @@ export default async function OverviewPage() {
       </section>
 
       {lowStock > 0 && (
-        <div className="inline-flex w-full items-center gap-2 rounded-shape-md border border-amber-300/60 bg-amber-50/85 px-4 py-3 a-body-md text-amber-900 backdrop-blur-glass-thin">
-          <Glyph name="alert" size={17} className="shrink-0 text-amber-700" />
+        <div className="inline-flex w-full items-center gap-2 rounded-shape-md border border-aurora-warning/35 bg-aurora-warning-bg/85 px-4 py-3 a-body-md text-aurora-warning-text backdrop-blur-glass-thin">
+          <Glyph name="alert" size={17} className="shrink-0 text-aurora-warning-text" />
           <span>
           {locale === "fr"
             ? `${lowStock} produit${lowStock > 1 ? "s sont" : " est"} en stock faible (3 ou moins). `

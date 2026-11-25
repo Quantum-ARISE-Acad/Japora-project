@@ -8,6 +8,7 @@ import AssetDownloads from "./AssetDownloads";
 import { AuroraIsoscout } from "@/components/aurora";
 import ProductPlaceholder from "@/components/ProductPlaceholder";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import Glyph from "@/components/Glyph";
 
 type Product = {
   id: string;
@@ -304,7 +305,7 @@ export default function ProductsClient({
             className="btn-ghost text-xs font-semibold"
             title={tr("Importer les produits du catalogue Meta WhatsApp Cloud", "Import products from your Meta WhatsApp Cloud catalog")}
           >
-            {importing ? tr("Importation…", "Importing…") : `⬇ ${tr("Importer depuis WhatsApp", "Import from WhatsApp")}`}
+            {importing ? tr("Importation…", "Importing…") : `${tr("Importer depuis WhatsApp", "Import from WhatsApp")}`}
           </button>
           <button onClick={openAdd} className="btn-primary">
             + {tr("Ajouter un produit", "Add product")}
@@ -323,6 +324,7 @@ export default function ProductsClient({
         <div className="flex flex-1 flex-wrap items-center gap-2">
           <input
             className="input min-w-[200px] flex-1 text-sm"
+            aria-label={tr("Rechercher un produit", "Search products")}
             placeholder={tr("Rechercher par nom ou description…", "Search by name or description…")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -356,7 +358,7 @@ export default function ProductsClient({
           <button
             type="button"
             onClick={() => setViewMode("grid")}
-            className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
+            className={`rounded-shape-sm px-2.5 py-1 text-xs font-semibold ${
               viewMode === "grid" ? "bg-arctic-800 text-white" : "products-view-toggle-inactive text-arctic-600 hover:text-arctic-900"
             }`}
             title={tr("Vue en grille", "Grid view")}
@@ -366,7 +368,7 @@ export default function ProductsClient({
           <button
             type="button"
             onClick={() => setViewMode("list")}
-            className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
+            className={`rounded-shape-sm px-2.5 py-1 text-xs font-semibold ${
               viewMode === "list" ? "bg-arctic-800 text-white" : "products-view-toggle-inactive text-arctic-600 hover:text-arctic-900"
             }`}
             title={tr("Vue en liste", "List view")}
@@ -441,7 +443,7 @@ export default function ProductsClient({
                       (p.stock === 0
                         ? "bg-red-600 text-white"
                         : p.stock <= 3
-                          ? "bg-amber-500 text-white"
+                          ? "bg-aurora-warning text-white"
                           : "bg-white/90 text-arctic-800")
                     }
                   >
@@ -451,7 +453,7 @@ export default function ProductsClient({
 
                 <div className="flex flex-1 flex-col space-y-2 p-3">
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold leading-tight text-arctic-900">{p.name}</h3>
+                    <h2 className="font-semibold leading-tight text-arctic-900">{p.name}</h2>
                     <span className="whitespace-nowrap font-bold text-brand-dark">
                       {formatMoney(p.priceCents, currency)}
                     </span>
@@ -509,8 +511,12 @@ export default function ProductsClient({
                     >
                       {p.isActive ? tr("Masquer", "Hide") : tr("Afficher", "Show")}
                     </button>
-                    <button onClick={() => remove(p)} className="btn-danger !py-1 text-xs">
-                      ✕
+                    <button
+                      onClick={() => remove(p)}
+                      aria-label={tr("Supprimer le produit", "Delete product")}
+                      className="btn-danger grid min-h-6 min-w-6 place-items-center !py-1 text-xs"
+                    >
+                      <Glyph name="close" size={16} />
                     </button>
                   </div>
 
@@ -610,8 +616,12 @@ export default function ProductsClient({
               <h2 className="font-bold text-arctic-900">
                 {editingId ? tr("Modifier le produit", "Edit product") : tr("Ajouter un produit", "Add product")}
               </h2>
-              <button onClick={() => setOpen(false)} className="text-arctic-600 hover:text-arctic-800">
-                ✕
+              <button
+                onClick={() => setOpen(false)}
+                aria-label={tr("Fermer", "Close")}
+                className="grid min-h-6 min-w-6 place-items-center rounded-shape-sm text-arctic-600 hover:text-arctic-800"
+              >
+                <Glyph name="close" size={16} />
               </button>
             </div>
             <form onSubmit={save} className="flex-1 max-h-[80dvh] space-y-4 overflow-y-auto overscroll-contain p-5">
@@ -625,8 +635,8 @@ export default function ProductsClient({
                   )}
                 </div>
                 <div className="flex-1">
-                  <label className="label">{tr("Photo du produit", "Product photo")}</label>
-                  <input
+                  <label htmlFor="productsclient-1" className="label">{tr("Photo du produit", "Product photo")}</label>
+                  <input id="productsclient-1"
                     type="file"
                     accept="image/*"
                     onChange={onFile}
@@ -637,8 +647,8 @@ export default function ProductsClient({
               </div>
 
               <div>
-                <label className="label">{tr("Nom", "Name")}</label>
-                <input
+                <label htmlFor="productsclient-2" className="label">{tr("Nom", "Name")}</label>
+                <input id="productsclient-2"
                   className="input"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -697,8 +707,8 @@ export default function ProductsClient({
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="label">{tr("État du produit", "Product condition")}</label>
-                  <select
+                  <label htmlFor="productsclient-3" className="label">{tr("État du produit", "Product condition")}</label>
+                  <select id="productsclient-3"
                     className="input"
                     value={form.condition}
                     onChange={(e) => setForm({ ...form, condition: e.target.value })}
@@ -710,8 +720,8 @@ export default function ProductsClient({
                 </div>
 
                 <div>
-                  <label className="label">{tr("Collection (facultative)", "Collection (optional)")}</label>
-                  <select
+                  <label htmlFor="productsclient-4" className="label">{tr("Collection (facultative)", "Collection (optional)")}</label>
+                  <select id="productsclient-4"
                     className="input"
                     value={form.collectionId}
                     onChange={(e) => setForm({ ...form, collectionId: e.target.value })}
@@ -719,7 +729,7 @@ export default function ProductsClient({
                     <option value="">— {tr("Aucune collection", "No collection")} —</option>
                     {collections.map((c) => (
                       <option key={c.id} value={c.id}>
-                        📁 {c.name}
+                        <Glyph name="folder" size={14} /> {c.name}
                       </option>
                     ))}
                   </select>
@@ -727,8 +737,8 @@ export default function ProductsClient({
               </div>
 
               <div>
-                <label className="label">{tr("Tailles / variantes (séparées par des virgules, facultatif)", "Sizes / variants (comma-separated, optional)")}</label>
-                <input
+                <label htmlFor="productsclient-5" className="label">{tr("Tailles / variantes (séparées par des virgules, facultatif)", "Sizes / variants (comma-separated, optional)")}</label>
+                <input id="productsclient-5"
                   className="input"
                   placeholder="S, M, L, XL"
                   value={form.sizes}
@@ -737,8 +747,8 @@ export default function ProductsClient({
               </div>
 
               <div>
-                <label className="label">{tr("Description (facultative)", "Description (optional)")}</label>
-                <textarea
+                <label htmlFor="productsclient-6" className="label">{tr("Description (facultative)", "Description (optional)")}</label>
+                <textarea id="productsclient-6"
                   className="input min-h-[72px]"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -750,13 +760,13 @@ export default function ProductsClient({
                   type="checkbox"
                   checked={form.isActive}
                   onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                  className="h-4 w-4 rounded border-arctic-400/45 text-brand focus:ring-brand"
+                  className="h-6 w-6 shrink-0 rounded-shape-xs border-arctic-400/45 text-brand focus:ring-brand"
                 />
                 {tr("Afficher dans le catalogue public", "Show in public catalog")}
               </label>
 
               {error && (
-                <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>
+                <p className="rounded-lg bg-aurora-error-bg px-3 py-2 text-sm text-aurora-error-text">{error}</p>
               )}
 
               <div className="flex justify-end gap-2 pt-1">

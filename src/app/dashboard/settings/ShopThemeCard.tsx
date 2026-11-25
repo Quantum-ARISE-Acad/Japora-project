@@ -21,15 +21,15 @@ function ThemeIcon({ id }: { id: string }) {
     case "arctic":
       return <ArcticIcon size={22} className="text-sky-500" />;
     case "sunset":
-      return <SunsetIcon size={22} className="text-amber-600" />;
+      return <SunsetIcon size={22} className="text-aurora-warning-text" />;
     case "emerald":
-      return <EmeraldIcon size={22} className="text-emerald-600" />;
+      return <EmeraldIcon size={22} className="text-signal-text" />;
     case "midnight":
       return <MidnightIcon size={22} className="text-indigo-400" />;
     case "indigo":
       return <RoyalIcon size={22} className="text-indigo-600" />;
     default:
-      return <PaletteIcon size={22} className="text-brand-500" />;
+      return <PaletteIcon size={22} className="text-brand-dark" />;
   }
 }
 
@@ -78,7 +78,7 @@ export default function ShopThemeCard({ shopSlug }: ShopThemeCardProps) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-arctic-200/50 pb-4 dark:border-arctic-800">
         <div>
           <div className="flex items-center gap-2.5">
-            <PaletteIcon size={22} className="text-brand-600 dark:text-brand-400" />
+            <PaletteIcon size={22} className="text-brand-dark" />
             <h2 className="a-title-lg font-bold text-arctic-900">
               {tr("Thème Visuel Officiel de Votre Boutique", "Official Storefront Visual Theme")}
             </h2>
@@ -92,8 +92,8 @@ export default function ShopThemeCard({ shopSlug }: ShopThemeCardProps) {
         </div>
 
         {saved && (
-          <span className="inline-flex items-center gap-1 rounded-shape-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-            {tr("✓ Thème appliqué à la boutique", "✓ Theme applied to storefront")}
+          <span className="inline-flex items-center gap-1 rounded-shape-full bg-arctic-200/70 px-3 py-1 text-xs font-bold text-signal-text">
+            {tr("Thème appliqué à la boutique", "Theme applied to storefront")}
           </span>
         )}
       </div>
@@ -109,7 +109,7 @@ export default function ShopThemeCard({ shopSlug }: ShopThemeCardProps) {
               disabled={saving}
               className={`flex flex-col justify-between rounded-shape-lg border p-4 text-left transition-all duration-short ${
                 isSelected
-                  ? "border-brand-500 bg-brand-500/10 shadow-sm ring-2 ring-brand-500/30"
+                  ? "border-brand bg-brand/10 shadow-sm ring-2 ring-brand/30"
                   : "border-arctic-200/80 bg-white/60 hover:border-arctic-400 hover:bg-white dark:border-arctic-800 dark:bg-arctic-900/40"
               }`}
             >
@@ -118,7 +118,7 @@ export default function ShopThemeCard({ shopSlug }: ShopThemeCardProps) {
                   <ThemeIcon id={theme.id} />
                 </div>
                 {isSelected ? (
-                  <span className="rounded-shape-full bg-brand-500 text-white px-2 py-0.5 text-[10px] font-bold">
+                  <span className="rounded-shape-full bg-gold-fill text-white px-2 py-0.5 text-[10px] font-bold">
                     {tr("Actif", "Active")}
                   </span>
                 ) : (

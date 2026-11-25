@@ -198,7 +198,7 @@ export default function StoreSetupCard({
         {error && (
           <div
             role="alert"
-            className="rounded-shape-md border border-red-300 bg-red-50 px-3.5 py-2.5 text-sm text-red-800"
+            className="rounded-shape-md border border-red-300 bg-aurora-error-bg px-3.5 py-2.5 text-sm text-aurora-error-text"
           >
             {error}
           </div>

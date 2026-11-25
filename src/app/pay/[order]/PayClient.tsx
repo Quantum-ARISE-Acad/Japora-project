@@ -128,7 +128,7 @@ export default function PayClient({
         onClick={() => setSelectedMethod("fedapay")}
         className={`rounded-shape-lg border-2 p-4 transition-all cursor-pointer space-y-3 ${
           selectedMethod === "fedapay"
-            ? "border-emerald-600 bg-emerald-50/70 shadow-sm"
+            ? "border-signal-fill bg-emerald-50/70 shadow-sm"
             : "border-arctic-300/60 bg-white hover:border-arctic-400"
         }`}
       >
@@ -150,7 +150,7 @@ export default function PayClient({
               </p>
             </div>
           </div>
-          <span className="shrink-0 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+          <span className="shrink-0 rounded-full bg-signal-fill px-2 py-0.5 text-[10px] font-bold uppercase text-white">
             {fedaEnvironment === "sandbox" ? "Sandbox" : tr("Instantané", "Instant")}
           </span>
         </div>
@@ -163,7 +163,7 @@ export default function PayClient({
               payWithFedaPay();
             }}
             disabled={apiBusy}
-            className="btn-primary w-full justify-center gap-2 !bg-emerald-600 hover:!bg-emerald-700 !text-white py-3 text-sm font-bold shadow-md"
+            className="btn-primary w-full justify-center gap-2 !bg-signal-fill hover:!bg-signal-fill-hover !text-white py-3 text-sm font-bold shadow-md"
           >
             {apiBusy
               ? tr("Connexion à FedaPay en cours…", "Connecting to FedaPay…")
@@ -216,7 +216,7 @@ export default function PayClient({
                     href={waConfirmLink}
                     target="_blank"
                     rel="noreferrer"
-                    className="btn-primary w-full justify-center gap-1.5 !bg-emerald-600 hover:!bg-emerald-700 !text-white py-2 text-xs font-bold"
+                    className="btn-primary w-full justify-center gap-1.5 !bg-signal-fill hover:!bg-signal-fill-hover !text-white py-2 text-xs font-bold"
                   >
                     <Glyph name="chat" size={14} /> {tr("Confirmer la livraison sur WhatsApp", "Confirm the delivery on WhatsApp")}
                   </a>

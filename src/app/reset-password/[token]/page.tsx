@@ -65,8 +65,8 @@ export default function ResetPasswordPage({
               </p>
               <form onSubmit={onSubmit} className="mt-5 space-y-4">
                 <div>
-                  <label className="label">{tr("Nouveau mot de passe", "New password")}</label>
-                  <input
+                  <label htmlFor="page-1" className="label">{tr("Nouveau mot de passe", "New password")}</label>
+                  <input id="page-1"
                     className="input"
                     type="password"
                     autoComplete="new-password"
@@ -76,8 +76,8 @@ export default function ResetPasswordPage({
                   />
                 </div>
                 <div>
-                  <label className="label">{tr("Confirmer le nouveau mot de passe", "Confirm new password")}</label>
-                  <input
+                  <label htmlFor="page-2" className="label">{tr("Confirmer le nouveau mot de passe", "Confirm new password")}</label>
+                  <input id="page-2"
                     className="input"
                     type="password"
                     autoComplete="new-password"

@@ -100,7 +100,7 @@ export default function ShopWhatsAppQrBanner({
               <button
                 type="button"
                 onClick={triggerWebAssistant}
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 px-4 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md shadow-emerald-900/50 transition cursor-pointer"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-shape-md bg-signal-fill px-4 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-signal-fill-hover sm:text-sm"
               >
                 <SaasIcon name="sparkles" size={15} />
                 <span>{tr("Ouvrir l’Assistant IA sur le site", "Open the AI assistant on the website")}</span>
@@ -111,7 +111,7 @@ export default function ShopWhatsAppQrBanner({
                   href={whatsappUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/15 hover:bg-emerald-500/25 px-4 py-2.5 text-xs sm:text-sm font-bold text-emerald-200 transition"
+                  className="inline-flex items-center gap-2 rounded-shape-md border border-white/30 bg-white/12 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-white/20 sm:text-sm"
                 >
                   <SaasIcon name="message" size={15} />
                   <span>{tr("Ouvrir dans WhatsApp", "Open in WhatsApp")}</span>

@@ -76,15 +76,15 @@ export default function AwayHoursCard({
         </div>
         {savedAt && (
           <span className="rounded-full bg-arctic-200/70 px-2 py-0.5 a-label-md text-arctic-900">
-            {tr("✓ Enregistré", "✓ Saved")}
+            {tr("Enregistré", "Saved")}
           </span>
         )}
       </div>
 
       <div className="mt-4 space-y-4">
         <div>
-          <label className="label">{tr("Message d'absence", "Away message")}</label>
-          <textarea
+          <label htmlFor="awayhourscard-1" className="label">{tr("Message d'absence", "Away message")}</label>
+          <textarea id="awayhourscard-1"
             className="input min-h-[64px]"
             placeholder={tr(
               "Merci ! Nous sommes actuellement fermés — nous vous répondrons dès demain matin.",
@@ -101,7 +101,7 @@ export default function AwayHoursCard({
             type="checkbox"
             checked={enabled}
             onChange={(e) => setEnabled(e.target.checked)}
-            className="h-4 w-4 rounded border-arctic-400/45 text-brand focus:ring-brand"
+            className="h-6 w-6 shrink-0 rounded-shape-xs border-arctic-400/45 text-brand focus:ring-brand"
           />
           <span className="a-label-md text-arctic-800">
             {tr("Activer les horaires d'ouverture", "Set business hours")}
@@ -142,7 +142,7 @@ export default function AwayHoursCard({
         )}
 
         {error && (
-          <p className="rounded-shape-md border border-red-200/70 bg-red-50/80 px-3 py-2 a-body-sm text-red-700">{error}</p>
+          <p className="rounded-shape-md border border-aurora-error/30/70 bg-aurora-error-bg/80 px-3 py-2 a-body-sm text-aurora-error-text">{error}</p>
         )}
 
         <button onClick={save} disabled={saving} className="btn-primary">

@@ -106,7 +106,7 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
                     <div className="truncate text-[10px] font-medium text-arctic-800">
                       {p.name}
                     </div>
-                    <div className="a-num text-[10px] font-bold text-brand-dark">
+                    <div className="a-num break-words text-[10px] font-bold text-brand-dark">
                       {formatMoney(p.priceCents, cur)}
                     </div>
                   </div>
@@ -193,7 +193,7 @@ function ProductResultCard({ product }: { product: ProductHit }) {
         <div className="a-body-md line-clamp-2 font-semibold text-arctic-900 group-hover:text-brand-dark">
           {product.name}
         </div>
-        <div className="a-num a-title-sm text-brand-dark">
+        <div className="a-num a-title-sm break-words text-brand-dark">
           {formatMoney(product.priceCents, product.shop.currency || "XOF")}
         </div>
         <div className="mt-auto flex items-center gap-1 pt-1 text-xs text-arctic-600">
@@ -393,6 +393,7 @@ export default function MarketplaceClient({
                 type="text"
                 name="q"
                 defaultValue={query}
+                aria-label={tr("Rechercher une boutique ou un produit", "Search shops or products")}
                 placeholder={tr(
                   "Rechercher une boutique ou un produit (ex : robe wax, Lomé, téléphone)...",
                   "Search shops or products (e.g. ankara dress, Lomé, phone)..."

@@ -164,7 +164,7 @@ export default function ShareStatus({
           setOpen(true);
           setTimeout(generateStatusCard, 100);
         }}
-        className="inline-flex items-center gap-1.5 rounded-shape-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700"
+        className="inline-flex items-center gap-1.5 rounded-shape-md bg-signal-fill px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-signal-fill-hover"
       >
         <Glyph name="chat" size={14} /> {tr("Partager en Statut WhatsApp", "Share as a WhatsApp Status")}
       </button>
@@ -177,7 +177,7 @@ export default function ShareStatus({
                 {tr("Partager sur votre Statut WhatsApp", "Share on your WhatsApp Status")}
               </h3>
               <button onClick={() => setOpen(false)} className="text-arctic-600 hover:text-arctic-800">
-                ✕
+                <Glyph name="close" size={16} />
               </button>
             </div>
 
@@ -207,14 +207,15 @@ export default function ShareStatus({
                   disabled={!previewUrl || generating}
                   className="btn-primary w-full justify-center text-xs py-2.5"
                 >
-                  {tr("📥 Télécharger l'affiche Statut (HD)", "📥 Download the Status poster (HD)")}
+                  <Glyph name="import" size={14} />{" "}
+                  {tr("Télécharger l'affiche Statut (HD)", "Download the Status poster (HD)")}
                 </button>
 
                 <a
                   href={waShareUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="btn-ghost w-full justify-center gap-2 text-xs py-2.5 border border-emerald-600/30 text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20"
+                  className="btn-ghost w-full justify-center gap-2 text-xs py-2.5 border border-signal-fill/30 text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20"
                 >
                   <Glyph name="chat" size={15} /> {tr("Partager le message texte avec lien sur WhatsApp", "Share the text message with the link on WhatsApp")}
                 </a>

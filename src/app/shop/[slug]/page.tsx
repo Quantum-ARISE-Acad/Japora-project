@@ -100,8 +100,12 @@ export default async function PublicShopPage({ params }: Params) {
                 "linear-gradient(135deg, rgb(var(--c-800)) 0%, rgb(var(--c-700)) 48%, rgb(var(--gold-fill)) 100%)",
             }}
           >
-            <div className="absolute right-4 top-4 flex items-center gap-2 rounded-full border border-white/25 bg-black/25 px-3 py-1 text-[11px] font-bold text-white backdrop-blur-md">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="absolute right-4 top-4 flex items-center gap-2 rounded-full border border-arctic-50/25 bg-arctic-900/30 px-3 py-1 text-[11px] font-bold text-arctic-50 backdrop-blur-md">
+              <span
+                aria-hidden
+                className="h-2 w-2 animate-pulse rounded-full"
+                style={{ background: "var(--signal-live)" }}
+              />
               <span>{t("Vitrine officielle Japora", "Official Japora storefront")}</span>
             </div>
           </div>

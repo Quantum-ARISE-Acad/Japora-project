@@ -326,7 +326,7 @@ export default function FedaPaySandboxClient({
               <div className="pt-2">
                 <Link
                   href={returnUrl}
-                  className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-700"
+                  className="inline-flex items-center justify-center rounded-xl bg-signal-fill px-5 py-2.5 text-sm font-bold text-white hover:bg-signal-fill-hover"
                 >
                   {tr("Continuer maintenant →", "Continue now →")}
                 </Link>
@@ -347,7 +347,7 @@ export default function FedaPaySandboxClient({
                     </label>
                     <input
                       type="text"
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-signal-fill focus:outline-none"
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
                       placeholder={tr("Votre nom", "Your name")}
@@ -359,7 +359,7 @@ export default function FedaPaySandboxClient({
                     </label>
                     <input
                       type="tel"
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-mono focus:border-emerald-600 focus:outline-none"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-mono focus:border-signal-fill focus:outline-none"
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
                       placeholder="+22890000001"
@@ -370,12 +370,12 @@ export default function FedaPaySandboxClient({
 
               {/* Official FedaPay Live / Sandbox Checkout.js Button */}
               {hasRealPublicKey && (
-                <div className="rounded-2xl border-2 border-emerald-600 bg-emerald-50/70 p-4 space-y-3 shadow-sm">
+                <div className="rounded-2xl border-2 border-signal-fill bg-emerald-50/70 p-4 space-y-3 shadow-sm">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
                       <span>⚡</span> {tr("Passerelle Officielle FedaPay (", "Official FedaPay gateway (")}{fedaEnvironment.toUpperCase()})
                     </span>
-                    <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                    <span className="rounded-full bg-signal-fill px-2 py-0.5 text-[10px] font-bold text-white">
                       {sdkReady ? tr("Prêt", "Ready") : tr("Chargement…", "Loading…")}
                     </span>
                   </div>
@@ -387,7 +387,7 @@ export default function FedaPaySandboxClient({
                     type="button"
                     disabled={processing}
                     onClick={openOfficialFedaPayWidget}
-                    className="w-full rounded-xl bg-emerald-600 py-3.5 px-4 text-sm font-extrabold text-white shadow-md hover:bg-emerald-700 disabled:opacity-50 transition flex items-center justify-center gap-2"
+                    className="w-full rounded-xl bg-signal-fill py-3.5 px-4 text-sm font-extrabold text-white shadow-md hover:bg-signal-fill-hover disabled:opacity-50 transition flex items-center justify-center gap-2"
                   >
                     <span>{tr("💳 Payer", "💳 Pay")} {amountXof} {tr("FCFA via FedaPay Officiel →", "FCFA via official FedaPay →")}</span>
                   </button>
@@ -414,7 +414,7 @@ export default function FedaPaySandboxClient({
                         }}
                         className={`flex items-center justify-between rounded-xl border p-2.5 text-left transition ${
                           active
-                            ? "border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/20"
+                            ? "border-signal-fill bg-emerald-50/70 ring-2 ring-emerald-500/20"
                             : "border-slate-200 hover:border-slate-300 bg-white"
                         }`}
                       >
@@ -422,7 +422,7 @@ export default function FedaPaySandboxClient({
                           <div
                             className={`grid h-4 w-4 place-items-center rounded-full border ${
                               active
-                                ? "border-emerald-600 bg-emerald-600 text-white"
+                                ? "border-signal-fill bg-signal-fill text-white"
                                 : "border-slate-300"
                             }`}
                           >
@@ -456,7 +456,7 @@ export default function FedaPaySandboxClient({
                       type="button"
                       disabled={processing}
                       onClick={() => handleComplete("succeeded")}
-                      className="w-full rounded-xl bg-emerald-600 py-3 px-4 text-xs font-bold text-white shadow hover:bg-emerald-700 disabled:opacity-50 transition flex items-center justify-center gap-2"
+                      className="w-full rounded-xl bg-signal-fill py-3 px-4 text-xs font-bold text-white shadow hover:bg-signal-fill-hover disabled:opacity-50 transition flex items-center justify-center gap-2"
                     >
                       {processing
                         ? tr("Validation Sandbox en cours…", "Sandbox confirmation in progress…")

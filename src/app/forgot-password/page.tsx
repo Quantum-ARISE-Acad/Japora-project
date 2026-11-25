@@ -53,8 +53,8 @@ export default function ForgotPasswordPage() {
               </p>
               <form onSubmit={onSubmit} className="mt-5 space-y-4">
                 <div>
-                  <label className="label">Email</label>
-                  <input
+                  <label htmlFor="page-1" className="label">Email</label>
+                  <input id="page-1"
                     className="input"
                     type="email"
                     value={email}

@@ -89,6 +89,15 @@
   --aurora-success:      #15533b;
   --aurora-success-bg:   rgba(21, 83, 59, 0.08);
 
+  --aurora-warning:      #8A5300;   /* 5.2:1 with white as a fill */
+  --aurora-warning-bg:   rgba(138, 83, 0, 0.10);
+
+  /* The same three roles as channel triples, so Tailwind's `/alpha` modifier
+     works on them exactly as it does on the ramp (rule 1). */
+  --aurora-error-rgb:   179  38  30;
+  --aurora-success-rgb:  21  83  59;
+  --aurora-warning-rgb: 138  83   0;
+
   /* Success and error as FILLS (above) are dark enough to carry white text,
      which is exactly what makes them unreadable as TEXT on a dark canvas:
      #15533b on #2A2622 is 1.67:1. These are the text-safe pair, and unlike the
@@ -96,9 +105,19 @@
      on a filled surface. */
   --aurora-success-text: #15533b;   /* 8.6:1 on porcelain */
   --aurora-error-text:   #b3261e;   /* 6.3:1 on porcelain */
+  --aurora-warning-text: #8A5300;   /* 6.1:1 on porcelain */
 
   /* WhatsApp-green retained ONLY as a functional "live / online" signal. */
   --signal-live:         #1fa855;
+  /* The same signal as a FILLED surface carrying white text. #1fa855 is only
+     2.8:1 on white, so a filled WhatsApp action needs this deeper green:
+     5.09:1 with #fff, and 3.2:1 as a shape on the dark canvas. Fixed in both
+     themes — a signal colour, not part of the inverting ramp. */
+  --signal-live-fill:        12 127  66;  /* #0C7F42 — 5.1:1 with white */
+  --signal-live-fill-hover:  10 107  56;  /* #0A6B38 — 6.6:1 with white */
+  /* The signal as TYPE on the porcelain canvas: 5.6:1 light, and brightened
+     under .dark below. */
+  --signal-live-text:        10 107  56;  /* #0A6B38 — 6.3:1 on porcelain */
 
   color-scheme: light;
 
@@ -171,7 +190,7 @@
 
   /* Gold/Café text needs to brighten on dark; fill stays (white text still AA). */
   --gold:        196 154 108;  /* → bright café for dark mode */
-  --gold-deep:   196 154 108;  /* → bright café for text-brand-dark in dark */
+  --gold-deep:   214 177 132;  /* #D6B184 — 5.7:1 on its own brand/15 chip over ink */
   --gold-bright: 218 182 142;
 
   --aurora-surface:           rgba(42, 38, 34, 0.62);
@@ -188,6 +207,8 @@
      surface. The fills stay as they are — they are still behind white text. */
   --aurora-success-text: #6ee7b7;
   --aurora-error-text:   #fca5a5;
+  --aurora-warning-text: #E8B465;   /* 9.3:1 on ink */
+  --signal-live-text:        88 208 138;  /* #58D08A — 9.0:1 on ink */
 
   --aurora-primary-container: rgb(var(--gold) / 0.18);
   --aurora-on-primary-container: rgb(var(--gold-bright));
@@ -207,9 +228,9 @@
 html {
   background:
     radial-gradient(at 14% 6%,  rgb(var(--gold) / 0.10) 0%, transparent 42%),
-    radial-gradient(at 92% 14%, rgb(var(--c-300) / 0.55) 0%, transparent 48%),
+    radial-gradient(at 92% 14%, rgb(var(--c-300) / 0.42) 0%, transparent 48%),
     radial-gradient(at 82% 98%, rgb(var(--gold) / 0.07) 0%, transparent 46%),
-    radial-gradient(at 4% 96%,  rgb(var(--c-300) / 0.40) 0%, transparent 50%),
+    radial-gradient(at 4% 96%,  rgb(var(--c-300) / 0.38) 0%, transparent 50%),
     var(--aurora-bg);
   background-attachment: fixed;
   color: var(--aurora-on-surface);

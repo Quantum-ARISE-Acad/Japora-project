@@ -82,7 +82,7 @@ export default function ShopQrCard({
         p{color:#475569;font-size:14px;margin:6px 0 16px}
         .u{font-size:11px;color:#64748b;word-break:break-all}
       </style></head><body><div class="card">
-        <span class="badge">🤖 Assistant IA & WhatsApp Japora</span>
+        <span class="badge">Assistant IA &amp; WhatsApp Japora</span>
         <h1>${shopName}</h1>
         <p>${subtitle}</p>
         <img src="${qrSrc}" alt="QR" />
@@ -98,7 +98,7 @@ export default function ShopQrCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-arctic-900">
-            {tr("📲 QR Codes de votre Boutique & Assistant WhatsApp IA", "📲 QR codes for your shop & WhatsApp AI assistant")}
+            {tr("QR Codes de votre Boutique & Assistant WhatsApp IA", "QR codes for your shop & WhatsApp AI assistant")}
           </h2>
           <p className="mt-1 text-sm text-arctic-600">
             {tr("Ces QR codes sont également affichés automatiquement sur votre boutique publique. Téléchargez-les ou imprimez-les pour vos clients.", "These QR codes are also shown automatically on your public shop. Download or print them for your customers.")}
@@ -118,22 +118,22 @@ export default function ShopQrCard({
               onClick={() => setQrType("whatsapp_ai")}
               className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                 qrType === "whatsapp_ai"
-                  ? "bg-emerald-600 text-white shadow-xs"
+                  ? "bg-signal-fill text-white shadow-xs"
                   : "bg-arctic-100 text-arctic-700 hover:bg-arctic-200"
               }`}
             >
-              {tr("💬 1. QR Assistant sur WhatsApp (wa.me)", "💬 1. WhatsApp assistant QR (wa.me)")}
+              {tr("1. QR Assistant sur WhatsApp (wa.me)", "1. WhatsApp assistant QR (wa.me)")}
             </button>
             <button
               type="button"
               onClick={() => setQrType("shop_ai")}
               className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                 qrType === "shop_ai"
-                  ? "bg-brand text-white shadow-xs"
+                  ? "bg-gold-fill text-white shadow-xs"
                   : "bg-arctic-100 text-arctic-700 hover:bg-arctic-200"
               }`}
             >
-              {tr("✨ 2. QR Assistant IA sur la Boutique", "✨ 2. AI assistant QR on the shop")}
+              {tr("2. QR Assistant IA sur la Boutique", "2. AI assistant QR on the shop")}
             </button>
             <button
               type="button"
@@ -144,7 +144,7 @@ export default function ShopQrCard({
                   : "bg-arctic-100 text-arctic-700 hover:bg-arctic-200"
               }`}
             >
-              {tr("🛍️ 3. QR Catalogue Standard", "🛍️ 3. Standard catalog QR")}
+              {tr("3. QR Catalogue Standard", "3. Standard catalog QR")}
             </button>
           </div>
 
@@ -170,24 +170,24 @@ export default function ShopQrCard({
                 </p>
               )}
               {qrType === "whatsapp_ai" && !hasWhatsApp && (
-                <p className="text-xs text-amber-700 bg-amber-50 px-2.5 py-1.5 rounded border border-amber-200">
-                  {tr("⚠️ Renseignez votre numéro WhatsApp ci-dessous pour que ce QR code pointe vers votre numéro WhatsApp.", "⚠️ Enter your WhatsApp number below so this QR code points to your WhatsApp number.")}
+                <p className="text-xs text-aurora-warning-text bg-aurora-warning-bg px-2.5 py-1.5 rounded border border-aurora-warning/30">
+                  {tr("Renseignez votre numéro WhatsApp ci-dessous pour que ce QR code pointe vers votre numéro WhatsApp.", "Enter your WhatsApp number below so this QR code points to your WhatsApp number.")}
                 </p>
               )}
               <div className="flex flex-wrap gap-2 pt-1">
                 <a href={downloadSrc} className="btn-primary text-xs">
-                  {tr("📥 Télécharger SVG", "📥 Download SVG")}
+                  {tr("Télécharger SVG", "Download SVG")}
                 </a>
                 <button type="button" onClick={print} className="btn-ghost text-xs border border-arctic-300">
-                  {tr("🖨️ Imprimer l'affiche QR", "🖨️ Print the QR poster")}
+                  {tr("Imprimer l'affiche QR", "Print the QR poster")}
                 </button>
                 <a
                   href={targetUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="btn-ghost text-xs text-emerald-700 hover:underline"
+                  className="btn-ghost text-xs text-signal-text hover:underline"
                 >
-                  {tr("Tester le lien ↗", "Test the link ↗")}
+                  {tr("Tester le lien", "Test the link")}
                 </a>
               </div>
             </div>

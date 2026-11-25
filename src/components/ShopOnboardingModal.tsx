@@ -7,6 +7,7 @@ import { REGIONS, CATEGORIES, categoryName } from "@/lib/regions";
 import { LANG_NAMES, type Lang } from "@/lib/i18n";
 import { slugify } from "@/lib/utils";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import Glyph from "@/components/Glyph";
 
 // Labels are [français, English].
 const CURRENCY_OPTIONS: { code: string; label: [string, string] }[] = [
@@ -184,7 +185,7 @@ export default function ShopOnboardingModal({
         <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 px-6 py-5 text-white shrink-0">
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-0.5 text-xs font-bold backdrop-blur-xs">
-              {tr("✨ Configuration de votre boutique Japora", "✨ Set up your Japora shop")}
+              {tr("Configuration de votre boutique Japora", "Set up your Japora shop")}
             </span>
             <span className="text-xs font-semibold text-emerald-100">
               {tr("Étape", "Step")} {step} {tr("sur 2", "of 2")}
@@ -202,10 +203,10 @@ export default function ShopOnboardingModal({
           {step === 1 ? (
             <>
               <div>
-                <label className="label font-semibold text-arctic-900">
+                <label htmlFor="shoponboardingmodal-1" className="label font-semibold text-arctic-900">
                   {tr("Nom de votre boutique ou marque *", "Your shop or brand name *")}
                 </label>
-                <input
+                <input id="shoponboardingmodal-1"
                   type="text"
                   className="input"
                   placeholder={tr("Ex: Maison Kossi Lomé, Bella Mode...", "e.g. Maison Kossi Lomé, Bella Mode...")}
@@ -217,14 +218,14 @@ export default function ShopOnboardingModal({
               </div>
 
               <div>
-                <label className="label font-semibold text-arctic-900">
+                <label htmlFor="shoponboardingmodal-2" className="label font-semibold text-arctic-900">
                   {tr("Lien public de votre catalogue", "Public link of your catalog")}
                 </label>
                 <div className="flex items-center gap-2">
                   <span className="rounded-lg bg-arctic-100 px-3 py-2 text-xs font-mono font-semibold text-arctic-600 border border-arctic-300/50">
                     japora.app/c/
                   </span>
-                  <input
+                  <input id="shoponboardingmodal-2"
                     type="text"
                     className="input font-mono text-sm"
                     placeholder={tr("ma-boutique", "my-shop")}
@@ -240,10 +241,10 @@ export default function ShopOnboardingModal({
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="label font-semibold text-arctic-900">
+                  <label htmlFor="shoponboardingmodal-3" className="label font-semibold text-arctic-900">
                     {tr("Langue de la boutique *", "Shop language *")}
                   </label>
-                  <select
+                  <select id="shoponboardingmodal-3"
                     className="input"
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
@@ -257,10 +258,10 @@ export default function ShopOnboardingModal({
                 </div>
 
                 <div>
-                  <label className="label font-semibold text-arctic-900">
+                  <label htmlFor="shoponboardingmodal-4" className="label font-semibold text-arctic-900">
                     {tr("Devise principale *", "Main currency *")}
                   </label>
-                  <select
+                  <select id="shoponboardingmodal-4"
                     className="input"
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value)}
@@ -276,10 +277,10 @@ export default function ShopOnboardingModal({
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="label font-semibold text-arctic-900">
+                  <label htmlFor="shoponboardingmodal-5" className="label font-semibold text-arctic-900">
                     {tr("Catégorie d'activité", "Business category")}
                   </label>
-                  <select
+                  <select id="shoponboardingmodal-5"
                     className="input"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
@@ -294,10 +295,10 @@ export default function ShopOnboardingModal({
                 </div>
 
                 <div>
-                  <label className="label font-semibold text-arctic-900">
+                  <label htmlFor="shoponboardingmodal-6" className="label font-semibold text-arctic-900">
                     {tr("Ville / Région", "City / Region")}
                   </label>
-                  <select
+                  <select id="shoponboardingmodal-6"
                     className="input"
                     value={region}
                     onChange={(e) => setRegion(e.target.value)}
@@ -317,10 +318,10 @@ export default function ShopOnboardingModal({
               </div>
 
               <div>
-                <label className="label font-semibold text-arctic-900">
+                <label htmlFor="shoponboardingmodal-7" className="label font-semibold text-arctic-900">
                   {tr("Slogan court (affiché sous le nom)", "Short tagline (shown under the name)")}
                 </label>
-                <input
+                <input id="shoponboardingmodal-7"
                   type="text"
                   className="input"
                   placeholder={tr("Ex: Prêt-à-porter & accessoires, livraison rapide à Lomé", "e.g. Ready-to-wear & accessories, fast delivery in Lomé")}
@@ -356,10 +357,10 @@ export default function ShopOnboardingModal({
             <>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="label font-semibold text-arctic-900">
+                  <label htmlFor="shoponboardingmodal-8" className="label font-semibold text-arctic-900">
                     {tr("Numéro WhatsApp Business *", "WhatsApp Business number *")}
                   </label>
-                  <input
+                  <input id="shoponboardingmodal-8"
                     type="tel"
                     className="input"
                     placeholder={tr("Ex : +228 90 11 22 33", "e.g. +228 90 11 22 33")}
@@ -373,10 +374,10 @@ export default function ShopOnboardingModal({
                 </div>
 
                 <div>
-                  <label className="label font-semibold text-arctic-900">
+                  <label htmlFor="shoponboardingmodal-9" className="label font-semibold text-arctic-900">
                     {tr("Numéro Mobile Money (T-Money / Flooz)", "Mobile Money number (T-Money / Flooz)")}
                   </label>
-                  <input
+                  <input id="shoponboardingmodal-9"
                     type="tel"
                     className="input"
                     placeholder={tr("Identique au WhatsApp si vide", "Same as WhatsApp if empty")}
@@ -390,10 +391,10 @@ export default function ShopOnboardingModal({
               </div>
 
               <div>
-                <label className="label font-semibold text-arctic-900">
+                <label htmlFor="shoponboardingmodal-10" className="label font-semibold text-arctic-900">
                   {tr("Présentation de la boutique (Bio, optionnel)", "Shop description (bio, optional)")}
                 </label>
-                <textarea
+                <textarea id="shoponboardingmodal-10"
                   className="input min-h-[68px]"
                   placeholder={tr("Décrivez vos produits, vos délais de livraison et vos garanties...", "Describe your products, delivery times and guarantees...")}
                   value={bio}
@@ -416,7 +417,7 @@ export default function ShopOnboardingModal({
                   </div>
                   <div className="space-y-1">
                     <label className="btn-ghost text-xs py-1.5 px-3 border border-arctic-300 cursor-pointer inline-flex items-center gap-1.5">
-                      <span>📷</span>
+                      <Glyph name="camera" size={18} />
                       <span>{uploadingAvatar ? tr("Envoi en cours…", "Sending…") : tr("Importer un logo", "Upload a logo")}</span>
                       <input
                         type="file"
@@ -452,7 +453,7 @@ export default function ShopOnboardingModal({
                   disabled={saving}
                   className="btn-primary px-6 py-2.5 font-bold"
                 >
-                  {saving ? tr("Création de votre espace…", "Creating your space…") : tr("🚀 Lancer ma boutique Japora", "🚀 Launch my Japora shop")}
+                  {saving ? tr("Création de votre espace…", "Creating your space…") : tr("Lancer ma boutique Japora", "Launch my Japora shop")}
                 </button>
               </div>
             </>

@@ -152,7 +152,7 @@ export default function LandingClient({
 
               {/* Bottom mini KPI strip under image */}
               <div className="mt-2.5 grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-shape-md bg-white/75 px-2.5 py-2">
+                <div className="rounded-shape-md bg-white/75 px-2 py-2 sm:px-2.5">
                   <div className="text-[10px] font-semibold text-arctic-600">
                     {tr("Réponse Bot", "Bot Reply")}
                   </div>
@@ -160,7 +160,7 @@ export default function LandingClient({
                     &lt; 2 sec (24h/24)
                   </div>
                 </div>
-                <div className="rounded-shape-md bg-white/75 px-2.5 py-2">
+                <div className="rounded-shape-md bg-white/75 px-2 py-2 sm:px-2.5">
                   <div className="text-[10px] font-semibold text-arctic-600">
                     {tr("Encaissement", "Payments")}
                   </div>
@@ -168,7 +168,7 @@ export default function LandingClient({
                     {tr("T-Money · Flooz · Carte", "T-Money · Flooz · Card")}
                   </div>
                 </div>
-                <div className="rounded-shape-md bg-white/75 px-2.5 py-2">
+                <div className="rounded-shape-md bg-white/75 px-2 py-2 sm:px-2.5">
                   <div className="text-[10px] font-semibold text-arctic-600">
                     {tr("Bilan quotidien", "Daily Summary")}
                   </div>

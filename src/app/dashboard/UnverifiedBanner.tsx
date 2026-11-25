@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import Glyph from "@/components/Glyph";
 
 export default function UnverifiedBanner({ email }: { email: string }) {
   const { tr } = usePublicLang();
@@ -24,18 +25,18 @@ export default function UnverifiedBanner({ email }: { email: string }) {
   }
 
   return (
-    <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-sm text-amber-900">
+    <div className="border-b border-aurora-warning/30 bg-aurora-warning-bg px-4 py-2 text-center text-sm text-aurora-warning-text">
       <span className="mr-3">
-        📬 {tr("Veuillez vérifier", "Please verify")} <strong>{email}</strong> {tr("pour garder votre boutique active.", "to keep your shop active.")}
+        <Glyph name="mail" size={14} /> {tr("Veuillez vérifier", "Please verify")} <strong>{email}</strong> {tr("pour garder votre boutique active.", "to keep your shop active.")}
       </span>
       <button
         onClick={resend}
         disabled={sending}
         className="font-semibold underline hover:no-underline disabled:opacity-60"
       >
-        {sending ? tr("Envoi…", "Sending…") : sent ? tr("Envoyé ✓", "Sent ✓") : tr("Renvoyer l’e-mail", "Resend email")}
+        {sending ? tr("Envoi…", "Sending…") : sent ? tr("Envoyé", "Sent") : tr("Renvoyer l’e-mail", "Resend email")}
       </button>
-      {error && <span className="ml-3 text-red-700">{error}</span>}
+      {error && <span className="ml-3 text-aurora-error-text">{error}</span>}
     </div>
   );
 }

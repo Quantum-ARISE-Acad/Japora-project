@@ -23,7 +23,7 @@ export default function AuroraBadge({
   const toneClass = {
     default: "bg-arctic-300 text-arctic-900",
     primary: "bg-arctic-800 text-arctic-50",
-    success: "bg-emerald-600 text-white",
+    success: "bg-signal-fill text-white",
     error: "bg-red-500 text-white",
   }[tone];
 

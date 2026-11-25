@@ -73,7 +73,7 @@ export default function AssetDownloads({ productId, productName, priceText, shop
           onClick={copyCaption}
           className="rounded-full border border-arctic-400/45 bg-white/70 px-2.5 py-1 text-xs font-semibold text-arctic-800 hover:bg-arctic-100/70"
         >
-          {copied ? tr("Légende copiée ✓", "Caption copied ✓") : tr("Copier légende", "Copy caption")}
+          {copied ? tr("Légende copiée", "Caption copied") : tr("Copier légende", "Copy caption")}
         </button>
       </div>
       <p className="a-label-md text-arctic-600">

@@ -589,8 +589,8 @@ export default function CustomSignUp({
               </p>
               <form onSubmit={handleVerifyOtp} className="mt-6 space-y-4">
                 <div>
-                  <label className="label">{tr("Code de vérification", "Verification code")}</label>
-                  <input
+                  <label htmlFor="customsignup-1" className="label">{tr("Code de vérification", "Verification code")}</label>
+                  <input id="customsignup-1"
                     className="input text-center text-xl tracking-widest font-mono"
                     type="text"
                     inputMode="numeric"
@@ -671,14 +671,14 @@ export default function CustomSignUp({
               {!continuingOAuth && (
                 <div className="mt-5">
                   {/* Phone leads: a vendor here has a number before an inbox. */}
-                  <div className="mb-4 grid grid-cols-2 gap-1.5 rounded-shape-md bg-arctic-100/80 p-1 dark:bg-arctic-800/70">
+                  <div className="mb-4 grid grid-cols-2 gap-1.5 rounded-shape-md bg-arctic-100/80 p-1">
                     <button
                       type="button"
                       onClick={() => switchMethod("phone")}
                       className={`rounded-shape-sm py-2 text-xs font-semibold transition ${
                         method === "phone"
-                          ? "bg-white text-arctic-900 shadow-xs dark:bg-arctic-900 dark:text-arctic-50"
-                          : "text-arctic-600 hover:text-arctic-900 dark:text-arctic-300"
+                          ? "bg-arctic-50 text-arctic-900 shadow-xs"
+                          : "text-arctic-600 hover:text-arctic-900"
                       }`}
                     >
                       {tr("Téléphone", "Phone")}
@@ -688,8 +688,8 @@ export default function CustomSignUp({
                       onClick={() => switchMethod("email")}
                       className={`rounded-shape-sm py-2 text-xs font-semibold transition ${
                         method === "email"
-                          ? "bg-white text-arctic-900 shadow-xs dark:bg-arctic-900 dark:text-arctic-50"
-                          : "text-arctic-600 hover:text-arctic-900 dark:text-arctic-300"
+                          ? "bg-arctic-50 text-arctic-900 shadow-xs"
+                          : "text-arctic-600 hover:text-arctic-900"
                       }`}
                     >
                       {tr("Email", "Email")}
@@ -705,8 +705,8 @@ export default function CustomSignUp({
 
               <form onSubmit={handleSignUp} className="space-y-3.5 mt-4">
                 <div>
-                  <label className="label">{tr("Votre nom complet", "Your full name")}</label>
-                  <input
+                  <label htmlFor="customsignup-2" className="label">{tr("Votre nom complet", "Your full name")}</label>
+                  <input id="customsignup-2"
                     className="input"
                     type="text"
                     value={name}
@@ -718,8 +718,8 @@ export default function CustomSignUp({
 
                 {method === "email" ? (
                   <div>
-                    <label className="label">{tr("Adresse Email", "Email address")}</label>
-                    <input
+                    <label htmlFor="customsignup-3" className="label">{tr("Adresse Email", "Email address")}</label>
+                    <input id="customsignup-3"
                       className="input"
                       type="email"
                       autoComplete="email"
@@ -747,8 +747,8 @@ export default function CustomSignUp({
 
                 {requiresPassword && (
                   <div>
-                    <label className="label">{tr("Mot de passe", "Password")}</label>
-                    <input
+                    <label htmlFor="customsignup-4" className="label">{tr("Mot de passe", "Password")}</label>
+                    <input id="customsignup-4"
                       className="input"
                       type="password"
                       autoComplete="new-password"
@@ -762,8 +762,8 @@ export default function CustomSignUp({
                 )}
 
                 <div>
-                  <label className="label">{tr("Devise principale de la boutique", "Main shop currency")}</label>
-                  <select
+                  <label htmlFor="customsignup-5" className="label">{tr("Devise principale de la boutique", "Main shop currency")}</label>
+                  <select id="customsignup-5"
                     className="input"
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value)}

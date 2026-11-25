@@ -57,8 +57,8 @@ function parseDealMetadata(note: string, source: string) {
 
 const COLUMNS: { key: OrderStatus; titleFr: string; titleEn: string; dot: string; tint: string }[] = [
   { key: "NEW",       titleFr: "Nouvelles",  titleEn: "New",       dot: "bg-blue-500",   tint: "bg-blue-50" },
-  { key: "CONFIRMED", titleFr: "Confirmées", titleEn: "Confirmed", dot: "bg-amber-500",  tint: "bg-amber-50" },
-  { key: "PAID",      titleFr: "Payées",     titleEn: "Paid",      dot: "bg-brand",      tint: "bg-emerald-50" },
+  { key: "CONFIRMED", titleFr: "Confirmées", titleEn: "Confirmed", dot: "bg-aurora-warning",  tint: "bg-aurora-warning-bg" },
+  { key: "PAID",      titleFr: "Payées",     titleEn: "Paid",      dot: "bg-brand",      tint: "bg-arctic-100/60" },
   { key: "DELIVERED", titleFr: "Livrées",    titleEn: "Delivered", dot: "bg-arctic-500", tint: "bg-arctic-200/65" },
 ];
 
@@ -71,8 +71,8 @@ function actionsFor(
     case "NEW":
       return isDeal
         ? [
-            { label: tr("✅ Valider le Deal", "✅ Approve Deal"), to: "CONFIRMED", primary: true },
-            { label: tr("❌ Refuser le Deal", "❌ Reject Deal"), to: "CANCELLED", danger: true },
+            { label: tr("Valider le Deal", "Approve Deal"), to: "CONFIRMED", primary: true },
+            { label: tr("Refuser le Deal", "Reject Deal"), to: "CANCELLED", danger: true },
           ]
         : [
             { label: tr("Confirmer", "Confirm"), to: "CONFIRMED", primary: true },
@@ -267,9 +267,9 @@ export default function OrdersBoard({
       flash(
         order.id,
         to === "CONFIRMED"
-          ? tr("✅ Confirmé et notification WhatsApp envoyée", "✅ Confirmed & WhatsApp notification sent")
+          ? tr("Confirmé et notification WhatsApp envoyée", "Confirmed & WhatsApp notification sent")
           : to === "CANCELLED"
-          ? tr("❌ Annulé et client notifié", "❌ Cancelled & customer notified")
+          ? tr("Annulé et client notifié", "Cancelled & customer notified")
           : `${tr("Statut", "Status")} → ${to}`,
       );
       router.refresh();
@@ -318,8 +318,8 @@ export default function OrdersBoard({
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="a-headline-md text-arctic-900">{tr("Commandes et offres WhatsApp", "Orders & WhatsApp deals")}</h1>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 border border-emerald-300">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-arctic-200/70 px-2.5 py-0.5 text-[11px] font-bold text-signal-text border border-emerald-300">
+              <span className="h-2 w-2 rounded-full bg-signal-fill animate-pulse" />
               {tr("Synchronisation WhatsApp en direct", "Live WhatsApp sync")}
             </span>
           </div>
@@ -327,7 +327,7 @@ export default function OrdersBoard({
             {orders.length} {tr(orders.length === 1 ? "commande" : "commandes", orders.length === 1 ? "order" : "orders")}. {tr("Validez les offres proposées par vos clients sur WhatsApp et suivez les commandes en temps réel.", "Approve customer offers on WhatsApp and track orders in real time.")}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => void reload(false)}
@@ -335,7 +335,7 @@ export default function OrdersBoard({
             className="btn-ghost gap-1.5 text-xs font-semibold"
             title={tr("Actualiser les commandes WhatsApp", "Refresh WhatsApp orders")}
           >
-            {refreshing ? `⏳ ${tr("Synchronisation…", "Syncing…")}` : `🔄 ${tr("Actualiser", "Refresh")}`}
+            {refreshing ? `${tr("Synchronisation…", "Syncing…")}` : `${tr("Actualiser", "Refresh")}`}
           </button>
           <button
             type="button"
@@ -343,7 +343,7 @@ export default function OrdersBoard({
             className="btn-ghost gap-1.5 text-xs font-semibold"
             title={tr("Télécharger les commandes filtrées au format CSV", "Download filtered orders as CSV")}
           >
-            📥 {tr("Exporter CSV", "Export CSV")}
+            <Glyph name="import" size={14} /> {tr("Exporter CSV", "Export CSV")}
           </button>
           <button onClick={() => setManualOpen(true)} className="btn-primary">
             + {tr("Ajouter une commande", "Add order")}
@@ -353,11 +353,11 @@ export default function OrdersBoard({
 
       {/* Propositions de Deal en attente de validation */}
       {pendingDeals.length > 0 && (
-        <div className="rounded-2xl border-2 border-amber-400/80 bg-gradient-to-r from-amber-50 via-white to-emerald-50/40 p-4 shadow-sm">
+        <div className="rounded-2xl border-2 border-aurora-warning/40 bg-gradient-to-r from-amber-50 via-white to-emerald-50/40 p-4 shadow-sm">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500 text-white text-base">
-                🤝
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-shape-md bg-aurora-warning text-white">
+                <Glyph name="receipt" size={16} />
               </span>
               <div>
                 <h2 className="text-sm font-bold text-arctic-900">
@@ -389,6 +389,7 @@ export default function OrdersBoard({
       <div className="orders-filter-toolbar card flex flex-wrap items-center gap-3 p-3">
         <input
           className="input min-w-[200px] flex-1"
+          aria-label={tr("Rechercher une commande", "Search orders")}
           placeholder={tr("Rechercher un client, un téléphone ou un produit…", "Search customer name, phone, or product…")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -562,9 +563,9 @@ function OrderCard({
       }
     >
       {dealMeta.isDeal && (
-        <div className="mb-2 flex items-center justify-between rounded-lg bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-900 border border-amber-200">
+        <div className="mb-2 flex items-center justify-between rounded-lg bg-aurora-warning-bg px-2.5 py-1 text-[11px] font-bold text-aurora-warning-text border border-aurora-warning/30">
           <span>
-            🤝 {o.status === "NEW"
+            <Glyph name="handshake" size={14} /> {o.status === "NEW"
               ? tr("OFFRE PROPOSÉE PAR LE CLIENT", "CUSTOMER OFFER")
               : o.status === "CANCELLED"
                 ? tr("OFFRE REFUSÉE", "OFFER REJECTED")
@@ -582,7 +583,7 @@ function OrderCard({
               href={waMeLink(o.customerPhone, waText)}
               target="_blank"
               rel="noreferrer"
-              className="text-xs font-medium text-brand-dark hover:underline"
+              className="inline-flex min-h-6 items-center text-xs font-medium text-brand-dark hover:underline"
               title={tr("Ouvrir la conversation WhatsApp", "Open WhatsApp chat")}
             >
               <Glyph name="chat" size={13} className="mr-1 -mt-0.5 text-brand-dark" />{o.customerPhone}
@@ -622,16 +623,16 @@ function OrderCard({
             onClick={() => onMove(o, a.to)}
             className={
               a.primary
-                ? "rounded-md bg-brand px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-dark"
+                ? "rounded-shape-sm bg-gold-fill px-2.5 py-1 text-xs font-semibold text-white hover:bg-gold-fill"
                 : a.danger
-                ? "rounded-md bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-200"
-                : "rounded-md bg-arctic-200/65 px-2 py-1 text-xs font-medium text-arctic-800 hover:bg-arctic-300"
+                ? "rounded-shape-sm bg-aurora-error-bg px-2.5 py-1 text-xs font-semibold text-aurora-error-text hover:bg-aurora-error-bg"
+                : "rounded-shape-sm bg-arctic-200/65 px-2 py-1 text-xs font-medium text-arctic-800 hover:bg-arctic-300"
             }
           >
             {tr(
               ({
-                "✅ Valider le Deal": "✅ Valider l’offre",
-                "❌ Refuser le Deal": "❌ Refuser l’offre",
+                "Valider le Deal": "Valider l’offre",
+                "Refuser le Deal": "Refuser l’offre",
                 Confirm: "Confirmer",
                 Cancel: "Annuler",
                 "Mark paid": "Marquer comme payée",
@@ -642,8 +643,8 @@ function OrderCard({
                 Restore: "Restaurer",
               } as Record<string, string>)[a.label] ?? a.label,
               ({
-                "✅ Valider le Deal": "✅ Approve offer",
-                "❌ Refuser le Deal": "❌ Reject offer",
+                "Valider le Deal": "Approve offer",
+                "Refuser le Deal": "Reject offer",
                 Confirm: "Confirm",
                 Cancel: "Cancel",
                 "Mark paid": "Mark paid",
@@ -662,7 +663,7 @@ function OrderCard({
               href={waMeLink(o.customerPhone, payLinkText(o, shopName, currency, payUrl))}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-brand-dark hover:bg-arctic-200/65"
+              className="inline-flex items-center gap-1 rounded-shape-sm px-2 py-1 text-xs font-semibold text-brand-dark hover:bg-arctic-200/65"
               title={tr("Envoyer un lien de paiement par WhatsApp", "Send a payment link on WhatsApp")}
             >
               <Glyph name="phone" size={13} /> {tr("Lien de paiement", "Pay link")}
@@ -670,14 +671,14 @@ function OrderCard({
           )}
           <button
             onClick={() => onNotify(o)}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-arctic-700 hover:bg-arctic-200/65"
+            className="inline-flex items-center gap-1 rounded-shape-sm px-2 py-1 text-xs font-medium text-arctic-700 hover:bg-arctic-200/65"
             title={tr("Envoyer une mise à jour WhatsApp", "Send WhatsApp update")}
           >
             <Glyph name="share" size={13} /> {tr("Mise à jour", "Update")}
           </button>
           <button
             onClick={() => onDelete(o)}
-            className="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium text-red-500 hover:bg-red-50"
+            className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-shape-sm px-2 py-1 text-xs font-medium text-aurora-error-text hover:bg-arctic-200/60"
             title={tr("Supprimer la commande", "Delete order")}
             aria-label={tr("Supprimer la commande", "Delete order")}
           >
@@ -688,7 +689,7 @@ function OrderCard({
 
       <div className="mt-1 flex items-center justify-between text-[10px] text-arctic-600">
         <span className="uppercase tracking-wide">via {o.source} • #{refShort}</span>
-        {toast && <span className="font-semibold text-emerald-700">{toast}</span>}
+        {toast && <span className="font-semibold text-signal-text">{toast}</span>}
       </div>
     </article>
   );
@@ -769,17 +770,23 @@ function ManualOrderModal({
       <div className="card w-full max-w-lg overflow-hidden flex flex-col max-h-[92dvh]">
         <div className="flex items-center justify-between border-b border-arctic-400/30 px-5 py-3 shrink-0">
           <h2 className="font-bold text-arctic-900">{tr("Nouvelle commande", "New order")}</h2>
-          <button onClick={onClose} className="text-arctic-600 hover:text-arctic-800">✕</button>
+          <button
+            onClick={onClose}
+            aria-label={tr("Fermer", "Close")}
+            className="grid min-h-6 min-w-6 place-items-center rounded-shape-sm text-arctic-600 hover:text-arctic-800"
+          >
+            <Glyph name="close" size={16} />
+          </button>
         </div>
         <form onSubmit={submit} className="flex-1 max-h-[82dvh] space-y-4 overflow-y-auto overscroll-contain p-5">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">{tr("Nom du client", "Customer name")}</label>
-              <input className="input" value={customerName} onChange={(e) => setCustomerName(e.target.value)} required />
+              <label htmlFor="ordersboard-1" className="label">{tr("Nom du client", "Customer name")}</label>
+              <input id="ordersboard-1" className="input" value={customerName} onChange={(e) => setCustomerName(e.target.value)} required />
             </div>
             <div>
-              <label className="label">{tr("Numéro WhatsApp", "WhatsApp number")}</label>
-              <input
+              <label htmlFor="ordersboard-2" className="label">{tr("Numéro WhatsApp", "WhatsApp number")}</label>
+              <input id="ordersboard-2"
                 className="input"
                 inputMode="tel"
                 placeholder="22893730817"
@@ -790,15 +797,15 @@ function ManualOrderModal({
           </div>
 
           <div>
-            <label className="label">{tr("Articles", "Items")}</label>
+            <label htmlFor="ordersboard-3" className="label">{tr("Articles", "Items")}</label>
             {products.length === 0 ? (
-              <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
+              <p className="rounded-lg bg-aurora-warning-bg px-3 py-2 text-sm text-aurora-warning-text">
                 {tr("Ajoutez d’abord des produits à votre catalogue.", "Add some products to your catalog first.")}
               </p>
             ) : (
               <div className="space-y-2">
                 <div className="grid grid-cols-12 gap-2">
-                  <select
+                  <select id="ordersboard-3"
                     className="input col-span-6"
                     value={pid}
                     onChange={(e) => { setPid(e.target.value); setSize(""); }}
@@ -850,9 +857,9 @@ function ManualOrderModal({
                             <button
                               type="button"
                               onClick={() => removeLine(i)}
-                              className="text-red-500 hover:text-red-700"
+                              className="text-aurora-error-text hover:text-aurora-error-text"
                             >
-                              ✕
+                              <Glyph name="close" size={16} />
                             </button>
                           </span>
                         </li>
@@ -865,8 +872,8 @@ function ManualOrderModal({
           </div>
 
           <div>
-            <label className="label">{tr("Note (facultative)", "Note (optional)")}</label>
-            <textarea
+            <label htmlFor="ordersboard-4" className="label">{tr("Note (facultative)", "Note (optional)")}</label>
+            <textarea id="ordersboard-4"
               className="input min-h-[60px]"
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -879,7 +886,7 @@ function ManualOrderModal({
             <span className="a-title-lg text-arctic-900">{formatMoney(total, currency)}</span>
           </div>
 
-          {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+          {error && <p className="rounded-lg bg-aurora-error-bg px-3 py-2 text-sm text-aurora-error-text">{error}</p>}
 
           <div className="flex justify-end gap-2">
             <button type="button" onClick={onClose} className="btn-ghost">{tr("Annuler", "Cancel")}</button>

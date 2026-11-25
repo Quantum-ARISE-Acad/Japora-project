@@ -330,14 +330,14 @@ export default function CustomSignIn() {
           {/* Method Selector: phone first — a vendor here has a number
               before an inbox. Google follows, as a third option. */}
           {!verifying && (
-            <div className="mb-4 grid grid-cols-2 gap-1.5 rounded-shape-md bg-arctic-100/80 p-1 dark:bg-arctic-800/70">
+            <div className="mb-4 grid grid-cols-2 gap-1.5 rounded-shape-md bg-arctic-100/80 p-1">
               <button
                 type="button"
                 onClick={() => switchMethod("phone")}
                 className={`rounded-shape-sm py-2 text-xs font-semibold transition ${
                   method === "phone"
-                    ? "bg-white text-arctic-900 shadow-xs dark:bg-arctic-900 dark:text-arctic-50"
-                    : "text-arctic-600 hover:text-arctic-900 dark:text-arctic-300"
+                    ? "bg-arctic-50 text-arctic-900 shadow-xs"
+                    : "text-arctic-600 hover:text-arctic-900"
                 }`}
               >
                 {tr("Téléphone", "Phone")}
@@ -347,8 +347,8 @@ export default function CustomSignIn() {
                 onClick={() => switchMethod("email")}
                 className={`rounded-shape-sm py-2 text-xs font-semibold transition ${
                   method === "email"
-                    ? "bg-white text-arctic-900 shadow-xs dark:bg-arctic-900 dark:text-arctic-50"
-                    : "text-arctic-600 hover:text-arctic-900 dark:text-arctic-300"
+                    ? "bg-arctic-50 text-arctic-900 shadow-xs"
+                    : "text-arctic-600 hover:text-arctic-900"
                 }`}
               >
                 {tr("Email", "Email")}
@@ -359,13 +359,13 @@ export default function CustomSignIn() {
           {verifying ? (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div>
-                <label className="label">
+                <label htmlFor="customsignin-1" className="label">
                   {secondFactor ? tr("Code de vérification supplémentaire", "Additional verification code") : tr("Code de vérification à 6 chiffres", "6-digit verification code")}
                 </label>
                 <p className="mb-2 text-xs text-arctic-600">
                   {tr("Code envoyé à", "Code sent to")} <strong className="text-arctic-900">{maskedTarget}</strong>.
                 </p>
-                <input
+                <input id="customsignin-1"
                   className="input text-center text-xl tracking-widest font-mono"
                   type="text"
                   inputMode="numeric"
@@ -411,8 +411,8 @@ export default function CustomSignIn() {
             <form onSubmit={handleSendOtp} className="space-y-4">
               {method === "email" ? (
                 <div>
-                  <label className="label">{tr("Email du compte vendeur", "Vendor account email")}</label>
-                  <input
+                  <label htmlFor="customsignin-2" className="label">{tr("Email du compte vendeur", "Vendor account email")}</label>
+                  <input id="customsignin-2"
                     className="input"
                     type="email"
                     autoComplete="email"

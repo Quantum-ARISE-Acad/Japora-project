@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { formatMoney } from "@/lib/utils";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import Glyph from "@/components/Glyph";
 
 type NotifOrder = {
   id: string;
@@ -51,7 +52,7 @@ export default function LiveOrderNotifier({ currency = "USD" }: { currency?: str
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <span className="grid h-8 w-8 place-items-center rounded-full bg-emerald-100 text-lg">
-            🛒
+            <Glyph name="cart" size={16} />
           </span>
           <div>
             <div className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
@@ -66,7 +67,7 @@ export default function LiveOrderNotifier({ currency = "USD" }: { currency?: str
           onClick={() => setLatestToast(null)}
           className="text-arctic-400 hover:text-arctic-700"
         >
-          ✕
+          <Glyph name="close" size={16} />
         </button>
       </div>
 

@@ -81,7 +81,7 @@ export default function ReferralClient({
               onClick={() => copy(referralCode, "code")}
               className="rounded-lg border border-arctic-400/45 px-3 py-2 text-xs font-semibold text-arctic-800 hover:bg-arctic-100/55"
             >
-              {copied === "code" ? tr("Copié ✓", "Copied") : tr("Copier le code", "Copy code")}
+              {copied === "code" ? tr("Copié", "Copied") : tr("Copier le code", "Copy code")}
             </button>
           </div>
         </div>
@@ -94,6 +94,7 @@ export default function ReferralClient({
             <input
               type="text"
               readOnly
+              aria-label={tr("Votre lien de parrainage", "Your referral link")}
               value={shareUrl}
               onFocus={(e) => e.currentTarget.select()}
               className="flex-1 min-w-[16rem] rounded-lg border border-arctic-400/45 bg-arctic-100/55 px-3 py-2 text-sm text-arctic-800"
@@ -102,13 +103,13 @@ export default function ReferralClient({
               onClick={() => copy(shareUrl, "url")}
               className="rounded-lg border border-arctic-400/45 px-3 py-2 text-sm font-semibold text-arctic-800 hover:bg-arctic-100/55"
             >
-              {copied === "url" ? tr("Copié ✓", "Copied") : tr("Copier", "Copy")}
+              {copied === "url" ? tr("Copié", "Copied") : tr("Copier", "Copy")}
             </button>
             <a
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+              className="rounded-lg bg-signal-fill px-3 py-2 text-sm font-semibold text-white hover:bg-signal-fill-hover"
             >
               {tr("Partager sur WhatsApp", "Share on WhatsApp")}
             </a>
@@ -198,8 +199,8 @@ export default function ReferralClient({
 function StatusPill({ status }: { status: string }) {
   const styles: Record<string, string> = {
     pending: "bg-arctic-200/65 text-arctic-800",
-    qualified: "bg-emerald-100 text-emerald-700",
-    rewarded: "bg-amber-100 text-amber-700",
+    qualified: "bg-arctic-200/70 text-signal-text",
+    rewarded: "bg-aurora-warning-bg text-aurora-warning-text",
   };
   const cls = styles[status] || "bg-arctic-200/65 text-arctic-800";
   return (

@@ -160,7 +160,7 @@ export default function DashboardShell({
   const sidebar = (
     <nav aria-label={tr("Navigation principale", "Primary navigation")} className="flex h-full flex-col gap-1 px-3 py-4">
       <Link href="/dashboard" className="mb-4 flex items-center gap-2.5 px-2">
-        <span className="grid h-9 w-9 place-items-center rounded-shape-md bg-brand font-black text-white shadow-elev-1">
+        <span className="grid h-9 w-9 place-items-center rounded-shape-md bg-gold-fill font-black text-white shadow-elev-1">
           {avatarUrl ? <Image src={avatarUrl} alt={shopName} width={36} height={36} unoptimized className="h-9 w-9 rounded-shape-md object-cover" /> : (shopName.charAt(0).toUpperCase() || "S")}
         </span>
         <span className="min-w-0 truncate font-display text-[17px] font-semibold text-arctic-900">
