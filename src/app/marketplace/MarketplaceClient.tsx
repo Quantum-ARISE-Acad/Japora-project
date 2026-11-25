@@ -87,14 +87,13 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
                   key={p.id}
                   href={`/c/${shop.shopSlug}?product=${p.id}`}
                   className="group/item flex flex-col overflow-hidden rounded-shape-sm border border-arctic-200/80 bg-white transition-all hover:border-brand"
-                  title={p.name}
                 >
                   <div className="relative h-14 w-full overflow-hidden bg-arctic-100/70">
                     {p.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={p.imageUrl}
-                        alt={p.name}
+                        alt=""
                         className="h-full w-full object-cover transition-transform duration-short group-hover/item:scale-105"
                       />
                     ) : (
@@ -662,8 +661,8 @@ export default function MarketplaceClient({
                   "Pay via Mobile Money & receive"
                 ),
                 desc: tr(
-                  "Réglez par T-Money, Flooz, Wave, Orange Money ou à la livraison. Vous recevez votre confirmation de commande instantanément.",
-                  "Pay with T-Money, Flooz, Wave, Orange Money, or Cash on Delivery. You receive your order confirmation immediately."
+                  "Réglez par T-Money, Flooz, Celtiis, MoMo, carte ou à la livraison. La confirmation arrive tout de suite.",
+                  "Pay by T-Money, Flooz, Celtiis, MoMo, card or on delivery. Confirmation arrives at once."
                 ),
                 badge: tr("Paiement sécurisé", "Secure Payment"),
               },

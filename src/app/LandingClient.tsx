@@ -806,8 +806,8 @@ export default function LandingClient({
                   "How do my customers pay for their orders?"
                 ),
                 a: tr(
-                  "T-Money, Flooz, Wave, Orange Money, MTN MoMo, carte, ou à la livraison. Vous choisissez.",
-                  "T-Money, Flooz, Wave, Orange Money, MTN MoMo, card, or on delivery. You choose."
+                  "T-Money, Flooz, Celtiis, MTN MoMo, carte, ou à la livraison. Vous choisissez.",
+                  "T-Money, Flooz, Celtiis, MTN MoMo, card, or on delivery. You choose."
                 ),
               },
               {
