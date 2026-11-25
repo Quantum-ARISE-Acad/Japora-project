@@ -9,6 +9,7 @@ import { useAuth, useClerk } from "@clerk/nextjs";
 // @clerk/nextjs v7: the root `useSignUp` is the new Signal API (no isLoaded/setActive).
 // This custom flow uses the classic SignUp resource API, exposed under /legacy.
 import { useSignUp } from "@clerk/nextjs/legacy";
+import { SaasIcon } from "@/components/ui/SaasIcons";
 import type { CountryCode } from "libphonenumber-js";
 import { isClerkConfigured } from "./ClerkAuthProvider";
 import PhoneNumberInput from "./PhoneNumberInput";
@@ -36,7 +37,11 @@ const CURRENCIES: { code: string; label: [string, string]; flag: string }[] = [
   { code: "GHS", label: ["Cedi ghanéen (GH₵)", "Ghanaian Cedi (GH₵)"], flag: "🇬🇭" },
 ];
 
-export default function CustomSignUp() {
+export default function CustomSignUp({
+  whatsappSignupEnabled = false,
+}: {
+  whatsappSignupEnabled?: boolean;
+} = {}) {
   const { tr } = usePublicLang();
   const router = useRouter();
   const clerkActive = isClerkConfigured();
@@ -64,7 +69,7 @@ export default function CustomSignUp() {
   const signUp = signUpHook?.signUp;
   const setActive = signUpHook?.setActive;
 
-  const [method, setMethod] = useState<SignUpMethod>("email");
+  const [method, setMethod] = useState<SignUpMethod>("phone");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [phoneCountry, setPhoneCountry] = useState<CountryCode>("TG");
@@ -540,10 +545,23 @@ export default function CustomSignUp() {
           <div className="mb-4 rounded-shape-lg border border-amber-500/30 bg-amber-50/90 p-3 text-xs text-amber-900 shadow-sm backdrop-blur-sm dark:bg-amber-950/40 dark:text-amber-200">
             <div className="flex items-center gap-2 font-semibold">
               <span className="inline-block h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-              {tr("Mode Démo / Prêt pour Clerk", "Demo mode / ready for Clerk")}
+              {process.env.NODE_ENV === "production"
+                ? tr("Inscription indisponible", "Sign-up unavailable")
+                : tr("Mode démo — Clerk non configuré", "Demo mode — Clerk not configured")}
             </div>
             <p className="mt-1 opacity-90">
-              {tr("Renseignez", "Set")} <code className="font-mono text-[11px] bg-amber-200/50 px-1 py-0.5 rounded">NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</code> {tr("pour activer l'authentification Clerk en direct.", "to turn on live Clerk sign-in.")}
+              {/* A vendor cannot act on an env var name, and if a deploy ever
+                  misses the key this banner is what they would read. Keep the
+                  variable for whoever can fix it: developers. */}
+              {process.env.NODE_ENV === "production"
+                ? tr(
+                    "La création de compte est momentanément indisponible. Réessayez dans un instant.",
+                    "Account creation is briefly unavailable. Try again in a moment."
+                  )
+                : tr(
+                    "Renseignez NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY pour activer l'authentification Clerk en direct.",
+                    "Set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY to turn on live Clerk sign-in."
+                  )}
             </p>
           </div>
         )}
@@ -627,61 +645,61 @@ export default function CustomSignUp() {
                   : tr("Créez votre compte en quelques secondes, puis configurez votre boutique sur le tableau de bord.", "Create your account in a few seconds, then set up your shop from the dashboard.")}
               </p>
 
-              <div className="mt-4 flex items-center gap-2 rounded-shape-md bg-brand/10 p-2.5 text-xs text-brand-dark font-medium">
-                <span>🛍️</span>
-                <span>{tr("Plateforme marchande dédiée aux vendeurs & créateurs africains", "Commerce platform for African vendors & creators")}</span>
-              </div>
 
-              {/* Google Sign-up Button */}
-              {!continuingOAuth && (
-                <div className="mt-4">
-                  <button
-                    type="button"
-                    onClick={handleGoogleSignUp}
-                    disabled={googleLoading || loading}
-                    className="flex w-full items-center justify-center gap-2.5 rounded-shape-md border border-arctic-200 bg-white px-4 py-2.5 text-sm font-semibold text-arctic-800 shadow-sm transition hover:bg-arctic-50 active:scale-[0.99] disabled:opacity-60 dark:border-arctic-700 dark:bg-arctic-800 dark:text-arctic-100 dark:hover:bg-arctic-700"
+              {/* WhatsApp first — this is a WhatsApp-first product, and the
+                  flow at /start sends its code over WhatsApp. It only appears
+                  when that rail is actually connected, so nobody is sent to
+                  wait for a code that cannot arrive. */}
+              {!continuingOAuth && whatsappSignupEnabled && (
+                <div className="mt-5">
+                  <a
+                    href="/start"
+                    className="a-btn a-btn--cafe sheen w-full justify-center gap-2 font-bold"
                   >
-                    <svg className="h-4 w-4" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                    </svg>
-                    <span>{googleLoading ? tr("Création Google en cours…", "Creating with Google…") : tr("S'inscrire avec Google", "Sign up with Google")}</span>
-                  </button>
+                    <SaasIcon name="message" size={17} />
+                    <span>{tr("Continuer avec WhatsApp", "Continue with WhatsApp")}</span>
+                  </a>
+                  <p className="mt-2 text-center text-[11px] text-arctic-600">
+                    {tr(
+                      "Le code arrive sur le WhatsApp que vous utilisez déjà.",
+                      "The code lands on the WhatsApp you already use."
+                    )}
+                  </p>
+                </div>
+              )}
 
-                  <div className="relative my-4 flex items-center justify-center">
-                    <div className="w-full border-t border-arctic-200 dark:border-arctic-700" />
-                    <span className="absolute bg-white px-2 text-[11px] font-medium uppercase tracking-wider text-arctic-400 dark:bg-arctic-900 dark:text-arctic-500">
-                      {tr("ou par code de vérification", "or with a verification code")}
-                    </span>
-                  </div>
-
-                  {/* Method Selector: Email OTP vs Phone OTP */}
+              {!continuingOAuth && (
+                <div className="mt-5">
+                  {/* Phone leads: a vendor here has a number before an inbox. */}
                   <div className="mb-4 grid grid-cols-2 gap-1.5 rounded-shape-md bg-arctic-100/80 p-1 dark:bg-arctic-800/70">
                     <button
                       type="button"
-                      onClick={() => switchMethod("email")}
-                      className={`rounded-shape-sm py-1.5 text-xs font-semibold transition ${
-                        method === "email"
-                          ? "bg-white text-arctic-900 shadow-xs dark:bg-arctic-900 dark:text-arctic-50"
-                          : "text-arctic-600 hover:text-arctic-900 dark:text-arctic-300"
-                      }`}
-                    >
-                      {tr("Email (Code OTP)", "Email (OTP code)")}
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => switchMethod("phone")}
-                      className={`rounded-shape-sm py-1.5 text-xs font-semibold transition ${
+                      className={`rounded-shape-sm py-2 text-xs font-semibold transition ${
                         method === "phone"
                           ? "bg-white text-arctic-900 shadow-xs dark:bg-arctic-900 dark:text-arctic-50"
                           : "text-arctic-600 hover:text-arctic-900 dark:text-arctic-300"
                       }`}
                     >
-                      {tr("Téléphone (SMS)", "Phone (SMS)")}
+                      {tr("Téléphone", "Phone")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => switchMethod("email")}
+                      className={`rounded-shape-sm py-2 text-xs font-semibold transition ${
+                        method === "email"
+                          ? "bg-white text-arctic-900 shadow-xs dark:bg-arctic-900 dark:text-arctic-50"
+                          : "text-arctic-600 hover:text-arctic-900 dark:text-arctic-300"
+                      }`}
+                    >
+                      {tr("Email", "Email")}
                     </button>
                   </div>
+                  <p className="-mt-2 mb-1 text-[11px] text-arctic-600">
+                    {method === "phone"
+                      ? tr("Nous envoyons un code par SMS.", "We send a code by SMS.")
+                      : tr("Nous envoyons un code par e-mail.", "We send a code by email.")}
+                  </p>
                 </div>
               )}
 
@@ -772,6 +790,32 @@ export default function CustomSignUp() {
                       : tr("Continuer et recevoir mon code", "Continue and get my code")}
                 </button>
               </form>
+
+              {!continuingOAuth && (
+                <div className="mt-5">
+                  <div className="relative mb-4 flex items-center justify-center">
+                    <div className="w-full border-t border-arctic-200 dark:border-arctic-700" />
+                    <span className="absolute bg-white px-2 text-[11px] font-medium uppercase tracking-wider text-arctic-600 dark:bg-arctic-900">
+                      {tr("Autre option", "Other option")}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignUp}
+                    disabled={googleLoading || loading}
+                    className="flex w-full items-center justify-center gap-2.5 rounded-shape-md border border-arctic-200 bg-white px-4 py-2.5 text-sm font-semibold text-arctic-800 shadow-sm transition hover:bg-arctic-50 active:scale-[0.99] disabled:opacity-60 dark:border-arctic-700 dark:bg-arctic-800 dark:text-arctic-100 dark:hover:bg-arctic-700"
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                    </svg>
+                    <span>{googleLoading ? tr("Création Google en cours…", "Creating with Google…") : tr("S'inscrire avec Google", "Sign up with Google")}</span>
+                  </button>
+                </div>
+              )}
+
 
               <p className="a-body-sm mt-6 text-center text-arctic-600">
                 {tr("Vous avez déjà une boutique ?", "Already have a shop?")}{" "}

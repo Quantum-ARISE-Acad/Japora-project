@@ -30,8 +30,8 @@ export default function PublicFooter() {
             {
               title: tr("Paiements Mobile Money", "Mobile Money Payments"),
               desc: tr(
-                "T-Money, Flooz, Wave, Orange & MTN MoMo",
-                "T-Money, Flooz, Wave, Orange & MTN MoMo"
+                "T-Money, Flooz, Celtiis, MoMo & carte",
+                "T-Money, Flooz, Celtiis, MoMo & card"
               ),
               badge: tr("Instant", "Instant"),
             },
