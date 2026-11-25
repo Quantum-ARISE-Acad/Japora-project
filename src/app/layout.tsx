@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import InstallPrompt from "@/components/InstallPrompt";
 import ThemeSync from "@/components/ThemeSync";
+import RevealObserver from "@/components/RevealObserver";
 import ClerkAuthProvider from "@/components/auth/ClerkAuthProvider";
 import { PublicLanguageProvider } from "@/components/PublicLanguageProvider";
 import { getPublicLocale } from "@/lib/public-locale";
@@ -59,7 +60,7 @@ export const viewport: Viewport = {
 // No-FOUC theme bootstrap: set the .dark class before paint from the persisted
 // choice (cookie/localStorage) or the system preference. Inlined so it runs
 // before first paint and never flashes the wrong theme.
-const themeScript = `(function(){try{var t=localStorage.getItem('japora-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}if(t==='dark'){document.documentElement.classList.add('dark');}}catch(e){}})();`;
+const themeScript = `(function(){try{var t=localStorage.getItem('japora-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}if(t==='dark'){document.documentElement.classList.add('dark');}}catch(e){}try{document.documentElement.classList.add('js');}catch(e){}})();`;
 
 export default async function RootLayout({
   children,
@@ -77,6 +78,7 @@ export default async function RootLayout({
         <ClerkAuthProvider>
           <PublicLanguageProvider initialLocale={locale}>
             <ThemeSync />
+            <RevealObserver />
             {children}
             <InstallPrompt />
           </PublicLanguageProvider>

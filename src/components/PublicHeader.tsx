@@ -91,7 +91,7 @@ export default function PublicHeader({ isAuthenticated = false, shopSlug }: Publ
                   {tr("Afrique", "Africa")}
                 </span>
               </div>
-              <span className="hidden text-[10px] text-arctic-500 sm:block">
+              <span className="hidden text-[10px] text-arctic-600 sm:block">
                 {tr("Boutiques en ligne & WhatsApp", "Online & WhatsApp Shops")}
               </span>
             </div>

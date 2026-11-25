@@ -38,7 +38,11 @@
   /* ---------- Antique-gold / Café Clair accent — channel triples ----------
    * Wataru Unified Palette: Couleur Principale = Café Clair de Japora (#A67C52) */
   --gold:        166 124  82;  /* #A67C52 Café Clair Japora (Primary) */
-  --gold-fill:   143 100  59;  /* #8F643B Café Soutenu (AA white text 5.7:1) */
+  --gold-fill:   143 100  59;  /* #8F643B Café Soutenu (white text 5.18:1) */
+  /* The darker end of the primary-action gradient. Deliberately NOT
+     redefined under .dark: --gold flips light for dark mode, and a filled
+     button that keeps a white label must not flip with it. */
+  --gold-shade:  122  83  48;  /* #7A5330 (white text 6.76:1) */
   --gold-deep:   143 100  59;  /* #8F643B Café text on light (~6.5:1) */
   --gold-bright: 196 154 108;  /* #C49A6C Café Clair Lumineux (dark-mode accent/hover) */
 
@@ -81,6 +85,14 @@
   --aurora-success:      #15533b;
   --aurora-success-bg:   rgba(21, 83, 59, 0.08);
 
+  /* Success and error as FILLS (above) are dark enough to carry white text,
+     which is exactly what makes them unreadable as TEXT on a dark canvas:
+     #15533b on #2A2622 is 1.67:1. These are the text-safe pair, and unlike the
+     fills they are redefined under .dark. Use *-text on type, the plain token
+     on a filled surface. */
+  --aurora-success-text: #15533b;   /* 8.6:1 on porcelain */
+  --aurora-error-text:   #b3261e;   /* 6.3:1 on porcelain */
+
   /* WhatsApp-green retained ONLY as a functional "live / online" signal. */
   --signal-live:         #1fa855;
 
@@ -88,6 +100,7 @@
 
   /* ---------- Elevation (lowest possible — depth comes from glass) ----------
    * Warm ink shadows (not cool slate) so cards sit in the stone world. */
+  --aurora-elev-xs: 0 1px 1px rgba(28, 25, 23, 0.04);
   --aurora-elev-0:  none;
   --aurora-elev-1:  0 1px 2px rgba(28, 25, 23, 0.05);
   --aurora-elev-2:  0 2px 6px rgba(28, 25, 23, 0.07), 0 1px 2px rgba(28, 25, 23, 0.05);
@@ -167,9 +180,15 @@
   --glass-edge-hi:            rgb(255 255 255 / 0.16);
   --glass-edge-lo:            rgb(var(--gold) / 0.22);
 
+  /* Light enough to read on warm charcoal: 9.9:1 and 7.9:1 on the glass
+     surface. The fills stay as they are — they are still behind white text. */
+  --aurora-success-text: #6ee7b7;
+  --aurora-error-text:   #fca5a5;
+
   --aurora-primary-container: rgb(var(--gold) / 0.18);
   --aurora-on-primary-container: rgb(var(--gold-bright));
 
+  --aurora-elev-xs: 0 1px 1px rgba(0, 0, 0, 0.3);
   --aurora-elev-1:  0 1px 2px rgba(0, 0, 0, 0.4);
   --aurora-elev-2:  0 2px 8px rgba(0, 0, 0, 0.5);
   --aurora-elev-3:  0 14px 36px -8px rgba(0, 0, 0, 0.6);
@@ -338,15 +357,21 @@ body {
 }
 
 /* --- Café Clair (Wataru Primary Action) --- */
+/* The label is white, so every stop under it has to carry white text.
+   The old gradient started at --gold: 3.73:1 in light, and 2.57:1 in dark
+   (where --gold flips to the bright café) — below AA on the page's primary
+   action, which is the worst place to lose a contrast ratio. Both stops are
+   now fixed, theme-stable tokens: 5.18:1 to 6.76:1. */
 .a-btn--cafe {
-  background: linear-gradient(135deg, rgb(var(--gold)), rgb(var(--gold-fill)));
+  background: linear-gradient(135deg, rgb(var(--gold-fill)), rgb(var(--gold-shade)));
   color: #ffffff;
-  box-shadow: var(--aurora-elev-1), 0 6px 16px -10px rgba(166, 124, 82, 0.6);
+  box-shadow: var(--aurora-elev-1), 0 6px 16px -10px rgba(122, 83, 48, 0.55);
 }
 .a-btn--cafe:not(:disabled):hover {
-  background: rgb(var(--gold-fill));
-  filter: brightness(1.05);
-  box-shadow: var(--aurora-elev-2), 0 10px 24px -12px rgba(166, 124, 82, 0.6);
+  /* Darken on press-intent rather than brighten: brightness(1.05) was walking
+     the fill back toward the failing end. */
+  background: rgb(var(--gold-shade));
+  box-shadow: var(--aurora-elev-2), 0 10px 24px -12px rgba(122, 83, 48, 0.55);
 }
 
 /* --- Vert Foncé de Soko (Wataru Secondary / Trust / Ecosystem Action) --- */

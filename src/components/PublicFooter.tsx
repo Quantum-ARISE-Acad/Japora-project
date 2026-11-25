@@ -230,7 +230,7 @@ export default function PublicFooter() {
               )}
             </span>
             <span>·</span>
-            <span className="text-arctic-500">Lomé · Cotonou · Abidjan · Dakar · Lagos · Nairobi</span>
+            <span className="text-arctic-600">Lomé · Cotonou · Abidjan · Dakar · Lagos · Nairobi</span>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/how-to-use" className="hover:text-arctic-900">

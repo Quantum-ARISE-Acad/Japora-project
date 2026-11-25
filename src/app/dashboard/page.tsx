@@ -143,7 +143,7 @@ export default async function OverviewPage() {
       {unconfirmedOlderThan24h > 0 && (
         <div className="flex items-center justify-between rounded-shape-md border border-amber-300/80 bg-amber-50 px-4 py-3 text-amber-900">
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-base">⚠️</span>
+            <Glyph name="alert" size={17} className="shrink-0 text-amber-700" />
             <span>
               <strong>{unconfirmedOlderThan24h}</strong>{" "}
               {locale === "fr"
@@ -170,13 +170,13 @@ export default async function OverviewPage() {
       </section>
 
       {/* KPI Stats Grid */}
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        {stats.map((s, i) => (
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-3" data-reveal-group>
+        {stats.map((s) => (
           <Link
             key={s.label}
             href={s.href}
-            className="glass glass-edge a-hover-lift group flex min-w-0 flex-col gap-1.5 rounded-shape-lg p-5"
-            style={{ animationDelay: `${i * 30}ms` }}
+            data-reveal="up"
+            className="glass glass-edge lift group flex min-w-0 flex-col gap-1.5 rounded-shape-lg p-5"
           >
             <div className="a-eyebrow">{s.label}</div>
             <div
@@ -200,16 +200,20 @@ export default async function OverviewPage() {
               </span>
               {growthPct !== 0 && (
                 <span
-                  className={`text-xs font-semibold ${
-                    growthPct > 0 ? "text-emerald-600" : "text-red-500"
-                  }`}
+                  className="a-num text-xs font-semibold"
+                  style={{
+                    color:
+                      growthPct > 0
+                        ? "var(--aurora-success-text)"
+                        : "var(--aurora-error-text)",
+                  }}
                 >
                   {growthPct > 0 ? `+${growthPct}%` : `${growthPct}%`} {t("vs hier", "vs yesterday")}
                 </span>
               )}
             </div>
           </div>
-          <span className="text-xs text-arctic-500">{t("Commandes payées et livrées", "Paid and delivered orders")}</span>
+          <span className="text-xs text-arctic-600">{t("Commandes payées et livrées", "Paid and delivered orders")}</span>
         </div>
 
         {/* CSS Bar Chart */}
@@ -220,13 +224,19 @@ export default async function OverviewPage() {
               <div key={idx} className="flex flex-col items-center gap-1.5 h-full justify-end group">
                 <div className="relative flex flex-col items-center w-full">
                   {day.rev > 0 && (
-                    <span className="absolute -top-6 text-[10px] font-mono text-arctic-700 opacity-0 group-hover:opacity-100 transition">
+                    <span
+                      className={`a-num absolute -top-6 whitespace-nowrap text-[10px] text-arctic-700 transition-opacity duration-short ${
+                        idx === 6
+                          ? "opacity-100"
+                          : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                      }`}
+                    >
                       {formatMoney(day.rev, vendor.currency)}
                     </span>
                   )}
                   <div
                     className={`w-full max-w-[32px] rounded-t-sm transition-all duration-medium ${
-                      idx === 6 ? "bg-emerald-600" : "bg-arctic-300/70 hover:bg-arctic-400"
+                      idx === 6 ? "bg-brand" : "bg-arctic-300/70 hover:bg-arctic-400"
                     }`}
                     style={{ height: `${heightPct}%` }}
                   />
@@ -236,6 +246,12 @@ export default async function OverviewPage() {
             );
           })}
         </div>
+        {/* The bars carry the shape; a screen reader needs the numbers. */}
+        <p className="sr-only">
+          {last7Days
+            .map((d) => `${d.date}: ${formatMoney(d.rev, vendor.currency)}`)
+            .join(", ")}
+        </p>
       </section>
 
       {/* Hustle Preview */}
@@ -256,7 +272,7 @@ export default async function OverviewPage() {
       <section className="grid gap-3 sm:grid-cols-2">
         <Link
           href="/dashboard/products"
-          className="glass glass-edge a-hover-lift flex items-center justify-between rounded-shape-lg p-5"
+          className="glass glass-edge lift flex items-center justify-between rounded-shape-lg p-5"
         >
           <div>
             <div className="a-title-md text-arctic-900">{t("Ajouter un produit", "Add a product")}</div>
@@ -266,7 +282,7 @@ export default async function OverviewPage() {
         </Link>
         <Link
           href="/dashboard/orders"
-          className="glass glass-edge a-hover-lift flex items-center justify-between rounded-shape-lg p-5"
+          className="glass glass-edge lift flex items-center justify-between rounded-shape-lg p-5"
         >
           <div>
             <div className="a-title-md text-arctic-900">{t("Gérer les commandes", "Manage orders")}</div>

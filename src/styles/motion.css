@@ -1,0 +1,166 @@
+/* =====================================================================
+ * Lumière — motion.
+ *
+ * One motion language for the marketing surface and the app, built on the
+ * thesis the ecosystem already named: **things that are counted, arriving.**
+ * Numbers count up. Sets gather in sequence. Gold is what moves; ink is what
+ * stays. Anything that does not serve that is decoration, and decoration on a
+ * page a merchant pays per megabyte to load is a cost with no return.
+ *
+ * Budget: this file is the entire choreography. No animation library is in the
+ * critical path. Everything below is compositor-only (opacity + transform).
+ *
+ * Refs: docs/motion-and-design.md (the ecosystem motion brief),
+ *       https://m3.material.io/styles/motion/overview
+ * ===================================================================== */
+
+:root {
+  /* ---------- M3 Expressive spatial springs, sampled into linear() ----------
+   * A cubic-bezier cannot express a spring: it can overshoot, but the
+   * overshoot is symmetric and has no settle, so it reads as a *bounce*
+   * rather than as *mass*. These are the damped-spring step responses
+   * x(t) = 1 - e^(-zeta*wn*t)[cos(wd*t) + (zeta*wn/wd) sin(wd*t)]
+   * sampled at 27 points, at the damping ratios the design brief fixes.
+   * Cost: 0 KB of script, no main thread.
+   *
+   *   token          zeta   overshoot   duration
+   *   --ease-fast    0.75      2.8%      221ms
+   *   --ease-spring  0.70      4.6%      336ms
+   *   --ease-slow    0.65      6.8%      552ms
+   *   --ease-effect  1.00      none      155ms
+   */
+  --ease-fast: linear(0, 0.0289, 0.1013, 0.1993, 0.3095, 0.422, 0.53, 0.629, 0.7165, 0.7915, 0.8538, 0.9042, 0.9437, 0.9736, 0.9954, 1.0105, 1.0202, 1.0258, 1.0281, 1.0282, 1.0267, 1.0242, 1.0213, 1.0181, 1.0149, 1.012, 1);
+  --ease-spring: linear(0, 0.0331, 0.1159, 0.2273, 0.3512, 0.4759, 0.5935, 0.6988, 0.7893, 0.864, 0.9233, 0.9684, 1.0011, 1.0233, 1.037, 1.044, 1.046, 1.0445, 1.0407, 1.0356, 1.0299, 1.0242, 1.0188, 1.0139, 1.0097, 1.0063, 1);
+  --ease-slow: linear(0, 0.0384, 0.1339, 0.2614, 0.4014, 0.5399, 0.6674, 0.7782, 0.8696, 0.9412, 0.9942, 1.0307, 1.0533, 1.0649, 1.0681, 1.0653, 1.0588, 1.05, 1.0405, 1.0311, 1.0224, 1.0149, 1.0087, 1.0039, 1.0003, 0.9979, 1);
+
+  /* Colour must never bounce: an opacity or fill that overshoots reads as a
+   * rendering fault, not as expression. Critically damped, no overshoot. */
+  --ease-effect: linear(0, 0.0163, 0.0575, 0.1144, 0.1802, 0.2501, 0.3206, 0.3894, 0.455, 0.5162, 0.5728, 0.6243, 0.6709, 0.7127, 0.7499, 0.7829, 0.8121, 0.8376, 0.86, 0.8795, 0.8965, 0.9112, 0.9239, 0.9349, 0.9444, 0.9526, 1);
+
+  --reveal-shift: 16px;
+  --reveal-dur: 560ms;
+}
+
+/* =====================================================================
+ * Scroll reveal — [data-reveal].
+ *
+ * Nothing is hidden until `html.js` confirms scripting. A reader whose JS
+ * failed gets the whole page, not an empty one: hiding content and relying on
+ * script to reveal it is how a page goes blank for the people least able to
+ * diagnose it. RevealObserver sets `.js` on <html>, then reveals.
+ * ===================================================================== */
+
+html.js [data-reveal] {
+  opacity: 0;
+  will-change: opacity, transform;
+}
+html.js [data-reveal="up"],
+html.js [data-reveal=""] { transform: translate3d(0, var(--reveal-shift), 0); }
+html.js [data-reveal="left"]  { transform: translate3d(calc(var(--reveal-shift) * -1), 0, 0); }
+html.js [data-reveal="right"] { transform: translate3d(var(--reveal-shift), 0, 0); }
+html.js [data-reveal="scale"] { transform: scale(0.965); }
+html.js [data-reveal="fade"]  { transform: none; }
+
+[data-reveal] {
+  transition:
+    opacity var(--reveal-dur) var(--ease-effect),
+    transform var(--reveal-dur) var(--ease-slow);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+html.js [data-reveal].is-revealed {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
+
+/* =====================================================================
+ * Sheen — one pass of light across a surface on hover.
+ *
+ * Made of the palette's single accent rather than white, so it reads as the
+ * brand noticing you rather than as a glare. Fine pointers only: on touch it
+ * would either never fire or fire stuck.
+ * ===================================================================== */
+
+.sheen { position: relative; overflow: hidden; isolation: isolate; }
+
+@media (hover: hover) and (pointer: fine) {
+  .sheen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: linear-gradient(
+      110deg,
+      transparent 38%,
+      rgb(var(--gold) / 0.16) 50%,
+      transparent 62%
+    );
+    transform: translate3d(-130%, 0, 0);
+    transition: transform 620ms var(--ease-slow);
+  }
+  .sheen:hover::after,
+  .sheen:focus-visible::after { transform: translate3d(130%, 0, 0); }
+}
+
+/* Lift — the card acknowledging the pointer. Capped deliberately: a few
+   pixels reads as the element noticing you; more reads as the page being
+   unwell. Keyboard focus gets the same spring the mouse gets. */
+.lift {
+  transition:
+    transform 221ms var(--ease-fast),
+    box-shadow 221ms var(--ease-effect),
+    border-color 221ms var(--ease-effect);
+}
+@media (hover: hover) and (pointer: fine) {
+  .lift:hover { transform: translate3d(0, -3px, 0); box-shadow: var(--aurora-elev-3); }
+}
+.lift:focus-visible { transform: translate3d(0, -3px, 0); box-shadow: var(--aurora-elev-3); }
+
+/* =====================================================================
+ * The halo — the one ambient element on a page.
+ *
+ * A soft, slow-drifting wash of the accent behind the hero's subject. Used
+ * once per screen; it is the exception that the "spend boldness in one place"
+ * rule allows, and it costs nothing but a composited transform.
+ * ===================================================================== */
+
+@keyframes a-halo-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(0, -10px, 0) scale(1.035); }
+}
+.a-halo {
+  animation: a-halo-drift 9s var(--ease-effect) infinite;
+}
+
+/* =====================================================================
+ * Counted sets — [data-count].
+ *
+ * The one piece of motion on the page that carries meaning rather than
+ * polish: revenue is counted, so the recurring device is a counted set
+ * arriving in tabular figures. RevealObserver drives the value; the figure is
+ * already in the DOM, so a reader without JS sees the final number.
+ * ===================================================================== */
+
+[data-count] { font-variant-numeric: tabular-nums; }
+
+/* =====================================================================
+ * Accessibility.
+ *
+ * prefers-reduced-motion turns motion OFF, not faster. A vestibular trigger at
+ * 40ms is still a trigger, and the information is in the layout rather than in
+ * the movement, so removing the movement removes nothing.
+ * ===================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  html.js [data-reveal],
+  html.js [data-reveal].is-revealed {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .a-halo { animation: none !important; }
+  .sheen::after { display: none !important; }
+  .lift:hover, .lift:focus-visible { transform: none !important; }
+}
