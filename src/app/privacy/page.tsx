@@ -12,7 +12,7 @@ export default function PrivacyPage() {
     <div className="min-h-screen flex flex-col">
       <PublicHeader />
 
-      <main className="mx-auto max-w-4xl flex-1 px-4 py-12 w-full">
+      <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-12">
         <div className="glass glass-edge rounded-shape-xl p-6 sm:p-10">
           <header className="border-b border-arctic-200/70 pb-6">
             <span className="a-eyebrow">
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
             <h1 className="a-display-sm mt-1 text-arctic-900">
               {tr("Politique de Confidentialité", "Privacy Policy")}
             </h1>
-            <p className="mt-1 text-xs text-arctic-500">
+            <p className="mt-1 text-xs text-arctic-600">
               {tr(
                 "Dernière mise à jour : Novembre 2026",
                 "Last updated: November 2026"

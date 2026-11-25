@@ -176,7 +176,7 @@ export default function ShareStatus({
               <h3 className="text-sm font-bold text-arctic-900 dark:text-white">
                 {tr("Partager sur votre Statut WhatsApp", "Share on your WhatsApp Status")}
               </h3>
-              <button onClick={() => setOpen(false)} className="text-arctic-500 hover:text-arctic-800">
+              <button onClick={() => setOpen(false)} className="text-arctic-600 hover:text-arctic-800">
                 ✕
               </button>
             </div>

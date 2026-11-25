@@ -130,11 +130,11 @@ export default function InstallPrompt() {
             {tr("Ajoutez Japora à votre écran d'accueil", "Add Japora to your home screen")}
           </div>
           {variant === "chromium" ? (
-            <p className="mt-0.5 text-xs text-arctic-500">
+            <p className="mt-0.5 text-xs text-arctic-600">
               {tr("Ouverture plus rapide, fonctionne sans WiFi, sans passer par une boutique d'applications.", "Faster opens, works without WiFi, and no app-store install.")}
             </p>
           ) : (
-            <p className="mt-0.5 text-xs text-arctic-500">
+            <p className="mt-0.5 text-xs text-arctic-600">
               {tr("Touchez l'icône", "Tap the")} <span className="font-semibold">{tr("Partager", "Share")}</span> {tr(", puis", "icon, then")}{" "}
               <span className="font-semibold">{tr("Sur l'écran d'accueil", "Add to Home Screen")}</span>.
             </p>
@@ -147,7 +147,7 @@ export default function InstallPrompt() {
             )}
             <button
               onClick={dismiss}
-              className="rounded-md px-2 py-1 text-xs font-medium text-arctic-500 hover:bg-arctic-100"
+              className="rounded-shape-sm px-2 py-1 text-xs font-medium text-arctic-600 hover:bg-arctic-100"
             >
               {tr("Plus tard", "Not now")}
             </button>

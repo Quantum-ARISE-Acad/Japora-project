@@ -367,7 +367,7 @@ export default function ShopOnboardingModal({
                     onChange={(e) => setWhatsappNumber(e.target.value)}
                     required
                   />
-                  <span className="mt-1 block text-[11px] text-arctic-500">
+                  <span className="mt-1 block text-[11px] text-arctic-600">
                     {tr("Avec + et l'indicatif du pays (ex. +228 pour le Togo, +229 pour le Bénin).", "With + and the country code (e.g. +228 for Togo, +229 for Benin).")}
                   </span>
                 </div>
@@ -383,7 +383,7 @@ export default function ShopOnboardingModal({
                     value={momoNumber}
                     onChange={(e) => setMomoNumber(e.target.value)}
                   />
-                  <span className="mt-1 block text-[11px] text-arctic-500">
+                  <span className="mt-1 block text-[11px] text-arctic-600">
                     {tr("Votre numéro Mobile Money (T-Money, Flooz…).", "Your Mobile Money number (T-Money, Flooz…).")}
                   </span>
                 </div>
@@ -426,7 +426,7 @@ export default function ShopOnboardingModal({
                         onChange={handleAvatarUpload}
                       />
                     </label>
-                    <p className="text-[11px] text-arctic-500">
+                    <p className="text-[11px] text-arctic-600">
                       {tr("PNG, JPG ou WebP (max 5 Mo). Modifiable à tout moment dans Settings.", "PNG, JPG or WebP (max 5 MB). You can change it anytime in Settings.")}
                     </p>
                   </div>

@@ -295,7 +295,7 @@ export default function CustomersClient({
                         {r.phone}
                       </a>
                     ) : (
-                      <span className="text-arctic-500">—</span>
+                      <span className="text-arctic-600">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">{r.orderCount}</td>
@@ -327,7 +327,7 @@ export default function CustomersClient({
               </div>
               <button
                 onClick={() => setSelected(null)}
-                className="text-arctic-500 hover:text-arctic-800"
+                className="text-arctic-600 hover:text-arctic-800"
                 aria-label={tr("Fermer", "Close")}
               >
                 ✕
@@ -407,7 +407,7 @@ export default function CustomersClient({
                 {tr("Commandes récentes", "Recent orders")}
               </h3>
               {recent.length === 0 ? (
-                <p className="mt-2 text-sm text-arctic-500">{tr("Aucune commande associée pour le moment.", "No orders linked yet.")}</p>
+                <p className="mt-2 text-sm text-arctic-600">{tr("Aucune commande associée pour le moment.", "No orders linked yet.")}</p>
               ) : (
                 <ul className="mt-2 space-y-1.5 text-sm">
                   {recent.map((o) => (

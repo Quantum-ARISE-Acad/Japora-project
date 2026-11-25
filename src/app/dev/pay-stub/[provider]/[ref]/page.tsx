@@ -68,7 +68,7 @@ export default async function PayStubPage({ params }: Params) {
 
           <div className="space-y-4 p-6">
             <div>
-              <div className="text-xs uppercase tracking-wide text-arctic-500">
+              <div className="text-xs uppercase tracking-wide text-arctic-600">
                 Pay with
               </div>
               <div className="text-xl font-bold text-arctic-900">{label}</div>
@@ -76,7 +76,7 @@ export default async function PayStubPage({ params }: Params) {
 
             {order ? (
               <div className="rounded-xl border border-arctic-200 bg-arctic-50 p-4">
-                <div className="mb-2 text-xs uppercase tracking-wide text-arctic-500">
+                <div className="mb-2 text-xs uppercase tracking-wide text-arctic-600">
                   Order from {order.vendor?.shopName}
                 </div>
                 <ul className="space-y-1 text-sm text-arctic-700">
@@ -97,7 +97,7 @@ export default async function PayStubPage({ params }: Params) {
                   <span>{formatMoney(intent.amountCents, intent.currency)}</span>
                 </div>
                 {order.customerName && (
-                  <div className="mt-2 text-xs text-arctic-500">
+                  <div className="mt-2 text-xs text-arctic-600">
                     Customer: {order.customerName}
                     {order.customerPhone && <> · {order.customerPhone}</>}
                   </div>
@@ -108,13 +108,13 @@ export default async function PayStubPage({ params }: Params) {
                 <div className="text-sm text-arctic-600">
                   Amount: <strong>{formatMoney(intent.amountCents, intent.currency)}</strong>
                 </div>
-                <div className="text-xs text-arctic-500">
+                <div className="text-xs text-arctic-600">
                   Reference: {ref}
                 </div>
               </div>
             )}
 
-            <div className="text-xs text-arctic-500">
+            <div className="text-xs text-arctic-600">
               Status:{" "}
               <span className="font-mono font-semibold">{intent.status}</span>
             </div>

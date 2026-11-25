@@ -48,7 +48,7 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
               {shop.tagline ? (
                 <div className="a-body-sm truncate text-arctic-600">{shop.tagline}</div>
               ) : (
-                <div className="a-body-sm truncate text-arctic-500">
+                <div className="a-body-sm truncate text-arctic-600">
                   {tr("Boutique WhatsApp active", "Active WhatsApp shop")}
                 </div>
               )}
@@ -65,7 +65,7 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
             {shop.bio}
           </p>
         ) : (
-          <p className="mt-3 a-body-sm italic text-arctic-500">
+          <p className="mt-3 a-body-sm italic text-arctic-600">
             {tr(
               "Catalogue disponible en commande directe sur WhatsApp.",
               "Catalog available for direct ordering on WhatsApp."
@@ -75,7 +75,7 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
 
         {shop.products && shop.products.length > 0 && (
           <div className="mt-3.5 rounded-shape-md border border-arctic-200/70 bg-white/60 p-2.5">
-            <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-arctic-500">
+            <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-arctic-600">
               <span>{tr("Aperçu du catalogue", "Catalog preview")}</span>
               <span>
                 {shop.products.length} {tr("articles phares", "featured items")}
@@ -122,7 +122,7 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
           {region ? (
             <Link
               href={`/marketplace/${region.slug}`}
-              className="inline-flex items-center gap-1 rounded-shape-sm border border-arctic-400/45 bg-white/75 px-2 py-0.5 text-[11px] font-semibold text-arctic-800 hover:border-brand"
+              className="inline-flex min-h-[24px] items-center gap-1 rounded-shape-sm border border-arctic-400/45 bg-white/75 px-2 py-1 text-[11px] font-semibold text-arctic-800 hover:border-brand"
             >
               <SaasIcon name="map-pin" size={12} className="text-brand-dark" />
               <span>
@@ -133,7 +133,7 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
           {category ? (
             <Link
               href={`/marketplace?category=${category.slug}`}
-              className="inline-flex items-center gap-1 rounded-shape-sm border border-arctic-400/45 bg-arctic-200/65 px-2 py-0.5 text-[11px] font-semibold text-arctic-900 hover:border-brand"
+              className="inline-flex min-h-[24px] items-center gap-1 rounded-shape-sm border border-arctic-400/45 bg-arctic-200/65 px-2 py-1 text-[11px] font-semibold text-arctic-900 hover:border-brand"
             >
               <CategoryIcon slug={category.slug} size={12} className="text-brand-dark" />
               <span>{tr(CATEGORY_FR[category.slug] || category.label, category.label)}</span>
@@ -179,7 +179,7 @@ function ProductResultCard({ product }: { product: ProductHit }) {
             className="h-full w-full object-cover transition-transform duration-short group-hover:scale-105"
           />
         ) : (
-          <div className="grid h-full w-full place-items-center a-title-md text-arctic-500">
+          <div className="grid h-full w-full place-items-center a-title-md text-arctic-600">
             {product.name.charAt(0).toUpperCase()}
           </div>
         )}
@@ -197,12 +197,12 @@ function ProductResultCard({ product }: { product: ProductHit }) {
           {formatMoney(product.priceCents, product.shop.currency || "XOF")}
         </div>
         <div className="mt-auto flex items-center gap-1 pt-1 text-xs text-arctic-600">
-          <SaasIcon name="store" size={12} className="shrink-0 text-arctic-500" />
+          <SaasIcon name="store" size={12} className="shrink-0 text-arctic-600" />
           <span className="truncate">{product.shop.shopName}</span>
           {product.shop.verified && <VerifiedBadge size="sm" withLabel={false} className="shrink-0" />}
         </div>
         {region && (
-          <div className="flex items-center gap-1 text-xs text-arctic-500">
+          <div className="flex items-center gap-1 text-xs text-arctic-600">
             <SaasIcon name="map-pin" size={12} className="shrink-0" />
             <span className="truncate">{region.label}</span>
           </div>
@@ -386,7 +386,7 @@ export default function MarketplaceClient({
               <input type="hidden" name="region" value={activeRegion} />
             )}
             <div className="flex items-center rounded-shape-full border border-arctic-300/75 bg-white/90 p-1.5 shadow-elev-2 backdrop-blur-md focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/25">
-              <span className="pl-4 pr-2 text-arctic-500">
+              <span className="pl-4 pr-2 text-arctic-600">
                 <SaasIcon name="search" size={18} />
               </span>
               <input
@@ -455,7 +455,7 @@ export default function MarketplaceClient({
         </div>
       </section>
 
-      <main className="mx-auto max-w-6xl flex-1 px-4 py-10">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10">
         {/* ============================================================
          * 2. ACTIVE FILTERS BAR
          * ============================================================ */}
@@ -477,7 +477,7 @@ export default function MarketplaceClient({
                     selectedCategoryObj.label
                   )}
                 </span>
-                <SaasIcon name="x" size={12} className="text-arctic-500 hover:text-arctic-900" />
+                <SaasIcon name="x" size={12} className="text-arctic-600 hover:text-arctic-900" />
               </Link>
             )}
             {selectedRegionObj && (
@@ -489,7 +489,7 @@ export default function MarketplaceClient({
                 <span>
                   {selectedRegionObj.label} ({selectedRegionObj.country})
                 </span>
-                <SaasIcon name="x" size={12} className="text-arctic-500 hover:text-arctic-900" />
+                <SaasIcon name="x" size={12} className="text-arctic-600 hover:text-arctic-900" />
               </Link>
             )}
             {query && (
@@ -498,7 +498,7 @@ export default function MarketplaceClient({
                 className="inline-flex items-center gap-1.5 rounded-shape-full bg-white px-3 py-1 text-xs font-semibold text-arctic-900 shadow-xs hover:bg-arctic-50"
               >
                 <span>&ldquo;{query}&rdquo;</span>
-                <SaasIcon name="x" size={12} className="text-arctic-500 hover:text-arctic-900" />
+                <SaasIcon name="x" size={12} className="text-arctic-600 hover:text-arctic-900" />
               </Link>
             )}
             <Link
@@ -596,7 +596,7 @@ export default function MarketplaceClient({
                   <span>{r.label}</span>
                   <span
                     className={`ml-1 a-label-md ${
-                      isSelected ? "text-arctic-200" : "text-arctic-500"
+                      isSelected ? "text-arctic-200" : "text-arctic-600"
                     }`}
                   >
                     {r.country}
@@ -767,7 +767,7 @@ export default function MarketplaceClient({
               >
                 <div>
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 rounded-md border border-brand/30 bg-brand/10 px-2 py-0.5 text-[10px] font-bold text-brand-dark">
+                    <span className="inline-flex items-center gap-1.5 rounded-shape-sm border border-brand/30 bg-brand/10 px-2 py-0.5 text-[10px] font-bold text-brand-dark">
                       <SaasIcon name="globe" size={12} />
                       <span>{hub.code}</span>
                     </span>
@@ -783,7 +783,7 @@ export default function MarketplaceClient({
                       <Link
                         key={city.slug}
                         href={`/marketplace/${city.slug}`}
-                        className="rounded-md border border-arctic-300/60 bg-white/80 px-2 py-1 text-[11px] font-medium text-arctic-800 hover:border-brand hover:text-brand-dark"
+                        className="rounded-shape-sm border border-arctic-300/60 bg-white/80 px-2 py-1 text-[11px] font-medium text-arctic-800 hover:border-brand hover:text-brand-dark"
                       >
                         {city.label}
                       </Link>

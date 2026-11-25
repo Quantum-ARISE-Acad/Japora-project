@@ -252,7 +252,7 @@ export default function BroadcastComposer({
                   ? "text-red-600"
                   : remaining < 100
                     ? "text-amber-600"
-                    : "text-arctic-500")
+                    : "text-arctic-600")
               }
             >
               {remaining} {tr("caractères restants", "characters left")}
@@ -342,12 +342,12 @@ export default function BroadcastComposer({
                   </span>
                   <StatusPill status={b.status} />
                   <span
-                    className="text-arctic-500"
+                    className="text-arctic-600"
                     title={b.status === "stubbed" ? tr("La simulation n’a envoyé aucun message réel.", "The simulation sent no real message.") : tr("Ce nombre indique les messages acceptés par l’API WhatsApp. Il ne confirme pas leur livraison au téléphone.", "This number counts the messages accepted by the WhatsApp API. It does not confirm delivery to the phone.")}
                   >
                     {b.sentCount} / {b.targetCount} {b.status === "stubbed" ? tr("simulés", "simulated") : tr("acceptés par WhatsApp", "accepted by WhatsApp")}
                   </span>
-                  <span className="ml-auto text-arctic-500">
+                  <span className="ml-auto text-arctic-600">
                     {new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short" }).format(new Date(b.createdAt))}
                   </span>
                 </div>

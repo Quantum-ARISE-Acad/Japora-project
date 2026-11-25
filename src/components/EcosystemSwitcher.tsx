@@ -117,7 +117,7 @@ export default function EcosystemSwitcher({
           Suite
         </span>
         <svg
-          className={`h-3.5 w-3.5 text-arctic-500 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          className={`h-3.5 w-3.5 text-arctic-600 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
           viewBox="0 0 20 20"
           fill="currentColor"
         >
@@ -179,7 +179,7 @@ export default function EcosystemSwitcher({
                           {tr("Connexion SSO…", "SSO sign-in…")}
                         </span>
                       ) : (
-                        <span className="text-[10px] font-medium text-arctic-500 dark:text-slate-400">
+                        <span className="text-[10px] font-medium text-arctic-600 dark:text-slate-400">
                           {p.badge} ↗
                         </span>
                       )}
@@ -193,7 +193,7 @@ export default function EcosystemSwitcher({
             })}
           </div>
 
-          <div className="mt-2.5 pt-2 border-t border-arctic-200/50 dark:border-slate-800 px-2 flex items-center justify-between text-[11px] text-arctic-500 dark:text-slate-400">
+          <div className="mt-2.5 pt-2 border-t border-arctic-200/50 dark:border-slate-800 px-2 flex items-center justify-between text-[11px] text-arctic-600 dark:text-slate-400">
             <span>{tr("Flux de données unifié", "Unified data flow")}</span>
             <span className="text-brand font-medium">Japora ↔ Soko ↔ WEscrow</span>
           </div>

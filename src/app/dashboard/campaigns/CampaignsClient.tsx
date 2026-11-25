@@ -895,7 +895,7 @@ export default function CampaignsClient({
               "Conversion Funnel Meta Marketing API → Japora Storefront & WhatsApp",
             )}
           </div>
-          <div className="text-xs text-arctic-500">
+          <div className="text-xs text-arctic-600">
             {tr("Attribution automatique sur 7 jours via", "7-day automatic attribution via")} <code>/go/&lt;refCode&gt;</code>
           </div>
         </div>
@@ -1052,7 +1052,7 @@ export default function CampaignsClient({
                               <div className="text-xs font-semibold text-emerald-700">
                                 {formatMoney(p.priceCents, currency)}
                               </div>
-                              <div className="text-[10px] text-arctic-500">
+                              <div className="text-[10px] text-arctic-600">
                                 {tr("Stock :", "Stock:")} {p.stock} • {p.category || tr("Catalogue", "Catalog")}
                               </div>
                             </div>
@@ -1147,7 +1147,7 @@ export default function CampaignsClient({
                   <h3 className="text-sm font-bold text-arctic-900">
                     {tr("Étape 2 — Ensemble de Publicités : Ciblage & Budget (`/adsets`)", "Step 2 — Ad set: targeting & budget (`/adsets`)")}
                   </h3>
-                  <span className="text-[11px] text-arctic-500">
+                  <span className="text-[11px] text-arctic-600">
                     {tr("Portée estimée :", "Estimated reach:")} {estimatedDailyReachMin.toLocaleString("fr-FR")} –{" "}
                     {estimatedDailyReachMax.toLocaleString("fr-FR")} {tr("pers./jour", "people/day")}
                   </span>
@@ -1351,7 +1351,7 @@ export default function CampaignsClient({
                   <h3 className="text-sm font-bold text-arctic-900">
                     {tr("Étape 4 — Lancement & Idempotence (`/ads`)", "Step 4 — Launch & idempotency (`/ads`)")}
                   </h3>
-                  <span className="font-mono text-[11px] text-arctic-500">
+                  <span className="font-mono text-[11px] text-arctic-600">
                     Header: X-Client-Idempotent-Key
                   </span>
                 </div>
@@ -1526,7 +1526,7 @@ export default function CampaignsClient({
                           <div className="text-xs font-bold text-arctic-900">
                             {shopName}
                           </div>
-                          <div className="text-[10px] text-arctic-500">
+                          <div className="text-[10px] text-arctic-600">
                             {tr("Sponsorisé • 🌍", "Sponsored • 🌍")} {countries.join(", ")}
                           </div>
                         </div>
@@ -1555,7 +1555,7 @@ export default function CampaignsClient({
 
                     <div className="flex items-center justify-between gap-2 bg-arctic-50 px-3.5 py-2.5 border-t border-arctic-200">
                       <div className="min-w-0 flex-1">
-                        <div className="text-[10px] uppercase text-arctic-500">
+                        <div className="text-[10px] uppercase text-arctic-600">
                           {destinationType === "shop_product"
                             ? `japora.shop/c/${shopSlug || "boutique"}`
                             : `wa.me/${whatsappNumber || "japora"}`}
@@ -1765,7 +1765,7 @@ export default function CampaignsClient({
                               🌍 {meta.targeting.countries.join(", ")} •{" "}
                               {meta.targeting.ageMin}-{meta.targeting.ageMax} {tr("ans", "years")}
                             </span>
-                            <span className="font-mono text-[10px] text-arctic-500">
+                            <span className="font-mono text-[10px] text-arctic-600">
                               Campaign ID: {meta.metaCampaignId} • Ad ID:{" "}
                               {meta.metaAdId}
                             </span>
@@ -1951,7 +1951,7 @@ export default function CampaignsClient({
               <button
                 type="button"
                 onClick={() => setShowConfigModal(false)}
-                className="rounded-lg p-1.5 text-arctic-500 hover:bg-arctic-100"
+                className="rounded-lg p-1.5 text-arctic-600 hover:bg-arctic-100"
               >
                 ✕
               </button>
@@ -2106,7 +2106,7 @@ export default function CampaignsClient({
                 <h3 className="text-lg font-bold text-arctic-900">
                   {inspectedCampaign.name}
                 </h3>
-                <p className="font-mono text-xs text-arctic-500">
+                <p className="font-mono text-xs text-arctic-600">
                   Master X-Client-Idempotent-Key:{" "}
                   {inspectedCampaign.metaDetails.idempotencyKey}
                 </p>
@@ -2114,7 +2114,7 @@ export default function CampaignsClient({
               <button
                 type="button"
                 onClick={() => setInspectedCampaign(null)}
-                className="rounded-lg p-1.5 text-arctic-500 hover:bg-arctic-100"
+                className="rounded-lg p-1.5 text-arctic-600 hover:bg-arctic-100"
               >
                 ✕
               </button>
@@ -2122,7 +2122,7 @@ export default function CampaignsClient({
 
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
               <div className="rounded-xl border border-arctic-200 bg-arctic-50 p-3">
-                <div className="text-[10px] uppercase text-arctic-500">
+                <div className="text-[10px] uppercase text-arctic-600">
                   1. Campaign ID
                 </div>
                 <div className="font-mono text-xs font-bold text-arctic-900">
@@ -2130,7 +2130,7 @@ export default function CampaignsClient({
                 </div>
               </div>
               <div className="rounded-xl border border-arctic-200 bg-arctic-50 p-3">
-                <div className="text-[10px] uppercase text-arctic-500">
+                <div className="text-[10px] uppercase text-arctic-600">
                   2. Ad Set ID
                 </div>
                 <div className="font-mono text-xs font-bold text-arctic-900">
@@ -2138,7 +2138,7 @@ export default function CampaignsClient({
                 </div>
               </div>
               <div className="rounded-xl border border-arctic-200 bg-arctic-50 p-3">
-                <div className="text-[10px] uppercase text-arctic-500">
+                <div className="text-[10px] uppercase text-arctic-600">
                   3. Ad Creative ID
                 </div>
                 <div className="font-mono text-xs font-bold text-arctic-900">
@@ -2146,7 +2146,7 @@ export default function CampaignsClient({
                 </div>
               </div>
               <div className="rounded-xl border border-arctic-200 bg-arctic-50 p-3">
-                <div className="text-[10px] uppercase text-arctic-500">
+                <div className="text-[10px] uppercase text-arctic-600">
                   4. Ad ID
                 </div>
                 <div className="font-mono text-xs font-bold text-arctic-900">
@@ -2247,7 +2247,7 @@ function FunnelStage({
         <span className="text-base font-bold text-arctic-900">
           {count.toLocaleString("fr-FR")}
         </span>
-        <span className="text-[11px] font-semibold text-arctic-500">{pct}%</span>
+        <span className="text-[11px] font-semibold text-arctic-600">{pct}%</span>
       </div>
       <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-arctic-200">
         <div
@@ -2270,7 +2270,7 @@ function MiniMetric({
 }) {
   return (
     <div className="rounded-lg bg-arctic-50/80 px-2.5 py-2">
-      <div className="text-[10px] font-medium text-arctic-500">{label}</div>
+      <div className="text-[10px] font-medium text-arctic-600">{label}</div>
       <div
         className={`mt-0.5 text-xs font-bold ${
           highlight ? "text-emerald-700" : "text-arctic-900"
@@ -2303,7 +2303,7 @@ function CampaignStatusBadge({ status }: { status: string }) {
     approved: { label: "APPROUVÉE", cls: "bg-sky-500/15 text-sky-700" },
     sent: { label: "ENVOYÉE", cls: "bg-emerald-500/15 text-emerald-700" },
     cancelled: { label: "ANNULÉE", cls: "bg-arctic-400/20 text-arctic-600" },
-    archived: { label: "ARCHIVÉE", cls: "bg-arctic-400/20 text-arctic-500" },
+    archived: { label: "ARCHIVÉE", cls: "bg-arctic-400/20 text-arctic-600" },
   };
   const cfg = map[status] ?? {
     label: status.toUpperCase(),

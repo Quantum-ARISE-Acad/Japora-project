@@ -51,7 +51,7 @@ export default function ShopCurrencySelector({
 
       {open && (
         <div className="absolute right-0 top-full mt-2 z-50 w-56 rounded-shape-xl border border-arctic-400/40 bg-white/95 p-1.5 shadow-xl backdrop-blur-md a-scale-in dark:bg-arctic-900/95">
-          <div className="flex items-center justify-between px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-arctic-500 border-b border-arctic-200/50 dark:border-arctic-800">
+          <div className="flex items-center justify-between px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-arctic-600 border-b border-arctic-200/50 dark:border-arctic-800">
             <span>{tr("Devise d’affichage", "Display currency")}</span>
             <span className="text-[10px] lowercase text-arctic-400">{tr("conversion auto", "auto-converted")}</span>
           </div>
@@ -78,7 +78,7 @@ export default function ShopCurrencySelector({
                     <span className="text-sm">{curr.flag}</span>
                     <div className="text-left">
                       <span className="font-semibold">{curr.code}</span>
-                      <span className="ml-1 text-arctic-500 text-[11px]">
+                      <span className="ml-1 text-arctic-600 text-[11px]">
                         ({curr.symbol})
                       </span>
                     </div>

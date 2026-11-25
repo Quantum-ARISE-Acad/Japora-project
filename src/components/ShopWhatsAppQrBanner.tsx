@@ -147,7 +147,7 @@ export default function ShopWhatsAppQrBanner({
             <button
               type="button"
               onClick={() => setZoomOpen(true)}
-              className="mt-1.5 text-[11px] font-medium text-emerald-300 hover:text-emerald-200 underline cursor-pointer"
+              className="mt-1 inline-flex min-h-[24px] items-center text-[11px] font-medium text-emerald-300 underline hover:text-emerald-200"
             >
               {tr("Agrandir le QR code", "Enlarge QR code")}
             </button>

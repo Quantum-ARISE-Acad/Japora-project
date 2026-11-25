@@ -296,7 +296,7 @@ export default function WhatsAppAssistantConfig({
               value={assistantName}
               onChange={(e) => setAssistantName(e.target.value)}
             />
-            <p className="mt-1 text-xs text-arctic-500">
+            <p className="mt-1 text-xs text-arctic-600">
               {tr(
                 "Affiché en haut du chat IA sur la boutique et dans les réponses Gemini.",
                 "Displayed at the top of the storefront AI chat and in Gemini replies.",
@@ -318,7 +318,7 @@ export default function WhatsAppAssistantConfig({
               value={whatsappNumber}
               onChange={(e) => setWhatsappNumber(e.target.value)}
             />
-            <p className="mt-1 text-xs text-arctic-500">
+            <p className="mt-1 text-xs text-arctic-600">
               {tr(
                 "Utilisé pour générer le QR Code WhatsApp et rediriger les clients vers votre WhatsApp.",
                 "Used to generate the WhatsApp QR Code and redirect customers to your WhatsApp.",
@@ -375,7 +375,7 @@ export default function WhatsAppAssistantConfig({
             value={customInstructions}
             onChange={(e) => setCustomInstructions(e.target.value)}
           />
-          <p className="mt-1 text-xs text-arctic-500">
+          <p className="mt-1 text-xs text-arctic-600">
             {tr(
               "Gemini utilisera ces consignes en plus de votre catalogue de produits pour répondre aux clients sur le site et sur WhatsApp.",
               "Gemini will use these instructions alongside your product catalog to answer customers on the website and WhatsApp.",
@@ -412,7 +412,7 @@ export default function WhatsAppAssistantConfig({
                 value={whatsappPhoneNumberId}
                 onChange={(e) => setWhatsappPhoneNumberId(e.target.value)}
               />
-              <span className="text-[11px] text-arctic-500">
+              <span className="text-[11px] text-arctic-600">
                 {tr(
                   "Identifiant numérique du numéro d'envoi dans Meta App Dashboard.",
                   "Numeric ID of the sending phone number in Meta App Dashboard.",
@@ -443,7 +443,7 @@ export default function WhatsAppAssistantConfig({
                 value={whatsappAccessToken}
                 onChange={(e) => setWhatsappAccessToken(e.target.value)}
               />
-              <span className="text-[11px] text-arctic-500">
+              <span className="text-[11px] text-arctic-600">
                 {tr(
                   "Token permanent (System User) ou temporaire fourni par Meta for Developers.",
                   "Permanent (System User) or temporary token from Meta for Developers.",
@@ -462,7 +462,7 @@ export default function WhatsAppAssistantConfig({
                 value={geminiApiKey}
                 onChange={(e) => setGeminiApiKey(e.target.value)}
               />
-              <span className="text-[11px] text-arctic-500">
+              <span className="text-[11px] text-arctic-600">
                 {tr(
                   "Permet d'utiliser votre propre clé Gemini pour l'assistant IA de votre boutique.",
                   "Allows using your own Gemini key for your store's AI assistant.",
@@ -507,7 +507,7 @@ export default function WhatsAppAssistantConfig({
                 value={whatsappVerifyToken}
                 onChange={(e) => setWhatsappVerifyToken(e.target.value)}
               />
-              <span className="text-[11px] text-arctic-500">
+              <span className="text-[11px] text-arctic-600">
                 {tr("Champs Webhook à abonner sur Meta :", "Webhook fields to subscribe on Meta:")}{" "}
                 <code className="font-mono font-bold">messages</code>
               </span>

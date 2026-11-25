@@ -522,7 +522,7 @@ export default function AnalyticsClient({
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
         <div className="card p-5 space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-wider text-arctic-500 font-semibold">
+            <span className="text-xs uppercase tracking-wider text-arctic-600 font-semibold">
               {tr("Chiffre d'affaires encaissé", "Collected revenue")}
             </span>
             {revenueGrowthPct !== null && (
@@ -546,7 +546,7 @@ export default function AnalyticsClient({
         </div>
 
         <div className="card p-5 space-y-1.5">
-          <div className="text-xs uppercase tracking-wider text-arctic-500 font-semibold">
+          <div className="text-xs uppercase tracking-wider text-arctic-600 font-semibold">
             {tr("En attente d'encaissement", "Pending collection")}
           </div>
           <div className="text-2xl font-black text-amber-700">
@@ -559,49 +559,49 @@ export default function AnalyticsClient({
         </div>
 
         <div className="card p-5 space-y-1.5">
-          <div className="text-xs uppercase tracking-wider text-arctic-500 font-semibold">
+          <div className="text-xs uppercase tracking-wider text-arctic-600 font-semibold">
             {tr("Panier moyen", "Avg. order value")}
           </div>
           <div className="text-2xl font-black text-arctic-900">
             {formatMoney(avgOrder, currency)}
           </div>
-          <div className="text-[11px] text-arctic-500 font-medium">
+          <div className="text-[11px] text-arctic-600 font-medium">
             {tr("Sur", "Across")} {filteredOrders.length} {tr("commande(s) reçue(s)", "received order(s)")}
           </div>
         </div>
 
         <div className="card p-5 space-y-1.5">
-          <div className="text-xs uppercase tracking-wider text-arctic-500 font-semibold">
+          <div className="text-xs uppercase tracking-wider text-arctic-600 font-semibold">
             {tr("Taux de conversion", "Conversion rate")}
           </div>
           <div className="text-2xl font-black text-emerald-700">
             {filteredFunnel.conversionRate}%
           </div>
-          <div className="text-[11px] text-arctic-500 font-medium">
+          <div className="text-[11px] text-arctic-600 font-medium">
             {filteredFunnel.visits} {tr("visite(s)", "visit(s)")} → {filteredFunnel.confirmed} {tr("achat(s)", "order(s)")}
           </div>
         </div>
 
         <div className="card p-5 space-y-1.5">
-          <div className="text-xs uppercase tracking-wider text-arctic-500 font-semibold">
+          <div className="text-xs uppercase tracking-wider text-arctic-600 font-semibold">
             {tr("Fidélisation clients", "Customer retention")}
           </div>
           <div className="text-2xl font-black text-arctic-900">
             {retentionRatePct}%
           </div>
-          <div className="text-[11px] text-arctic-500 font-medium">
+          <div className="text-[11px] text-arctic-600 font-medium">
             {repeatCustomersCount} {tr("client(s) récurrent(s) sur", "repeat customer(s) out of")} {customers.length}
           </div>
         </div>
 
         <div className="card p-5 space-y-1.5">
-          <div className="text-xs uppercase tracking-wider text-arctic-500 font-semibold">
+          <div className="text-xs uppercase tracking-wider text-arctic-600 font-semibold">
             {tr("Activité Assistant WhatsApp", "WhatsApp Assistant activity")}
           </div>
           <div className="text-2xl font-black text-arctic-900">
             {whatsappMetrics.inboundCount + whatsappMetrics.outboundCount}
           </div>
-          <div className="text-[11px] text-arctic-500 font-medium">
+          <div className="text-[11px] text-arctic-600 font-medium">
             {whatsappMetrics.inboundCount} {tr("reçus", "inbound")} · {whatsappMetrics.outboundCount}{" "}
             {tr("envoyés", "outbound")} ({whatsappMetrics.botRepliesCount} {tr("réponses IA", "AI replies")})
           </div>
@@ -618,7 +618,7 @@ export default function AnalyticsClient({
                 `Daily sales evolution (last ${chartDays} days)`,
               )}
             </h2>
-            <p className="text-xs text-arctic-500">
+            <p className="text-xs text-arctic-600">
               {tr(
                 "Survolez une barre pour voir le chiffre d'affaires et le nombre de commandes du jour",
                 "Hover over a bar to see daily revenue and order count",
@@ -657,7 +657,7 @@ export default function AnalyticsClient({
                     style={{ height: `${pct}%` }}
                   />
                 </div>
-                <span className="text-[10px] font-medium text-arctic-500 truncate">{d.date}</span>
+                <span className="text-[10px] font-medium text-arctic-600 truncate">{d.date}</span>
               </div>
             );
           })}
@@ -673,7 +673,7 @@ export default function AnalyticsClient({
               <h2 className="text-base font-bold text-arctic-900">
                 {tr("Entonnoir de conversion de la boutique", "Storefront conversion funnel")}
               </h2>
-              <p className="text-xs text-arctic-500">
+              <p className="text-xs text-arctic-600">
                 {tr("Parcours client du catalogue jusqu'au paiement confirmé", "Customer journey from catalog visit to confirmed payment")}
               </p>
             </div>
@@ -726,7 +726,7 @@ export default function AnalyticsClient({
             <h2 className="text-base font-bold text-arctic-900">
               {tr("Répartition par statut", "Breakdown by status")}
             </h2>
-            <p className="text-xs text-arctic-500">
+            <p className="text-xs text-arctic-600">
               {tr("État actuel des commandes sur la période", "Current status of orders in this period")}
             </p>
           </div>
@@ -793,7 +793,7 @@ export default function AnalyticsClient({
               <h2 className="text-base font-bold text-arctic-900">
                 {tr("Performance détaillée des produits", "Detailed product performance")}
               </h2>
-              <p className="text-xs text-arctic-500">
+              <p className="text-xs text-arctic-600">
                 {tr("Ventes, revenus générés, consultations et stock restant", "Units sold, revenue generated, views, and remaining stock")}
               </p>
             </div>
@@ -803,14 +803,14 @@ export default function AnalyticsClient({
           </div>
 
           {productPerformance.length === 0 ? (
-            <p className="text-xs text-arctic-500 italic py-4">
+            <p className="text-xs text-arctic-600 italic py-4">
               {tr("Aucun produit dans votre catalogue pour le moment.", "No products in your catalog yet.")}
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-arctic-200 text-[11px] uppercase tracking-wider text-arctic-500">
+                  <tr className="border-b border-arctic-200 text-[11px] uppercase tracking-wider text-arctic-600">
                     <th className="pb-2.5 font-semibold">{tr("Produit", "Product")}</th>
                     <th className="pb-2.5 font-semibold text-right">{tr("Vues", "Views")}</th>
                     <th className="pb-2.5 font-semibold text-right">{tr("Vendus", "Sold")}</th>
@@ -835,7 +835,7 @@ export default function AnalyticsClient({
                             <div className="font-semibold text-arctic-900 truncate max-w-[180px]">
                               {p.name}
                             </div>
-                            <div className="text-[10px] text-arctic-500">
+                            <div className="text-[10px] text-arctic-600">
                               {formatMoney(p.priceCents, currency)}
                               {p.collectionName ? ` · ${p.collectionName}` : ""}
                             </div>
@@ -876,7 +876,7 @@ export default function AnalyticsClient({
             <h2 className="text-base font-bold text-arctic-900">
               {tr("Santé du stock & Inventaire", "Stock & Inventory health")}
             </h2>
-            <p className="text-xs text-arctic-500">
+            <p className="text-xs text-arctic-600">
               {tr("Valeur du stock actif :", "Active inventory value:")}{" "}
               <strong className="text-arctic-900">
                 {formatMoney(totalCatalogValueCents, currency)}
@@ -937,7 +937,7 @@ export default function AnalyticsClient({
               <h2 className="text-base font-bold text-arctic-900">
                 {tr("Meilleurs clients (CRM)", "Top customers (CRM)")}
               </h2>
-              <p className="text-xs text-arctic-500">
+              <p className="text-xs text-arctic-600">
                 {tr("Clients classés par chiffre d'affaires cumulé", "Customers ranked by lifetime spend")}
               </p>
             </div>
@@ -947,7 +947,7 @@ export default function AnalyticsClient({
           </div>
 
           {customers.length === 0 ? (
-            <p className="text-xs text-arctic-500 italic">
+            <p className="text-xs text-arctic-600 italic">
               {tr("Aucun client enregistré pour le moment.", "No customers recorded yet.")}
             </p>
           ) : (
@@ -963,14 +963,14 @@ export default function AnalyticsClient({
                     </span>
                     <div className="min-w-0">
                       <div className="font-bold text-arctic-900 truncate">{c.name}</div>
-                      <div className="text-[11px] text-arctic-500 font-mono">{c.phone}</div>
+                      <div className="text-[11px] text-arctic-600 font-mono">{c.phone}</div>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
                     <div className="font-bold text-emerald-700 font-mono">
                       {formatMoney(c.totalSpentCents, currency)}
                     </div>
-                    <div className="text-[10px] text-arctic-500">
+                    <div className="text-[10px] text-arctic-600">
                       {c.orderCount} {tr("commande(s)", "order(s)")}
                     </div>
                   </div>
@@ -987,7 +987,7 @@ export default function AnalyticsClient({
               <h2 className="text-base font-bold text-arctic-900">
                 {tr("Heures d'affluence des commandes", "Peak ordering hours")}
               </h2>
-              <span className="text-xs text-arctic-500">
+              <span className="text-xs text-arctic-600">
                 {tr("Créneaux 0h – 23h", "0h – 23h slots")}
               </span>
             </div>
@@ -1010,7 +1010,7 @@ export default function AnalyticsClient({
                         style={{ height: `${pct}%` }}
                       />
                     </div>
-                    <span className="text-[9px] text-arctic-500">{h}h</span>
+                    <span className="text-[9px] text-arctic-600">{h}h</span>
                   </div>
                 );
               })}

@@ -43,7 +43,11 @@
      redefined under .dark: --gold flips light for dark mode, and a filled
      button that keeps a white label must not flip with it. */
   --gold-shade:  122  83  48;  /* #7A5330 (white text 6.76:1) */
-  --gold-deep:   143 100  59;  /* #8F643B Café text on light (~6.5:1) */
+  /* Accent TEXT on light. Deepened from #8F643B: eyebrows sit on their own
+     gold/10 chip, and there #8F643B measured 4.46:1 — under AA for the
+     10-11px they are set at. #7A5330 gives 6.47:1 on porcelain and
+     5.82:1 on the chip. The FILL token is unchanged; this is text only. */
+  --gold-deep:   122  83  48;  /* #7A5330 */
   --gold-bright: 196 154 108;  /* #C49A6C Café Clair Lumineux (dark-mode accent/hover) */
 
   /* ---------- Semantic color roles (M3) ---------- */

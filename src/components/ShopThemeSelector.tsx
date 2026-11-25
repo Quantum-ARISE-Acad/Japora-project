@@ -78,7 +78,7 @@ export default function ShopThemeSelector({
 
       {open && (
         <div className="absolute right-0 top-full mt-2 z-50 w-52 rounded-shape-xl border border-arctic-400/40 bg-white/95 p-1.5 shadow-xl backdrop-blur-md a-scale-in dark:bg-arctic-900/95">
-          <div className="px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-arctic-500 border-b border-arctic-200/50 dark:border-arctic-800">
+          <div className="px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-arctic-600 border-b border-arctic-200/50 dark:border-arctic-800">
             {tr("Thème de la boutique", "Shop theme")}
           </div>
           <div className="mt-1 space-y-0.5">

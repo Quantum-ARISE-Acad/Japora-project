@@ -54,7 +54,7 @@ export default function PhoneNumberInput({
           required={required}
         />
       </div>
-      <span className="mt-1 block text-[11px] text-arctic-500">
+      <span className="mt-1 block text-[11px] text-arctic-600">
         {tr("Saisissez un numéro local pour le pays choisi, ou un numéro international commençant par +.", "Enter a local number for the selected country, or an international number beginning with +.")}
       </span>
     </div>

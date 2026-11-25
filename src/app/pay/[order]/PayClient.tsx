@@ -109,7 +109,7 @@ export default function PayClient({
   return (
     <div className="space-y-4 p-5">
       <div>
-        <p className="text-xs font-bold uppercase tracking-wider text-arctic-500">
+        <p className="text-xs font-bold uppercase tracking-wider text-arctic-600">
           {tr("Choisissez votre moyen de paiement", "Choose your payment method")}
         </p>
         <p className="mt-0.5 text-xs text-arctic-600">

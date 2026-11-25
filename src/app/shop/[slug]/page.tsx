@@ -56,10 +56,13 @@ export default async function PublicShopPage({ params }: Params) {
     <div className="min-h-screen flex flex-col">
       <PublicHeader />
 
-      <main className="mx-auto max-w-5xl flex-1 px-4 py-10 space-y-8 w-full">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 space-y-8">
         {/* Breadcrumb */}
         <nav className="flex flex-wrap items-center gap-2 text-xs text-arctic-600">
-          <Link href="/marketplace" className="font-semibold hover:text-arctic-900">
+          <Link
+            href="/marketplace"
+            className="inline-flex min-h-[24px] items-center font-semibold hover:text-arctic-900"
+          >
             ← {t("Retour au Marketplace", "Back to Marketplace")}
           </Link>
           {region && (
@@ -67,7 +70,7 @@ export default async function PublicShopPage({ params }: Params) {
               <span>·</span>
               <Link
                 href={`/marketplace/${region.slug}`}
-                className="inline-flex items-center gap-1 hover:text-arctic-900"
+                className="inline-flex min-h-[24px] items-center gap-1 hover:text-arctic-900"
               >
                 <SaasIcon name="map-pin" size={13} className="text-brand-dark" />
                 <span>{region.label}</span>
@@ -79,7 +82,7 @@ export default async function PublicShopPage({ params }: Params) {
               <span>·</span>
               <Link
                 href={`/marketplace?category=${category.slug}`}
-                className="inline-flex items-center gap-1 hover:text-arctic-900"
+                className="inline-flex min-h-[24px] items-center gap-1 hover:text-arctic-900"
               >
                 <CategoryIcon slug={category.slug} size={13} className="text-brand-dark" />
                 <span>{tr(...categoryName(category))}</span>
@@ -166,7 +169,7 @@ export default async function PublicShopPage({ params }: Params) {
                   {shop.bio}
                 </p>
               ) : (
-                <p className="a-body-sm mt-4 italic text-arctic-500">
+                <p className="a-body-sm mt-4 italic text-arctic-600">
                   {t(`Bienvenue sur la boutique officielle ${shop.shopName}. Parcourez le catalogue en ligne et commandez directement sur WhatsApp.`, `Welcome to ${shop.shopName}'s official shop. Browse the online catalog and order directly on WhatsApp.`)}
                 </p>
               )}
@@ -198,7 +201,7 @@ export default async function PublicShopPage({ params }: Params) {
                     <Glyph name="chat" size={17} /> {t("Discuter sur WhatsApp", "Chat on WhatsApp")}
                   </a>
                 ) : (
-                  <span className="btn a-btn--lg flex-1 cursor-not-allowed border border-arctic-400/45 bg-white/40 text-arctic-500">
+                  <span className="btn a-btn--lg flex-1 cursor-not-allowed border border-arctic-400/45 bg-white/40 text-arctic-600">
                     {t("WhatsApp non configuré", "WhatsApp not configured")}
                   </span>
                 )}
@@ -219,7 +222,7 @@ export default async function PublicShopPage({ params }: Params) {
               </div>
               <Link
                 href={`/c/${shop.shopSlug}`}
-                className="inline-flex items-center gap-1 text-xs font-bold text-brand-dark hover:underline"
+                className="inline-flex min-h-[24px] items-center gap-1 text-xs font-bold text-brand-dark hover:underline"
               >
                 <span>{t("Tout voir dans le catalogue", "View full catalog")}</span>
                 <SaasIcon name="arrow-right" size={13} />
@@ -242,7 +245,7 @@ export default async function PublicShopPage({ params }: Params) {
                         className="h-full w-full object-cover transition-transform duration-short group-hover:scale-105"
                       />
                     ) : (
-                      <div className="grid h-full w-full place-items-center text-2xl font-bold text-arctic-500">
+                      <div className="grid h-full w-full place-items-center text-2xl font-bold text-arctic-600">
                         {p.name.charAt(0)}
                       </div>
                     )}

@@ -76,7 +76,7 @@ export default function AssetDownloads({ productId, productName, priceText, shop
           {copied ? tr("Légende copiée ✓", "Caption copied ✓") : tr("Copier légende", "Copy caption")}
         </button>
       </div>
-      <p className="a-label-md text-arctic-500">
+      <p className="a-label-md text-arctic-600">
         {tr(
           "Télécharger → ouvrir WhatsApp → Statut → ajouter l'image et coller la légende.",
           "Download → open WhatsApp → Status → add the image & paste the caption.",
