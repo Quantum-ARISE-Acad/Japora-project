@@ -60,8 +60,13 @@ export default {
           "on-primary":       "var(--aurora-on-primary)",
           "primary-container":"var(--aurora-primary-container)",
           secondary:          "var(--aurora-secondary)",
-          error:              "var(--aurora-error)",
-          success:            "var(--aurora-success)",
+          error:              ramp("--aurora-error-rgb"),
+          success:            ramp("--aurora-success-rgb"),
+          warning:            ramp("--aurora-warning-rgb"),
+          "warning-bg":       "var(--aurora-warning-bg)",
+          "warning-text":     "var(--aurora-warning-text)",
+          "success-text":     "var(--aurora-success-text)",
+          "error-text":       "var(--aurora-error-text)",
         },
 
         // Legacy `brand` — now the antique-gold / café clair accent. `brand.dark` flips to a
@@ -71,6 +76,16 @@ export default {
           DEFAULT: ramp("--gold"),
           dark:    ramp("--gold-deep"),
           light:   ramp("--gold-bright"),
+        },
+
+        // WhatsApp-green signal. `live` is the online dot only; `fill` carries
+        // white text on a filled WhatsApp action; `text` is the type colour and
+        // flips under .dark. See aurora.css for the measured ratios.
+        signal: {
+          live: "var(--signal-live)",
+          fill:         ramp("--signal-live-fill"),
+          "fill-hover": ramp("--signal-live-fill-hover"),
+          text:         ramp("--signal-live-text"),
         },
 
         // Unified Wataru Palette Aliases

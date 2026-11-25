@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { TopProduct } from "@/lib/bookkeeping";
 import { isZeroDecimal } from "@/lib/currency";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import Glyph from "@/components/Glyph";
 
 type SummaryCard = {
   year: number;
@@ -114,25 +115,25 @@ export default function BookkeepingClient({ currency, currentSummary, lastSummar
         </div>
 
         {/* KPI Stats */}
-        <div className="mt-4 grid grid-cols-3 gap-3">
-          <div>
+        <div className="mt-4 grid grid-cols-1 gap-3 min-[420px]:grid-cols-3">
+          <div className="min-w-0">
             <div className="text-[11px] uppercase tracking-wide text-arctic-600">{tr("Commandes", "Orders")}</div>
-            <div className="mt-1 text-xl font-bold text-arctic-900">{s.orderCount}</div>
+            <div className="a-num mt-1 text-xl font-bold text-arctic-900">{s.orderCount}</div>
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="text-[11px] uppercase tracking-wide text-arctic-600">{tr("Chiffre d’affaires", "Revenue")}</div>
-            <div className="mt-1 text-xl font-bold text-arctic-900">{formatMoney(s.revenueCents, currency)}</div>
+            <div className="a-num mt-1 text-xl font-bold text-arctic-900">{formatMoney(s.revenueCents, currency)}</div>
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="text-[11px] uppercase tracking-wide text-arctic-600">{tr("Panier moyen", "Avg. order")}</div>
-            <div className="mt-1 text-xl font-bold text-arctic-900">{formatMoney(s.avgOrderValueCents, currency)}</div>
+            <div className="a-num mt-1 text-xl font-bold text-arctic-900">{formatMoney(s.avgOrderValueCents, currency)}</div>
           </div>
         </div>
 
         {/* Open Receivables warning box */}
-        <div className="mt-4 flex items-center justify-between rounded-lg border border-amber-500/20 bg-amber-50/70 p-3 text-xs">
+        <div className="mt-4 flex items-center justify-between rounded-lg border border-aurora-warning/25 bg-aurora-warning-bg p-3 text-xs">
           <span className="text-arctic-700 font-medium">{tr("Créances ouvertes (impayées) :", "Open receivables (unpaid):")}</span>
-          <span className="font-bold text-amber-700">{formatMoney(s.openReceivablesCents, currency)}</span>
+          <span className="a-num font-bold text-aurora-warning-text">{formatMoney(s.openReceivablesCents, currency)}</span>
         </div>
 
         {/* Top Products sparkbars */}
@@ -152,7 +153,7 @@ export default function BookkeepingClient({ currency, currentSummary, lastSummar
                     </div>
                     <div className="h-1.5 w-full rounded-full bg-arctic-200/60 overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-emerald-600 transition-all duration-medium"
+                        className="h-full rounded-full bg-signal-fill transition-all duration-medium"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -171,7 +172,7 @@ export default function BookkeepingClient({ currency, currentSummary, lastSummar
             className="btn-ghost flex-1 justify-center text-xs"
             title={tr("Exporter le résumé en CSV", "Export summary as CSV")}
           >
-            📥 {tr("Résumé CSV", "CSV summary")}
+            <Glyph name="import" size={14} /> {tr("Résumé CSV", "CSV summary")}
           </button>
           <button
             type="button"
@@ -182,17 +183,17 @@ export default function BookkeepingClient({ currency, currentSummary, lastSummar
               const end = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
               downloadOrdersCsv(start, end);
             }}
-            className="btn-ghost flex-1 justify-center text-xs border border-emerald-300 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300"
+            className="btn-ghost flex-1 justify-center text-xs border border-emerald-300 text-signal-text hover:bg-arctic-100/60 dark:border-emerald-800"
             title={tr("Exporter les commandes détaillées du mois pour Excel/Google Sheets", "Export this month's detailed orders for Excel/Google Sheets")}
           >
-            📋 {tr("Commandes (CSV)", "Orders (CSV)")}
+            <Glyph name="copy" size={14} /> {tr("Commandes (CSV)", "Orders (CSV)")}
           </button>
           <button
             type="button"
             onClick={() => openReport(s.year, s.month)}
             className="btn-primary flex-1 justify-center text-xs"
           >
-            🖨️ {tr("Imprimer / PDF", "Print / PDF")}
+            <Glyph name="print" size={14} /> {tr("Imprimer / PDF", "Print / PDF")}
           </button>
         </div>
       </div>
@@ -205,10 +206,10 @@ export default function BookkeepingClient({ currency, currentSummary, lastSummar
       <div className="card p-5 border border-arctic-300/80 bg-white dark:bg-arctic-900 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-sm font-bold text-arctic-900 dark:text-white flex items-center gap-2">
-              <span>📊</span> {tr("Export comptable complet des commandes (Excel / Google Sheets)", "Full order accounting export (Excel / Google Sheets)")}
+            <h2 className="text-sm font-bold text-arctic-900 flex items-center gap-2">
+              <Glyph name="chart" size={18} /> {tr("Export comptable complet des commandes (Excel / Google Sheets)", "Full order accounting export (Excel / Google Sheets)")}
             </h2>
-            <p className="mt-1 text-xs text-arctic-600 dark:text-arctic-400">
+            <p className="mt-1 text-xs text-arctic-600">
               {tr(
                 "Téléchargez toutes vos commandes avec leur statut, client, moyen de paiement et montants au format CSV compatible Excel.",
                 "Download all orders with status, customer, payment method and amounts in an Excel-compatible CSV.",
@@ -218,9 +219,9 @@ export default function BookkeepingClient({ currency, currentSummary, lastSummar
           <button
             type="button"
             onClick={() => downloadOrdersCsv()}
-            className="btn-primary shrink-0 gap-2 text-xs py-2.5 px-4 !bg-emerald-600 hover:!bg-emerald-700 !text-white font-semibold shadow-sm"
+            className="btn-primary shrink-0 gap-2 text-xs py-2.5 px-4 !bg-signal-fill hover:!bg-signal-fill-hover !text-white font-semibold shadow-sm"
           >
-            <span>📥</span> {tr("Télécharger toutes les commandes (CSV)", "Download all orders (CSV)")}
+            <Glyph name="import" size={18} /> {tr("Télécharger toutes les commandes (CSV)", "Download all orders (CSV)")}
           </button>
         </div>
       </div>
@@ -267,7 +268,7 @@ export default function BookkeepingClient({ currency, currentSummary, lastSummar
           <button
             type="button"
             onClick={() => openReport(pickedYear, pickedMonth)}
-            className="rounded-lg bg-arctic-800 px-4 py-2 text-sm font-semibold text-white hover:bg-arctic-900 dark:bg-brand dark:text-arctic-50 dark:hover:bg-brand-bright"
+            className="rounded-shape-sm bg-arctic-800 px-4 py-2 text-sm font-semibold text-white hover:bg-arctic-900"
           >
             {tr("Ouvrir le rapport du mois", "Open monthly report")}
           </button>

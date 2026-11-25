@@ -67,7 +67,7 @@ export default function AuroraHeroPreview() {
           </span>
         </div>
         <span className="a-num text-xs font-bold text-emerald-700">
-          +18 500 FCFA · ✓ Payé
+          +18 500 FCFA · Payé
         </span>
       </div>
 
@@ -136,7 +136,7 @@ export default function AuroraHeroPreview() {
                 <div className="a-num a-label-lg font-display font-bold text-brand-dark">
                   24 500 FCFA
                 </div>
-                <div className="a-body-sm text-emerald-700 font-medium">{tr("✓ Payé T-Money", "✓ Paid with T-Money")}</div>
+                <div className="a-body-sm text-emerald-700 font-medium">{tr("Payé T-Money", "Paid with T-Money")}</div>
               </div>
             </div>
 
@@ -203,21 +203,21 @@ export default function AuroraHeroPreview() {
             </div>
             <div className="ml-4 rounded-shape-md border border-brand/30 bg-brand/10 p-3 text-xs text-arctic-900">
               <div className="flex items-center justify-between text-[10px] font-bold text-brand-dark mb-1">
-                <span>{tr("🤖 Bot Japora · Réponse instantanée", "🤖 Japora bot · Instant reply")}</span>
+                <span>{tr("Bot Japora · Réponse instantanée", "Japora bot · Instant reply")}</span>
                 <span>00:01s</span>
               </div>
               {tr("Bonjour ! La", "Hello! The")} <strong>{tr("Robe Ankara Maxi", "Ankara Maxi dress")}</strong> {tr("est à", "is")} <strong>12 250 FCFA</strong>{tr(". Il reste", ". There are")} <strong>4 pièces en taille M</strong>{tr(". Souhaitez-vous commander avec livraison à Lomé ?", " left. Would you like to order with delivery in Lomé?")}
               <div className="mt-2 flex flex-wrap gap-1.5">
                 <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-arctic-900 shadow-xs">
-                  {tr("🛒 Commander (Taille M)", "🛒 Order (size M)")}
+                  {tr("Commander (Taille M)", "Order (size M)")}
                 </span>
                 <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold text-arctic-700 shadow-xs">
-                  {tr("📖 Voir tout le catalogue", "📖 See the whole catalog")}
+                  {tr("Voir tout le catalogue", "See the whole catalog")}
                 </span>
               </div>
             </div>
             <div className="flex items-center justify-between rounded-shape-sm bg-emerald-500/10 px-3 py-2 text-[11px] font-medium text-emerald-800">
-              <span>{tr("✓ Lien de paiement T-Money / Flooz envoyé automatiquement", "✓ T-Money / Flooz payment link sent automatically")}</span>
+              <span>{tr("Lien de paiement T-Money / Flooz envoyé automatiquement", "T-Money / Flooz payment link sent automatically")}</span>
               <span className="font-bold">24h/24</span>
             </div>
           </div>
@@ -253,7 +253,7 @@ export default function AuroraHeroPreview() {
                 </div>
               </div>
               <div className="mt-3 flex items-center justify-between border-t border-arctic-200/60 pt-2.5 text-[11px] text-arctic-700">
-                <span>{tr("⚠️ Alerte stock : Sac Bogolan (plus que 2 en stock)", "⚠️ Stock alert: Bogolan bag (only 2 left)")}</span>
+                <span>{tr("Alerte stock : Sac Bogolan (plus que 2 en stock)", "Stock alert: Bogolan bag (only 2 left)")}</span>
                 <span className="font-semibold text-brand-dark">{tr("Gérer →", "Manage →")}</span>
               </div>
             </div>
@@ -269,7 +269,7 @@ export default function AuroraHeroPreview() {
             <Glyph name="moon" size={15} className="text-brand-dark" />
             <span>{tr("Bilan quotidien envoyé à 18h sur votre WhatsApp", "Daily summary sent at 6 pm on your WhatsApp")}</span>
           </div>
-          <div className="a-label-md text-brand-dark">{tr("Actif ✓", "Active ✓")}</div>
+          <div className="a-label-md text-brand-dark">{tr("Actif", "Active")}</div>
         </div>
       </div>
     </div>

@@ -61,6 +61,15 @@ html.js [data-reveal="right"] { transform: translate3d(var(--reveal-shift), 0, 0
 html.js [data-reveal="scale"] { transform: scale(0.965); }
 html.js [data-reveal="fade"]  { transform: none; }
 
+/* The /how-to-use hero and step cards animate from script. Same contract as
+ * [data-reveal]: hidden only once `html.js` confirms scripting, never by an
+ * inline style a failed script cannot clear. */
+html.js [data-hero],
+html.js [data-step] {
+  opacity: 0;
+  will-change: opacity, transform;
+}
+
 [data-reveal] {
   transition:
     opacity var(--reveal-dur) var(--ease-effect),

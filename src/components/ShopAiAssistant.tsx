@@ -5,6 +5,7 @@ import { isStoredWhatsAppNumberValid } from "@/lib/whatsapp-number";
 import QRCode from "qrcode";
 import type { ShopAiActionButton } from "@/app/api/ai/shop-chat/route";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import Glyph from "@/components/Glyph";
 
 interface Message {
   id: string;
@@ -407,10 +408,10 @@ export default function ShopAiAssistant({
   }, [isOpen, activeTab, catalogList.length, shopSlug, currency]);
 
   const quickPrompts = [
-    "🛍️ Voir le catalogue des produits",
-    "🔍 Cherche-moi un produit disponible en stock",
-    "🤝 Je veux proposer un deal sur un article",
-    "📦 Suivre ma commande",
+    "Voir le catalogue des produits",
+    "Cherche-moi un produit disponible en stock",
+    "Je veux proposer un deal sur un article",
+    "Suivre ma commande",
   ];
 
   const renderFormattedText = (text: string) => {
@@ -450,10 +451,10 @@ export default function ShopAiAssistant({
         {!isOpen && (
           <div
             onClick={() => setIsOpen(true)}
-            className="hidden sm:flex items-center gap-2 bg-slate-900/95 border border-emerald-500/40 text-emerald-300 text-xs font-medium px-3.5 py-2 rounded-full shadow-lg backdrop-blur-md cursor-pointer hover:border-emerald-400 transition"
+            className="hidden sm:flex items-center gap-2 bg-slate-900/95 border border-emerald-500/40 text-emerald-300 text-xs font-medium px-3.5 py-2 rounded-full shadow-lg backdrop-blur-md cursor-pointer hover:border-signal-fill transition"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span>{tr("Questions, Catalogue, Deal ou Suivi ? Demandez à l'IA ✨", "Questions, catalog, deal or tracking? Ask the AI ✨")}</span>
+            <span>{tr("Questions, Catalogue, Deal ou Suivi ? Demandez à l'IA", "Questions, catalog, deal or tracking? Ask the AI")}</span>
           </div>
         )}
 
@@ -462,7 +463,7 @@ export default function ShopAiAssistant({
           aria-label={tr("Ouvrir l'Assistant IA de la boutique", "Open the shop's AI assistant")}
           className="group relative flex items-center gap-2.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 text-white font-bold px-5 py-3.5 rounded-full shadow-2xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
         >
-          <span className="text-xl">{isOpen ? "✕" : "✨"}</span>
+          <Glyph name={isOpen ? "close" : "sparkle"} size={20} />
           <span className="text-sm tracking-wide">
             {isOpen ? tr("Fermer", "Close") : tr("Assistant IA & WhatsApp", "AI & WhatsApp assistant")}
           </span>
@@ -476,13 +477,13 @@ export default function ShopAiAssistant({
           <div className="bg-gradient-to-r from-emerald-600/95 via-teal-600/95 to-slate-900 px-4 py-3 border-b border-slate-700/60">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center text-lg shadow-inner">
-                  🤖
+                <div className="grid h-9 w-9 place-items-center rounded-shape-md bg-arctic-50/15 text-arctic-50 shadow-inner">
+                  <Glyph name="bot" size={18} />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
                     {displayAssistantName}
-                    <span className="text-[10px] font-semibold bg-emerald-400/20 text-emerald-200 border border-emerald-400/30 px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-semibold bg-emerald-400/20 text-emerald-200 border border-signal-fill/30 px-2 py-0.5 rounded-full">
                       Gemini IA
                     </span>
                   </h3>
@@ -494,9 +495,10 @@ export default function ShopAiAssistant({
 
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-slate-300 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition cursor-pointer"
+                aria-label={tr("Fermer l\u2019assistant", "Close the assistant")}
+                className="grid min-h-6 min-w-6 cursor-pointer place-items-center rounded-shape-sm p-1.5 text-arctic-300 transition hover:bg-arctic-50/10 hover:text-arctic-50"
               >
-                ✕
+                <Glyph name="close" size={16} />
               </button>
             </div>
 
@@ -507,11 +509,11 @@ export default function ShopAiAssistant({
                 onClick={() => setActiveTab("chat")}
                 className={`rounded-lg py-1.5 text-[11px] font-bold transition cursor-pointer ${
                   activeTab === "chat"
-                    ? "bg-emerald-500 text-white shadow"
+                    ? "bg-signal-fill text-white shadow"
                     : "text-slate-300 hover:text-white"
                 }`}
               >
-                {tr("💬 Chat IA", "💬 AI chat")}
+                {tr("Chat IA", "AI chat")}
               </button>
               <button
                 type="button"
@@ -522,29 +524,29 @@ export default function ShopAiAssistant({
                     : "text-slate-300 hover:text-white"
                 }`}
               >
-                {tr("🤝 Deal", "🤝 Deal")}
+                {tr("Deal", "Deal")}
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab("track")}
                 className={`rounded-lg py-1.5 text-[11px] font-bold transition cursor-pointer ${
                   activeTab === "track"
-                    ? "bg-emerald-500 text-white shadow"
+                    ? "bg-signal-fill text-white shadow"
                     : "text-slate-300 hover:text-white"
                 }`}
               >
-                {tr("📦 Suivi", "📦 Tracking")}
+                {tr("Suivi", "Tracking")}
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab("qr")}
                 className={`rounded-lg py-1.5 text-[11px] font-bold transition cursor-pointer ${
                   activeTab === "qr"
-                    ? "bg-emerald-500 text-white shadow"
+                    ? "bg-signal-fill text-white shadow"
                     : "text-slate-300 hover:text-white"
                 }`}
               >
-                {tr("📲 QR WA", "📲 WA QR")}
+                {tr("QR WA", "WA QR")}
               </button>
             </div>
           </div>
@@ -587,7 +589,7 @@ export default function ShopAiAssistant({
                             onClick={() => handleActionClick(act)}
                             className={`text-[11px] font-semibold px-3 py-1.5 rounded-xl border transition cursor-pointer flex items-center gap-1 shadow-xs ${
                               act.type === "buy_now" || act.type === "pay_order"
-                                ? "bg-emerald-500 hover:bg-emerald-400 text-white border-emerald-400"
+                                ? "bg-signal-fill hover:bg-signal-fill-hover text-white border-signal-fill"
                                 : act.type === "propose_deal"
                                 ? "bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border-amber-400/40"
                                 : act.type === "add_to_cart"
@@ -625,7 +627,7 @@ export default function ShopAiAssistant({
                     <button
                       key={idx}
                       onClick={() => sendMessage(prompt)}
-                      className="text-[11px] bg-slate-800/90 hover:bg-emerald-500/20 hover:border-emerald-500/40 text-slate-300 hover:text-emerald-300 border border-slate-700 px-2.5 py-1.5 rounded-full transition cursor-pointer"
+                      className="text-[11px] bg-slate-800/90 hover:bg-signal-fill/20 hover:border-emerald-500/40 text-slate-300 hover:text-emerald-300 border border-slate-700 px-2.5 py-1.5 rounded-full transition cursor-pointer"
                     >
                       {prompt}
                     </button>
@@ -652,7 +654,7 @@ export default function ShopAiAssistant({
                 <button
                   type="submit"
                   disabled={!input.trim() || isLoading}
-                  className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-white font-semibold px-4 py-2.5 rounded-xl text-xs sm:text-sm transition cursor-pointer"
+                  className="bg-signal-fill hover:bg-signal-fill-hover disabled:opacity-40 text-white font-semibold px-4 py-2.5 rounded-xl text-xs sm:text-sm transition cursor-pointer"
                 >
                   {tr("Envoyer", "Send")}
                 </button>
@@ -665,7 +667,7 @@ export default function ShopAiAssistant({
             <div className="flex-1 overflow-y-auto p-4 space-y-4 text-white">
               <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-3.5">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-amber-300">
-                  {tr("🤝 Proposer un Deal au vendeur", "🤝 Offer a deal to the vendor")}
+                  {tr("Proposer un Deal au vendeur", "Offer a deal to the vendor")}
                 </h4>
                 <p className="mt-1 text-xs text-slate-300">
                   {tr("Proposez votre prix sur un article de", "Offer your price on an item from")} <strong>{shopName}</strong>{tr(". Votre offre est envoyée directement dans le", ". Your offer goes straight to the vendor's")} <strong>{tr("Dashboard du vendeur", "dashboard")}</strong> {tr("et vous recevez une confirmation WhatsApp dès qu'il la valide !", "and you get a WhatsApp confirmation as soon as they accept it!")}
@@ -793,7 +795,7 @@ export default function ShopAiAssistant({
                   disabled={dealSubmitting || !dealProductId}
                   className="w-full rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 py-2.5 text-xs font-bold text-slate-950 transition cursor-pointer shadow-md"
                 >
-                  {dealSubmitting ? tr("Envoi au Dashboard du vendeur...", "Sending to the vendor's dashboard...") : tr("🤝 Envoyer ma proposition de Deal au vendeur", "🤝 Send my deal offer to the vendor")}
+                  {dealSubmitting ? tr("Envoi au Dashboard du vendeur...", "Sending to the vendor's dashboard...") : tr("Envoyer ma proposition de Deal au vendeur", "Send my deal offer to the vendor")}
                 </button>
               </form>
 
@@ -806,15 +808,15 @@ export default function ShopAiAssistant({
               {dealSuccess && (
                 <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/40 p-3.5 space-y-2 text-xs">
                   <div className="font-bold text-emerald-300">
-                    {tr("✅ Deal #", "✅ Deal #")}{dealSuccess.refCode} {tr("transmis au Dashboard du vendeur !", "sent to the vendor's dashboard!")}
+                    {tr("Deal #", "Deal #")}{dealSuccess.refCode} {tr("transmis au Dashboard du vendeur !", "sent to the vendor's dashboard!")}
                   </div>
                   <p className="text-slate-200 whitespace-pre-line">{dealSuccess.message}</p>
                   <button
                     type="button"
                     onClick={() => setActiveTab("track")}
-                    className="mt-1 inline-flex items-center gap-1 rounded-lg bg-emerald-500 px-3 py-1.5 text-[11px] font-bold text-white cursor-pointer"
+                    className="mt-1 inline-flex items-center gap-1 rounded-lg bg-signal-fill px-3 py-1.5 text-[11px] font-bold text-white cursor-pointer"
                   >
-                    {tr("📦 Suivre la validation de mon deal #", "📦 Track the approval of my deal #")}{dealSuccess.refCode}
+                    {tr("Suivre la validation de mon deal #", "Track the approval of my deal #")}{dealSuccess.refCode}
                   </button>
                 </div>
               )}
@@ -826,7 +828,7 @@ export default function ShopAiAssistant({
             <div className="flex-1 overflow-y-auto p-4 space-y-4 text-white">
               <div className="rounded-xl border border-slate-700 bg-slate-800/70 p-3.5">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                  {tr("📦 Suivre ma commande ou mon deal en direct", "📦 Track my order or deal live")}
+                  {tr("Suivre ma commande ou mon deal en direct", "Track my order or deal live")}
                 </h4>
                 <p className="mt-1 text-xs text-slate-300">
                   {tr("Entrez votre code de référence (ex:", "Enter your reference code (e.g.")} <code className="text-emerald-300">#AB12CD</code>{tr(") ou le numéro de téléphone utilisé lors de la commande WhatsApp.", ") or the phone number used for the WhatsApp order.")}
@@ -851,9 +853,9 @@ export default function ShopAiAssistant({
                     <button
                       type="submit"
                       disabled={trackLoading}
-                      className="flex-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 py-2.5 text-xs font-bold text-white transition cursor-pointer"
+                      className="flex-1 rounded-xl bg-signal-fill hover:bg-signal-fill-hover disabled:opacity-50 py-2.5 text-xs font-bold text-white transition cursor-pointer"
                     >
-                      {trackLoading ? tr("Actualisation en direct...", "Refreshing live...") : tr("🔍 Rechercher / Actualiser en direct", "🔍 Search / refresh live")}
+                      {trackLoading ? tr("Actualisation en direct...", "Refreshing live...") : tr("Rechercher / Actualiser en direct", "Search / refresh live")}
                     </button>
                     {(trackRefInput || trackPhoneInput) && (
                       <button
@@ -919,7 +921,7 @@ export default function ShopAiAssistant({
                       href={ord.payUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="rounded-lg bg-emerald-500 hover:bg-emerald-400 px-3 py-1.5 text-[11px] font-bold text-white transition"
+                      className="rounded-lg bg-signal-fill hover:bg-signal-fill-hover px-3 py-1.5 text-[11px] font-bold text-white transition"
                     >
                       {tr("Voir page de suivi / paiement ↗", "See the tracking / payment page ↗")}
                     </a>
@@ -932,7 +934,7 @@ export default function ShopAiAssistant({
                         rel="noreferrer"
                         className="text-[11px] font-semibold text-emerald-300 hover:underline"
                       >
-                        {tr("💬 Suivre sur WhatsApp", "💬 Track on WhatsApp")}
+                        {tr("Suivre sur WhatsApp", "Track on WhatsApp")}
                       </a>
                     )}
                   </div>
@@ -944,8 +946,8 @@ export default function ShopAiAssistant({
           {/* TAB 4: WHATSAPP QR CODE REDIRECT */}
           {activeTab === "qr" && (
             <div className="flex-1 overflow-y-auto p-5 flex flex-col items-center justify-center text-center space-y-4 text-white">
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 px-3 py-1 text-[11px] font-bold text-emerald-300">
-                {tr("📲 Accès direct à l'Assistant sur WhatsApp", "📲 Direct access to the assistant on WhatsApp")}
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-signal-fill/20 border border-emerald-500/30 px-3 py-1 text-[11px] font-bold text-emerald-300">
+                {tr("Accès direct à l'Assistant sur WhatsApp", "Direct access to the assistant on WhatsApp")}
               </div>
 
               <h4 className="text-base font-extrabold">
@@ -976,7 +978,7 @@ export default function ShopAiAssistant({
                   rel="noreferrer"
                   className="w-full max-w-xs rounded-xl bg-[#25D366] hover:bg-[#1ebe5d] py-3 px-4 text-xs font-bold text-white shadow-lg transition flex items-center justify-center gap-2"
                 >
-                  <span>💬</span> {tr("Ouvrir directement dans WhatsApp ↗", "Open directly in WhatsApp ↗")}
+                  <Glyph name="chat" size={14} /> {tr("Ouvrir directement dans WhatsApp ↗", "Open directly in WhatsApp ↗")}
                 </a>
               )}
             </div>

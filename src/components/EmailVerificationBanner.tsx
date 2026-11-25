@@ -5,6 +5,7 @@ import { errorMessage } from "@/lib/errors";
 import { useState } from "react";
 import Link from "next/link";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import Glyph from "@/components/Glyph";
 
 export default function EmailVerificationBanner({
   email,
@@ -48,7 +49,7 @@ export default function EmailVerificationBanner({
     <div className="mb-6 rounded-shape-lg border border-amber-500/30 bg-amber-500/10 p-4 text-amber-950 backdrop-blur-glass-thin dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-200">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <span className="text-xl">⚠️</span>
+          <Glyph name="alert" size={20} />
           <div>
             <h3 className="text-sm font-semibold">
               {tr("Votre adresse email n'est pas encore vérifiée (", "Your email address is not verified yet (")}{email})
@@ -63,14 +64,14 @@ export default function EmailVerificationBanner({
           {sent ? (
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                {tr("✓ Email envoyé !", "✓ Email sent!")}
+                {tr("Email envoyé !", "Email sent!")}
               </span>
               {verifyUrl && (
                 <Link
                   href={verifyUrl}
-                  className="rounded-shape-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-amber-700 transition"
+                  className="rounded-shape-md bg-aurora-warning px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-amber-700 transition"
                 >
-                  {tr("⚡ Valider maintenant (Démo)", "⚡ Verify now (demo)")}
+                  {tr("Valider maintenant (Démo)", "Verify now (demo)")}
                 </Link>
               )}
             </div>
@@ -79,7 +80,7 @@ export default function EmailVerificationBanner({
               type="button"
               onClick={handleResend}
               disabled={loading}
-              className="rounded-shape-md bg-amber-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-amber-700 transition disabled:opacity-50"
+              className="rounded-shape-md bg-aurora-warning px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-amber-700 transition disabled:opacity-50"
             >
               {loading ? tr("Envoi en cours…", "Sending…") : tr("Renvoyer l'email de confirmation", "Resend the confirmation email")}
             </button>

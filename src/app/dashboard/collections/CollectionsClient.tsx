@@ -6,6 +6,7 @@ import Link from "next/link";
 import { formatMoney, slugify } from "@/lib/utils";
 import ProductPlaceholder from "@/components/ProductPlaceholder";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import Glyph from "@/components/Glyph";
 
 type ProductSummary = {
   id: string;
@@ -248,7 +249,7 @@ export default function CollectionsClient({
           <Link
             href={`/c/${shopSlug}`}
             target="_blank"
-            className="text-xs font-semibold text-brand-dark hover:underline"
+            className="inline-flex min-h-6 items-center text-xs font-semibold text-brand-dark hover:underline"
           >
             {tr("Voir ma boutique", "View my shop")} ↗
           </Link>
@@ -260,8 +261,8 @@ export default function CollectionsClient({
 
       {collections.length === 0 ? (
         <div className="card p-12 text-center text-arctic-600 space-y-3">
-          <span className="text-4xl">📁</span>
-          <h3 className="text-base font-bold text-arctic-800">{tr("Aucune collection créée", "No collections created")}</h3>
+          <Glyph name="folder" size={32} />
+          <h2 className="text-base font-bold text-arctic-800">{tr("Aucune collection créée", "No collections created")}</h2>
           <p className="text-sm max-w-md mx-auto">
             {tr(
               "Créez votre première collection pour regrouper vos articles par thème (ex. : nouveautés, promotions, meilleures ventes) et les afficher sur votre boutique.",
@@ -295,7 +296,7 @@ export default function CollectionsClient({
                     <span className="inline-block rounded-full bg-white/20 backdrop-blur-sm px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/90">
                       {tr("Collection", "Collection")} · /{c.slug}
                     </span>
-                    <h3 className="mt-1 text-lg font-bold text-white truncate">{c.name}</h3>
+                    <h2 className="mt-1 truncate text-lg font-bold text-white">{c.name}</h2>
                   </div>
                   <span className="relative z-10 shrink-0 rounded-full bg-white text-brand-dark px-3 py-1 text-xs font-bold shadow-sm">
                     {c.productCount} {tr(c.productCount === 1 ? "produit" : "produits", c.productCount === 1 ? "product" : "products")}
@@ -352,7 +353,7 @@ export default function CollectionsClient({
                         <button
                           type="button"
                           onClick={() => openEdit(c)}
-                          className="mt-1.5 text-xs font-semibold text-brand-dark hover:underline"
+                          className="mt-1.5 inline-flex min-h-6 items-center text-xs font-semibold text-brand-dark hover:underline"
                         >
                           + {tr("Ajouter des produits maintenant", "Add products now")}
                         </button>
@@ -374,13 +375,13 @@ export default function CollectionsClient({
                         onClick={() => copyLink(c)}
                         className="text-xs font-medium text-arctic-600 hover:text-arctic-900"
                       >
-                        {copiedId === c.id ? `✓ ${tr("Lien copié !", "Link copied!")}` : `📋 ${tr("Copier le lien", "Copy link")}`}
+                        {copiedId === c.id ? `${tr("Lien copié !", "Link copied!")}` : `${tr("Copier le lien", "Copy link")}`}
                       </button>
                     </div>
 
                     <div className="flex items-center gap-1.5">
                       <button onClick={() => openEdit(c)} className="btn-ghost text-xs !py-1.5 px-3">
-                        ✏️ {tr("Produits / Modifier", "Products / Edit")}
+                        <Glyph name="pencil" size={14} /> {tr("Produits / Modifier", "Products / Edit")}
                       </button>
                       <button
                         onClick={() => handleDelete(c.id)}
@@ -415,15 +416,15 @@ export default function CollectionsClient({
                 onClick={() => setOpen(false)}
                 className="rounded-lg p-1 text-arctic-600 hover:bg-arctic-200/60 hover:text-arctic-800"
               >
-                ✕
+                <Glyph name="close" size={16} />
               </button>
             </div>
 
             <form onSubmit={handleSave} className="flex-1 max-h-[80dvh] space-y-4 overflow-y-auto overscroll-contain p-5">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="label">{tr("Nom de la collection", "Collection name")} *</label>
-                  <input
+                  <label htmlFor="collectionsclient-1" className="label">{tr("Nom de la collection", "Collection name")} *</label>
+                  <input id="collectionsclient-1"
                     className="input"
                     placeholder={tr("Ex. : Nouveautés d’été, Promotions…", "E.g. Summer arrivals, Promotions…")}
                     value={name}
@@ -439,8 +440,8 @@ export default function CollectionsClient({
                 </div>
 
                 <div>
-                  <label className="label">{tr("Identifiant URL (slug)", "URL slug")}</label>
-                  <input
+                  <label htmlFor="collectionsclient-2" className="label">{tr("Identifiant URL (slug)", "URL slug")}</label>
+                  <input id="collectionsclient-2"
                     className="input font-mono text-xs"
                     placeholder={tr("Ex. : nouveautes-ete", "E.g. summer-arrivals")}
                     value={slug}
@@ -453,8 +454,8 @@ export default function CollectionsClient({
               </div>
 
               <div>
-                <label className="label">{tr("Description (affichée en haut de la collection)", "Description (shown at the top of the collection)")}</label>
-                <textarea
+                <label htmlFor="collectionsclient-3" className="label">{tr("Description (affichée en haut de la collection)", "Description (shown at the top of the collection)")}</label>
+                <textarea id="collectionsclient-3"
                   className="input min-h-[64px]"
                   placeholder={tr("Présentez cette sélection à vos clients…", "Introduce this selection to your customers…")}
                   value={description}
@@ -484,14 +485,14 @@ export default function CollectionsClient({
                     {uploadingImage
                       ? tr("Téléversement Firebase…", "Uploading to Firebase…")
                       : imageUrl
-                        ? tr("📷 Changer l'image", "📷 Change image")
-                        : tr("📷 Ajouter une image de couverture", "📷 Add cover image")}
+                        ? tr("Changer l'image", "Change image")
+                        : tr("Ajouter une image de couverture", "Add cover image")}
                   </label>
                   {imageUrl && (
                     <button
                       type="button"
                       onClick={() => setImageUrl("")}
-                      className="text-xs font-medium text-red-600 hover:underline"
+                      className="inline-flex min-h-6 items-center text-xs font-medium text-aurora-error-text hover:underline"
                     >
                       {tr("Retirer", "Remove")}
                     </button>
@@ -510,7 +511,7 @@ export default function CollectionsClient({
                       <button
                         type="button"
                         onClick={() => setSelectedProductIds(filteredModalProducts.map((p) => p.id))}
-                        className="font-semibold text-brand-dark hover:underline"
+                        className="inline-flex min-h-6 items-center font-semibold text-brand-dark hover:underline"
                       >
                         {tr("Tout sélectionner", "Select all")}
                       </button>
@@ -518,7 +519,7 @@ export default function CollectionsClient({
                       <button
                         type="button"
                         onClick={() => setSelectedProductIds([])}
-                        className="font-medium text-arctic-600 hover:underline"
+                        className="inline-flex min-h-6 items-center font-medium text-arctic-600 hover:underline"
                       >
                         {tr("Tout désélectionner", "Deselect all")}
                       </button>
@@ -530,7 +531,7 @@ export default function CollectionsClient({
                   <input
                     type="text"
                     className="input text-xs !py-1.5"
-                    placeholder={`🔍 ${tr("Rechercher un produit à ajouter…", "Search for a product to add…")}`}
+                    placeholder={`${tr("Rechercher un produit à ajouter…", "Search for a product to add…")}`}
                     value={productSearch}
                     onChange={(e) => setProductSearch(e.target.value)}
                   />
@@ -569,9 +570,9 @@ export default function CollectionsClient({
                               type="checkbox"
                               checked={checked}
                               onChange={() => toggleProduct(p.id)}
-                              className="h-4 w-4 rounded text-brand focus:ring-brand"
+                              className="h-6 w-6 shrink-0 rounded-shape-xs text-brand focus:ring-brand"
                             />
-                            <div className="h-9 w-9 shrink-0 overflow-hidden rounded-md border border-arctic-200 bg-arctic-100">
+                            <div className="h-9 w-9 shrink-0 overflow-hidden rounded-shape-sm border border-arctic-200 bg-arctic-100">
                               {p.imageUrl ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" />
@@ -582,7 +583,7 @@ export default function CollectionsClient({
                             <div className="min-w-0">
                               <div className="truncate font-semibold text-arctic-900">{p.name}</div>
                               {otherCol && (
-                                <div className="text-[10px] text-amber-700">
+                                <div className="text-[10px] text-aurora-warning-text">
                                   {tr("Actuellement dans", "Currently in")}: {otherCol.name}
                                 </div>
                               )}
@@ -599,8 +600,8 @@ export default function CollectionsClient({
               </div>
 
               {error && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700">
-                  ⚠️ {error}
+                <div className="rounded-lg border border-aurora-error/30 bg-aurora-error-bg p-3 text-xs font-medium text-aurora-error-text">
+                  <Glyph name="alert" size={14} /> {error}
                 </div>
               )}
 

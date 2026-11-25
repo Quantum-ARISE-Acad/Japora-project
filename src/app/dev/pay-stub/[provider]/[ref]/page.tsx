@@ -56,7 +56,7 @@ export default async function PayStubPage({ params }: Params) {
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
           <Link href="/" className="inline-flex items-center gap-2">
-            <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand text-lg font-black text-white">J</span>
+            <span className="grid h-9 w-9 place-items-center rounded-lg bg-gold-fill text-lg font-black text-white">J</span>
             <span className="text-xl font-bold text-arctic-900">Japora</span>
           </Link>
         </div>

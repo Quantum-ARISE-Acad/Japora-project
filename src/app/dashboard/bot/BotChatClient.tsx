@@ -97,13 +97,13 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
       <div className="card flex h-[640px] flex-col overflow-hidden">
         <div className="flex items-center justify-between border-b border-arctic-400/30 bg-arctic-100/55 px-4 py-2 text-sm dark:border-arctic-700 dark:bg-arctic-900/80">
           <div className="flex items-center gap-2">
-            <span className="grid h-7 w-7 place-items-center rounded-full bg-brand text-xs font-black text-white">J</span>
+            <span className="grid h-7 w-7 place-items-center rounded-full bg-gold-fill text-xs font-black text-white">J</span>
             <div className="leading-tight">
               <div className="font-semibold text-arctic-900">{shopName}</div>
-              <div className="text-xs text-arctic-700 dark:text-arctic-300">{tr("Aperçu du bot Japora", "Japora bot preview")}</div>
+              <div className="text-xs text-arctic-700">{tr("Aperçu du bot Japora", "Japora bot preview")}</div>
             </div>
           </div>
-          <button onClick={reset} className="bot-chat-control text-xs font-semibold text-arctic-700 hover:text-arctic-900 dark:text-arctic-200 dark:hover:text-white">
+          <button onClick={reset} className="bot-chat-control inline-flex min-h-6 items-center text-xs font-semibold text-arctic-700 hover:text-arctic-900">
             {tr("Réinitialiser", "Reset")}
           </button>
         </div>
@@ -138,13 +138,13 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
                   className={
                     "bot-chat-message max-w-[78%] whitespace-pre-wrap rounded-lg px-3 py-2 text-[15px] leading-relaxed shadow " +
                     (isCustomer
-                      ? "bot-chat-message-customer self-end bg-[#dcf8c6] text-arctic-900 dark:border dark:border-emerald-700 dark:bg-[#174b3a] dark:text-white"
-                      : "bot-chat-message-bot border border-arctic-300 bg-white text-arctic-900 dark:border-arctic-600 dark:bg-[#293330] dark:text-arctic-50")
+                      ? "bot-chat-message-customer self-end bg-[#dcf8c6] text-arctic-900 dark:border dark:border-emerald-700 dark:bg-[#174b3a] "
+                      : "bot-chat-message-bot border border-arctic-300 bg-white text-arctic-900 dark:border-arctic-600 dark:bg-[#293330] ")
                   }
                 >
                   {m.text}
                   {m.role === "bot" && (
-                    <div className="bot-chat-message-meta mt-1 text-right text-[10px] uppercase tracking-wide text-arctic-600 dark:text-arctic-300">
+                    <div className="bot-chat-message-meta mt-1 text-right text-[10px] uppercase tracking-wide text-arctic-600">
                       {({ greeting: "salutation", price_check: "prix", order: "commande", menu: "catalogue", unpaid: "solde", unknown: "non classé" } as Record<string, string>)[m.intent] || m.intent}
                     </div>
                   )}
@@ -156,7 +156,7 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
                         key={b.id}
                         onClick={() => send(b.id, b.title)}
                         disabled={sending}
-                        className="bot-chat-action rounded-full border border-arctic-400/60 bg-white px-3 py-1 text-xs font-semibold text-arctic-900 shadow-sm hover:bg-arctic-100 disabled:opacity-60 dark:border-arctic-600 dark:bg-[#303b37] dark:text-white dark:hover:bg-[#3b4843]"
+                        className="bot-chat-action rounded-full border border-arctic-400/60 bg-white px-3 py-1 text-xs font-semibold text-arctic-900 shadow-sm hover:bg-arctic-100 disabled:opacity-60 dark:border-arctic-600 dark:bg-[#303b37] dark:hover:bg-[#3b4843]"
                       >
                         {b.title}
                       </button>
@@ -168,7 +168,7 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
           })}
           {sending && (
             <div className="flex justify-start">
-              <div className="rounded-lg border border-arctic-300 bg-white px-3 py-2 text-sm text-arctic-700 shadow dark:border-arctic-600 dark:bg-[#293330] dark:text-arctic-200">
+              <div className="rounded-lg border border-arctic-300 bg-white px-3 py-2 text-sm text-arctic-700 shadow dark:border-arctic-600 dark:bg-[#293330]">
                 {tr("Le bot répond…", "The bot is replying…")}
               </div>
             </div>
@@ -184,6 +184,7 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
         >
           <input
             className="input flex-1"
+            aria-label={tr("Message client à tester", "Customer message to test")}
             placeholder={tr("Écrivez un message client à tester…", "Write a customer message to test…")}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -198,12 +199,13 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
       <aside className="space-y-4">
         <div className="card p-4">
           <h2 className="text-sm font-semibold text-arctic-900">{tr("Téléphone du client simulé", "Simulated customer phone")}</h2>
-          <p className="bot-chat-help mb-2 mt-1 text-xs text-arctic-700 dark:text-arctic-300">
+          <p className="bot-chat-help mb-2 mt-1 text-xs text-arctic-700">
             {tr("Sert à rechercher les soldes impayés déjà enregistrés pour ce numéro lorsque vous testez « balance / solde ». Ce champ ne déclenche aucun envoi WhatsApp.", "Used to look up unpaid balances already recorded for this number when you test “balance / solde”. This field never sends a WhatsApp message.")}
           </p>
           <input
             className="input"
             inputMode="tel"
+            aria-label={tr("Téléphone du client simulé", "Simulated customer phone")}
             placeholder={tr("Ex. +228 90 00 00 00", "e.g. +228 90 00 00 00")}
             value={fromPhone}
             onChange={(e) => setFromPhone(e.target.value)}
@@ -224,7 +226,7 @@ export default function BotChatClient({ shopName }: { shopName: string }) {
               </button>
             ))}
           </div>
-          <p className="bot-chat-help mt-3 text-xs text-arctic-700 dark:text-arctic-300">
+          <p className="bot-chat-help mt-3 text-xs text-arctic-700">
             {tr("Testez les fautes (\"ankra\"), le pidgin (\"wetin you get\"), le swahili (\"bei gani\") et le français (\"je veux\") pour vérifier la recherche tolérante.", "Try typos (\"ankra\"), pidgin (\"wetin you get\"), Swahili (\"bei gani\") and French (\"je veux\") to check the tolerant search.")}
           </p>
         </div>

@@ -78,8 +78,8 @@ export default async function BotPage() {
           rel="noreferrer"
           className="btn-primary text-xs gap-1.5"
         >
-          <span>✨</span>{" "}
-          {tr("Voir l'Assistant sur ma boutique ↗", "View Assistant on my shop ↗")}
+          <Glyph name="sparkle" size={18} />{" "}
+          {tr("Voir l'Assistant sur ma boutique", "View Assistant on my shop")}
         </a>
       </div>
 
@@ -88,8 +88,8 @@ export default async function BotPage() {
           className={
             "mr-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold " +
             (cloudLive
-              ? "bg-emerald-100 text-emerald-800"
-              : "bg-amber-100 text-amber-800")
+              ? "bg-arctic-200/70 text-signal-text"
+              : "bg-aurora-warning-bg text-aurora-warning-text")
           }
         >
           ●{" "}
@@ -139,7 +139,7 @@ export default async function BotPage() {
       {/* Console en direct WhatsApp Cloud API & Assistant IA */}
       <div>
         <h2 className="text-base font-bold text-arctic-900 mb-2">
-          💬{" "}
+          <Glyph name="chat" size={14} />{" "}
           {tr(
             "Console Live WhatsApp Cloud API & Assistant IA Gemini",
             "Live WhatsApp Cloud API & Gemini AI Console",

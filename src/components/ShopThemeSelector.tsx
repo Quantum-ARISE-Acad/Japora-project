@@ -2,22 +2,22 @@
 
 import { useEffect, useState, useRef } from "react";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import Glyph from "@/components/Glyph";
 
 export type ShopThemeId = "arctic" | "sunset" | "emerald" | "midnight" | "indigo";
 
 export interface ShopTheme {
   id: ShopThemeId;
   name: string;
-  icon: string;
   badge: string;
 }
 
 export const SHOP_THEMES: ShopTheme[] = [
-  { id: "arctic", name: "Arctic Glass", icon: "❄️", badge: "Défaut" },
-  { id: "sunset", name: "Sunset Terracotta", icon: "🌅", badge: "Chaleur" },
-  { id: "emerald", name: "Emerald Market", icon: "🌿", badge: "Nature" },
-  { id: "midnight", name: "Midnight Luxe", icon: "🌌", badge: "Sombre" },
-  { id: "indigo", name: "Royal Indigo", icon: "👑", badge: "Élégant" },
+  { id: "arctic", name: "Arctic Glass", badge: "Défaut" },
+  { id: "sunset", name: "Sunset Terracotta", badge: "Chaleur" },
+  { id: "emerald", name: "Emerald Market", badge: "Nature" },
+  { id: "midnight", name: "Midnight Luxe", badge: "Sombre" },
+  { id: "indigo", name: "Royal Indigo", badge: "Élégant" },
 ];
 
 export default function ShopThemeSelector({
@@ -71,7 +71,6 @@ export default function ShopThemeSelector({
         title={tr("Personnaliser le thème visuel de la boutique", "Customise the shop's visual theme")}
         aria-label={tr("Changer le thème de la boutique", "Change the shop theme")}
       >
-        <span>{active.icon}</span>
         <span className="hidden sm:inline">{active.name}</span>
         <span className="text-[10px] opacity-60">▾</span>
       </button>
@@ -96,10 +95,9 @@ export default function ShopThemeSelector({
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm">{theme.icon}</span>
                     <span>{theme.name}</span>
                   </div>
-                  {isSelected && <span className="text-brand font-bold">✓</span>}
+                  {isSelected && <Glyph name="check" size={14} className="text-brand-dark" />}
                 </button>
               );
             })}

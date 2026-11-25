@@ -115,7 +115,7 @@ export default function PaymentLinkClient({
                 <div className="pt-2">
                   <Link
                     href={`/c/${vendor.shopSlug}`}
-                    className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700"
+                    className="inline-flex items-center justify-center rounded-xl bg-signal-fill px-4 py-2 text-xs font-bold text-white hover:bg-signal-fill-hover"
                   >
                     {tr("Retourner sur la boutique", "Back to the shop")} {vendor.shopName} →
                   </Link>
@@ -154,7 +154,7 @@ export default function PaymentLinkClient({
                     <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
                       <span>⚡</span> {tr("Payer en ligne avec FedaPay", "Pay online with FedaPay")}
                     </span>
-                    <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                    <span className="rounded-full bg-signal-fill px-2 py-0.5 text-[10px] font-bold text-white">
                       {tr("Paiement Sécurisé", "Secure payment")}
                     </span>
                   </div>
@@ -170,14 +170,14 @@ export default function PaymentLinkClient({
                       placeholder={tr("Votre nom", "Your name")}
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
-                      className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs focus:border-emerald-600 focus:outline-none"
+                      className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs focus:border-signal-fill focus:outline-none"
                     />
                     <input
                       type="tel"
                       placeholder="WhatsApp (+228...)"
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
-                      className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-mono focus:border-emerald-600 focus:outline-none"
+                      className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-mono focus:border-signal-fill focus:outline-none"
                     />
                   </div>
 
@@ -208,7 +208,7 @@ export default function PaymentLinkClient({
                     type="button"
                     disabled={fedaLoading}
                     onClick={startFedaPayCheckout}
-                    className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all disabled:opacity-50"
+                    className="w-full py-3 px-4 rounded-xl bg-signal-fill hover:bg-signal-fill-hover text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all disabled:opacity-50"
                   >
                     <span>💳</span>
                     <span>

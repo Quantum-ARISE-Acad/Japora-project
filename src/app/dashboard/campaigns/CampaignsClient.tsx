@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { formatCurrencyAmount } from "@/lib/currency";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import Glyph from "@/components/Glyph";
 import type { CampaignStats } from "@/lib/campaigns";
 import type {
   MetaAdCampaignDetails,
@@ -17,6 +18,15 @@ import type {
 function formatMoney(cents: number, currency: string): string {
   return formatCurrencyAmount(cents, currency || "XOF");
 }
+
+const STEP_LABEL = (tr: (fr: string, en: string) => string): Record<string, string> => ({
+  campaign: tr("Campagne créée", "Campaign created"),
+  adset: tr("Audience et budget", "Audience and budget"),
+  adcreative: tr("Visuel et texte", "Creative and copy"),
+  ad: tr("Publicité mise en ligne", "Ad published"),
+  status_update: tr("Statut modifié", "Status changed"),
+  insights: tr("Chiffres récupérés", "Figures fetched"),
+});
 
 type ProductOption = {
   id: string;
@@ -112,22 +122,22 @@ const OBJECTIVE_OPTIONS: {
 }[] = [
   {
     id: "LINK_CLICKS",
-    label: ["LINK_CLICKS (Trafic & Clics WhatsApp)", "LINK_CLICKS (traffic & WhatsApp clicks)"],
+    label: ["Des clics vers WhatsApp", "Clicks to WhatsApp"],
     desc: ["Optimise pour un maximum de clics vers WhatsApp ou votre produit.", "Optimises for the most clicks to WhatsApp or your product."],
   },
   {
     id: "OUTCOME_SALES",
-    label: ["OUTCOME_SALES (Ventes & Conversions Catalogue)", "OUTCOME_SALES (sales & catalog conversions)"],
+    label: ["Des ventes", "Sales"],
     desc: ["Cible les acheteurs les plus susceptibles de passer commande.", "Targets the buyers most likely to order."],
   },
   {
     id: "OUTCOME_ENGAGEMENT",
-    label: ["OUTCOME_ENGAGEMENT (Messages WhatsApp & Interactions)", "OUTCOME_ENGAGEMENT (WhatsApp messages & interactions)"],
+    label: ["Des discussions WhatsApp", "WhatsApp chats"],
     desc: ["Maximise les discussions démarrées sur WhatsApp Business.", "Maximises the chats started on WhatsApp Business."],
   },
   {
     id: "OUTCOME_TRAFFIC",
-    label: ["OUTCOME_TRAFFIC (Visites Boutique Japora)", "OUTCOME_TRAFFIC (Japora shop visits)"],
+    label: ["Des visites en boutique", "Shop visits"],
     desc: ["Attire de nouveaux visiteurs qualifiés sur votre vitrine.", "Brings new qualified visitors to your storefront."],
   },
   {
@@ -351,7 +361,7 @@ export default function CampaignsClient({
       setCta(d.cta || "Commander sur WhatsApp");
       showToastMessage(
         d.mode === "ai"
-          ? tr("✨ Texte publicitaire rédigé par Gemini IA !", "✨ Ad text written by Gemini AI!")
+          ? tr("Texte publicitaire rédigé par l'IA.", "Ad text written by AI.")
           : tr("Texte publicitaire proposé (modèle simple, sans IA). Vous pouvez le modifier.", "Suggested ad text (simple template, no AI). You can edit it."),
       );
     } catch {
@@ -404,7 +414,7 @@ export default function CampaignsClient({
       setCampaigns((prev) => [d.campaign, ...prev]);
       setInspectedCampaign(d.campaign);
       showToastMessage(
-        tr(`🚀 Publicité "${d.campaign.name}" créée via Meta Marketing API v27.0 (${initialStatus}) !`, `🚀 Ad "${d.campaign.name}" created via Meta Marketing API v27.0 (${initialStatus})!`),
+        tr(`Publicité « ${d.campaign.name} » créée (${initialStatus}).`, `Ad "${d.campaign.name}" created (${initialStatus}).`),
       );
     } catch {
       setErr(tr("Erreur réseau lors de l'appel à Meta Marketing API.", "Network error while calling the Meta Marketing API."));
@@ -442,7 +452,7 @@ export default function CampaignsClient({
       showToastMessage(
         nextStatus === "ACTIVE"
           ? tr(`▶️ Campagne "${campaign.name}" activée sur Meta Marketing API.`, `▶️ Campaign "${campaign.name}" activated on the Meta Marketing API.`)
-          : tr(`⏸️ Campagne "${campaign.name}" mise en pause.`, `⏸️ Campaign "${campaign.name}" paused.`),
+          : tr(`Campagne "${campaign.name}" mise en pause.`, `Campaign "${campaign.name}" paused.`),
       );
     } finally {
       setBusyCampaignId(null);
@@ -473,7 +483,7 @@ export default function CampaignsClient({
         setInspectedCampaign(d.campaign);
       }
       showToastMessage(
-        tr(`📊 Insights Meta synchronisés pour "${campaign.name}" (Impressions, Clics WhatsApp & Conversions mis à jour).`, `📊 Meta insights synced for "${campaign.name}" (impressions, WhatsApp clicks and conversions updated).`),
+        tr(`Chiffres de « ${campaign.name} » mis à jour.`, `Figures for "${campaign.name}" updated.`),
       );
     } finally {
       setBusyCampaignId(null);
@@ -487,7 +497,7 @@ export default function CampaignsClient({
       if (r.ok) {
         setCampaigns((prev) => prev.filter((c) => c.id !== id));
         if (inspectedCampaign?.id === id) setInspectedCampaign(null);
-        showToastMessage(tr("🗑️ Campagne arrêtée et archivée.", "🗑️ Campaign stopped and archived."));
+        showToastMessage(tr("Campagne arrêtée et archivée.", "Campaign stopped and archived."));
       }
     } finally {
       setBusyCampaignId(null);
@@ -579,7 +589,7 @@ export default function CampaignsClient({
         d.verification?.message ||
           "Configuration Meta Marketing API v27.0 enregistrée avec succès.",
       );
-      showToastMessage(tr("✅ Configuration Meta Marketing API mise à jour !", "✅ Meta Marketing API settings updated!"));
+      showToastMessage(tr("Réglages Meta mis à jour.", "Meta settings updated."));
     } finally {
       setSavingConfig(false);
     }
@@ -686,109 +696,34 @@ export default function CampaignsClient({
   const estimatedTotalSpendCents =
     Math.round(estimatedDailyBudgetMajor * 100) * Math.max(1, durationDays);
 
-  // Live cURL preview in studio
-  const liveCurlPreview = useMemo(() => {
-    const act = metaConfig.adAccountId || "act_108492048192041";
-    const budgetCents = Math.round((Number(dailyBudget) || 2500) * 100);
-    const countriesJson = JSON.stringify({
-      geo_locations: { countries },
-      age_min: ageMin,
-      age_max: ageMax,
-      publisher_platforms: Array.from(
-        new Set(
-          placements.map((p) =>
-            p.startsWith("whatsapp")
-              ? "whatsapp"
-              : p.startsWith("instagram")
-                ? "instagram"
-                : "facebook",
-          ),
-        ),
-      ),
-    });
-
-    return [
-      `# 1. Create Campaign (Idempotent)`,
-      `curl -X POST https://graph.facebook.com/v27.0/${act}/campaigns \\`,
-      `  -H 'X-Client-Idempotent-Key: japora_campaign_<UUID>' \\`,
-      `  -F 'name=${name || "Ma Campagne"}' \\`,
-      `  -F 'objective=${objective}' \\`,
-      `  -F 'status=${initialStatus}' \\`,
-      `  -F 'access_token=<ACCESS_TOKEN>'`,
-      ``,
-      `# 2. Create Ad Set (Targeting & Budget)`,
-      `curl -X POST https://graph.facebook.com/v27.0/${act}/adsets \\`,
-      `  -H 'X-Client-Idempotent-Key: japora_adset_<UUID>' \\`,
-      `  -F 'name=${name || "Ma Campagne"} — Ad Set' \\`,
-      `  -F 'campaign_id=<CAMPAIGN_ID>' \\`,
-      `  -F 'daily_budget=${budgetCents}' \\`,
-      `  -F 'targeting=${countriesJson}' \\`,
-      `  -F 'access_token=<ACCESS_TOKEN>'`,
-      ``,
-      `# 3. Create Ad Creative (Product & CTA)`,
-      `curl -X POST https://graph.facebook.com/v27.0/${act}/adcreatives \\`,
-      `  -H 'X-Client-Idempotent-Key: japora_creative_<UUID>' \\`,
-      `  -F 'name=${name || "Ma Campagne"} — Creative' \\`,
-      `  -F 'object_story_spec={"page_id":"${metaConfig.pageId}","link_data":{"message":${JSON.stringify(body.slice(0, 60))}...,"call_to_action":{"type":"${ctaType}"}}}' \\`,
-      `  -F 'access_token=<ACCESS_TOKEN>'`,
-      ``,
-      `# 4. Create Ad`,
-      `curl -X POST https://graph.facebook.com/v27.0/${act}/ads \\`,
-      `  -H 'X-Client-Idempotent-Key: japora_ad_<UUID>' \\`,
-      `  -F 'name=${name || "Ma Campagne"} — Ad' \\`,
-      `  -F 'adset_id=<AD_SET_ID>' \\`,
-      `  -F 'creative={"creative_id":"<CREATIVE_ID>"}' \\`,
-      `  -F 'status=${initialStatus}' \\`,
-      `  -F 'access_token=<ACCESS_TOKEN>'`,
-    ].join("\n");
-  }, [
-    metaConfig.adAccountId,
-    metaConfig.pageId,
-    dailyBudget,
-    countries,
-    ageMin,
-    ageMax,
-    placements,
-    name,
-    objective,
-    initialStatus,
-    body,
-    ctaType,
-  ]);
 
   return (
     <div className="space-y-6 pb-12">
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-arctic-900 px-4 py-3 text-sm font-medium text-white shadow-xl">
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border border-arctic-400/30 bg-arctic-900 px-4 py-3 text-sm font-medium text-white shadow-xl">
           <span>{toast}</span>
           <button
             type="button"
             onClick={() => setToast(null)}
             className="text-xs text-arctic-400 hover:text-white"
           >
-            ✕
+            <Glyph name="close" size={14} />
           </button>
         </div>
       )}
 
       {/* Top Banner & Meta Marketing API Connection Bar */}
-      <div className="rounded-2xl border border-arctic-400/25 bg-gradient-to-br from-white via-arctic-50/70 to-emerald-50/40 p-5 shadow-sm">
+      <div className="rounded-2xl border border-arctic-400/25 bg-arctic-50/70 p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600/10 px-3 py-1 text-xs font-semibold text-emerald-800">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                Meta Marketing API v27.0
+              <span className="inline-flex items-center gap-1.5 rounded-shape-full bg-arctic-100 px-3 py-1 text-xs font-semibold text-signal-text">
+                <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: "var(--signal-live)" }} />
+                {tr("Connecté à Meta", "Connected to Meta")}
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-blue-600 px-2.5 py-0.5 text-xs font-semibold text-white">
-                {tr("🟢 Connecté (Graph API v27.0)", "🟢 Connected (Graph API v27.0)")}
-              </span>
-              <span className="rounded-full bg-arctic-100 px-2.5 py-0.5 font-mono text-xs text-arctic-700">
+              <span className="a-num rounded-shape-full bg-arctic-100 px-2.5 py-1 text-xs text-arctic-700">
                 {metaConfig.adAccountId}
-              </span>
-              <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-arctic-100 px-2.5 py-0.5 text-[11px] text-arctic-600">
-                ✓ ads_management • ✓ ads_read • ✓ X-Client-Idempotent-Key
               </span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-arctic-900">
@@ -797,15 +732,12 @@ export default function CampaignsClient({
                 "Ads & Acquisition — WhatsApp Status, Facebook & Instagram",
               )}
             </h1>
-            <p className="max-w-3xl text-sm text-arctic-600">
+            <p className="max-w-xl text-sm text-arctic-600">
+              {tr("Faites de la publicité avec les produits de", "Advertise with the products from")}{" "}
+              <strong>{shopName}</strong>.{" "}
               {tr(
-                "Créez et pilotez vos campagnes publicitaires directement avec les produits de votre boutique",
-                "Create and manage your ad campaigns directly with products from your store",
-              )}{" "}
-              <strong>{shopName}</strong>{" "}
-              {tr(
-                "via le pipeline officiel Meta Marketing API (/campaigns → /adsets → /adcreatives → /ads) avec suivi en temps réel des clics, discussions WhatsApp, commandes et ROAS.",
-                "via the official Meta Marketing API pipeline (/campaigns → /adsets → /adcreatives → /ads) with real-time tracking of clicks, WhatsApp chats, orders, and ROAS.",
+                "Clics, discussions, commandes et retour sur dépense, suivis ici.",
+                "Clicks, chats, orders and return on spend, tracked here.",
               )}
             </p>
           </div>
@@ -815,14 +747,16 @@ export default function CampaignsClient({
               href="/dashboard/broadcasts"
               className="rounded-xl border border-arctic-400/30 bg-white px-3.5 py-2 text-xs font-medium text-arctic-700 hover:bg-arctic-50"
             >
-              {tr("📣 Broadcasts WhatsApp", "📣 WhatsApp Broadcasts")}
+              <Glyph name="megaphone" size={14} />
+              {tr("Broadcasts WhatsApp", "WhatsApp broadcasts")}
             </Link>
             <button
               type="button"
               onClick={() => setShowConfigModal(true)}
               className="rounded-xl border border-arctic-400/35 bg-white px-3.5 py-2 text-xs font-semibold text-arctic-800 shadow-2xs hover:bg-arctic-50"
             >
-              {tr("⚙️ Configurer Meta API & Token", "⚙️ Configure Meta API & Token")}
+              <Glyph name="cog" size={14} />
+              {tr("Réglages Meta", "Meta settings")}
             </button>
             <button
               type="button"
@@ -843,36 +777,31 @@ export default function CampaignsClient({
           label={tr("Impressions & Portée", "Impressions & Reach")}
           value={analytics.impressions.toLocaleString("fr-FR")}
           sub={`${tr("Portée unique :", "Unique reach:")} ${analytics.reach.toLocaleString("fr-FR")}`}
-          badge="Meta Reach"
-          accent="blue"
+          badge={tr("Portée", "Reach")}
         />
         <KpiCard
           label={tr("Vues WhatsApp Status", "WhatsApp Status Views")}
           value={analytics.statusViews.toLocaleString("fr-FR")}
           sub={`${analytics.activeCount} ${tr("campagne(s) active(s)", "active campaign(s)")}`}
-          badge="Status Ads"
-          accent="emerald"
+          badge={tr("Statuts", "Statuses")}
         />
         <KpiCard
           label={tr("Clics Publicitaires", "Ad Clicks")}
           value={analytics.totalClicks.toLocaleString("fr-FR")}
           sub={`CTR : ${analytics.ctr}% • CPC : ${formatMoney(analytics.cpcCents, currency)}`}
-          badge="LINK_CLICKS"
-          accent="indigo"
+          badge={tr("Clics", "Clicks")}
         />
         <KpiCard
           label={tr("Discussions WhatsApp", "WhatsApp Chats")}
           value={analytics.whatsappChats.toLocaleString("fr-FR")}
           sub={tr("Conversations engagées", "Started conversations")}
-          badge="CTWA"
-          accent="teal"
+          badge={tr("Discussions", "Chats")}
         />
         <KpiCard
           label={tr("Commandes Attribuées", "Attributed Orders")}
           value={analytics.orders.toLocaleString("fr-FR")}
           sub={`${tr("Taux conv. (CVR) :", "Conv. rate (CVR):")} ${analytics.cvr}%`}
           badge={tr("Ventes", "Sales")}
-          accent="amber"
         />
         <KpiCard
           label={tr("Revenu & ROAS Global", "Global Revenue & ROAS")}
@@ -880,8 +809,7 @@ export default function CampaignsClient({
           sub={`${tr("Dépensé :", "Spent:")} ${formatMoney(analytics.spendCents, currency)} • ROAS : ${
             analytics.roas !== null ? `${analytics.roas}×` : "—"
           }`}
-          badge={analytics.roas && analytics.roas >= 2 ? tr("Rentable 🔥", "Profitable 🔥") : "ROAS"}
-          accent="emerald"
+          badge={analytics.roas && analytics.roas >= 2 ? tr("Rentable", "Profitable") : "ROAS"}
           highlight
         />
       </div>
@@ -889,14 +817,11 @@ export default function CampaignsClient({
       {/* Visual Conversion Funnel Bar */}
       <div className="card p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="text-xs font-semibold uppercase tracking-wider text-arctic-600">
-            {tr(
-              "Entonnoir de Conversion Meta Marketing API → Boutique Japora & WhatsApp",
-              "Conversion Funnel Meta Marketing API → Japora Storefront & WhatsApp",
-            )}
+          <div className="a-eyebrow">
+            {tr("De la publicité à la commande", "From the ad to the order")}
           </div>
           <div className="text-xs text-arctic-600">
-            {tr("Attribution automatique sur 7 jours via", "7-day automatic attribution via")} <code>/go/&lt;refCode&gt;</code>
+            {tr("Une commande est attribuée pendant 7 jours.", "An order is attributed for 7 days.")}
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
@@ -904,7 +829,7 @@ export default function CampaignsClient({
             step={tr("1. Impressions Meta", "1. Meta Impressions")}
             count={analytics.impressions}
             pct={100}
-            color="bg-blue-500"
+            color="bg-brand/35"
           />
           <FunnelStage
             step={tr("2. Portée & Status WA", "2. Reach & WA Status")}
@@ -914,17 +839,17 @@ export default function CampaignsClient({
                 ? Math.min(100, Math.round((analytics.reach / analytics.impressions) * 100))
                 : 0
             }
-            color="bg-indigo-500"
+            color="bg-brand/55"
           />
           <FunnelStage
-            step={tr("3. Clics (/go/ref)", "3. Clicks (/go/ref)")}
+            step={tr("3. Clics sur le lien", "3. Link clicks")}
             count={analytics.totalClicks}
             pct={
               analytics.reach > 0
                 ? Math.min(100, Math.max(8, Math.round((analytics.totalClicks / analytics.reach) * 100)))
                 : 0
             }
-            color="bg-emerald-500"
+            color="bg-brand/75"
           />
           <FunnelStage
             step={tr("4. Discussions WhatsApp", "4. WhatsApp Chats")}
@@ -937,7 +862,7 @@ export default function CampaignsClient({
                   )
                 : 0
             }
-            color="bg-teal-500"
+            color="bg-brand"
           />
           <FunnelStage
             step={tr("5. Commandes Payées", "5. Paid Orders")}
@@ -950,14 +875,14 @@ export default function CampaignsClient({
                   )
                 : 0
             }
-            color="bg-amber-500"
+            color="bg-gold-deep"
           />
         </div>
       </div>
 
       {err && (
-        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-700">
-          ⚠️ {err}
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-medium text-aurora-error-text">
+          <Glyph name="alert" size={14} /> {err}
         </div>
       )}
 
@@ -968,29 +893,12 @@ export default function CampaignsClient({
         <div className="rounded-2xl border border-arctic-400/30 bg-white p-5 shadow-md">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-arctic-400/20 pb-4">
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+              <span className="text-xs font-bold uppercase tracking-wider text-signal-text">
                 {tr("Studio Publicitaire Meta Graph API v27.0", "Meta Graph API v27.0 ad studio")}
               </span>
               <h2 className="text-lg font-bold text-arctic-900">
                 {tr("Lancer une publicité avec un produit de votre boutique", "Launch an ad with a product from your shop")}
               </h2>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-arctic-600">
-              <span className="rounded-lg bg-arctic-100 px-2.5 py-1 font-mono">
-                1. /campaigns
-              </span>
-              <span>→</span>
-              <span className="rounded-lg bg-arctic-100 px-2.5 py-1 font-mono">
-                2. /adsets
-              </span>
-              <span>→</span>
-              <span className="rounded-lg bg-arctic-100 px-2.5 py-1 font-mono">
-                3. /adcreatives
-              </span>
-              <span>→</span>
-              <span className="rounded-lg bg-arctic-100 px-2.5 py-1 font-mono">
-                4. /ads
-              </span>
             </div>
           </div>
 
@@ -998,7 +906,7 @@ export default function CampaignsClient({
             {/* Left 7 columns: Form Wizard */}
             <form
               onSubmit={createMetaAdCampaign}
-              className="space-y-6 lg:col-span-7"
+              className="min-w-0 space-y-6 lg:col-span-7"
             >
               {/* ÉTAPE 1 : Sélection du Produit de la Boutique & Objectif */}
               <div className="rounded-xl border border-arctic-400/20 bg-arctic-50/50 p-4 space-y-4">
@@ -1006,7 +914,7 @@ export default function CampaignsClient({
                   <h3 className="text-sm font-bold text-arctic-900">
                     {tr("Étape 1 — Produit de la boutique & Objectif Meta (`/campaigns`)", "Step 1 — Shop product & Meta objective (`/campaigns`)")}
                   </h3>
-                  <span className="text-[11px] font-medium text-emerald-700">
+                  <span className="text-[11px] font-medium text-signal-text">
                     {tr("Catalogue Japora (", "Japora catalog (")}{products.length} {tr("produits)", "products)")}
                   </span>
                 </div>
@@ -1027,7 +935,7 @@ export default function CampaignsClient({
                             onClick={() => handleSelectProduct(p.id)}
                             className={`flex items-center gap-3 rounded-xl border p-2.5 text-left transition ${
                               isSelected
-                                ? "border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/20"
+                                ? "border-signal-fill bg-arctic-100/70 ring-2 ring-signal-fill/25"
                                 : "border-arctic-400/25 bg-white hover:border-arctic-400/50"
                             }`}
                           >
@@ -1040,8 +948,8 @@ export default function CampaignsClient({
                                   className="h-full w-full object-cover"
                                 />
                               ) : (
-                                <div className="flex h-full w-full items-center justify-center text-lg">
-                                  🛍️
+                                <div className="flex h-full w-full items-center justify-center">
+                                  <Glyph name="bag" size={18} className="text-arctic-500" />
                                 </div>
                               )}
                             </div>
@@ -1049,7 +957,7 @@ export default function CampaignsClient({
                               <div className="truncate text-xs font-bold text-arctic-900">
                                 {p.name}
                               </div>
-                              <div className="text-xs font-semibold text-emerald-700">
+                              <div className="text-xs font-semibold text-signal-text">
                                 {formatMoney(p.priceCents, currency)}
                               </div>
                               <div className="text-[10px] text-arctic-600">
@@ -1062,7 +970,7 @@ export default function CampaignsClient({
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-lg border border-amber-500/30 bg-amber-50 p-3 text-xs text-amber-800">
+                  <div className="rounded-lg border border-amber-500/30 bg-aurora-warning-bg p-3 text-xs text-aurora-warning-text">
                     {tr("Aucun produit dans votre catalogue.", "No products in your catalog.")}{" "}
                     <Link href="/dashboard/products" className="font-semibold underline">
                       {tr("Ajoutez un produit ici", "Add a product here")}
@@ -1073,8 +981,8 @@ export default function CampaignsClient({
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="label">{tr("Nom de la campagne Meta *", "Meta campaign name *")}</label>
-                    <input
+                    <label htmlFor="campaignsclient-1" className="label">{tr("Nom de la campagne Meta *", "Meta campaign name *")}</label>
+                    <input id="campaignsclient-1"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
@@ -1083,8 +991,8 @@ export default function CampaignsClient({
                     />
                   </div>
                   <div>
-                    <label className="label">{tr("Objectif Marketing API (`objective`)", "Marketing API objective (`objective`)")}</label>
-                    <select
+                    <label htmlFor="campaignsclient-2" className="label">{tr("Objectif Marketing API (`objective`)", "Marketing API objective (`objective`)")}</label>
+                    <select id="campaignsclient-2"
                       value={objective}
                       onChange={(e) => setObjective(e.target.value as MetaAdObjective)}
                       className="input"
@@ -1113,22 +1021,25 @@ export default function CampaignsClient({
                           onClick={() => togglePlacement(pl.id)}
                           className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium transition ${
                             active
-                              ? "border-emerald-600 bg-emerald-600 text-white shadow-2xs"
+                              ? "border-signal-fill bg-signal-fill text-white shadow-2xs"
                               : "border-arctic-400/30 bg-white text-arctic-700 hover:bg-arctic-50"
                           }`}
                         >
-                          <span>
-                            {pl.platform === "whatsapp"
-                              ? "💬"
-                              : pl.platform === "instagram"
-                                ? "📸"
-                                : "📘"}
-                          </span>
+                          <Glyph
+                            name={
+                              pl.platform === "whatsapp"
+                                ? "chat"
+                                : pl.platform === "instagram"
+                                  ? "camera"
+                                  : "feed"
+                            }
+                            size={14}
+                          />
                           <span>{pl.label}</span>
                           <span
                             className={`rounded-full px-1.5 py-0.2 text-[10px] ${
                               active
-                                ? "bg-white/20 text-white"
+                                ? "bg-arctic-900/25 text-white"
                                 : "bg-arctic-100 text-arctic-600"
                             }`}
                           >
@@ -1155,7 +1066,7 @@ export default function CampaignsClient({
 
                 <div>
                   <label className="label">
-                    {tr("Pays ciblés (`targeting.geo_locations.countries`)", "Target countries (`targeting.geo_locations.countries`)")}
+                    {tr("Pays ciblés", "Target countries")}
                   </label>
                   <div className="flex flex-wrap gap-1.5">
                     {COUNTRY_OPTIONS.map((c) => {
@@ -1180,8 +1091,8 @@ export default function CampaignsClient({
 
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   <div>
-                    <label className="label">{tr("Budget / jour (", "Budget / day (")}{currency})</label>
-                    <input
+                    <label htmlFor="campaignsclient-3" className="label">{tr("Budget / jour (", "Budget / day (")}{currency})</label>
+                    <input id="campaignsclient-3"
                       type="number"
                       min="1"
                       step="any"
@@ -1191,8 +1102,8 @@ export default function CampaignsClient({
                     />
                   </div>
                   <div>
-                    <label className="label">{tr("Durée (jours)", "Duration (days)")}</label>
-                    <input
+                    <label htmlFor="campaignsclient-4" className="label">{tr("Durée (jours)", "Duration (days)")}</label>
+                    <input id="campaignsclient-4"
                       type="number"
                       min="1"
                       max="90"
@@ -1204,8 +1115,8 @@ export default function CampaignsClient({
                     />
                   </div>
                   <div>
-                    <label className="label">{tr("Âge min", "Min age")}</label>
-                    <input
+                    <label htmlFor="campaignsclient-5" className="label">{tr("Âge min", "Min age")}</label>
+                    <input id="campaignsclient-5"
                       type="number"
                       min="18"
                       max="65"
@@ -1215,8 +1126,8 @@ export default function CampaignsClient({
                     />
                   </div>
                   <div>
-                    <label className="label">{tr("Âge max", "Max age")}</label>
-                    <input
+                    <label htmlFor="campaignsclient-6" className="label">{tr("Âge max", "Max age")}</label>
+                    <input id="campaignsclient-6"
                       type="number"
                       min="18"
                       max="65"
@@ -1239,11 +1150,11 @@ export default function CampaignsClient({
                           onClick={() => toggleInterest(interest)}
                           className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${
                             active
-                              ? "border-indigo-600 bg-indigo-600/10 text-indigo-800"
+                              ? "border-indigo-600 bg-indigo-600/10 text-arctic-800"
                               : "border-arctic-400/25 bg-white text-arctic-600"
                           }`}
                         >
-                          {active ? "✓ " : "+ "}
+                          {active ? "" : "+ "}
                           {tr(interest, interestEn)}
                         </button>
                       );
@@ -1262,17 +1173,17 @@ export default function CampaignsClient({
                     type="button"
                     onClick={draftWithAi}
                     disabled={drafting}
-                    className="rounded-lg border border-emerald-600/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-500/20 disabled:opacity-50"
+                    className="rounded-lg border border-signal-fill/30 bg-signal-fill/10 px-3 py-1.5 text-xs font-semibold text-signal-text hover:bg-signal-fill/20 disabled:opacity-50"
                   >
                     {drafting
-                      ? tr("✨ Génération IA en cours…", "✨ AI generation in progress…")
-                      : tr("✨ Rédiger avec Gemini IA", "✨ Write with Gemini AI")}
+                      ? tr("Rédaction en cours…", "Writing…")
+                      : tr("Rédiger avec l'IA", "Write with AI")}
                   </button>
                 </div>
 
                 <div>
-                  <label className="label">{tr("Accroche / Titre (`link_data.name`)", "Headline (`link_data.name`)")}</label>
-                  <input
+                  <label htmlFor="campaignsclient-7" className="label">{tr("Accroche / Titre (`link_data.name`)", "Headline (`link_data.name`)")}</label>
+                  <input id="campaignsclient-7"
                     value={headline}
                     onChange={(e) => setHeadline(e.target.value)}
                     placeholder={tr("Ex: Nouvelle Collection Disponible — Livraison 24h", "e.g. New collection available — 24h delivery")}
@@ -1281,10 +1192,10 @@ export default function CampaignsClient({
                 </div>
 
                 <div>
-                  <label className="label">
+                  <label htmlFor="campaignsclient-8" className="label">
                     {tr("Texte de la publicité (`link_data.message`)", "Ad text (`link_data.message`)")}
                   </label>
-                  <textarea
+                  <textarea id="campaignsclient-8"
                     rows={3}
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
@@ -1295,8 +1206,8 @@ export default function CampaignsClient({
 
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div>
-                    <label className="label">{tr("Type de bouton (`call_to_action`)", "Button type (`call_to_action`)")}</label>
-                    <select
+                    <label htmlFor="campaignsclient-9" className="label">{tr("Type de bouton (`call_to_action`)", "Button type (`call_to_action`)")}</label>
+                    <select id="campaignsclient-9"
                       value={ctaType}
                       onChange={(e) => {
                         const nextType = e.target.value as MetaCtaType;
@@ -1314,16 +1225,16 @@ export default function CampaignsClient({
                     </select>
                   </div>
                   <div>
-                    <label className="label">{tr("Texte du bouton CTA", "CTA button text")}</label>
-                    <input
+                    <label htmlFor="campaignsclient-10" className="label">{tr("Texte du bouton CTA", "CTA button text")}</label>
+                    <input id="campaignsclient-10"
                       value={cta}
                       onChange={(e) => setCta(e.target.value)}
                       className="input"
                     />
                   </div>
                   <div>
-                    <label className="label">{tr("Destination du clic", "Click destination")}</label>
-                    <select
+                    <label htmlFor="campaignsclient-11" className="label">{tr("Destination du clic", "Click destination")}</label>
+                    <select id="campaignsclient-11"
                       value={destinationType}
                       onChange={(e) =>
                         setDestinationType(
@@ -1335,10 +1246,10 @@ export default function CampaignsClient({
                       className="input"
                     >
                       <option value="whatsapp">
-                        {tr("💬 WhatsApp Direct (/go/ref)", "💬 WhatsApp direct (/go/ref)")}
+                        {tr("Discussion WhatsApp", "WhatsApp chat")}
                       </option>
                       <option value="shop_product">
-                        {tr("🛍️ Fiche Produit Boutique (/c/", "🛍️ Shop product page (/c/")}{shopSlug || tr("boutique", "shop")})
+                        {tr("Fiche produit en boutique", "Shop product page")}
                       </option>
                     </select>
                   </div>
@@ -1362,16 +1273,16 @@ export default function CampaignsClient({
                     onClick={() => setInitialStatus("ACTIVE")}
                     className={`rounded-xl border p-3 text-left transition ${
                       initialStatus === "ACTIVE"
-                        ? "border-emerald-600 bg-emerald-50/80 ring-2 ring-emerald-500/20"
+                        ? "border-signal-fill bg-arctic-100/80 ring-2 ring-signal-fill/25"
                         : "border-arctic-400/25 bg-white"
                     }`}
                   >
                     <div className="flex items-center gap-2 text-xs font-bold text-arctic-900">
-                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                      {tr("status = ACTIVE (Diffuser immédiatement)", "status = ACTIVE (start delivering now)")}
+                      <span aria-hidden className="h-2.5 w-2.5 rounded-full" style={{ background: "var(--signal-live)" }} />
+                      {tr("Diffuser immédiatement", "Start delivering now")}
                     </div>
                     <p className="mt-1 text-[11px] text-arctic-600">
-                      {tr("Active la campagne, l'ensemble de publicités et la publicité dès la création.", "Activates the campaign, the ad set and the ad as soon as they are created.")}
+                      {tr("La publicité part dès sa création.", "The ad goes live as soon as it is created.")}
                     </p>
                   </button>
 
@@ -1380,16 +1291,16 @@ export default function CampaignsClient({
                     onClick={() => setInitialStatus("PAUSED")}
                     className={`rounded-xl border p-3 text-left transition ${
                       initialStatus === "PAUSED"
-                        ? "border-amber-600 bg-amber-50/80 ring-2 ring-amber-500/20"
+                        ? "border-amber-600 bg-aurora-warning-bg/80 ring-2 ring-amber-500/20"
                         : "border-arctic-400/25 bg-white"
                     }`}
                   >
                     <div className="flex items-center gap-2 text-xs font-bold text-arctic-900">
-                      <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
-                      {tr("status = PAUSED (Créer en pause)", "status = PAUSED (create paused)")}
+                      <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-aurora-warning" />
+                      {tr("Créer en pause", "Create paused")}
                     </div>
                     <p className="mt-1 text-[11px] text-arctic-600">
-                      {tr("Prépare les 4 objets sur Meta sans dépenser le budget avant votre validation finale.", "Prepares the 4 objects on Meta without spending budget before your final approval.")}
+                      {tr("Tout est prêt chez Meta, mais rien n'est dépensé avant votre accord.", "Everything is ready at Meta, but nothing is spent until you approve.")}
                     </p>
                   </button>
                 </div>
@@ -1408,14 +1319,14 @@ export default function CampaignsClient({
                   >
                     {creating
                       ? tr("Exécution du pipeline Meta v27.0 (4/4)…", "Running the Meta v27.0 pipeline (4/4)…")
-                      : tr(`🚀 Créer et Lancer sur Meta (${initialStatus})`, `🚀 Create and launch on Meta (${initialStatus})`)}
+                      : tr(`Créer et lancer (${initialStatus})`, `Create and launch (${initialStatus})`)}
                   </button>
                 </div>
               </div>
             </form>
 
             {/* Right 5 columns: Live Ad Preview (WhatsApp Status 9:16 + FB/IG Feed) & cURL */}
-            <div className="space-y-4 lg:col-span-5">
+            <div className="min-w-0 space-y-4 lg:col-span-5">
               <div className="rounded-2xl border border-arctic-400/25 bg-arctic-50/70 p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-arctic-600">
@@ -1425,52 +1336,52 @@ export default function CampaignsClient({
                     <button
                       type="button"
                       onClick={() => setPreviewFormat("whatsapp_status")}
-                      className={`rounded-md px-2.5 py-1 font-medium transition ${
+                      className={`rounded-shape-sm px-2.5 py-1 font-medium transition ${
                         previewFormat === "whatsapp_status"
-                          ? "bg-emerald-600 text-white"
+                          ? "bg-signal-fill text-white"
                           : "text-arctic-600 hover:text-arctic-900"
                       }`}
                     >
-                      💬 WhatsApp Status
+                      WhatsApp Status
                     </button>
                     <button
                       type="button"
                       onClick={() => setPreviewFormat("feed")}
-                      className={`rounded-md px-2.5 py-1 font-medium transition ${
+                      className={`rounded-shape-sm px-2.5 py-1 font-medium transition ${
                         previewFormat === "feed"
                           ? "bg-blue-600 text-white"
                           : "text-arctic-600 hover:text-arctic-900"
                       }`}
                     >
-                      📘 FB / IG Feed
+                      Facebook / Instagram
                     </button>
                   </div>
                 </div>
 
                 {previewFormat === "whatsapp_status" ? (
                   /* WhatsApp Status 9:16 Mockup */
-                  <div className="mx-auto max-w-[300px] overflow-hidden rounded-3xl border-4 border-arctic-900 bg-arctic-950 text-white shadow-xl">
+                  <div className="mx-auto max-w-[300px] overflow-hidden rounded-shape-xl border-4 border-arctic-900 bg-arctic-900 text-arctic-50 shadow-xl">
                     {/* Status progress bar */}
                     <div className="flex gap-1 px-3 pt-2.5">
-                      <div className="h-1 flex-1 rounded-full bg-white" />
-                      <div className="h-1 flex-1 rounded-full bg-white/30" />
+                      <div className="h-1 flex-1 rounded-full bg-arctic-50" />
+                      <div className="h-1 flex-1 rounded-full bg-arctic-50/30" />
                     </div>
                     {/* Status Header */}
                     <div className="flex items-center justify-between px-3.5 py-2.5">
                       <div className="flex items-center gap-2.5">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-signal-fill text-sm font-bold text-white">
                           {shopName.slice(0, 1).toUpperCase()}
                         </div>
                         <div>
                           <div className="text-xs font-bold leading-tight">
                             {shopName}
                           </div>
-                          <div className="text-[10px] text-emerald-300">
+                          <div className="text-[10px] text-arctic-300">
                             {tr("Sponsorisé • WhatsApp Status", "Sponsored • WhatsApp Status")}
                           </div>
                         </div>
                       </div>
-                      <span className="text-xs text-white/60">•••</span>
+                      <span className="text-xs text-arctic-300">•••</span>
                     </div>
 
                     {/* Product Visual */}
@@ -1483,32 +1394,32 @@ export default function CampaignsClient({
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-emerald-900 to-arctic-900 p-6 text-center">
-                          <span className="text-4xl">🛍️</span>
-                          <span className="mt-2 text-sm font-semibold text-white/90">
+                        <div className="flex h-full w-full flex-col items-center justify-center bg-arctic-800 p-6 text-center">
+                          <Glyph name="bag" size={36} className="text-arctic-300" />
+                          <span className="mt-2 text-sm font-semibold text-arctic-100">
                             {selectedProduct?.name || shopName}
                           </span>
                         </div>
                       )}
                       {selectedProduct && (
-                        <div className="absolute bottom-3 right-3 rounded-full bg-emerald-500 px-3 py-1 text-xs font-extrabold text-white shadow-lg">
+                        <div className="a-num absolute bottom-3 right-3 rounded-full bg-signal-fill px-3 py-1 text-xs font-extrabold text-white shadow-lg">
                           {formatMoney(selectedProduct.priceCents, currency)}
                         </div>
                       )}
                     </div>
 
                     {/* Status Caption & CTA */}
-                    <div className="space-y-3 bg-gradient-to-t from-black via-arctic-950 to-arctic-950 p-4">
-                      <div className="text-xs font-bold text-emerald-300">
+                    <div className="space-y-3 bg-arctic-900 p-4">
+                      <div className="text-xs font-bold text-arctic-50">
                         {headline || selectedProduct?.name || tr("Titre de votre publicité", "Your ad headline")}
                       </div>
-                      <p className="line-clamp-3 whitespace-pre-line text-[11px] leading-relaxed text-white/85">
+                      <p className="line-clamp-3 whitespace-pre-line text-[11px] leading-relaxed text-arctic-200">
                         {body ||
                           tr("Votre texte publicitaire apparaîtra ici dans les statuts WhatsApp de votre audience cible.", "Your ad text will appear here in your target audience's WhatsApp statuses.")}
                       </p>
                       <div className="pt-1">
-                        <div className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-500 py-2 text-xs font-bold text-white shadow-md">
-                          <span>💬</span>
+                        <div className="flex w-full items-center justify-center gap-2 rounded-full bg-signal-fill py-2 text-xs font-bold text-white shadow-md">
+                          <Glyph name="chat" size={14} />
                           <span>{cta || tr("Commander sur WhatsApp", "Order on WhatsApp")}</span>
                         </div>
                       </div>
@@ -1527,7 +1438,7 @@ export default function CampaignsClient({
                             {shopName}
                           </div>
                           <div className="text-[10px] text-arctic-600">
-                            {tr("Sponsorisé • 🌍", "Sponsored • 🌍")} {countries.join(", ")}
+                            {tr("Sponsorisé •", "Sponsored •")} {countries.join(", ")}
                           </div>
                         </div>
                       </div>
@@ -1547,8 +1458,8 @@ export default function CampaignsClient({
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center text-3xl">
-                          🛍️
+                        <div className="flex h-full w-full items-center justify-center">
+                          <Glyph name="bag" size={30} className="text-arctic-500" />
                         </div>
                       )}
                     </div>
@@ -1572,20 +1483,6 @@ export default function CampaignsClient({
                 )}
               </div>
 
-              {/* Live Graph API v27.0 Payload Preview */}
-              <div className="rounded-2xl border border-arctic-400/25 bg-arctic-950 p-4 text-arctic-100">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-emerald-400">
-                    {tr("Requêtes Graph API v27.0 générées", "Generated Graph API v27.0 requests")}
-                  </span>
-                  <span className="rounded bg-emerald-500/20 px-2 py-0.5 font-mono text-[10px] text-emerald-300">
-                    Idempotent
-                  </span>
-                </div>
-                <pre className="max-h-60 overflow-auto font-mono text-[10px] leading-relaxed text-arctic-200">
-                  {liveCurlPreview}
-                </pre>
-              </div>
             </div>
           </div>
         </div>
@@ -1641,6 +1538,7 @@ export default function CampaignsClient({
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label={tr("Rechercher une campagne", "Search campaigns")}
               placeholder={tr("Rechercher par nom, ID Meta, réf…", "Search by name, Meta ID, ref…")}
               className="input text-xs"
             />
@@ -1649,7 +1547,7 @@ export default function CampaignsClient({
 
         {filteredCampaigns.length === 0 ? (
           <div className="card p-10 text-center space-y-3">
-            <div className="text-3xl">📢</div>
+            <Glyph name="megaphone" size={28} className="text-arctic-500" />
             <div className="text-base font-bold text-arctic-900">
               {tr("Aucune campagne publicitaire dans cette vue", "No ad campaigns in this view")}
             </div>
@@ -1714,7 +1612,7 @@ export default function CampaignsClient({
                           />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-xl">
-                            📢
+                            <Glyph name="megaphone" size={18} className="text-arctic-500" />
                           </div>
                         )}
                       </div>
@@ -1725,11 +1623,11 @@ export default function CampaignsClient({
                             {c.name}
                           </h3>
                           <CampaignStatusBadge status={c.status} />
-                          <span className="rounded-md bg-arctic-100 px-2 py-0.5 font-mono text-[11px] text-arctic-700">
+                          <span className="rounded-shape-sm bg-arctic-100 px-2 py-0.5 font-mono text-[11px] text-arctic-700">
                             ref:{c.refCode}
                           </span>
                           {meta && (
-                            <span className="rounded-md bg-blue-50 px-2 py-0.5 font-mono text-[11px] text-blue-800">
+                            <span className="rounded-shape-sm bg-blue-50 px-2 py-0.5 font-mono text-[11px] text-arctic-800">
                               {meta.objective}
                             </span>
                           )}
@@ -1752,17 +1650,17 @@ export default function CampaignsClient({
                             {meta.placements.map((pl) => (
                               <span
                                 key={pl}
-                                className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-800"
+                                className="rounded-full bg-signal-fill/10 px-2 py-0.5 text-[10px] font-semibold text-signal-text"
                               >
                                 {pl === "whatsapp_status"
-                                  ? "💬 WhatsApp Status"
+                                  ? "WhatsApp Status"
                                   : pl === "whatsapp_ctwa"
-                                    ? "💬 Click-to-WhatsApp"
+                                    ? "Click-to-WhatsApp"
                                     : pl.replace("_", " ")}
                               </span>
                             ))}
                             <span className="rounded-full bg-arctic-100 px-2 py-0.5 text-[10px] text-arctic-600">
-                              🌍 {meta.targeting.countries.join(", ")} •{" "}
+                              {meta.targeting.countries.join(", ")} •{" "}
                               {meta.targeting.ageMin}-{meta.targeting.ageMax} {tr("ans", "years")}
                             </span>
                             <span className="font-mono text-[10px] text-arctic-600">
@@ -1783,16 +1681,16 @@ export default function CampaignsClient({
                               type="button"
                               disabled={isBusy}
                               onClick={() => toggleCampaignStatus(c, "PAUSED")}
-                              className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-500/20 disabled:opacity-50"
+                              className="rounded-xl border border-amber-500/40 bg-aurora-warning/10 px-3 py-1.5 text-xs font-semibold text-aurora-warning-text hover:bg-aurora-warning/20 disabled:opacity-50"
                             >
-                              {tr("⏸️ Mettre en pause", "⏸️ Pause")}
+                              {tr("Mettre en pause", "Pause")}
                             </button>
                           ) : (
                             <button
                               type="button"
                               disabled={isBusy}
                               onClick={() => toggleCampaignStatus(c, "ACTIVE")}
-                              className="rounded-xl border border-emerald-600/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-500/25 disabled:opacity-50"
+                              className="rounded-xl border border-signal-fill/40 bg-signal-fill/15 px-3 py-1.5 text-xs font-semibold text-signal-text hover:bg-signal-fill/25 disabled:opacity-50"
                             >
                               {tr("▶️ Relancer (ACTIVE)", "▶️ Restart (ACTIVE)")}
                             </button>
@@ -1802,10 +1700,10 @@ export default function CampaignsClient({
                             type="button"
                             disabled={isBusy}
                             onClick={() => syncCampaignInsights(c)}
-                            className="rounded-xl border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-800 hover:bg-blue-500/20 disabled:opacity-50"
+                            className="rounded-xl border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-arctic-800 hover:bg-blue-500/20 disabled:opacity-50"
                             title={tr("Synchroniser les performances Meta Graph API et les ventes réelles enregistrées dans la base de données", "Sync Meta Graph API performance and the real sales recorded in the database")}
                           >
-                            {isBusy ? tr("Sync…", "Syncing…") : tr("🔄 Synchroniser Insights", "🔄 Sync insights")}
+                            {isBusy ? tr("Mise à jour…", "Updating…") : tr("Mettre à jour les chiffres", "Update the figures")}
                           </button>
                         </>
                       )}
@@ -1815,7 +1713,7 @@ export default function CampaignsClient({
                         onClick={() => copyLink(c)}
                         className="rounded-xl border border-arctic-400/30 bg-white px-3 py-1.5 text-xs font-medium text-arctic-700 hover:bg-arctic-50"
                       >
-                        {copiedId === c.id ? tr("✓ Lien copié", "✓ Link copied") : tr("🔗 Lien /go/", "🔗 /go/ link")}
+                        {copiedId === c.id ? tr("Lien copié", "Link copied") : tr("Copier le lien", "Copy link")}
                       </button>
 
                       {meta && (
@@ -1824,7 +1722,7 @@ export default function CampaignsClient({
                           onClick={() => setInspectedCampaign(c)}
                           className="rounded-xl border border-arctic-400/30 bg-arctic-50 px-3 py-1.5 text-xs font-medium text-arctic-800 hover:bg-arctic-100"
                         >
-                          {tr("💻 Logs API Meta", "💻 Meta API logs")}
+                          {tr("Journal des envois", "Delivery log")}
                         </button>
                       )}
 
@@ -1832,10 +1730,10 @@ export default function CampaignsClient({
                         type="button"
                         disabled={isBusy}
                         onClick={() => archiveCampaign(c.id)}
-                        className="rounded-xl border border-rose-500/25 bg-rose-500/5 px-2.5 py-1.5 text-xs text-rose-700 hover:bg-rose-500/15"
+                        className="rounded-xl border border-aurora-error/30 bg-aurora-error-bg px-2.5 py-1.5 text-xs text-aurora-error-text hover:bg-rose-500/15"
                         title={tr("Arrêter et archiver la campagne", "Stop and archive the campaign")}
                       >
-                        {tr("🛑 Arrêter", "🛑 Stop")}
+                        {tr("Arrêter", "Stop")}
                       </button>
                     </div>
                   </div>
@@ -1907,7 +1805,7 @@ export default function CampaignsClient({
                               type="button"
                               disabled={isBusy}
                               onClick={() => approveAndRun(c.id)}
-                              className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                              className="rounded-lg bg-signal-fill px-3 py-1 text-xs font-semibold text-white hover:bg-signal-fill-hover disabled:opacity-50"
                             >
                               {c.status === "approved"
                                 ? tr("Envoyer maintenant", "Send now")
@@ -1937,11 +1835,11 @@ export default function CampaignsClient({
       {/* MODAL : CONFIGURATION META MARKETING API (AD ACCOUNT, PAGE, TOKEN)    */}
       {/* ===================================================================== */}
       {showConfigModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-arctic-950/60 p-4 backdrop-blur-xs">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-arctic-900/60 p-4 backdrop-blur-xs">
           <div className="max-h-[90dvh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-2xl border border-arctic-400/30 bg-white p-6 shadow-2xl space-y-5">
             <div className="flex items-start justify-between gap-3 border-b border-arctic-200 pb-4">
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+                <span className="text-xs font-bold uppercase tracking-wider text-signal-text">
                   {tr("Authentification & Autorisations Meta Graph API v27.0", "Meta Graph API v27.0 authentication & permissions")}
                 </span>
                 <h3 className="text-lg font-bold text-arctic-900">
@@ -1953,14 +1851,14 @@ export default function CampaignsClient({
                 onClick={() => setShowConfigModal(false)}
                 className="rounded-lg p-1.5 text-arctic-600 hover:bg-arctic-100"
               >
-                ✕
+                <Glyph name="close" size={16} />
               </button>
             </div>
 
             <form onSubmit={handleSaveMetaConfig} className="space-y-4">
               <div className="rounded-xl border border-blue-600 bg-blue-50/70 p-3.5 text-left">
                 <div className="text-xs font-bold text-arctic-900">
-                  {tr("🟢 Connexion Directe Meta Graph API (`graph.facebook.com/v27.0`)", "🟢 Direct Meta Graph API connection (`graph.facebook.com/v27.0`)")}
+                  {tr("Connexion directe à Meta", "Direct connection to Meta")}
                 </div>
                 <p className="mt-1 text-[11px] text-arctic-600">
                   {tr("Exécute les appels HTTP POST en direct sur votre compte publicitaire Meta (`/campaigns`, `/adsets`, `/adcreatives`, `/ads`) avec votre jeton `ads_management` et enregistre toutes les campagnes dans MySQL.", "Makes live HTTP POST calls on your Meta ad account (`/campaigns`, `/adsets`, `/adcreatives`, `/ads`) with your `ads_management` token and saves every campaign in the database.")}
@@ -1969,10 +1867,10 @@ export default function CampaignsClient({
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="label">
+                  <label htmlFor="campaignsclient-12" className="label">
                     {tr("ID du Compte Publicitaire (`act_<AD_ACCOUNT_ID>`)", "Ad account ID (`act_<AD_ACCOUNT_ID>`)")}
                   </label>
-                  <input
+                  <input id="campaignsclient-12"
                     value={cfgAdAccountId}
                     onChange={(e) => setCfgAdAccountId(e.target.value)}
                     placeholder="act_108492048192041"
@@ -1980,8 +1878,8 @@ export default function CampaignsClient({
                   />
                 </div>
                 <div>
-                  <label className="label">{tr("ID de la Page Facebook (`PAGE_ID`)", "Facebook Page ID (`PAGE_ID`)")}</label>
-                  <input
+                  <label htmlFor="campaignsclient-13" className="label">{tr("ID de la Page Facebook (`PAGE_ID`)", "Facebook Page ID (`PAGE_ID`)")}</label>
+                  <input id="campaignsclient-13"
                     value={cfgPageId}
                     onChange={(e) => setCfgPageId(e.target.value)}
                     placeholder="104928193847102"
@@ -1992,8 +1890,8 @@ export default function CampaignsClient({
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="label">Meta App ID (`CLIENT_ID`)</label>
-                  <input
+                  <label htmlFor="campaignsclient-14" className="label">Meta App ID (`CLIENT_ID`)</label>
+                  <input id="campaignsclient-14"
                     value={cfgAppId}
                     onChange={(e) => setCfgAppId(e.target.value)}
                     placeholder="158291049281720"
@@ -2001,8 +1899,8 @@ export default function CampaignsClient({
                   />
                 </div>
                 <div>
-                  <label className="label">{tr("Type de Jeton (`Access Token`)", "Token type (`Access Token`)")}</label>
-                  <select
+                  <label htmlFor="campaignsclient-15" className="label">{tr("Type de Jeton (`Access Token`)", "Token type (`Access Token`)")}</label>
+                  <select id="campaignsclient-15"
                     value={cfgTokenType}
                     onChange={(e) =>
                       setCfgTokenType(
@@ -2028,11 +1926,11 @@ export default function CampaignsClient({
               </div>
 
               <div>
-                <label className="label">
+                <label htmlFor="campaignsclient-16" className="label">
                   {tr("Jeton d'Accès Meta (`ACCESS_TOKEN` avec scopes", "Meta access token (`ACCESS_TOKEN` with scopes")}{" "}
                   <code>ads_management,ads_read</code>)
                 </label>
-                <input
+                <input id="campaignsclient-16"
                   type="password"
                   value={cfgAccessToken}
                   onChange={(e) => setCfgAccessToken(e.target.value)}
@@ -2048,13 +1946,13 @@ export default function CampaignsClient({
               {/* OAuth Helper Box from Meta Documentation */}
               <div className="rounded-xl border border-arctic-200 bg-arctic-50 p-3.5 text-xs space-y-2">
                 <div className="font-bold text-arctic-900">
-                  {tr("🔗 URL d'Autorisation OAuth Meta (`ads_management,ads_read`)", "🔗 Meta OAuth authorization URL (`ads_management,ads_read`)")}
+                  {tr("Lien d'autorisation Meta", "Meta authorisation link")}
                 </div>
                 <p className="text-[11px] text-arctic-600">
                   {tr("Conformément à la documentation Meta Marketing API, utilisez ce lien pour demander les permissions", "As described in the Meta Marketing API documentation, use this link to request the permissions")} <code>ads_management</code> {tr("et", "and")}{" "}
                   <code>ads_read</code> :
                 </p>
-                <code className="block break-all rounded-lg bg-arctic-900 p-2.5 font-mono text-[10px] text-emerald-300">
+                <code className="block break-all rounded-shape-sm bg-arctic-900 p-2.5 font-mono text-[10px] text-arctic-100">
                   {`https://www.facebook.com/v27.0/dialog/oauth?client_id=${cfgAppId || "<CLIENT_ID>"}&redirect_uri=${
                     typeof window !== "undefined"
                       ? encodeURIComponent(`${window.location.origin}/dashboard/campaigns`)
@@ -2064,8 +1962,8 @@ export default function CampaignsClient({
               </div>
 
               {configFeedback && (
-                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs font-medium text-emerald-800">
-                  ✓ {configFeedback}
+                <div className="rounded-shape-md border border-signal-fill/30 bg-signal-fill/8 p-3 text-xs font-medium text-signal-text">
+                  <Glyph name="check" size={14} /> {configFeedback}
                 </div>
               )}
 
@@ -2096,11 +1994,11 @@ export default function CampaignsClient({
       {/* MODAL : LOGS D'EXÉCUTION API META & CLÉS D'IDEMPOTENCE (cURL)         */}
       {/* ===================================================================== */}
       {inspectedCampaign && inspectedCampaign.metaDetails && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-arctic-950/60 p-4 backdrop-blur-xs">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-arctic-900/60 p-4 backdrop-blur-xs">
           <div className="max-h-[90dvh] w-full max-w-3xl overflow-y-auto overscroll-contain rounded-2xl border border-arctic-400/30 bg-white p-6 shadow-2xl space-y-4">
             <div className="flex items-start justify-between gap-3 border-b border-arctic-200 pb-3">
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+                <span className="text-xs font-bold uppercase tracking-wider text-signal-text">
                   {tr("Journal d'Exécution Meta Marketing API v27.0", "Meta Marketing API v27.0 run log")}
                 </span>
                 <h3 className="text-lg font-bold text-arctic-900">
@@ -2116,7 +2014,7 @@ export default function CampaignsClient({
                 onClick={() => setInspectedCampaign(null)}
                 className="rounded-lg p-1.5 text-arctic-600 hover:bg-arctic-100"
               >
-                ✕
+                <Glyph name="close" size={16} />
               </button>
             </div>
 
@@ -2159,22 +2057,26 @@ export default function CampaignsClient({
               {inspectedCampaign.metaDetails.apiLogs.map((log, idx) => (
                 <div
                   key={`${log.step}_${idx}`}
-                  className="rounded-xl border border-arctic-300 bg-arctic-950 p-4 text-arctic-100 space-y-2"
+                  className="space-y-1.5 rounded-xl border border-arctic-300/60 bg-arctic-100/50 p-4"
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-mono text-xs font-bold text-emerald-400">
-                      [{idx + 1}] {log.method} {log.endpoint}
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="text-sm font-semibold text-arctic-900">
+                      {idx + 1}. {STEP_LABEL(tr)[log.step] ?? log.step}
                     </span>
-                    <span className="font-mono text-[10px] text-arctic-400">
-                      X-Client-Idempotent-Key: {log.idempotencyKey}
+                    <span className="a-num text-[11px] text-arctic-600">
+                      {new Date(log.timestamp).toLocaleString()}
                     </span>
                   </div>
-                  <pre className="overflow-x-auto font-mono text-[11px] text-arctic-200">
-                    {log.curlPreview}
-                  </pre>
-                  <div className="border-t border-arctic-800 pt-2 font-mono text-[10px] text-emerald-300">
-                    {tr("Réponse :", "Response:")} {JSON.stringify(log.responsePayload)}
-                  </div>
+                  <p className="text-xs text-arctic-700">
+                    {typeof log.responsePayload?.id === "string"
+                      ? tr("Créé chez Meta — référence ", "Created at Meta — reference ")
+                      : tr("Envoyé à Meta.", "Sent to Meta.")}
+                    {typeof log.responsePayload?.id === "string" && (
+                      <span className="a-num font-semibold text-arctic-900">
+                        {String(log.responsePayload.id)}
+                      </span>
+                    )}
+                  </p>
                 </div>
               ))}
             </div>
@@ -2206,15 +2108,12 @@ function KpiCard({
   value: string;
   sub: string;
   badge: string;
-  accent?: string;
   highlight?: boolean;
 }) {
   return (
     <div
-      className={`rounded-2xl border p-4 shadow-2xs ${
-        highlight
-          ? "border-emerald-500/40 bg-emerald-500/10"
-          : "border-arctic-400/25 bg-white"
+      className={`rounded-shape-lg border bg-aurora-surface p-4 shadow-2xs ${
+        highlight ? "border-brand/50 ring-1 ring-brand/20" : "border-arctic-400/25"
       }`}
     >
       <div className="flex items-center justify-between gap-1">
@@ -2273,7 +2172,7 @@ function MiniMetric({
       <div className="text-[10px] font-medium text-arctic-600">{label}</div>
       <div
         className={`mt-0.5 text-xs font-bold ${
-          highlight ? "text-emerald-700" : "text-arctic-900"
+          highlight ? "text-signal-text" : "text-arctic-900"
         }`}
       >
         {value}
@@ -2285,23 +2184,23 @@ function MiniMetric({
 function CampaignStatusBadge({ status }: { status: string }) {
   if (status === "active") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+      <span className="inline-flex items-center gap-1 rounded-full bg-signal-fill/15 px-2.5 py-0.5 text-[11px] font-bold text-signal-text">
+        <span className="h-1.5 w-1.5 rounded-full bg-signal-fill animate-pulse" />
         ACTIVE
       </span>
     );
   }
   if (status === "paused") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-800">
+      <span className="inline-flex items-center gap-1 rounded-full bg-aurora-warning/15 px-2.5 py-0.5 text-[11px] font-bold text-aurora-warning-text">
         ⏸ PAUSED
       </span>
     );
   }
   const map: Record<string, { label: string; cls: string }> = {
-    draft: { label: "BROUILLON", cls: "bg-amber-500/15 text-amber-700" },
+    draft: { label: "BROUILLON", cls: "bg-aurora-warning/15 text-aurora-warning-text" },
     approved: { label: "APPROUVÉE", cls: "bg-sky-500/15 text-sky-700" },
-    sent: { label: "ENVOYÉE", cls: "bg-emerald-500/15 text-emerald-700" },
+    sent: { label: "ENVOYÉE", cls: "bg-signal-fill/15 text-signal-text" },
     cancelled: { label: "ANNULÉE", cls: "bg-arctic-400/20 text-arctic-600" },
     archived: { label: "ARCHIVÉE", cls: "bg-arctic-400/20 text-arctic-600" },
   };

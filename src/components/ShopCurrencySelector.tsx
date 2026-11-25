@@ -7,6 +7,7 @@ import {
   SUPPORTED_CURRENCIES,
 } from "@/lib/currency";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import Glyph from "@/components/Glyph";
 
 export default function ShopCurrencySelector({
   selectedCurrency,
@@ -89,7 +90,7 @@ export default function ShopCurrencySelector({
                         {tr("Boutique", "Shop currency")}
                       </span>
                     )}
-                    {isSelected && <span className="text-brand font-bold">✓</span>}
+                    {isSelected && <Glyph name="check" size={14} className="text-brand-dark" />}
                   </div>
                 </button>
               );

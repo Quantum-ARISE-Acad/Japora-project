@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import Glyph from "@/components/Glyph";
 
 /**
  * PWA install prompt. Three flavours:
@@ -122,7 +123,7 @@ export default function InstallPrompt() {
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-3 sm:left-auto sm:right-3 sm:w-96 sm:px-0">
       <div className="card flex items-start gap-3 border-brand/20 bg-white p-3 shadow-lg">
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-brand font-black text-white">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-gold-fill font-black text-white">
           S
         </div>
         <div className="min-w-0 flex-1">
@@ -158,7 +159,7 @@ export default function InstallPrompt() {
           aria-label={tr("Fermer", "Dismiss")}
           className="grid h-6 w-6 place-items-center rounded text-arctic-400 hover:bg-arctic-100 hover:text-arctic-700"
         >
-          ✕
+          <Glyph name="close" size={16} />
         </button>
       </div>
     </div>

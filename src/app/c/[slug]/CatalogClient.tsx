@@ -468,7 +468,7 @@ export default function CatalogClient({
                 }}
                 className={`relative inline-flex items-center gap-2 rounded-shape-full px-3.5 py-2 text-xs font-bold transition shadow-xs ${
                   itemCount > 0
-                    ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                    ? "bg-signal-fill text-white hover:bg-signal-fill-hover"
                     : "border border-arctic-300 bg-white text-arctic-700 hover:bg-arctic-100"
                 }`}
                 title={tr("Ouvrir mon panier", "Open my cart")}
@@ -561,7 +561,7 @@ export default function CatalogClient({
                   }}
                   className={`rounded-shape-full px-3 py-1 text-xs font-semibold transition ${
                     stockFilter === "low_stock"
-                      ? "bg-amber-600 text-white"
+                      ? "bg-aurora-warning text-white"
                       : "bg-arctic-200/60 text-arctic-700 hover:bg-arctic-300/60"
                   }`}
                 >
@@ -575,7 +575,7 @@ export default function CatalogClient({
                   }}
                   className={`rounded-shape-full px-3 py-1 text-xs font-semibold transition ${
                     stockFilter === "new"
-                      ? "bg-emerald-600 text-white"
+                      ? "bg-signal-fill text-white"
                       : "bg-arctic-200/60 text-arctic-700 hover:bg-arctic-300/60"
                   }`}
                 >
@@ -641,7 +641,7 @@ export default function CatalogClient({
                 }}
                 className={`group flex shrink-0 items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
                   selectedCollectionId === null
-                    ? "border-brand bg-brand text-white shadow-md"
+                    ? "border-gold-fill bg-gold-fill text-white shadow-md"
                     : "border-arctic-300/60 bg-white text-arctic-800 hover:border-brand/50"
                 }`}
               >
@@ -678,7 +678,7 @@ export default function CatalogClient({
                     }}
                     className={`group flex shrink-0 items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
                       active
-                        ? "border-emerald-600 bg-gradient-to-r from-brand-dark to-emerald-700 text-white shadow-md"
+                        ? "border-signal-fill bg-gradient-to-r from-brand-dark to-emerald-700 text-white shadow-md"
                         : "border-arctic-300/60 bg-white text-arctic-800 hover:border-emerald-500/60"
                     }`}
                   >
@@ -834,7 +834,7 @@ export default function CatalogClient({
                 </div>
               </div>
             </div>
-            <button onClick={openCart} className="btn-primary !bg-emerald-600 hover:!bg-emerald-700 px-5 py-2.5 text-sm font-bold shadow-lg">
+            <button onClick={openCart} className="btn-primary !bg-signal-fill hover:!bg-signal-fill-hover px-5 py-2.5 text-sm font-bold shadow-lg">
               {tr("Ouvrir le panier et commander", "Open cart & checkout")} →
             </button>
           </div>
@@ -940,7 +940,7 @@ export default function CatalogClient({
                     className={`flex h-5 w-5 items-center justify-center rounded-full ${
                       step === "cart"
                         ? "bg-arctic-800 text-white"
-                        : "bg-emerald-600 text-white"
+                        : "bg-signal-fill text-white"
                     }`}
                   >
                     {step === "cart" ? "1" : "✓"}
@@ -952,7 +952,7 @@ export default function CatalogClient({
                       step === "form"
                         ? "bg-arctic-800 text-white"
                         : step === "success"
-                          ? "bg-emerald-600 text-white"
+                          ? "bg-signal-fill text-white"
                           : "bg-arctic-300 text-arctic-600"
                     }`}
                   >
@@ -962,7 +962,7 @@ export default function CatalogClient({
                   <span className="text-arctic-400">→</span>
                   <span
                     className={`flex h-5 w-5 items-center justify-center rounded-full ${
-                      step === "success" ? "bg-emerald-600 text-white" : "bg-arctic-300 text-arctic-600"
+                      step === "success" ? "bg-signal-fill text-white" : "bg-arctic-300 text-arctic-600"
                     }`}
                   >
                     3
@@ -1054,8 +1054,8 @@ export default function CatalogClient({
             {step === "form" && (
               <form onSubmit={submitOrder} className="flex-1 max-h-[75dvh] space-y-3.5 overflow-y-auto overscroll-contain p-5">
                 <div>
-                  <label className="label">{tr("Nom complet *", "Your full name *")}</label>
-                  <input
+                  <label htmlFor="catalogclient-1" className="label">{tr("Nom complet *", "Your full name *")}</label>
+                  <input id="catalogclient-1"
                     className="input"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
@@ -1064,8 +1064,8 @@ export default function CatalogClient({
                   />
                 </div>
                 <div>
-                  <label className="label">{tr("Numéro WhatsApp", "WhatsApp phone number")}</label>
-                  <input
+                  <label htmlFor="catalogclient-2" className="label">{tr("Numéro WhatsApp", "WhatsApp phone number")}</label>
+                  <input id="catalogclient-2"
                     className="input"
                     inputMode="tel"
                     placeholder="e.g. +228 90 00 00 00"
@@ -1075,8 +1075,8 @@ export default function CatalogClient({
                   <span className="text-[11px] text-arctic-600">{tr("Pour organiser la livraison et vous tenir informé", "For delivery coordination and updates")}</span>
                 </div>
                 <div>
-                  <label className="label">{tr("Adresse e-mail (facultatif)", "Email address (optional)")}</label>
-                  <input
+                  <label htmlFor="catalogclient-3" className="label">{tr("Adresse e-mail (facultatif)", "Email address (optional)")}</label>
+                  <input id="catalogclient-3"
                     className="input"
                     type="email"
                     placeholder={tr("Pour recevoir le reçu de commande", "To receive your order receipt")}
@@ -1096,7 +1096,7 @@ export default function CatalogClient({
                         onClick={() => setFulfillment("pickup")}
                         className={`p-2.5 rounded-lg border text-left text-xs transition-colors ${
                           fulfillment === "pickup"
-                            ? "border-emerald-600 bg-emerald-50 text-emerald-900 font-semibold"
+                            ? "border-signal-fill bg-emerald-50 text-emerald-900 font-semibold"
                             : "border-arctic-200 bg-white text-arctic-700 hover:bg-arctic-50"
                         }`}
                       >
@@ -1109,7 +1109,7 @@ export default function CatalogClient({
                         onClick={() => setFulfillment("delivery")}
                         className={`p-2.5 rounded-lg border text-left text-xs transition-colors ${
                           fulfillment === "delivery"
-                            ? "border-emerald-600 bg-emerald-50 text-emerald-900 font-semibold"
+                            ? "border-signal-fill bg-emerald-50 text-emerald-900 font-semibold"
                             : "border-arctic-200 bg-white text-arctic-700 hover:bg-arctic-50"
                         }`}
                       >
@@ -1157,8 +1157,8 @@ export default function CatalogClient({
                 )}
 
                 <div>
-                  <label className="label">{tr("Notes complémentaires (facultatif)", "Additional notes (optional)")}</label>
-                  <textarea
+                  <label htmlFor="catalogclient-4" className="label">{tr("Notes complémentaires (facultatif)", "Additional notes (optional)")}</label>
+                  <textarea id="catalogclient-4"
                     className="input min-h-[55px]"
                     placeholder={tr("Instructions particulières, taille ou couleur…", "Special instructions, size, or color details…")}
                     value={note}
@@ -1182,7 +1182,7 @@ export default function CatalogClient({
                     <label
                       className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
                         paymentMethod === "fedapay"
-                          ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 ring-2 ring-emerald-500/30"
+                          ? "border-signal-fill bg-emerald-50 dark:bg-emerald-950/30 ring-2 ring-emerald-500/30"
                           : "border-arctic-200 dark:border-arctic-700 bg-white dark:bg-arctic-800 hover:bg-arctic-50"
                       }`}
                     >
@@ -1200,7 +1200,7 @@ export default function CatalogClient({
                             <span className="text-sm font-bold text-arctic-900 dark:text-white">
                               💳 {tr("FedaPay (Mobile Money et carte)", "FedaPay (Mobile Money & card)")}
                             </span>
-                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-600 text-white">
+                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-signal-fill text-white">
                               {tr("Mode test actif", "Sandbox active")}
                             </span>
                           </div>
@@ -1309,7 +1309,7 @@ export default function CatalogClient({
                       <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
                         <span>💳</span> {tr("Paiement instantané FedaPay", "Instant FedaPay payment")}
                       </span>
-                      <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                      <span className="rounded-full bg-signal-fill px-2 py-0.5 text-[10px] font-bold text-white">
                         {tr("Sécurisé", "Secure")}
                       </span>
                     </div>
@@ -1346,7 +1346,7 @@ export default function CatalogClient({
                           setLaunchingFeda(false);
                         }
                       }}
-                      className="btn-primary w-full justify-center gap-2 py-3 !bg-emerald-600 hover:!bg-emerald-700 !text-white text-sm font-bold shadow-md"
+                      className="btn-primary w-full justify-center gap-2 py-3 !bg-signal-fill hover:!bg-signal-fill-hover !text-white text-sm font-bold shadow-md"
                     >
                       {launchingFeda
                         ? tr("Ouverture de FedaPay…", "Opening FedaPay…")
@@ -1365,7 +1365,7 @@ export default function CatalogClient({
                       href={placedSummary.waLink}
                       target="_blank"
                       rel="noreferrer"
-                      className="btn-ghost w-full justify-center gap-2 py-2.5 border border-emerald-600 text-emerald-800 hover:bg-emerald-50 text-xs font-bold"
+                      className="btn-ghost w-full justify-center gap-2 py-2.5 border border-signal-fill text-emerald-800 hover:bg-emerald-50 text-xs font-bold"
                     >
                       <Glyph name="chat" size={16} /> {tr("Confirmer aussi sur WhatsApp", "Also confirm on WhatsApp")} 💬
                     </a>
@@ -1488,12 +1488,12 @@ function ProductCard({
         {/* Badges */}
         <div className="absolute left-2 top-2 flex flex-col gap-1">
           {collectionName && (
-            <span className="rounded-full bg-brand-dark/90 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-xs backdrop-blur-xs">
+            <span className="rounded-full bg-gold-fill/90 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-xs backdrop-blur-xs">
               📁 {collectionName}
             </span>
           )}
           {isNew && (
-            <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-bold text-white shadow-xs">
+            <span className="rounded-full bg-signal-fill px-2 py-0.5 text-[11px] font-bold text-white shadow-xs">
               {tr("Nouveau", "New")}
             </span>
           )}
@@ -1544,8 +1544,8 @@ function ProductCard({
 
         {sizes.length > 0 && (
           <div>
-            <label className="label !mb-1 !text-xs">{tr("Taille / Variante", "Size / Variant")}</label>
-            <select
+            <label htmlFor="catalogclient-5" className="label !mb-1 !text-xs">{tr("Taille / Variante", "Size / Variant")}</label>
+            <select id="catalogclient-5"
               className="input !py-1 text-xs"
               value={size}
               onChange={(e) => setSize(e.target.value)}

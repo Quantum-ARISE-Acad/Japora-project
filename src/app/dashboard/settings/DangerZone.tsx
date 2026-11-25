@@ -61,8 +61,8 @@ export default function DangerZone({ shopName }: { shopName: string }) {
 
   return (
     <>
-      <div className="card border-red-200 p-5">
-        <h2 className="text-sm font-semibold text-red-700">{tr("Zone de danger", "Danger zone")}</h2>
+      <div className="card border-aurora-error/30 p-5">
+        <h2 className="text-sm font-semibold text-aurora-error-text">{tr("Zone de danger", "Danger zone")}</h2>
         <p className="mt-1 text-sm text-arctic-700">
           {tr(
             "Exportez toutes les données de votre boutique, ou fermez le compte.",
@@ -101,7 +101,7 @@ export default function DangerZone({ shopName }: { shopName: string }) {
               onChange={(e) => setConfirm(e.target.value)}
             />
             {error && (
-              <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>
+              <p className="mt-3 rounded-lg bg-aurora-error-bg px-3 py-2 text-sm text-aurora-error-text">{error}</p>
             )}
             <div className="mt-5 flex justify-end gap-2">
               <button onClick={() => setOpen(false)} className="btn-ghost">

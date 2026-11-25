@@ -53,7 +53,7 @@ export default function PayStubClient({
         <button
           onClick={() => act("success")}
           disabled={busy !== ""}
-          className="rounded-lg bg-brand px-3 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
+          className="rounded-lg bg-gold-fill px-3 py-2.5 text-sm font-semibold text-white hover:bg-gold-fill disabled:opacity-60"
         >
           {busy === "success" ? "…" : "✅ Pay"}
         </button>

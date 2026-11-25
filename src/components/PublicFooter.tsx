@@ -106,27 +106,27 @@ export default function PublicFooter() {
 
           {/* Column 2: Plateforme */}
           <div>
-            <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-arctic-900">
+            <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-arctic-900">
               {tr("Plateforme", "Platform")}
-            </h3>
+            </h2>
             <ul className="space-y-2 text-xs text-arctic-600">
               <li>
-                <Link href="/marketplace" className="hover:text-arctic-900 hover:underline">
+                <Link href="/marketplace" className="inline-flex min-h-6 items-center hover:text-arctic-900 hover:underline">
                   {tr("Explorer le Marketplace", "Explore Marketplace")}
                 </Link>
               </li>
               <li>
-                <Link href="/how-to-use" className="hover:text-arctic-900 hover:underline">
+                <Link href="/how-to-use" className="inline-flex min-h-6 items-center hover:text-arctic-900 hover:underline">
                   {tr("Comment ça marche", "How it works")}
                 </Link>
               </li>
               <li>
-                <Link href="/signup" className="hover:text-arctic-900 hover:underline">
+                <Link href="/signup" className="inline-flex min-h-6 items-center hover:text-arctic-900 hover:underline">
                   {tr("Créer une boutique", "Create a Shop")}
                 </Link>
               </li>
               <li>
-                <Link href="/login" className="hover:text-arctic-900 hover:underline">
+                <Link href="/login" className="inline-flex min-h-6 items-center hover:text-arctic-900 hover:underline">
                   {tr("Connexion Vendeur", "Vendor Sign in")}
                 </Link>
               </li>
@@ -135,15 +135,15 @@ export default function PublicFooter() {
 
           {/* Column 3: Catégories */}
           <div>
-            <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-arctic-900">
+            <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-arctic-900">
               {tr("Rayons Populaires", "Popular Categories")}
-            </h3>
+            </h2>
             <ul className="space-y-2 text-xs text-arctic-600">
               {topCategories.map((c) => (
                 <li key={c.slug}>
                   <Link
                     href={`/marketplace?category=${c.slug}`}
-                    className="inline-flex items-center gap-1.5 hover:text-arctic-900 hover:underline"
+                    className="inline-flex min-h-6 items-center gap-1.5 hover:text-arctic-900 hover:underline"
                   >
                     <CategoryIcon slug={c.slug} size={14} className="text-brand-dark" />
                     <span>{tr(CATEGORY_FR[c.slug] || c.label, c.label)}</span>
@@ -155,15 +155,15 @@ export default function PublicFooter() {
 
           {/* Column 4: Villes & Marchés */}
           <div>
-            <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-arctic-900">
+            <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-arctic-900">
               {tr("Villes & Marchés", "Cities & Markets")}
-            </h3>
+            </h2>
             <ul className="space-y-2 text-xs text-arctic-600">
               {topRegions.map((r) => (
                 <li key={r.slug}>
                   <Link
                     href={`/marketplace/${r.slug}`}
-                    className="hover:text-arctic-900 hover:underline"
+                    className="inline-flex min-h-6 items-center hover:text-arctic-900 hover:underline"
                   >
                     {r.label} ({r.country})
                   </Link>
@@ -172,11 +172,11 @@ export default function PublicFooter() {
               <li>
                 <Link
                   href="/marketplace"
-                  className="font-semibold text-brand-dark hover:underline"
+                  className="inline-flex min-h-6 items-center font-semibold text-brand-dark hover:underline"
                 >
                   {tr(
-                    `Toutes les régions (${REGIONS.length}) →`,
-                    `All regions (${REGIONS.length}) →`
+                    `Toutes les régions (${REGIONS.length})`,
+                    `All regions (${REGIONS.length})`
                   )}
                 </Link>
               </li>
@@ -185,9 +185,9 @@ export default function PublicFooter() {
 
           {/* Column 5: Ressources & Légal */}
           <div>
-            <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-arctic-900">
+            <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-arctic-900">
               {tr("Outils & Légal", "Tools & Legal")}
-            </h3>
+            </h2>
             <ul className="space-y-2 text-xs text-arctic-600">
               <li>
                 <span className="font-semibold text-arctic-800">
@@ -205,12 +205,12 @@ export default function PublicFooter() {
                 </span>
               </li>
               <li className="border-t border-arctic-200/60 pt-2">
-                <Link href="/terms" className="hover:text-arctic-900 hover:underline">
+                <Link href="/terms" className="inline-flex min-h-6 items-center hover:text-arctic-900 hover:underline">
                   {tr("Conditions d'utilisation", "Terms of Service")}
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="hover:text-arctic-900 hover:underline">
+                <Link href="/privacy" className="inline-flex min-h-6 items-center hover:text-arctic-900 hover:underline">
                   {tr("Politique de confidentialité", "Privacy Policy")}
                 </Link>
               </li>

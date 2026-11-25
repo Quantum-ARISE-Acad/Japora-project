@@ -68,7 +68,7 @@ export function computeLoyalty(totalSpentCents: number): LoyaltyInfo {
     label: "Membre Bronze",
     points,
     discountPct: 0,
-    badgeColor: "bg-amber-700/80 text-white border-amber-600",
+    badgeColor: "bg-aurora-warning/85 text-white border-aurora-warning",
     perk: "Accumulez des points à chaque commande",
     nextTier: {
       name: "Argent",

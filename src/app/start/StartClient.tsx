@@ -75,8 +75,8 @@ function StartInner() {
               </p>
               <form onSubmit={requestCode} className="mt-6 space-y-4">
                 <div>
-                  <label className="label">{tr("Nom de la boutique", "Shop name")}</label>
-                  <input
+                  <label htmlFor="startclient-1" className="label">{tr("Nom de la boutique", "Shop name")}</label>
+                  <input id="startclient-1"
                     className="input"
                     placeholder={tr("ex. Chez Améyo", "e.g. Chez Améyo")}
                     value={shopName}
@@ -84,8 +84,8 @@ function StartInner() {
                   />
                 </div>
                 <div>
-                  <label className="label">{tr("Numéro WhatsApp", "WhatsApp number")}</label>
-                  <input
+                  <label htmlFor="startclient-2" className="label">{tr("Numéro WhatsApp", "WhatsApp number")}</label>
+                  <input id="startclient-2"
                     className="input"
                     inputMode="tel"
                     placeholder={tr("Avec + et l'indicatif du pays, par ex. +228 90 11 22 33", "With + and country code, e.g. +228 90 11 22 33")}
@@ -119,8 +119,8 @@ function StartInner() {
               )}
               <form onSubmit={verify} className="mt-6 space-y-4">
                 <div>
-                  <label className="label">6-digit code</label>
-                  <input
+                  <label htmlFor="startclient-3" className="label">6-digit code</label>
+                  <input id="startclient-3"
                     className="input text-center text-lg tracking-[0.4em]"
                     inputMode="numeric"
                     maxLength={6}

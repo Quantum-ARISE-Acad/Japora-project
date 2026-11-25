@@ -19,9 +19,9 @@ type Row = {
 };
 
 const STATUS_BADGE: Record<string, string> = {
-  OPEN: "bg-amber-100 text-amber-800",
-  PARTIAL: "bg-blue-100 text-blue-800",
-  PAID: "bg-emerald-100 text-emerald-800",
+  OPEN: "bg-aurora-warning-bg text-aurora-warning-text",
+  PARTIAL: "bg-arctic-200/70 text-arctic-800",
+  PAID: "bg-arctic-200/70 text-signal-text",
   WRITTEN_OFF: "bg-arctic-300 text-arctic-700",
 };
 
@@ -151,11 +151,11 @@ export default function ReceivablesClient({
             {tr("Le suivi structuré de vos ventes à crédit et paiements en attente.", "A structured way to track credit sales and pending payments.")}
           </p>
         </div>
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-          <div className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+        <div className="rounded-xl border border-aurora-warning/30 bg-aurora-warning-bg px-4 py-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-aurora-warning-text">
             {tr("Total restant dû", "Total outstanding")}
           </div>
-          <div className="text-2xl font-bold text-amber-900">
+          <div className="text-2xl font-bold text-aurora-warning-text">
             {formatMoney(outstandingCents, currency)}
           </div>
         </div>
@@ -187,7 +187,7 @@ export default function ReceivablesClient({
                       href={waMeLink(g.phone)}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-xs text-brand-dark hover:underline"
+                      className="inline-flex min-h-6 items-center text-xs text-brand-dark hover:underline"
                     >
                       {g.phone}
                     </a>
@@ -233,7 +233,7 @@ export default function ReceivablesClient({
                           {formatMoney(r.amountCents, currency)}
                         </td>
                         <td
-                          className={`px-4 py-2 ${overdue ? "font-semibold text-red-600" : "text-arctic-700"}`}
+                          className={`px-4 py-2 ${overdue ? "font-semibold text-aurora-error-text" : "text-arctic-700"}`}
                         >
                           {r.dueDate ? new Date(r.dueDate).toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", { month: "short", day: "numeric" }) : "—"}
                           {overdue && ` (${tr("en retard", "overdue")})`}
@@ -252,14 +252,14 @@ export default function ReceivablesClient({
                                 <button
                                   onClick={() => markPaid(r)}
                                   disabled={busy === r.id}
-                                  className="rounded-lg bg-brand px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-dark disabled:opacity-50"
+                                  className="rounded-lg bg-gold-fill px-2.5 py-1 text-xs font-semibold text-white hover:bg-gold-fill disabled:opacity-50"
                                 >
                                   {tr("Marquer comme payée", "Mark paid")}
                                 </button>
                                 <button
                                   onClick={() => writeOff(r)}
                                   disabled={busy === r.id}
-                                  className="rounded-lg border border-red-200 px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                                  className="rounded-lg border border-aurora-error/30 px-2.5 py-1 text-xs font-semibold text-aurora-error-text hover:bg-aurora-error-bg disabled:opacity-50"
                                 >
                                   {tr("Annuler la créance", "Write off")}
                                 </button>

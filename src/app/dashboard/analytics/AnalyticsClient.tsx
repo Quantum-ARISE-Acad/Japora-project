@@ -76,30 +76,30 @@ const PERIODS: { key: PeriodKey; labelFr: string; labelEn: string; days: number 
 ];
 
 const SOURCE_LABELS: Record<string, { labelFr: string; labelEn: string; color: string }> = {
-  catalog: { labelFr: "Catalogue en ligne", labelEn: "Online catalog", color: "bg-emerald-600" },
+  catalog: { labelFr: "Catalogue en ligne", labelEn: "Online catalog", color: "bg-signal-fill" },
   whatsapp: { labelFr: "Bot & Chat WhatsApp", labelEn: "WhatsApp Bot & Chat", color: "bg-teal-500" },
   whatsapp_deal: { labelFr: "Négociation IA WhatsApp", labelEn: "WhatsApp AI Deal", color: "bg-sky-500" },
-  manual: { labelFr: "Saisie manuelle vendeur", labelEn: "Manual merchant entry", color: "bg-amber-500" },
+  manual: { labelFr: "Saisie manuelle vendeur", labelEn: "Manual merchant entry", color: "bg-aurora-warning" },
 };
 
 const STATUS_META: Record<string, { labelFr: string; labelEn: string; badge: string; bar: string }> = {
   NEW: {
     labelFr: "Nouvelles",
     labelEn: "New",
-    badge: "bg-blue-100 text-blue-800",
+    badge: "bg-arctic-200/70 text-arctic-800",
     bar: "bg-blue-500",
   },
   CONFIRMED: {
     labelFr: "Confirmées",
     labelEn: "Confirmed",
-    badge: "bg-amber-100 text-amber-800",
-    bar: "bg-amber-500",
+    badge: "bg-aurora-warning-bg text-aurora-warning-text",
+    bar: "bg-aurora-warning",
   },
   PAID: {
     labelFr: "Payées",
     labelEn: "Paid",
-    badge: "bg-emerald-100 text-emerald-800",
-    bar: "bg-emerald-600",
+    badge: "bg-arctic-200/70 text-signal-text",
+    bar: "bg-signal-fill",
   },
   DELIVERED: {
     labelFr: "Livrées",
@@ -110,8 +110,8 @@ const STATUS_META: Record<string, { labelFr: string; labelEn: string; badge: str
   CANCELLED: {
     labelFr: "Annulées",
     labelEn: "Cancelled",
-    badge: "bg-red-100 text-red-700",
-    bar: "bg-red-500",
+    badge: "bg-aurora-error-bg text-aurora-error-text",
+    bar: "bg-aurora-error",
   },
 };
 
@@ -513,13 +513,13 @@ export default function AnalyticsClient({
             onClick={exportAnalyticsCsv}
             className="btn-ghost text-xs !py-2 px-3.5"
           >
-            {tr("⬇ Exporter CSV", "⬇ Export CSV")}
+            {tr("Exporter CSV", "Export CSV")}
           </button>
         </div>
       </div>
 
       {/* Primary KPI Grid (6 metrics) */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 lg:grid-cols-3">
         <div className="card p-5 space-y-1.5">
           <div className="flex items-center justify-between">
             <span className="text-xs uppercase tracking-wider text-arctic-600 font-semibold">
@@ -529,18 +529,18 @@ export default function AnalyticsClient({
               <span
                 className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                   revenueGrowthPct >= 0
-                    ? "bg-emerald-100 text-emerald-800"
-                    : "bg-red-100 text-red-700"
+                    ? "bg-arctic-200/70 text-signal-text"
+                    : "bg-aurora-error-bg text-aurora-error-text"
                 }`}
               >
                 {revenueGrowthPct >= 0 ? `+${revenueGrowthPct}%` : `${revenueGrowthPct}%`}
               </span>
             )}
           </div>
-          <div className="text-2xl font-black text-arctic-900">
+          <div className="a-num text-2xl font-black text-arctic-900">
             {formatMoney(totalRevenue, currency)}
           </div>
-          <div className="text-[11px] text-emerald-700 font-medium">
+          <div className="text-[11px] text-signal-text font-medium">
             {paidOrders.length} {tr("commande(s) payée(s) / livrée(s)", "paid / delivered order(s)")}
           </div>
         </div>
@@ -549,7 +549,7 @@ export default function AnalyticsClient({
           <div className="text-xs uppercase tracking-wider text-arctic-600 font-semibold">
             {tr("En attente d'encaissement", "Pending collection")}
           </div>
-          <div className="text-2xl font-black text-amber-700">
+          <div className="a-num text-2xl font-black text-aurora-warning-text">
             {formatMoney(pendingRevenue + openReceivablesCents, currency)}
           </div>
           <div className="text-[11px] text-arctic-600 font-medium">
@@ -562,7 +562,7 @@ export default function AnalyticsClient({
           <div className="text-xs uppercase tracking-wider text-arctic-600 font-semibold">
             {tr("Panier moyen", "Avg. order value")}
           </div>
-          <div className="text-2xl font-black text-arctic-900">
+          <div className="a-num text-2xl font-black text-arctic-900">
             {formatMoney(avgOrder, currency)}
           </div>
           <div className="text-[11px] text-arctic-600 font-medium">
@@ -574,7 +574,7 @@ export default function AnalyticsClient({
           <div className="text-xs uppercase tracking-wider text-arctic-600 font-semibold">
             {tr("Taux de conversion", "Conversion rate")}
           </div>
-          <div className="text-2xl font-black text-emerald-700">
+          <div className="a-num text-2xl font-black text-signal-text">
             {filteredFunnel.conversionRate}%
           </div>
           <div className="text-[11px] text-arctic-600 font-medium">
@@ -586,7 +586,7 @@ export default function AnalyticsClient({
           <div className="text-xs uppercase tracking-wider text-arctic-600 font-semibold">
             {tr("Fidélisation clients", "Customer retention")}
           </div>
-          <div className="text-2xl font-black text-arctic-900">
+          <div className="a-num text-2xl font-black text-arctic-900">
             {retentionRatePct}%
           </div>
           <div className="text-[11px] text-arctic-600 font-medium">
@@ -598,7 +598,7 @@ export default function AnalyticsClient({
           <div className="text-xs uppercase tracking-wider text-arctic-600 font-semibold">
             {tr("Activité Assistant WhatsApp", "WhatsApp Assistant activity")}
           </div>
-          <div className="text-2xl font-black text-arctic-900">
+          <div className="a-num text-2xl font-black text-arctic-900">
             {whatsappMetrics.inboundCount + whatsappMetrics.outboundCount}
           </div>
           <div className="text-[11px] text-arctic-600 font-medium">
@@ -626,7 +626,7 @@ export default function AnalyticsClient({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+            <span className="rounded-full bg-arctic-200/70 px-3 py-1 text-xs font-semibold text-signal-text">
               {formatMoney(totalRevenue, currency)} {tr("encaissés", "collected")}
             </span>
           </div>
@@ -643,13 +643,13 @@ export default function AnalyticsClient({
             return (
               <div key={d.date} className="flex flex-col items-center gap-1.5 h-full justify-end group">
                 <div className="relative flex flex-col items-center w-full h-full justify-end">
-                  <div className="pointer-events-none absolute -top-9 rounded-md bg-stone-900 px-2 py-1 text-[10px] font-semibold text-white shadow-md opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-20">
+                  <div className="pointer-events-none absolute -top-9 rounded-shape-sm bg-stone-900 px-2 py-1 text-[10px] font-semibold text-white shadow-md opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-20">
                     {formatMoney(d.rev, currency)} · {d.totalCount} {tr("cmd", "ord")}
                   </div>
                   <div
                     className={`w-full rounded-t-md transition-all duration-medium ${
                       isToday
-                        ? "bg-emerald-600"
+                        ? "bg-signal-fill"
                         : d.rev > 0
                           ? "bg-brand/80 group-hover:bg-brand"
                           : "bg-arctic-200/80"
@@ -667,7 +667,7 @@ export default function AnalyticsClient({
       {/* Funnel + Order Statuses + Sales Channels */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* 5-Stage Conversion Funnel */}
-        <section className="card p-6 space-y-4 lg:col-span-2">
+        <section className="min-w-0 card p-6 space-y-4 lg:col-span-2">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-bold text-arctic-900">
@@ -680,9 +680,9 @@ export default function AnalyticsClient({
             <Link
               href={`/c/${shopSlug}`}
               target="_blank"
-              className="text-xs font-semibold text-brand-dark hover:underline"
+              className="inline-flex min-h-6 items-center text-xs font-semibold text-brand-dark hover:underline"
             >
-              {tr("Voir ma boutique ↗", "View my store ↗")}
+              {tr("Voir ma boutique", "View my store")}
             </Link>
           </div>
 
@@ -692,8 +692,8 @@ export default function AnalyticsClient({
                 "bg-blue-500",
                 "bg-indigo-500",
                 "bg-purple-500",
-                "bg-amber-500",
-                "bg-emerald-600",
+                "bg-aurora-warning",
+                "bg-signal-fill",
               ];
               return (
                 <div key={st.stage} className="space-y-1">
@@ -702,7 +702,7 @@ export default function AnalyticsClient({
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="font-bold text-arctic-900">{st.count}</span>
                       {idx > 0 && st.dropOff > 0 && (
-                        <span className="text-[10px] text-amber-700">
+                        <span className="text-[10px] text-aurora-warning-text">
                           (-{st.dropOff}%)
                         </span>
                       )}
@@ -710,7 +710,7 @@ export default function AnalyticsClient({
                   </div>
                   <div className="h-2.5 w-full rounded-full bg-arctic-100 overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-medium ${colors[idx] || "bg-emerald-600"}`}
+                      className={`h-full rounded-full transition-all duration-medium ${colors[idx] || "bg-signal-fill"}`}
                       style={{ width: `${Math.max(st.count > 0 ? 6 : 0, st.pctOfTop)}%` }}
                     />
                   </div>
@@ -787,7 +787,7 @@ export default function AnalyticsClient({
 
       {/* Product Performance Table & Stock Alerts */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <section className="card p-6 space-y-4 lg:col-span-2">
+        <section className="min-w-0 card p-6 space-y-4 lg:col-span-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 className="text-base font-bold text-arctic-900">
@@ -797,8 +797,8 @@ export default function AnalyticsClient({
                 {tr("Ventes, revenus générés, consultations et stock restant", "Units sold, revenue generated, views, and remaining stock")}
               </p>
             </div>
-            <Link href="/dashboard/products" className="text-xs font-semibold text-brand-dark hover:underline">
-              {tr("Gérer les produits →", "Manage products →")}
+            <Link href="/dashboard/products" className="inline-flex min-h-6 items-center text-xs font-semibold text-brand-dark hover:underline">
+              {tr("Gérer les produits", "Manage products")}
             </Link>
           </div>
 
@@ -823,7 +823,7 @@ export default function AnalyticsClient({
                     <tr key={p.id} className="hover:bg-arctic-100/50">
                       <td className="py-2.5 pr-3">
                         <div className="flex items-center gap-2.5">
-                          <div className="h-9 w-9 shrink-0 overflow-hidden rounded-md border border-arctic-200 bg-arctic-100">
+                          <div className="h-9 w-9 shrink-0 overflow-hidden rounded-shape-sm border border-arctic-200 bg-arctic-100">
                             {p.imageUrl ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" />
@@ -846,17 +846,17 @@ export default function AnalyticsClient({
                       <td className="py-2.5 text-right font-mono font-bold text-arctic-900">
                         {p.qtySold}
                       </td>
-                      <td className="py-2.5 text-right font-mono font-bold text-emerald-700">
+                      <td className="py-2.5 text-right font-mono font-bold text-signal-text">
                         {formatMoney(p.revenueCents, currency)}
                       </td>
                       <td className="py-2.5 text-right">
                         <span
                           className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                             p.stock <= 0
-                              ? "bg-red-100 text-red-700"
+                              ? "bg-aurora-error-bg text-aurora-error-text"
                               : p.stock <= 5
-                                ? "bg-amber-100 text-amber-800"
-                                : "bg-emerald-100 text-emerald-800"
+                                ? "bg-aurora-warning-bg text-aurora-warning-text"
+                                : "bg-arctic-200/70 text-signal-text"
                           }`}
                         >
                           {p.stock <= 0 ? tr("Rupture", "Out of stock") : `${p.stock} ${tr("en stock", "in stock")}`}
@@ -885,25 +885,25 @@ export default function AnalyticsClient({
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
-            <div className="rounded-xl border border-red-200/70 bg-red-50/70 p-3">
-              <div className="text-[11px] font-semibold text-red-700">
+            <div className="rounded-xl border border-aurora-error/30/70 bg-aurora-error-bg/70 p-3">
+              <div className="text-[11px] font-semibold text-aurora-error-text">
                 {tr("En rupture (0)", "Out of stock (0)")}
               </div>
-              <div className="text-xl font-black text-red-800">{outOfStockProducts.length}</div>
+              <div className="text-xl font-black text-aurora-error-text">{outOfStockProducts.length}</div>
             </div>
-            <div className="rounded-xl border border-amber-200/70 bg-amber-50/70 p-3">
-              <div className="text-[11px] font-semibold text-amber-800">
+            <div className="rounded-xl border border-aurora-warning/30/70 bg-aurora-warning-bg p-3">
+              <div className="text-[11px] font-semibold text-aurora-warning-text">
                 {tr("Stock faible (≤ 5)", "Low stock (≤ 5)")}
               </div>
-              <div className="text-xl font-black text-amber-900">{lowStockProducts.length}</div>
+              <div className="text-xl font-black text-aurora-warning-text">{lowStockProducts.length}</div>
             </div>
           </div>
 
           {outOfStockProducts.length === 0 && lowStockProducts.length === 0 ? (
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3.5 text-xs text-emerald-800">
+            <div className="rounded-xl border border-emerald-200 bg-arctic-100/60/60 p-3.5 text-xs text-signal-text">
               {tr(
-                "✓ Tous vos produits actifs disposent d'un stock suffisant.",
-                "✓ All active products have sufficient stock.",
+                "Tous vos produits actifs disposent d'un stock suffisant.",
+                "All active products have sufficient stock.",
               )}
             </div>
           ) : (
@@ -916,7 +916,7 @@ export default function AnalyticsClient({
                   <span className="font-medium text-arctic-900 truncate pr-2">{p.name}</span>
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                      p.stock <= 0 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-800"
+                      p.stock <= 0 ? "bg-aurora-error-bg text-aurora-error-text" : "bg-aurora-warning-bg text-aurora-warning-text"
                     }`}
                   >
                     {p.stock <= 0 ? tr("0 restant", "0 left") : `${p.stock} ${tr("restants", "left")}`}
@@ -941,8 +941,8 @@ export default function AnalyticsClient({
                 {tr("Clients classés par chiffre d'affaires cumulé", "Customers ranked by lifetime spend")}
               </p>
             </div>
-            <Link href="/dashboard/customers" className="text-xs font-semibold text-brand-dark hover:underline">
-              {tr("Voir tous les clients →", "View all customers →")}
+            <Link href="/dashboard/customers" className="inline-flex min-h-6 items-center text-xs font-semibold text-brand-dark hover:underline">
+              {tr("Voir tous les clients", "View all customers")}
             </Link>
           </div>
 
@@ -967,7 +967,7 @@ export default function AnalyticsClient({
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="font-bold text-emerald-700 font-mono">
+                    <div className="font-bold text-signal-text font-mono">
                       {formatMoney(c.totalSpentCents, currency)}
                     </div>
                     <div className="text-[10px] text-arctic-600">
@@ -1006,7 +1006,7 @@ export default function AnalyticsClient({
                         </span>
                       )}
                       <div
-                        className="w-full rounded-t-sm bg-brand/75 group-hover:bg-brand transition-all"
+                        className="w-full rounded-t-shape-xs bg-brand/75 group-hover:bg-brand transition-all"
                         style={{ height: `${pct}%` }}
                       />
                     </div>
@@ -1023,8 +1023,8 @@ export default function AnalyticsClient({
                 <h3 className="text-xs font-bold uppercase tracking-wider text-arctic-600">
                   {tr("Campagnes & Liens trackés", "Tracked campaigns & links")}
                 </h3>
-                <Link href="/dashboard/campaigns" className="text-[11px] font-semibold text-brand-dark hover:underline">
-                  {tr("Campagnes →", "Campaigns →")}
+                <Link href="/dashboard/campaigns" className="inline-flex min-h-6 items-center text-[11px] font-semibold text-brand-dark hover:underline">
+                  {tr("Campagnes", "Campaigns")}
                 </Link>
               </div>
               {campaigns.slice(0, 3).map((camp) => (

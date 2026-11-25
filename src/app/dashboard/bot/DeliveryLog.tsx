@@ -30,17 +30,17 @@ const STATUS: Record<string, { label: Bi; description: Bi; tone: string }> = {
   delivered: {
     label: ["Remis", "Delivered"],
     description: ["WhatsApp a confirmé la remise du message au téléphone du destinataire.", "WhatsApp confirmed the message reached the recipient's phone."],
-    tone: "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200",
+    tone: "border-emerald-300 bg-arctic-100/60 text-signal-text dark:border-emerald-700  ",
   },
   read: {
     label: ["Lu", "Read"],
     description: ["WhatsApp a confirmé que le destinataire a lu le message.", "WhatsApp confirmed the recipient read the message."],
-    tone: "border-indigo-300 bg-indigo-50 text-indigo-800 dark:border-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-200",
+    tone: "border-indigo-300 bg-indigo-50 text-arctic-800 dark:border-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-200",
   },
   failed: {
     label: ["Échec", "Failed"],
     description: ["WhatsApp n’a pas pu envoyer le message. Vérifiez le numéro et la configuration du compte.", "WhatsApp could not send the message. Check the number and the account settings."],
-    tone: "border-red-300 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-950/40 dark:text-red-200",
+    tone: "border-red-300 bg-aurora-error-bg text-aurora-error-text dark:border-red-700 dark:bg-red-950/40 dark:text-red-200",
   },
   stubbed: {
     label: ["Simulé — aucun envoi", "Simulated — not sent"],
@@ -62,7 +62,7 @@ function statusInfo(status: string) {
   return STATUS[status] || {
     label: ["Statut inconnu", "Unknown status"] as Bi,
     description: [`Statut fournisseur non reconnu : ${status}`, `Unrecognised provider status: ${status}`] as Bi,
-    tone: "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200",
+    tone: "border-aurora-warning/35 bg-aurora-warning-bg text-aurora-warning-text dark:border-amber-700  ",
   };
 }
 
@@ -135,7 +135,7 @@ export default function DeliveryLog({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 id="whatsapp-history-title" className="font-bold text-arctic-900">{tr("Historique WhatsApp", "WhatsApp history")}</h2>
-            <p className="mt-1 text-sm text-arctic-700 dark:text-slate-300">
+            <p className="mt-1 text-sm text-arctic-700">
               {tr("Suivez les messages réellement envoyés et les accusés reçus de Meta.", "Follow the messages actually sent and the receipts from Meta.")}
             </p>
           </div>
@@ -145,7 +145,7 @@ export default function DeliveryLog({
         </div>
 
         {!liveMode && (
-          <p className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
+          <p className="mt-3 rounded-lg border border-aurora-warning/35 bg-aurora-warning-bg px-3 py-2 text-xs font-medium text-aurora-warning-text dark:border-amber-700">
             {tr("Mode démo : les messages marqués « Simulé » ne sont pas partis sur WhatsApp. Configurez WhatsApp Cloud API et son webhook pour recevoir les statuts réels.", "Demo mode: messages marked “Simulated” did not leave on WhatsApp. Set up the WhatsApp Cloud API and its webhook to get real statuses.")}
           </p>
         )}
@@ -170,7 +170,7 @@ export default function DeliveryLog({
                 aria-pressed={filter === item.id}
                 className={filter === item.id
                   ? "rounded-full bg-arctic-800 px-3 py-1.5 text-xs font-semibold text-arctic-50 dark:bg-slate-200 dark:text-slate-900"
-                  : "rounded-full border border-arctic-400/60 px-3 py-1.5 text-xs font-semibold text-arctic-800 hover:bg-arctic-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"}
+                  : "rounded-full border border-arctic-400/60 px-3 py-1.5 text-xs font-semibold text-arctic-800 hover:bg-arctic-100 dark:border-slate-600  dark:hover:bg-slate-800"}
               >
                 {tr(...item.label)} <span className="opacity-75">{counts[item.id]}</span>
               </button>
@@ -181,6 +181,7 @@ export default function DeliveryLog({
             id="whatsapp-history-search"
             className="input w-full lg:max-w-xs"
             type="search"
+            aria-label={tr("Rechercher dans le journal", "Search the log")}
             placeholder={tr("Rechercher un numéro ou un message…", "Search a number or a message…")}
             value={query}
             onChange={(event) => changeQuery(event.target.value)}
@@ -203,7 +204,7 @@ export default function DeliveryLog({
             </div>
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[760px] text-left text-sm">
-                <thead className="text-xs uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                <thead className="text-xs uppercase tracking-wide text-slate-600">
                   <tr>
                     <th className="px-3 py-2 font-semibold">{tr("Destinataire", "Recipient")}</th>
                     <th className="px-3 py-2 font-semibold">{tr("Message", "Message")}</th>
@@ -220,7 +221,7 @@ export default function DeliveryLog({
                         <MessageReferences message={message} />
                       </td>
                       <td className="px-3 py-3"><StatusBadge status={message.status} /></td>
-                      <td className="whitespace-nowrap px-3 py-3 text-arctic-700 dark:text-arctic-300">
+                      <td className="whitespace-nowrap px-3 py-3 text-arctic-700">
                         <time dateTime={message.createdAt}>{formatDate(message.createdAt)}</time>
                       </td>
                     </tr>
@@ -228,7 +229,7 @@ export default function DeliveryLog({
                 </tbody>
               </table>
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-arctic-400/20 pt-3 text-xs text-arctic-700 dark:text-slate-300">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-arctic-400/20 pt-3 text-xs text-arctic-700">
               <span>
                 {filtered.length === 0 ? "0" : `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, filtered.length)}`} {tr("sur", "of")} {filtered.length} {tr("résultat(s) · Les", "result(s) · The")} {messages.length} {tr("derniers messages sont chargés.", "latest messages are loaded.")}
               </span>
@@ -248,8 +249,8 @@ export default function DeliveryLog({
 function Summary({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-lg border border-arctic-400/25 bg-arctic-100/50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800/80">
-      <div className="text-[11px] font-medium text-arctic-700 dark:text-slate-300">{label}</div>
-      <div className="mt-0.5 text-lg font-bold text-arctic-900 dark:text-white">{value}</div>
+      <div className="text-[11px] font-medium text-arctic-700">{label}</div>
+      <div className="mt-0.5 text-lg font-bold text-arctic-900">{value}</div>
     </div>
   );
 }
@@ -267,7 +268,7 @@ function StatusBadge({ status }: { status: string }) {
 function MessageReferences({ message }: { message: Message }) {
   const { tr } = usePublicLang();
   return (
-    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-600 dark:text-slate-300">
+    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-600">
       {message.orderId && <span>{tr("Commande ·", "Order ·")} {message.orderId.slice(-8).toUpperCase()}</span>}
       {message.messageId && <span title={message.messageId}>{tr("Référence WhatsApp ·", "WhatsApp reference ·")} {message.messageId.slice(-12)}</span>}
     </div>
@@ -284,7 +285,7 @@ function MessageCard({ message }: { message: Message }) {
         <StatusBadge status={message.status} />
       </div>
       <p className="mt-2 whitespace-pre-wrap break-words text-sm text-arctic-800 dark:text-arctic-100">{message.body}</p>
-      <p className="mt-2 text-xs text-arctic-700 dark:text-slate-300" title={tr(...info.description)}>
+      <p className="mt-2 text-xs text-arctic-700" title={tr(...info.description)}>
         <time dateTime={message.createdAt}>{formatDate(message.createdAt)}</time>
       </p>
       <MessageReferences message={message} />
@@ -296,7 +297,7 @@ function EmptyState({ title, body }: { title: string; body: string }) {
   return (
     <div className="rounded-xl border border-dashed border-arctic-400/50 px-5 py-8 text-center dark:border-slate-600 dark:bg-slate-900/50">
       <h3 className="font-semibold text-arctic-900 dark:text-arctic-100">{title}</h3>
-      <p className="mx-auto mt-1 max-w-xl text-sm text-arctic-700 dark:text-slate-300">{body}</p>
+      <p className="mx-auto mt-1 max-w-xl text-sm text-arctic-700">{body}</p>
     </div>
   );
 }

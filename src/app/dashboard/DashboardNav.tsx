@@ -43,7 +43,7 @@ export default function DashboardNav({
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-5">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand font-black text-white">J</span>
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-gold-fill font-black text-white">J</span>
             <span className="hidden font-bold text-arctic-900 sm:inline">
               {shopName}
             </span>
@@ -79,7 +79,7 @@ export default function DashboardNav({
             rel="noreferrer"
             className="btn-ghost hidden sm:inline-flex"
           >
-            {tr("Voir le catalogue ↗", "View catalog ↗")}
+            {tr("Voir le catalogue", "View catalog")}
           </a>
           <button onClick={logout} className="btn-ghost">
             {tr("Se déconnecter", "Sign out")}

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import Glyph from "@/components/Glyph";
 
 interface ReviewItem {
   id: string;
@@ -101,7 +102,7 @@ export function ProductReviews({ productId, productName }: ProductReviewsProps) 
             <span>{tr("Avis clients", "Customer reviews")}</span>
             {count > 0 && (
               <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-medium">
-                ★ {averageRating} ({count})
+                <Glyph name="star-filled" size={11} /> {averageRating} ({count})
               </span>
             )}
           </h3>
@@ -146,9 +147,11 @@ export function ProductReviews({ productId, productName }: ProductReviewsProps) 
                 key={star}
                 type="button"
                 onClick={() => setRating(star)}
-                className="text-xl transition-transform hover:scale-110 focus:outline-none"
+                aria-pressed={star <= rating}
+                aria-label={tr(`${star} sur 5`, `${star} out of 5`)}
+                className="grid h-7 w-7 place-items-center rounded-shape-xs text-aurora-warning-text transition-transform hover:scale-110"
               >
-                {star <= rating ? "⭐" : "☆"}
+                <Glyph name={star <= rating ? "star-filled" : "star"} size={20} />
               </button>
             ))}
             <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 ml-2">
@@ -197,7 +200,7 @@ export function ProductReviews({ productId, productName }: ProductReviewsProps) 
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+              className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-signal-fill text-white hover:bg-signal-fill-hover disabled:opacity-50 transition-colors"
             >
               {submitting ? tr("Publication…", "Submitting…") : tr("Publier l’avis", "Submit review")}
             </button>
@@ -222,7 +225,11 @@ export function ProductReviews({ productId, productName }: ProductReviewsProps) 
                   {rev.customerName}
                 </span>
                 <div className="flex items-center gap-1">
-                  <span className="text-amber-500">{"★".repeat(rev.rating)}</span>
+                  <span className="flex items-center gap-0.5 text-aurora-warning-text" aria-label={tr(`${rev.rating} sur 5`, `${rev.rating} out of 5`)}>
+                    {Array.from({ length: rev.rating }, (_, i) => (
+                      <Glyph key={i} name="star-filled" size={11} />
+                    ))}
+                  </span>
                   <span className="text-[10px] text-slate-400 ml-1">
                     {new Date(rev.createdAt).toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US")}
                   </span>

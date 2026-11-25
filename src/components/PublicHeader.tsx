@@ -102,8 +102,8 @@ export default function PublicHeader({ isAuthenticated = false, shopSlug }: Publ
                   {tr("Ma vitrine", "My storefront")}
                 </Link>
               )}
-              <Link href="/dashboard" className="btn-primary text-xs">
-                {tr("Tableau de bord →", "Dashboard →")}
+              <Link href="/dashboard" className="btn-primary hidden text-xs sm:inline-flex">
+                {tr("Tableau de bord", "Dashboard")}
               </Link>
             </div>
           ) : (
@@ -166,7 +166,7 @@ export default function PublicHeader({ isAuthenticated = false, shopSlug }: Publ
           <div className="my-4 border-t border-arctic-200/60 pt-4">
             {isAuthenticated ? (
               <Link href="/dashboard" className="btn-primary w-full justify-center">
-                {tr("Accéder au tableau de bord →", "Go to dashboard →")}
+                {tr("Accéder au tableau de bord", "Go to dashboard")}
               </Link>
             ) : (
               <div className="grid grid-cols-2 gap-2.5">

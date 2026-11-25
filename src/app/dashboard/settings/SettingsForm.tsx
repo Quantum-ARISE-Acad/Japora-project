@@ -11,6 +11,7 @@ import DangerZone from "./DangerZone";
 import { REGIONS, CATEGORIES, categoryName } from "@/lib/regions";
 import { LANG_NAMES, type Lang } from "@/lib/i18n";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import Glyph from "@/components/Glyph";
 
 type Initial = {
   shopName: string;
@@ -101,8 +102,8 @@ export default function SettingsForm({
       }
       setAvatarSavedMsg(
         newUrl
-          ? "✓ Logo enregistré avec succès sur votre boutique !"
-          : "✓ Logo supprimé et mis à jour.",
+          ? "Logo enregistré avec succès sur votre boutique !"
+          : "Logo supprimé et mis à jour.",
       );
       router.refresh();
       setTimeout(() => setAvatarSavedMsg(""), 4000);
@@ -231,7 +232,7 @@ export default function SettingsForm({
           onClick={() => window.dispatchEvent(new Event("japora:open-onboarding"))}
           className="btn-ghost text-xs border border-brand/30 text-brand-dark font-semibold self-start sm:self-auto"
         >
-          {tr("✨ Assistant de configuration rapide", "✨ Quick setup assistant")}
+          {tr("Assistant de configuration rapide", "Quick setup assistant")}
         </button>
       </div>
 
@@ -247,15 +248,15 @@ export default function SettingsForm({
 
       <form onSubmit={onSubmit} className="card settings-form-card space-y-4 p-5">
         <div>
-          <label className="label">{tr("Nom de la boutique", "Shop name")}</label>
-          <input className="input" value={shopName} onChange={(e) => setShopName(e.target.value)} required />
+          <label htmlFor="settingsform-1" className="label">{tr("Nom de la boutique", "Shop name")}</label>
+          <input id="settingsform-1" className="input" value={shopName} onChange={(e) => setShopName(e.target.value)} required />
         </div>
 
         <div>
-          <label className="label">{tr("Adresse du catalogue (slug)", "Catalog URL slug")}</label>
+          <label htmlFor="settingsform-2" className="label">{tr("Adresse du catalogue (slug)", "Catalog URL slug")}</label>
           <div className="flex items-center gap-2">
             <span className="text-sm text-arctic-600">/c/</span>
-            <input
+            <input id="settingsform-2"
               className="input"
               value={shopSlug}
               onChange={(e) => setShopSlug(e.target.value)}
@@ -268,8 +269,8 @@ export default function SettingsForm({
         </div>
 
         <div>
-          <label className="label">{tr("Slogan (facultatif)", "Tagline (optional)")}</label>
-          <input
+          <label htmlFor="settingsform-3" className="label">{tr("Slogan (facultatif)", "Tagline (optional)")}</label>
+          <input id="settingsform-3"
             className="input"
             placeholder={tr("Une phrase que vos clients verront sous le nom de la boutique.", "One line your customers will see under the shop name.")}
             value={tagline}
@@ -279,8 +280,8 @@ export default function SettingsForm({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="label">{tr("Numéro WhatsApp", "WhatsApp number")}</label>
-            <input
+            <label htmlFor="settingsform-4" className="label">{tr("Numéro WhatsApp", "WhatsApp number")}</label>
+            <input id="settingsform-4"
               className="input"
               inputMode="tel"
               placeholder={tr(`Avec l'indicatif du pays, par ex. ${WHATSAPP_NUMBER_EXAMPLE}`, `With country code, e.g. ${WHATSAPP_NUMBER_EXAMPLE}`)}
@@ -293,8 +294,8 @@ export default function SettingsForm({
             </p>
           </div>
           <div>
-            <label className="label">{tr("Numéro Mobile Money (facultatif)", "Mobile-money number (optional)")}</label>
-            <input
+            <label htmlFor="settingsform-5" className="label">{tr("Numéro Mobile Money (facultatif)", "Mobile-money number (optional)")}</label>
+            <input id="settingsform-5"
               className="input"
               inputMode="tel"
               placeholder={tr("Le même que WhatsApp si vide", "Same as WhatsApp if left blank")}
@@ -306,8 +307,8 @@ export default function SettingsForm({
             </p>
           </div>
           <div>
-            <label className="label">{tr("Devise", "Currency")}</label>
-            <select className="input settings-select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+            <label htmlFor="settingsform-6" className="label">{tr("Devise", "Currency")}</label>
+            <select id="settingsform-6" className="input settings-select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
               {[currency, ...CURRENCY_PRESETS.filter((c) => c !== currency)].map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
@@ -317,8 +318,8 @@ export default function SettingsForm({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="label">{tr("Région", "Region")}</label>
-            <select className="input settings-select" value={region} onChange={(e) => setRegion(e.target.value)}>
+            <label htmlFor="settingsform-7" className="label">{tr("Région", "Region")}</label>
+            <select id="settingsform-7" className="input settings-select" value={region} onChange={(e) => setRegion(e.target.value)}>
               <option value="">{tr("— Aucune —", "— None —")}</option>
               {Object.entries(REGIONS_BY_COUNTRY).map(([country, list]) => (
                 <optgroup key={country} label={country}>
@@ -332,8 +333,8 @@ export default function SettingsForm({
             </select>
           </div>
           <div>
-            <label className="label">{tr("Catégorie", "Category")}</label>
-            <select className="input settings-select" value={category} onChange={(e) => setCategory(e.target.value)}>
+            <label htmlFor="settingsform-8" className="label">{tr("Catégorie", "Category")}</label>
+            <select id="settingsform-8" className="input settings-select" value={category} onChange={(e) => setCategory(e.target.value)}>
               <option value="">{tr("— Aucune —", "— None —")}</option>
               {CATEGORIES.map((c) => (
                 <option key={c.slug} value={c.slug}>
@@ -345,8 +346,8 @@ export default function SettingsForm({
         </div>
 
         <div>
-          <label className="label">{tr("Langue", "Language")}</label>
-          <select
+          <label htmlFor="settingsform-9" className="label">{tr("Langue", "Language")}</label>
+          <select id="settingsform-9"
             className="input settings-select"
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
@@ -360,8 +361,8 @@ export default function SettingsForm({
         </div>
 
         <div>
-          <label className="label">{tr("Présentation (facultatif)", "Bio (optional)")}</label>
-          <textarea
+          <label htmlFor="settingsform-10" className="label">{tr("Présentation (facultatif)", "Bio (optional)")}</label>
+          <textarea id="settingsform-10"
             className="input min-h-[72px]"
             value={bio}
             maxLength={BIO_MAX}
@@ -401,7 +402,7 @@ export default function SettingsForm({
             <div className="flex-1 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <label className="btn-primary cursor-pointer text-xs py-1.5 px-3 inline-flex items-center gap-1.5">
-                  <span>📷</span>
+                  <Glyph name="camera" size={18} />
                   <span>{uploadingAvatar ? tr("Téléversement…", "Uploading…") : tr("Choisir une image", "Choose an image")}</span>
                   <input
                     type="file"
@@ -418,7 +419,7 @@ export default function SettingsForm({
                       setAvatarUrl("");
                       void persistAvatarUrl("");
                     }}
-                    className="btn-ghost text-xs py-1.5 px-2.5 text-red-600 hover:text-red-700"
+                    className="btn-ghost text-xs py-1.5 px-2.5 text-aurora-error-text hover:text-aurora-error-text"
                   >
                     {tr("Supprimer", "Remove")}
                   </button>
@@ -428,22 +429,23 @@ export default function SettingsForm({
                 {tr("Formats acceptés : PNG, JPG, WebP jusqu'à 5 Mo. Ce logo est enregistré automatiquement dès sa sélection et apparaît sur votre boutique publique et vos fiches produits.", "Accepted formats: PNG, JPG, WebP up to 5 MB. This logo is saved as soon as you select it and appears on your public shop and product pages.")}
               </p>
               {avatarSavedMsg && (
-                <p className="text-xs text-emerald-700 font-semibold">{avatarSavedMsg}</p>
+                <p className="text-xs text-signal-text font-semibold">{avatarSavedMsg}</p>
               )}
               {avatarError && (
-                <p className="text-xs text-red-600 font-medium">{avatarError}</p>
+                <p className="text-xs text-aurora-error-text font-medium">{avatarError}</p>
               )}
             </div>
           </div>
 
           <div className="mt-3 pt-3 border-t border-arctic-200/60">
             <details className="text-xs text-arctic-600">
-              <summary className="cursor-pointer font-medium hover:text-arctic-900">
+              <summary className="flex min-h-6 cursor-pointer items-center font-medium hover:text-arctic-900">
                 {tr("Ou spécifier une URL d'image externe", "Or give an external image URL")}
               </summary>
               <input
                 className="input mt-2 text-xs py-1.5"
                 type="text"
+                aria-label={tr("URL de l'image", "Image URL")}
                 placeholder="https://images.unsplash.com/... ou /uploads/..."
                 value={avatarUrl}
                 onChange={(e) => setAvatarUrl(e.target.value)}
@@ -457,7 +459,7 @@ export default function SettingsForm({
             type="checkbox"
             checked={isPublic}
             onChange={(e) => setIsPublic(e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-arctic-400/45 text-brand focus:ring-brand"
+            className="mt-0.5 h-6 w-6 shrink-0 rounded-shape-xs border-arctic-400/45 text-brand focus:ring-brand"
           />
           <span>
             <span className="font-medium">{tr("Afficher ma boutique sur la marketplace publique", "List my shop in the public marketplace")}</span>
@@ -472,7 +474,7 @@ export default function SettingsForm({
             type="checkbox"
             checked={wholesaleEnabled}
             onChange={(e) => setWholesaleEnabled(e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-arctic-400/45 text-brand focus:ring-brand"
+            className="mt-0.5 h-6 w-6 shrink-0 rounded-shape-xs border-arctic-400/45 text-brand focus:ring-brand"
           />
           <span>
             <span className="font-medium">{tr("Activer les prix de gros", "Enable wholesale tier")}</span>
@@ -489,7 +491,7 @@ export default function SettingsForm({
               type="checkbox"
               checked={deliveryEnabled}
               onChange={(e) => setDeliveryEnabled(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-arctic-400/45 text-brand focus:ring-brand"
+              className="mt-0.5 h-6 w-6 shrink-0 rounded-shape-xs border-arctic-400/45 text-brand focus:ring-brand"
             />
             <span>
               <span className="font-medium">{tr("Proposer la livraison à domicile / expédition", "Offer home delivery / shipping")}</span>
@@ -534,24 +536,24 @@ export default function SettingsForm({
           )}
         </div>
 
-        {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+        {error && <p className="rounded-lg bg-aurora-error-bg px-3 py-2 text-sm text-aurora-error-text">{error}</p>}
 
         {savedAt && (
-          <div className="rounded-xl border border-emerald-500/40 bg-emerald-50/90 px-4 py-3 text-sm font-semibold text-emerald-800 flex items-center justify-between">
-            <span>{tr("✅ Vos informations de boutique ont été mises à jour avec succès !", "✅ Your shop information was updated successfully!")}</span>
+          <div className="rounded-xl border border-emerald-500/40 bg-arctic-100/60/90 px-4 py-3 text-sm font-semibold text-signal-text flex items-center justify-between">
+            <span>{tr("Vos informations de boutique ont été mises à jour avec succès !", "Your shop information was updated successfully!")}</span>
             <a
               href={`/c/${shopSlug}`}
               target="_blank"
               rel="noreferrer"
               className="text-xs underline hover:text-emerald-950"
             >
-              {tr("Voir ma boutique ↗", "View my shop ↗")}
+              {tr("Voir ma boutique", "View my shop")}
             </a>
           </div>
         )}
 
         <div className="flex items-center justify-end gap-3">
-          {savedAt && <span className="text-xs font-semibold text-emerald-700">{tr("Enregistré ✓", "Saved ✓")}</span>}
+          {savedAt && <span className="text-xs font-semibold text-signal-text">{tr("Enregistré", "Saved")}</span>}
           <button type="submit" className="btn-primary" disabled={saving}>
             {saving ? tr("Enregistrement…", "Saving…") : tr("Enregistrer les modifications", "Save changes")}
           </button>
@@ -561,7 +563,7 @@ export default function SettingsForm({
       <div className="card p-5">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-arctic-900">{tr("Parrainez un vendeur, vous gagnez tous les deux", "Refer a vendor, both win")}</h2>
-          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+          <span className="rounded-full bg-arctic-100/60 px-2 py-0.5 text-xs font-semibold text-signal-text">
             {initial.qualifiedReferrals} {tr("qualifiés", "qualified")}
           </span>
         </div>
@@ -584,7 +586,7 @@ export default function SettingsForm({
                 onClick={copyInvite}
                 className="btn-ghost text-xs"
               >
-                {copied ? tr("Copié ✓", "Copied ✓") : tr("Copier le lien d'invitation", "Copy invite link")}
+                {copied ? tr("Copié", "Copied") : tr("Copier le lien d'invitation", "Copy invite link")}
               </button>
               <a
                 href={waInvite}
@@ -592,7 +594,7 @@ export default function SettingsForm({
                 rel="noreferrer"
                 className="btn-primary text-xs"
               >
-                {tr("Partager sur WhatsApp ↗", "Share on WhatsApp ↗")}
+                {tr("Partager sur WhatsApp", "Share on WhatsApp")}
               </a>
             </div>
           </div>
@@ -667,7 +669,7 @@ export default function SettingsForm({
           </div>
           <div className="pt-2">
             <a href="/dashboard/bot" className="btn-primary text-xs">
-              {tr("🤖 Configurer l'Assistant WhatsApp Cloud API & IA Gemini →", "🤖 Set up the WhatsApp Cloud API assistant & Gemini AI →")}
+              {tr("Configurer l'Assistant WhatsApp Cloud API & IA Gemini", "Set up the WhatsApp Cloud API assistant & Gemini AI")}
             </a>
           </div>
         </div>

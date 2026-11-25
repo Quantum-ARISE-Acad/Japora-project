@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import Glyph from "@/components/Glyph";
 
 /**
  * "Tell your followers" — one WhatsApp blast to everyone who opted in for new
@@ -50,7 +51,7 @@ export default function NotifyFollowers({ followerCount }: { followerCount: numb
           className="btn-ghost"
           disabled={followerCount === 0}
         >
-          📣 {tr("Nouvel arrivage", "New drop")}
+          <Glyph name="megaphone" size={14} /> {tr("Nouvel arrivage", "New drop")}
         </button>
       </div>
 

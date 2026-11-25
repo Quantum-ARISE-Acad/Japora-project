@@ -312,12 +312,11 @@ export default function HowToUseClient() {
          * 1. HERO SECTION
          * ============================================================ */}
         <section className="py-14 text-center sm:py-20">
-          <div data-hero style={{ opacity: 0 }} className="a-eyebrow">
+          <div data-hero className="a-eyebrow">
             {tr("Guide Complet · Comment ça marche", "Complete Guide · How Japora Works")}
           </div>
           <h1
             data-hero
-            style={{ opacity: 0 }}
             className="a-display-sm mx-auto mt-3 max-w-3xl text-arctic-900 sm:a-display-md"
           >
             {tr(
@@ -327,7 +326,6 @@ export default function HowToUseClient() {
           </h1>
           <p
             data-hero
-            style={{ opacity: 0 }}
             className="a-body-lg mx-auto mt-4 max-w-2xl text-arctic-700"
           >
             {tr(
@@ -337,7 +335,6 @@ export default function HowToUseClient() {
           </p>
           <div
             data-hero
-            style={{ opacity: 0 }}
             className="mt-7 flex flex-wrap justify-center gap-3"
           >
             <Link href="/signup" className="a-btn a-btn--cafe a-btn--lg font-bold">
@@ -385,7 +382,6 @@ export default function HowToUseClient() {
                 <article className="flex items-start gap-4 sm:gap-6">
                   <div
                     data-rise
-                    style={{ opacity: 0 }}
                     className="relative z-10 grid h-14 w-14 shrink-0 place-items-center rounded-full border border-brand/45 bg-arctic-50 font-display text-lg font-bold text-brand-dark shadow-elev-1"
                   >
                     <span className="a-num">{s.n}</span>
@@ -398,7 +394,6 @@ export default function HowToUseClient() {
                         four lines under them. */}
                     <div
                       data-rise
-                      style={{ opacity: 0 }}
                       className="flex items-start gap-2.5"
                     >
                       <StepIcon name={s.icon} />
@@ -409,7 +404,6 @@ export default function HowToUseClient() {
 
                     <p
                       data-rise
-                      style={{ opacity: 0 }}
                       className="mt-2 text-xs text-arctic-700"
                     >
                       {s.subtitle}

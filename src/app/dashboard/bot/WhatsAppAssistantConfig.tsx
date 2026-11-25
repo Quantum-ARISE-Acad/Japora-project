@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import ShopQrCard from "../ShopQrCard";
 import type { WhatsAppAssistantConfig as WaConfigType } from "@/lib/whatsapp-config";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import Glyph from "@/components/Glyph";
 
 export default function WhatsAppAssistantConfig({
   shopName,
@@ -142,7 +143,7 @@ export default function WhatsAppAssistantConfig({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           to: testToPhone.trim(),
-          body: `🤖 Test de connexion Japora WhatsApp Cloud API + Gemini IA pour la boutique "${shopName}" ! Répondez "Menu" pour voir nos articles.`,
+          body: `Test de connexion Japora WhatsApp Cloud API + Gemini IA pour la boutique "${shopName}" ! Répondez "Menu" pour voir nos articles.`,
           whatsappAccessToken: whatsappAccessToken.trim() || undefined,
           whatsappPhoneNumberId: whatsappPhoneNumberId.trim() || undefined,
         }),
@@ -153,20 +154,20 @@ export default function WhatsAppAssistantConfig({
           ok: true,
           text:
             data.provider === "cloud-api"
-              ? `✅ Message envoyé en direct via Meta WhatsApp Cloud API (Statut : ${data.status}) !`
-              : `✅ Message simulé et enregistré (Mode Stub — ajoutez votre Access Token & Phone Number ID pour un envoi réel sur WhatsApp).`,
+              ? `Message envoyé en direct via Meta WhatsApp Cloud API (Statut : ${data.status}) !`
+              : `Message simulé et enregistré (Mode Stub — ajoutez votre Access Token & Phone Number ID pour un envoi réel sur WhatsApp).`,
         });
         router.refresh();
       } else {
         setTestResult({
           ok: false,
-          text: `❌ Échec de l'envoi : ${data.error || "Vérifiez vos identifiants Meta Cloud API."}`,
+          text: `Échec de l'envoi : ${data.error || "Vérifiez vos identifiants Meta Cloud API."}`,
         });
       }
     } catch {
       setTestResult({
         ok: false,
-        text: "❌ Erreur réseau lors du test d'envoi.",
+        text: "Erreur réseau lors du test d'envoi.",
       });
     } finally {
       setTestingSend(false);
@@ -189,8 +190,8 @@ export default function WhatsAppAssistantConfig({
           <div>
             <h2 className="text-base font-bold text-arctic-900">
               {tr(
-                "⚙️ Configuration de l'Assistant WhatsApp & IA Gemini",
-                "⚙️ WhatsApp Assistant & Gemini AI Configuration",
+                "Configuration de l'Assistant WhatsApp & IA Gemini",
+                "WhatsApp Assistant & Gemini AI Configuration",
               )}
             </h2>
             <p className="text-xs text-arctic-600">
@@ -204,8 +205,8 @@ export default function WhatsAppAssistantConfig({
             <span
               className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
                 isCloudLive
-                  ? "bg-emerald-100 text-emerald-800"
-                  : "bg-amber-100 text-amber-800"
+                  ? "bg-arctic-200/70 text-signal-text"
+                  : "bg-aurora-warning-bg text-aurora-warning-text"
               }`}
             >
               {isCloudLive
@@ -217,7 +218,7 @@ export default function WhatsAppAssistantConfig({
                 isGeminiLive ? "bg-sky-100 text-sky-800" : "bg-arctic-200 text-arctic-700"
               }`}
             >
-              {isGeminiLive ? tr("✨ Gemini IA Actif", "✨ Gemini AI Active") : tr("IA locale", "Local AI")}
+              {isGeminiLive ? tr("Gemini IA Actif", "Gemini AI Active") : tr("IA locale", "Local AI")}
             </span>
           </div>
         </div>
@@ -229,7 +230,7 @@ export default function WhatsAppAssistantConfig({
               type="checkbox"
               checked={aiEnabled}
               onChange={(e) => setAiEnabled(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-arctic-400 text-brand focus:ring-brand"
+              className="mt-0.5 h-6 w-6 shrink-0 rounded-shape-xs border-arctic-400 text-brand focus:ring-brand"
             />
             <div className="text-xs">
               <span className="font-bold text-arctic-900 block">
@@ -249,7 +250,7 @@ export default function WhatsAppAssistantConfig({
               type="checkbox"
               checked={showQrOnShop}
               onChange={(e) => setShowQrOnShop(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-arctic-400 text-brand focus:ring-brand"
+              className="mt-0.5 h-6 w-6 shrink-0 rounded-shape-xs border-arctic-400 text-brand focus:ring-brand"
             />
             <div className="text-xs">
               <span className="font-bold text-arctic-900 block">
@@ -270,7 +271,7 @@ export default function WhatsAppAssistantConfig({
               type="checkbox"
               checked={autoNotifyOrderStatus}
               onChange={(e) => setAutoNotifyOrderStatus(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-arctic-400 text-brand focus:ring-brand"
+              className="mt-0.5 h-6 w-6 shrink-0 rounded-shape-xs border-arctic-400 text-brand focus:ring-brand"
             />
             <div className="text-xs">
               <span className="font-bold text-arctic-900 block">
@@ -289,8 +290,8 @@ export default function WhatsAppAssistantConfig({
         {/* Personnalisation de l'Assistant IA */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="label">{tr("Nom de votre Assistant IA", "Your AI Assistant Name")}</label>
-            <input
+            <label htmlFor="whatsappassistantconfig-1" className="label">{tr("Nom de votre Assistant IA", "Your AI Assistant Name")}</label>
+            <input id="whatsappassistantconfig-1"
               className="input"
               placeholder={tr(`Assistant ${shopName}`, `${shopName} assistant`)}
               value={assistantName}
@@ -305,13 +306,13 @@ export default function WhatsAppAssistantConfig({
           </div>
 
           <div>
-            <label className="label">
+            <label htmlFor="whatsappassistantconfig-2" className="label">
               {tr(
                 "Numéro WhatsApp de la boutique (avec indicatif pays)",
                 "Store WhatsApp Number (with country code)",
               )}
             </label>
-            <input
+            <input id="whatsappassistantconfig-2"
               className="input"
               inputMode="tel"
               placeholder={tr("Ex : +228 90 12 34 56 (avec + et l’indicatif)", "e.g. +228 90 12 34 56 (with + and country code)")}
@@ -329,10 +330,10 @@ export default function WhatsAppAssistantConfig({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="label">
+            <label htmlFor="whatsappassistantconfig-3" className="label">
               {tr("Message d'accueil de l'Assistant (optionnel)", "Assistant Welcome Message (optional)")}
             </label>
-            <textarea
+            <textarea id="whatsappassistantconfig-3"
               className="input min-h-[76px] text-xs"
               placeholder={tr(
                 `Bonjour ! Bienvenue chez ${shopName}. Posez-moi vos questions sur nos produits, tailles ou tarifs !`,
@@ -344,10 +345,10 @@ export default function WhatsAppAssistantConfig({
           </div>
 
           <div>
-            <label className="label">
+            <label htmlFor="whatsappassistantconfig-4" className="label">
               {tr("Message pré-rempli du QR Code WhatsApp", "WhatsApp QR Code Prefilled Message")}
             </label>
-            <textarea
+            <textarea id="whatsappassistantconfig-4"
               className="input min-h-[76px] text-xs"
               placeholder={tr(
                 "Bonjour ! Je viens de scanner votre QR code sur Japora. Quels sont vos articles disponibles ?",
@@ -360,13 +361,13 @@ export default function WhatsAppAssistantConfig({
         </div>
 
         <div>
-          <label className="label">
+          <label htmlFor="whatsappassistantconfig-5" className="label">
             {tr(
               "Instructions personnalisées pour Gemini IA (horaires, livraison, conditions, promotions…)",
               "Custom instructions for Gemini AI (hours, delivery, terms, promos…)",
             )}
           </label>
-          <textarea
+          <textarea id="whatsappassistantconfig-5"
             className="input min-h-[84px] text-xs"
             placeholder={tr(
               "Ex: Livraison gratuite à Lomé à partir de 25 000 FCFA. Ouvert du lundi au samedi de 8h à 20h. Paiement accepté par T-Money, Flooz et espèces à la livraison.",
@@ -384,10 +385,10 @@ export default function WhatsAppAssistantConfig({
         </div>
 
         {/* Section Identifiants Meta WhatsApp Cloud API & Clé Gemini */}
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/40 p-4 space-y-4">
+        <div className="rounded-xl border border-emerald-500/30 bg-arctic-100/50 p-4 space-y-4">
           <div>
             <h3 className="text-sm font-bold text-arctic-900 flex items-center gap-2">
-              <span>🔑</span>{" "}
+              <Glyph name="key" size={18} />{" "}
               {tr(
                 "Identifiants de connexion WhatsApp Cloud API (Meta) & Gemini",
                 "WhatsApp Cloud API (Meta) & Gemini Credentials",
@@ -403,10 +404,10 @@ export default function WhatsAppAssistantConfig({
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="label text-xs">
+              <label htmlFor="whatsappassistantconfig-x1" className="label text-xs">
                 WhatsApp Phone Number ID
               </label>
-              <input
+              <input id="whatsappassistantconfig-x1"
                 className="input text-xs font-mono"
                 placeholder={tr("Ex: 105928374650192", "e.g. 105928374650192")}
                 value={whatsappPhoneNumberId}
@@ -421,10 +422,10 @@ export default function WhatsAppAssistantConfig({
             </div>
 
             <div>
-              <label className="label text-xs">
+              <label htmlFor="whatsappassistantconfig-x2" className="label text-xs">
                 WhatsApp Business Account ID (<code className="font-mono">WABA ID</code> - {tr("optionnel", "optional")})
               </label>
-              <input
+              <input id="whatsappassistantconfig-x2"
                 className="input text-xs font-mono"
                 placeholder={tr("Ex: 109283746519283", "e.g. 109283746519283")}
                 value={whatsappBusinessAccountId}
@@ -433,10 +434,10 @@ export default function WhatsAppAssistantConfig({
             </div>
 
             <div>
-              <label className="label text-xs">
+              <label htmlFor="whatsappassistantconfig-x3" className="label text-xs">
                 Meta Cloud API Access Token
               </label>
-              <input
+              <input id="whatsappassistantconfig-x3"
                 type="password"
                 className="input text-xs font-mono"
                 placeholder="EAAGm0PX4ZCps..."
@@ -452,10 +453,10 @@ export default function WhatsAppAssistantConfig({
             </div>
 
             <div>
-              <label className="label text-xs">
+              <label htmlFor="whatsappassistantconfig-x4" className="label text-xs">
                 {tr("Clé API Google Gemini (optionnelle)", "Google Gemini API Key (optional)")}
               </label>
-              <input
+              <input id="whatsappassistantconfig-x4"
                 type="password"
                 className="input text-xs font-mono"
                 placeholder="AIzaSy..."
@@ -475,14 +476,14 @@ export default function WhatsAppAssistantConfig({
           <div className="rounded-lg border border-arctic-300/70 bg-white p-3 space-y-2 text-xs">
             <div className="font-bold text-arctic-900">
               {tr(
-                "🔗 Configuration du Webhook dans Meta for Developers (WhatsApp → Configuration) :",
-                "🔗 Webhook setup in Meta for Developers (WhatsApp → Configuration):",
+                "Configuration du Webhook dans Meta for Developers (WhatsApp → Configuration) :",
+                "Webhook setup in Meta for Developers (WhatsApp → Configuration):",
               )}
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
+              <div className="min-w-0">
                 <span className="font-semibold text-arctic-700">{tr("Callback URL :", "Callback URL:")} </span>
-                <code className="rounded bg-arctic-100 px-2 py-0.5 font-mono text-arctic-900">
+                <code className="break-all rounded bg-arctic-100 px-2 py-0.5 font-mono text-arctic-900">
                   {webhookUrl}
                 </code>
               </div>
@@ -497,13 +498,16 @@ export default function WhatsAppAssistantConfig({
                 }}
                 className="btn-ghost text-xs py-1 px-2.5 border border-arctic-300"
               >
-                {copiedWebhook ? tr("Copié ✓", "Copied ✓") : tr("Copier l'URL", "Copy URL")}
+                {copiedWebhook ? tr("Copié", "Copied") : tr("Copier l'URL", "Copy URL")}
               </button>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold text-arctic-700">{tr("Verify Token :", "Verify token:")} </span>
+              <label htmlFor="wa-verify-token" className="font-semibold text-arctic-700">
+                {tr("Verify Token :", "Verify token:")}{" "}
+              </label>
               <input
-                className="input !w-auto text-xs font-mono py-1 px-2"
+                id="wa-verify-token"
+                className="input !w-auto px-2 py-1 font-mono text-xs"
                 value={whatsappVerifyToken}
                 onChange={(e) => setWhatsappVerifyToken(e.target.value)}
               />
@@ -520,6 +524,7 @@ export default function WhatsAppAssistantConfig({
               type="text"
               value={testToPhone}
               onChange={(e) => setTestToPhone(e.target.value)}
+              aria-label={tr("Numéro du destinataire de test", "Test recipient number")}
               placeholder={tr("N° destinataire test (ex: 22890123456)", "Test recipient phone (e.g. 22890123456)")}
               className="input text-xs py-1.5 sm:max-w-xs"
             />
@@ -527,17 +532,17 @@ export default function WhatsAppAssistantConfig({
               type="button"
               onClick={handleTestWhatsAppSend}
               disabled={testingSend || !testToPhone.trim()}
-              className="btn-ghost text-xs py-1.5 px-3 border border-emerald-600 text-emerald-800 hover:bg-emerald-100"
+              className="btn-ghost text-xs py-1.5 px-3 border border-signal-fill text-signal-text hover:bg-arctic-200/70"
             >
               {testingSend
                 ? tr("Envoi du test…", "Sending test…")
-                : tr("📤 Tester l'envoi d'un message WhatsApp", "📤 Send a test WhatsApp message")}
+                : tr("Tester l'envoi d'un message WhatsApp", "Send a test WhatsApp message")}
             </button>
           </div>
           {testResult && (
             <p
               className={`rounded-lg px-3 py-2 text-xs font-medium ${
-                testResult.ok ? "bg-emerald-100 text-emerald-900" : "bg-red-100 text-red-800"
+                testResult.ok ? "bg-arctic-200/70 text-signal-text" : "bg-aurora-error-bg text-aurora-error-text"
               }`}
             >
               {testResult.text}
@@ -546,17 +551,17 @@ export default function WhatsAppAssistantConfig({
         </div>
 
         {claimPrompt && (
-          <div className="rounded-xl border-2 border-amber-400 bg-amber-50 p-4 space-y-3 text-xs">
+          <div className="rounded-xl border-2 border-amber-400 bg-aurora-warning-bg p-4 space-y-3 text-xs">
             <div className="flex items-start gap-2.5">
-              <span className="text-lg">⚠️</span>
+              <Glyph name="alert" size={18} />
               <div className="space-y-1">
-                <p className="font-bold text-amber-900 text-sm">
+                <p className="font-bold text-aurora-warning-text text-sm">
                   {tr(
                     `Ce Phone Number ID (${claimPrompt.phoneNumberId}) est déjà utilisé ailleurs`,
                     `This Phone Number ID (${claimPrompt.phoneNumberId}) is already used elsewhere`,
                   )}
                 </p>
-                <p className="text-amber-800 leading-relaxed">
+                <p className="text-aurora-warning-text leading-relaxed">
                   {tr(
                     "Ces informations WhatsApp Cloud API sont actuellement associées à la boutique",
                     "These WhatsApp Cloud API credentials are currently linked to the store",
@@ -588,20 +593,20 @@ export default function WhatsAppAssistantConfig({
               >
                 {saving
                   ? tr("Transfert en cours…", "Transferring…")
-                  : tr("✓ Oui, ramener et configurer sur cette boutique", "✓ Yes, transfer and configure on this store")}
+                  : tr("Oui, ramener et configurer sur cette boutique", "Yes, transfer and configure on this store")}
               </button>
             </div>
           </div>
         )}
 
         {saveError && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{saveError}</p>
+          <p className="rounded-lg bg-aurora-error-bg px-3 py-2 text-sm text-aurora-error-text">{saveError}</p>
         )}
 
         <div className="flex items-center justify-end gap-3">
           {saveSuccess && (
-            <span className="text-xs font-semibold text-emerald-700">
-              {tr("✅ Configuration enregistrée avec succès !", "✅ Configuration saved successfully!")}
+            <span className="text-xs font-semibold text-signal-text">
+              {tr("Configuration enregistrée avec succès !", "Configuration saved successfully!")}
             </span>
           )}
           <button type="submit" className="btn-primary" disabled={saving}>

@@ -6,6 +6,7 @@ import { formatMoney, waMeLink, digitsOnly } from "@/lib/utils";
 import { AuroraIsoscout } from "@/components/aurora";
 import { isCustomerInactiveFor30Days, isCustomerVip } from "@/lib/customer-segments";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import Glyph from "@/components/Glyph";
 
 type Row = {
   id: string;
@@ -184,7 +185,7 @@ export default function CustomersClient({
             className="btn-ghost gap-1.5 text-xs font-semibold"
             title={tr("Exporter la liste des clients en CSV", "Export customers as CSV")}
           >
-            📥 {tr("Exporter CSV", "Export CSV")}
+            <Glyph name="import" size={14} /> {tr("Exporter CSV", "Export CSV")}
           </button>
         </div>
       </div>
@@ -194,6 +195,7 @@ export default function CustomersClient({
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          aria-label={tr("Rechercher un client", "Search customers")}
           placeholder={tr("Rechercher un nom, téléphone ou e-mail…", "Search name, phone, or email…")}
           className="input min-w-[220px] flex-1 text-sm"
         />
@@ -213,16 +215,16 @@ export default function CustomersClient({
               type="button"
               onClick={() => setSegmentFilter("vip")}
               className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                segmentFilter === "vip" ? "bg-amber-600 text-white" : "customers-filter-inactive text-arctic-700 hover:text-arctic-900"
+                segmentFilter === "vip" ? "bg-aurora-warning text-white" : "customers-filter-inactive text-arctic-700 hover:text-arctic-900"
               }`}
             >
-              ⭐ VIP (≥3 {tr("cmd", "orders")})
+              <Glyph name="star" size={14} /> {tr("VIP (3 commandes et plus)", "VIP (3 orders or more)")}
             </button>
             <button
               type="button"
               onClick={() => setSegmentFilter("recent")}
               className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                segmentFilter === "recent" ? "bg-emerald-600 text-white" : "customers-filter-inactive text-arctic-700 hover:text-arctic-900"
+                segmentFilter === "recent" ? "bg-signal-fill text-white" : "customers-filter-inactive text-arctic-700 hover:text-arctic-900"
               }`}
             >
               {tr("Récents (30 j)", "Recent (30d)")}
@@ -290,7 +292,7 @@ export default function CustomersClient({
                         target="_blank"
                         rel="noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="text-brand-dark hover:underline"
+                        className="inline-flex min-h-6 items-center text-brand-dark hover:underline"
                       >
                         {r.phone}
                       </a>
@@ -330,7 +332,7 @@ export default function CustomersClient({
                 className="text-arctic-600 hover:text-arctic-800"
                 aria-label={tr("Fermer", "Close")}
               >
-                ✕
+                <Glyph name="close" size={16} />
               </button>
             </div>
 
@@ -369,7 +371,7 @@ export default function CustomersClient({
                   )}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex-1 rounded-lg bg-brand px-3 py-2 text-center text-sm font-semibold text-white hover:bg-brand-dark"
+                  className="flex-1 rounded-lg bg-gold-fill px-3 py-2 text-center text-sm font-semibold text-white hover:bg-gold-fill"
                 >
                   {tr("Envoyer un WhatsApp", "Send WhatsApp")}
                 </a>

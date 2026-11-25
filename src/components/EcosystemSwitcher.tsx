@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
+import Glyph, { type GlyphName } from "@/components/Glyph";
 
 export interface PlatformItem {
   id: "japora" | "soko" | "wescrow";
@@ -21,7 +22,7 @@ const PLATFORMS: PlatformItem[] = [
     name: "Japora",
     badge: "Boutiques",
     tagline: "Vente en ligne, gestion de stocks & commandes vendeurs",
-    icon: "🛍️",
+    icon: "bag",
     href: "http://localhost:5174/dashboard",
     color: "text-emerald-700 dark:text-emerald-400",
     bgColor: "bg-emerald-500/10 dark:bg-emerald-500/20",
@@ -32,7 +33,7 @@ const PLATFORMS: PlatformItem[] = [
     name: "Soko CRM",
     badge: "WhatsApp CRM",
     tagline: "Capture d'opportunités, matching acheteur/vendeur & closing",
-    icon: "💬",
+    icon: "chat",
     href: "http://localhost:5173",
     color: "text-amber-700 dark:text-amber-400",
     bgColor: "bg-amber-500/10 dark:bg-amber-500/20",
@@ -43,7 +44,7 @@ const PLATFORMS: PlatformItem[] = [
     name: "WEscrow",
     badge: "Safe Hands",
     tagline: "Paiements sous séquestre sécurisé & résolution de litiges",
-    icon: "🛡️",
+    icon: "shield",
     href: "http://localhost:3000",
     color: "text-indigo-700 dark:text-indigo-400",
     bgColor: "bg-indigo-500/10 dark:bg-indigo-500/20",
@@ -111,7 +112,7 @@ export default function EcosystemSwitcher({
         aria-label={tr("Changer de plateforme dans la suite Wataru", "Switch platform in the Wataru suite")}
         className="inline-flex h-9 sm:h-10 items-center gap-2 rounded-shape-full border border-arctic-400/40 bg-arctic-50/70 px-3 text-xs font-semibold text-arctic-700 backdrop-blur-sm transition-all hover:border-brand hover:bg-arctic-100 hover:text-arctic-900"
       >
-        <span className="grid h-5 w-5 place-items-center text-sm">🌐</span>
+        <Glyph name="globe" size={18} />
         <span className="hidden md:inline">{tr("Écosystème", "Ecosystem")}</span>
         <span className="text-[10px] uppercase font-bold tracking-wider text-brand px-1.5 py-0.2 bg-brand/10 rounded">
           Suite
@@ -163,7 +164,7 @@ export default function EcosystemSwitcher({
                   <div
                     className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl text-xl ${p.bgColor} border ${p.borderColor}`}
                   >
-                    {isNavigating ? "⏳" : p.icon}
+                    <Glyph name={isNavigating ? "clock" : (p.icon as GlyphName)} size={16} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1">
@@ -171,7 +172,7 @@ export default function EcosystemSwitcher({
                         {p.name}
                       </p>
                       {isCurrent ? (
-                        <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
+                        <span className="rounded-full bg-gold-fill px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
                           {tr("Actuel", "Current")}
                         </span>
                       ) : isNavigating ? (

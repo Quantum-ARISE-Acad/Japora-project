@@ -92,7 +92,7 @@ export default function AuroraCustomization({ initial, currency }: Props) {
         </div>
         {savedAt && (
           <span className="rounded-shape-full border border-arctic-400/45 bg-arctic-200/70 px-2 py-0.5 a-label-md text-arctic-900 backdrop-blur-glass-thin">
-            {tr("✓ Enregistré", "✓ Saved")}
+            {tr("Enregistré", "Saved")}
           </span>
         )}
       </div>
@@ -129,7 +129,7 @@ export default function AuroraCustomization({ initial, currency }: Props) {
           />
 
           {error && (
-            <p className="rounded-shape-md border border-red-200/70 bg-red-50/80 px-3 py-2 a-body-sm text-red-700 backdrop-blur-glass-thin">
+            <p className="rounded-shape-md border border-aurora-error/30/70 bg-aurora-error-bg/80 px-3 py-2 a-body-sm text-aurora-error-text backdrop-blur-glass-thin">
               {error}
             </p>
           )}

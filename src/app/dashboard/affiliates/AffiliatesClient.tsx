@@ -141,11 +141,11 @@ export default function AffiliatesClient({
             />
           </label>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-aurora-error-text">{error}</p>}
         <button
           type="submit"
           disabled={saving}
-          className="rounded-lg bg-brand-dark px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          className="rounded-lg bg-gold-fill px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
         >
           {saving ? tr("Enregistrement...", "Saving...") : tr("Créer le code", "Create code")}
         </button>
@@ -192,7 +192,7 @@ export default function AffiliatesClient({
                   <td className="px-5 py-3 text-right">
                     <button
                       onClick={() => remove(a.id)}
-                      className="text-xs font-semibold text-red-600 hover:underline"
+                      className="inline-flex min-h-6 items-center text-xs font-semibold text-aurora-error-text hover:underline"
                     >
                       {tr("Supprimer", "Remove")}
                     </button>
