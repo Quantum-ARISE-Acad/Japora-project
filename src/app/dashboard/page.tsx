@@ -12,6 +12,7 @@ import EmailVerificationBanner from "@/components/EmailVerificationBanner";
 import { emailMode } from "@/lib/email";
 import { isStoreSetupComplete } from "@/lib/onboarding";
 import StoreSetupCard from "./StoreSetupCard";
+import VendorReviewsManager from "@/components/VendorReviewsManager";
 
 export default async function OverviewPage() {
   const vendor = await requireVendor();
@@ -19,7 +20,7 @@ export default async function OverviewPage() {
   const locale = cookieStore.get("japora-lang")?.value === "en" ? "en" : "fr";
   const t = (fr: string, en: string) => (locale === "fr" ? fr : en);
 
-  const [productCount, lowStock, orders, receivablesOpenCents, customerCount, followerCount, hustle] =
+  const [productCount, lowStock, orders, receivablesOpenCents, customerCount, followerCount, hustle, reviewAgg, recentReviews] =
     await Promise.all([
       prisma.product.count({ where: { vendorId: vendor.id } }),
       prisma.product.count({ where: { vendorId: vendor.id, stock: { lte: 3 } } }),
@@ -28,7 +29,36 @@ export default async function OverviewPage() {
       prisma.customer.count({ where: { vendorId: vendor.id, deletedAt: null } }),
       prisma.follower.count({ where: { vendorId: vendor.id, unsubscribedAt: null } }),
       buildSummary(vendor.id, new Date()),
+      prisma.review.aggregate({
+        where: { vendorId: vendor.id },
+        _count: { _all: true },
+        _avg: { rating: true },
+      }),
+      prisma.review.findMany({
+        where: { vendorId: vendor.id },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        include: {
+          product: { select: { id: true, name: true, imageUrl: true } },
+        },
+      }),
     ]);
+
+  const totalReviewCount = reviewAgg._count._all;
+  const avgShopRating =
+    totalReviewCount > 0 && reviewAgg._avg.rating != null
+      ? Number(reviewAgg._avg.rating.toFixed(1))
+      : null;
+  const recentReviewDtos = recentReviews.map((r) => ({
+    id: r.id,
+    productId: r.productId,
+    customerName: r.customerName,
+    rating: r.rating,
+    comment: r.comment,
+    reply: r.reply,
+    createdAt: r.createdAt.toISOString(),
+    product: r.product ? { id: r.product.id, name: r.product.name, imageUrl: r.product.imageUrl } : null,
+  }));
 
   const count = (s: string) => orders.filter((o) => o.status === s).length;
   const openOrders = count("NEW") + count("CONFIRMED");
@@ -236,6 +266,41 @@ export default async function OverviewPage() {
             );
           })}
         </div>
+      </section>
+
+      {/* Customer Feedback / Recent Reviews */}
+      <section className="glass glass-edge rounded-shape-lg p-6">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="a-label-md text-arctic-700">
+                {t("Avis clients récents", "Recent customer reviews")}
+              </h2>
+              {avgShopRating !== null && (
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                  ★ {avgShopRating} ({totalReviewCount})
+                </span>
+              )}
+            </div>
+            <p className="a-body-sm mt-0.5 text-arctic-600">
+              {t(
+                "Les notes et commentaires laissés par vos clients sur votre catalogue.",
+                "Ratings and comments left by buyers on your storefront.",
+              )}
+            </p>
+          </div>
+          <Link
+            href="/dashboard/products?reviews=1"
+            className="text-xs font-semibold text-brand-dark hover:underline"
+          >
+            {t("Gérer tous les avis →", "Manage all reviews →")}
+          </Link>
+        </div>
+
+        <VendorReviewsManager
+          reviews={recentReviewDtos}
+          linkProductToDashboard={true}
+        />
       </section>
 
       {/* Hustle Preview */}
