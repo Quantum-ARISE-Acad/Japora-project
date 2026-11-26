@@ -233,17 +233,17 @@ export default function PaymentLinksClient({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
           <Link
             href="/dashboard/billing"
-            className="btn-ghost text-xs px-3 py-2.5 rounded-shape-md"
+            className="btn-ghost"
           >
             <Glyph name="cog" size={14} /> {tr("Configuration FedaPay", "FedaPay settings")}
           </Link>
           <button
             type="button"
             onClick={() => setShowCreateModal(true)}
-            className="btn-primary flex items-center gap-2 text-sm px-4 py-2.5 rounded-shape-md shadow-md"
+            className="btn-primary shadow-md"
           >
             <Glyph name="plus" size={18} />
             <span>{tr("Créer un lien de paiement", "Create payment link")}</span>
@@ -252,7 +252,7 @@ export default function PaymentLinksClient({
       </div>
 
       {toast && (
-        <div className="rounded-shape-md border border-emerald-300 bg-arctic-100/60 px-4 py-3 text-xs font-semibold text-signal-text shadow-sm">
+        <div className="rounded-shape-md border border-signal-fill/40 bg-arctic-100/60 px-4 py-3 text-xs font-semibold text-signal-text shadow-sm">
           {toast}
         </div>
       )}
@@ -275,7 +275,7 @@ export default function PaymentLinksClient({
           <span className="text-xs uppercase tracking-wider text-arctic-600 font-semibold">
             {tr("En attente", "Pending")}
           </span>
-          <div className="text-2xl font-bold text-aurora-warning-text dark:text-amber-400 mt-1">
+          <div className="text-2xl font-bold text-aurora-warning-text mt-1">
             {formatMoney(pendingCents, currency)}
           </div>
           <span className="text-xs text-arctic-600 mt-1 block">
@@ -329,7 +329,7 @@ export default function PaymentLinksClient({
           <button
             type="button"
             onClick={() => setShowCreateModal(true)}
-            className="btn-primary mt-4 text-xs px-4 py-2"
+            className="btn-primary btn-sm mt-4"
           >
             {tr("Créer mon premier lien", "Create my first link")}
           </button>
@@ -353,11 +353,11 @@ export default function PaymentLinksClient({
                         <Glyph name="check" size={14} /> {tr("Payé", "Paid")}
                       </span>
                     ) : isExpired ? (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-950/60 text-aurora-error-text dark:text-rose-300">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-aurora-error-bg text-aurora-error-text">
                         {tr("Expiré", "Expired")}
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-aurora-warning-bg dark:bg-aurora-warning-bg text-aurora-warning-text">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-aurora-warning-bg text-aurora-warning-text">
                         {tr("En attente", "Pending")}
                       </span>
                     )}
@@ -418,7 +418,7 @@ export default function PaymentLinksClient({
                     href={getWaShareUrl(l)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-arctic-100/60 dark:bg-emerald-950/50 hover:bg-arctic-200/70 text-signal-text flex items-center gap-1 transition-colors"
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-arctic-100/60 hover:bg-arctic-200/70 text-signal-text flex items-center gap-1 transition-colors"
                   >
                     <Glyph name="chat" size={18} />
                     <span>{tr("Partager", "Share")}</span>
@@ -439,7 +439,7 @@ export default function PaymentLinksClient({
                   <button
                     type="button"
                     onClick={() => handleDelete(l.id)}
-                    className="p-1.5 text-xs text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors"
+                    className="p-1.5 text-xs text-aurora-error-text hover:bg-aurora-error-bg rounded-lg transition-colors"
                     title={tr("Supprimer", "Delete")}
                   >
                     <Glyph name="trash" size={16} />
@@ -479,7 +479,7 @@ export default function PaymentLinksClient({
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder={currency === "XOF" ? tr("Ex: 10000", "e.g. 10000") : tr("Ex: 25.00", "e.g. 25.00")}
-                  className="w-full px-3 py-2 text-sm rounded-shape-md border border-arctic-300/60 bg-aurora-surface text-arctic-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full px-3 py-2 text-sm rounded-shape-md border border-arctic-300/60 bg-aurora-surface text-arctic-900 focus:ring-2 focus:ring-brand/40 focus:outline-none"
                 />
               </div>
 
@@ -493,11 +493,11 @@ export default function PaymentLinksClient({
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder={tr("Ex. : acompte pour une robe de soirée", "E.g. evening dress order deposit")}
-                  className="w-full px-3 py-2 text-sm rounded-shape-md border border-arctic-300/60 bg-aurora-surface text-arctic-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full px-3 py-2 text-sm rounded-shape-md border border-arctic-300/60 bg-aurora-surface text-arctic-900 focus:ring-2 focus:ring-brand/40 focus:outline-none"
                 />
               </div>
 
-              <div className="rounded-shape-md border border-emerald-200 bg-arctic-100/60/50 p-3 space-y-3">
+              <div className="rounded-shape-md border border-signal-fill/35 bg-arctic-100/60 p-3 space-y-3">
                 <div className="text-xs font-bold text-signal-text">
                   <Glyph name="phone" size={14} /> {tr("Envoi direct par WhatsApp Cloud API (facultatif)", "Send directly via WhatsApp Cloud API (optional)")}
                 </div>
@@ -507,14 +507,14 @@ export default function PaymentLinksClient({
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     placeholder={tr("Nom du client", "Customer name")}
-                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-emerald-300 bg-aurora-surface text-arctic-900 focus:outline-none"
+                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-signal-fill/40 bg-aurora-surface text-arctic-900 focus:outline-none"
                   />
                   <input
                     type="tel"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     placeholder={tr("Ex: +22890123456", "e.g. +22890123456")}
-                    className="w-full px-3 py-1.5 text-xs font-mono rounded-lg border border-emerald-300 bg-aurora-surface text-arctic-900 focus:outline-none"
+                    className="w-full px-3 py-1.5 text-xs font-mono rounded-lg border border-signal-fill/40 bg-aurora-surface text-arctic-900 focus:outline-none"
                   />
                 </div>
                 <p className="text-[11px] text-signal-text">
@@ -532,7 +532,7 @@ export default function PaymentLinksClient({
                 <select
                   value={expiresInDays}
                   onChange={(e) => setExpiresInDays(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-shape-md border border-arctic-300/60 bg-aurora-surface text-arctic-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full px-3 py-2 text-sm rounded-shape-md border border-arctic-300/60 bg-aurora-surface text-arctic-900 focus:ring-2 focus:ring-brand/40 focus:outline-none"
                 >
                   <option value="1">{tr("24 heures", "24 hours")}</option>
                   <option value="3">{tr("3 jours", "3 days")}</option>
@@ -543,21 +543,21 @@ export default function PaymentLinksClient({
               </div>
 
               {error && (
-                <p className="text-xs text-rose-600 dark:text-rose-400">{error}</p>
+                <p className="text-xs text-aurora-error-text">{error}</p>
               )}
 
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 text-xs font-medium text-arctic-600 hover:bg-arctic-100 rounded-shape-md"
+                  className="btn-ghost"
                 >
                   {tr("Annuler", "Cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={creating}
-                  className="btn-primary text-xs px-4 py-2 rounded-shape-md"
+                  className="btn-primary btn-sm"
                 >
                   {creating ? tr("Génération…", "Creating…") : tr("Créer le lien", "Create link")}
                 </button>
@@ -618,14 +618,14 @@ export default function PaymentLinksClient({
                 <button
                   type="button"
                   onClick={() => setWaModalLink(null)}
-                  className="btn-ghost text-xs"
+                  className="btn-ghost btn-sm"
                 >
                   {tr("Annuler", "Cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={waSending}
-                  className="btn-primary text-xs"
+                  className="btn-primary btn-sm"
                 >
                   {waSending ? tr("Envoi en cours…", "Sending…") : tr("Envoyer maintenant", "Send now")}
                 </button>

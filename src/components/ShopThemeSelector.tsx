@@ -67,12 +67,12 @@ export default function ShopThemeSelector({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="btn-ghost gap-1.5 px-3 py-1.5 text-xs font-semibold"
+        className="btn-ghost btn-sm font-semibold"
         title={tr("Personnaliser le thème visuel de la boutique", "Customise the shop's visual theme")}
         aria-label={tr("Changer le thème de la boutique", "Change the shop theme")}
       >
         <span className="hidden sm:inline">{active.name}</span>
-        <span className="text-[10px] opacity-60">▾</span>
+        <Glyph name="chevron-down" size={12} className="text-arctic-600" />
       </button>
 
       {open && (

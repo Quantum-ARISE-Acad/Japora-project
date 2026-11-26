@@ -185,7 +185,7 @@ export default async function PublicShopPage({ params }: Params) {
                   className="a-btn a-btn--cafe a-btn--lg flex-1 gap-2 font-bold shadow-elev-1"
                 >
                   <SaasIcon name="catalog" size={16} />
-                  <span>{t("Ouvrir le catalogue complet", "Open full catalog")}</span>
+                  <span>{t("Voir le catalogue", "View the catalog")}</span>
                   <SaasIcon name="arrow-right" size={15} />
                 </Link>
                 <Link

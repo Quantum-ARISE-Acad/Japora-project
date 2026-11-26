@@ -72,7 +72,6 @@ export interface CurrencyInfo {
   code: CurrencyCode;
   label: string;
   symbol: string;
-  flag: string;
   rateToXof: number; // Value of 1 unit of this currency in XOF
   decimals: number;
 }
@@ -80,9 +79,8 @@ export interface CurrencyInfo {
 export const SUPPORTED_CURRENCIES: Record<CurrencyCode, CurrencyInfo> = {
   XOF: {
     code: "XOF",
-    label: "XOF",
+    label: "Franc CFA (XOF)",
     symbol: "XOF",
-    flag: "🇹🇬",
     rateToXof: 1.0,
     decimals: 0,
   },
@@ -90,7 +88,6 @@ export const SUPPORTED_CURRENCIES: Record<CurrencyCode, CurrencyInfo> = {
     code: "XAF",
     label: "Franc CFA (XAF)",
     symbol: "FCFA",
-    flag: "🇨🇲",
     rateToXof: 1.0,
     decimals: 0,
   },
@@ -98,7 +95,6 @@ export const SUPPORTED_CURRENCIES: Record<CurrencyCode, CurrencyInfo> = {
     code: "USD",
     label: "Dollar US ($)",
     symbol: "$",
-    flag: "🇺🇸",
     rateToXof: 600.0,
     decimals: 2,
   },
@@ -106,7 +102,6 @@ export const SUPPORTED_CURRENCIES: Record<CurrencyCode, CurrencyInfo> = {
     code: "EUR",
     label: "Euro (€)",
     symbol: "€",
-    flag: "🇪🇺",
     rateToXof: 655.957,
     decimals: 2,
   },
@@ -114,7 +109,6 @@ export const SUPPORTED_CURRENCIES: Record<CurrencyCode, CurrencyInfo> = {
     code: "GHS",
     label: "Cedi Ghanéen (GH₵)",
     symbol: "GH₵",
-    flag: "🇬🇭",
     rateToXof: 40.0,
     decimals: 2,
   },
@@ -122,7 +116,6 @@ export const SUPPORTED_CURRENCIES: Record<CurrencyCode, CurrencyInfo> = {
     code: "NGN",
     label: "Naira Nigérian (₦)",
     symbol: "₦",
-    flag: "🇳🇬",
     rateToXof: 0.40,
     decimals: 0,
   },
@@ -130,7 +123,6 @@ export const SUPPORTED_CURRENCIES: Record<CurrencyCode, CurrencyInfo> = {
     code: "KES",
     label: "Shilling Kényan (KSh)",
     symbol: "KSh",
-    flag: "🇰🇪",
     rateToXof: 4.62,
     decimals: 0,
   },

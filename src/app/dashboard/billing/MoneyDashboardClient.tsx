@@ -273,13 +273,13 @@ export default function MoneyDashboardClient({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Link href="/dashboard/payment-links" className="btn-ghost text-xs">
+          <Link href="/dashboard/payment-links" className="btn-ghost btn-sm">
             <Glyph name="link" size={14} /> {tr("Liens de paiement WhatsApp", "WhatsApp payment links")}
           </Link>
-          <Link href="/dashboard/receivables" className="btn-ghost text-xs">
+          <Link href="/dashboard/receivables" className="btn-ghost btn-sm">
             <Glyph name="book" size={14} /> {tr("Créances et relances", "Receivables & reminders")}
           </Link>
-          <Link href={`/c/${shopSlug}`} target="_blank" className="btn-primary text-xs">
+          <Link href={`/c/${shopSlug}`} target="_blank" className="btn-primary btn-sm">
             <Glyph name="bag" size={14} /> {tr("Tester le panier boutique", "Test shop checkout")} ↗
           </Link>
         </div>
@@ -456,7 +456,7 @@ export default function MoneyDashboardClient({
             </div>
 
             {fedaConfig.environment === "sandbox" && (
-              <div className="rounded-xl border border-aurora-warning/35/70 bg-aurora-warning-bg p-3 text-xs text-aurora-warning-text">
+              <div className="rounded-xl border border-aurora-warning/35 bg-aurora-warning-bg p-3 text-xs text-aurora-warning-text">
                 <strong>{tr("Mode Test Sandbox actif :", "Sandbox Test Mode active:")}</strong>{" "}
                 {activeSecretKey.startsWith("sk_sandbox_")
                   ? tr(
@@ -518,13 +518,13 @@ export default function MoneyDashboardClient({
                   type="button"
                   disabled={testingConn}
                   onClick={handleTestConnection}
-                  className="btn-ghost text-xs border border-arctic-300"
+                  className="btn-ghost btn-sm border border-arctic-300"
                 >
                   {testingConn
                     ? tr("Vérification…", "Testing…")
                     : tr("Tester l'API FedaPay", "Test FedaPay API")}
                 </button>
-                <button type="submit" disabled={savingConfig} className="btn-primary text-xs">
+                <button type="submit" disabled={savingConfig} className="btn-primary btn-sm">
                   {savingConfig
                     ? tr("Enregistrement…", "Saving…")
                     : tr("Enregistrer la configuration FedaPay", "Save FedaPay configuration")}
@@ -740,7 +740,7 @@ export default function MoneyDashboardClient({
           type="button"
           disabled={launchingSub}
           onClick={handleSubscribePro}
-          className="btn-primary text-xs"
+          className="btn-primary btn-sm"
         >
           {launchingSub
             ? tr("Ouverture FedaPay…", "Opening FedaPay…")

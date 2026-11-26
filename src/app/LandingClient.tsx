@@ -216,12 +216,7 @@ export default function LandingClient({
                 href="/signup"
                 className="a-btn a-btn--cafe a-btn--lg font-bold shadow-elev-2"
               >
-                <span>
-                  {tr(
-                    "Ouvrir ma boutique gratuitement",
-                    "Open my free shop now"
-                  )}
-                </span>
+                <span>{tr("Ouvrir ma boutique", "Open my shop")}</span>
                 <SaasIcon name="arrow-right" size={16} />
               </Link>
               <Link href="#demo" className="btn-ghost a-btn--lg flex items-center gap-2">
@@ -229,6 +224,12 @@ export default function LandingClient({
                 <span>{tr("Voir le bot répondre", "Watch the bot reply")}</span>
               </Link>
             </div>
+            <p className="mt-3 text-[13px] text-arctic-600">
+              {tr(
+                "Sans abonnement — une commission uniquement sur vos ventes.",
+                "No subscription — a commission on your sales only.",
+              )}
+            </p>
 
             {/* Trust Micro-pills */}
             <div className="mt-7 grid grid-cols-3 gap-3 border-t border-arctic-200/70 pt-5">
@@ -884,7 +885,7 @@ export default function LandingClient({
                 >
                   <span>
                     {tr(
-                      "Ouvrir ma boutique gratuitement",
+                      "Ouvrir ma boutique",
                       "Open my shop for free"
                     )}
                   </span>

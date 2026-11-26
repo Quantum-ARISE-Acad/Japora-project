@@ -340,8 +340,8 @@ export default function HowToUseClient() {
             <Link href="/signup" className="a-btn a-btn--cafe a-btn--lg font-bold">
               <span>
                 {tr(
-                  "Créer ma boutique gratuitement",
-                  "Create my free shop"
+                  "Créer ma boutique",
+                  "Create my shop"
                 )}
               </span>
               <SaasIcon name="arrow-right" size={16} />
@@ -777,8 +777,8 @@ export default function HowToUseClient() {
               <Link href="/signup" className="a-btn a-btn--cafe a-btn--lg font-bold">
                 <span>
                   {tr(
-                    "Ouvrir ma boutique gratuitement",
-                    "Open my free shop now"
+                    "Ouvrir ma boutique",
+                    "Open my shop"
                   )}
                 </span>
                 <SaasIcon name="arrow-right" size={16} />

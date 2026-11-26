@@ -142,7 +142,7 @@ export default function InstallPrompt() {
           )}
           <div className="mt-2 flex items-center gap-2">
             {variant === "chromium" && (
-              <button onClick={install} className="btn-primary !py-1 text-xs">
+              <button onClick={install} className="btn-primary btn-sm">
                 {tr("Installer", "Install")}
               </button>
             )}

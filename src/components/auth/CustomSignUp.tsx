@@ -30,11 +30,11 @@ import {
 import { usePublicLang } from "@/components/PublicLanguageProvider";
 
 // Labels are [français, English].
-const CURRENCIES: { code: string; label: [string, string]; flag: string }[] = [
-  { code: "XOF", label: ["Franc CFA (XOF)", "CFA franc (XOF)"], flag: "🇹🇬" },
-  { code: "USD", label: ["Dollar US ($)", "US Dollar ($)"], flag: "🇺🇸" },
-  { code: "EUR", label: ["Euro (€)", "Euro (€)"], flag: "🇪🇺" },
-  { code: "GHS", label: ["Cedi ghanéen (GH₵)", "Ghanaian Cedi (GH₵)"], flag: "🇬🇭" },
+const CURRENCIES: { code: string; label: [string, string] }[] = [
+  { code: "XOF", label: ["Franc CFA (XOF)", "CFA franc (XOF)"] },
+  { code: "USD", label: ["Dollar US ($)", "US Dollar ($)"] },
+  { code: "EUR", label: ["Euro (€)", "Euro (€)"] },
+  { code: "GHS", label: ["Cedi ghanéen (GH₵)", "Ghanaian Cedi (GH₵)"] },
 ];
 
 export default function CustomSignUp({
@@ -770,7 +770,7 @@ export default function CustomSignUp({
                   >
                     {CURRENCIES.map((c) => (
                       <option key={c.code} value={c.code}>
-                        {c.flag} {tr(...c.label)}
+                        {tr(...c.label)}
                       </option>
                     ))}
                   </select>

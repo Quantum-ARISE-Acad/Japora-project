@@ -99,19 +99,19 @@ const PLACEMENT_OPTIONS: {
   },
 ];
 
-const COUNTRY_OPTIONS: { code: string; name: string; nameEn?: string; flag: string }[] = [
-  { code: "TG", name: "Togo", flag: "🇹🇬" },
-  { code: "BJ", name: "Bénin", nameEn: "Benin", flag: "🇧🇯" },
-  { code: "CI", name: "Côte d'Ivoire", nameEn: "Côte d'Ivoire", flag: "🇨🇮" },
-  { code: "SN", name: "Sénégal", nameEn: "Senegal", flag: "🇸🇳" },
-  { code: "BF", name: "Burkina Faso", flag: "🇧🇫" },
-  { code: "ML", name: "Mali", flag: "🇲🇱" },
-  { code: "CM", name: "Cameroun", nameEn: "Cameroon", flag: "🇨🇲" },
-  { code: "GA", name: "Gabon", flag: "🇬🇦" },
-  { code: "GH", name: "Ghana", flag: "🇬🇭" },
-  { code: "NG", name: "Nigeria", flag: "🇳🇬" },
-  { code: "FR", name: "France", flag: "🇫🇷" },
-  { code: "US", name: "États-Unis", nameEn: "United States", flag: "🇺🇸" },
+const COUNTRY_OPTIONS: { code: string; name: string; nameEn?: string }[] = [
+  { code: "TG", name: "Togo" },
+  { code: "BJ", name: "Bénin", nameEn: "Benin" },
+  { code: "CI", name: "Côte d'Ivoire", nameEn: "Côte d'Ivoire" },
+  { code: "SN", name: "Sénégal", nameEn: "Senegal" },
+  { code: "BF", name: "Burkina Faso" },
+  { code: "ML", name: "Mali" },
+  { code: "CM", name: "Cameroun", nameEn: "Cameroon" },
+  { code: "GA", name: "Gabon" },
+  { code: "GH", name: "Ghana" },
+  { code: "NG", name: "Nigeria" },
+  { code: "FR", name: "France" },
+  { code: "US", name: "États-Unis", nameEn: "United States" },
 ];
 
 const OBJECTIVE_OPTIONS: {
@@ -761,7 +761,7 @@ export default function CampaignsClient({
             <button
               type="button"
               onClick={() => setShowStudio((v) => !v)}
-              className="btn-primary text-xs sm:text-sm"
+              className="btn-primary btn-sm"
             >
               {showStudio
                 ? tr("Fermer le Studio Publicitaire", "Close Ad Studio")
@@ -772,7 +772,7 @@ export default function CampaignsClient({
       </div>
 
       {/* Global Analytics KPI Grid */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
         <KpiCard
           label={tr("Impressions & Portée", "Impressions & Reach")}
           value={analytics.impressions.toLocaleString("fr-FR")}
@@ -1082,7 +1082,7 @@ export default function CampaignsClient({
                               : "border-arctic-400/30 bg-white text-arctic-700 hover:bg-arctic-100"
                           }`}
                         >
-                          {c.flag} {tr(c.name, c.nameEn ?? c.name)} ({c.code})
+                          {tr(c.name, c.nameEn ?? c.name)}
                         </button>
                       );
                     })}
@@ -1315,7 +1315,7 @@ export default function CampaignsClient({
                   <button
                     type="submit"
                     disabled={creating}
-                    className="btn-primary px-6 py-2.5 text-sm font-semibold"
+                    className="btn-primary font-semibold"
                   >
                     {creating
                       ? tr("Exécution du pipeline Meta v27.0 (4/4)…", "Running the Meta v27.0 pipeline (4/4)…")
@@ -1328,32 +1328,32 @@ export default function CampaignsClient({
             {/* Right 5 columns: Live Ad Preview (WhatsApp Status 9:16 + FB/IG Feed) & cURL */}
             <div className="min-w-0 space-y-4 lg:col-span-5">
               <div className="rounded-2xl border border-arctic-400/25 bg-arctic-50/70 p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-arctic-600">
-                    {tr("Aperçu Temps Réel de la Publicité", "Live ad preview")}
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <span className="a-eyebrow">
+                    {tr("Aperçu en direct", "Live preview")}
                   </span>
-                  <div className="flex rounded-lg border border-arctic-400/30 bg-white p-0.5 text-xs">
+                  <div className="flex min-w-0 max-w-full items-center overflow-x-auto rounded-shape-sm border border-arctic-400/30 bg-aurora-surface p-0.5 text-xs">
                     <button
                       type="button"
                       onClick={() => setPreviewFormat("whatsapp_status")}
-                      className={`rounded-shape-sm px-2.5 py-1 font-medium transition ${
+                      className={`shrink-0 whitespace-nowrap rounded-shape-sm px-2.5 py-1 font-medium transition ${
                         previewFormat === "whatsapp_status"
                           ? "bg-signal-fill text-white"
                           : "text-arctic-600 hover:text-arctic-900"
                       }`}
                     >
-                      WhatsApp Status
+                      WhatsApp
                     </button>
                     <button
                       type="button"
                       onClick={() => setPreviewFormat("feed")}
-                      className={`rounded-shape-sm px-2.5 py-1 font-medium transition ${
+                      className={`shrink-0 whitespace-nowrap rounded-shape-sm px-2.5 py-1 font-medium transition ${
                         previewFormat === "feed"
-                          ? "bg-blue-600 text-white"
+                          ? "bg-arctic-900 text-arctic-50"
                           : "text-arctic-600 hover:text-arctic-900"
                       }`}
                     >
-                      Facebook / Instagram
+                      Facebook
                     </button>
                   </div>
                 </div>
@@ -1558,7 +1558,7 @@ export default function CampaignsClient({
               <button
                 type="button"
                 onClick={() => setShowStudio(true)}
-                className="btn-primary text-xs"
+                className="btn-primary btn-sm"
               >
                 {tr("+ Créer ma première publicité produit", "+ Create my first product ad")}
               </button>
@@ -1659,7 +1659,7 @@ export default function CampaignsClient({
                                     : pl.replace("_", " ")}
                               </span>
                             ))}
-                            <span className="rounded-full bg-arctic-100 px-2 py-0.5 text-[10px] text-arctic-600">
+                            <span className="max-w-full break-words rounded-full bg-arctic-100 px-2 py-0.5 text-[10px] text-arctic-600">
                               {meta.targeting.countries.join(", ")} •{" "}
                               {meta.targeting.ageMin}-{meta.targeting.ageMax} {tr("ans", "years")}
                             </span>
@@ -1978,7 +1978,7 @@ export default function CampaignsClient({
                 <button
                   type="submit"
                   disabled={savingConfig}
-                  className="btn-primary text-xs"
+                  className="btn-primary btn-sm"
                 >
                   {savingConfig
                     ? tr("Vérification & Sauvegarde…", "Checking & saving…")
@@ -2085,7 +2085,7 @@ export default function CampaignsClient({
               <button
                 type="button"
                 onClick={() => setInspectedCampaign(null)}
-                className="btn-primary text-xs"
+                className="btn-primary btn-sm"
               >
                 {tr("Fermer l'inspecteur", "Close the inspector")}
               </button>
@@ -2116,9 +2116,9 @@ function KpiCard({
         highlight ? "border-brand/50 ring-1 ring-brand/20" : "border-arctic-400/25"
       }`}
     >
-      <div className="flex items-center justify-between gap-1">
-        <span className="text-[11px] font-semibold text-arctic-600">{label}</span>
-        <span className="rounded-full bg-arctic-100 px-2 py-0.5 text-[10px] font-semibold text-arctic-700">
+      <div className="flex flex-wrap items-center justify-between gap-1">
+        <span className="min-w-0 text-[11px] font-semibold text-arctic-600">{label}</span>
+        <span className="shrink-0 rounded-full bg-arctic-100 px-2 py-0.5 text-[10px] font-semibold text-arctic-700">
           {badge}
         </span>
       </div>

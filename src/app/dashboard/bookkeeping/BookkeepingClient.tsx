@@ -169,7 +169,7 @@ export default function BookkeepingClient({ currency, currentSummary, lastSummar
           <button
             type="button"
             onClick={() => exportSummaryCSV(s)}
-            className="btn-ghost flex-1 justify-center text-xs"
+            className="btn-ghost btn-sm flex-1"
             title={tr("Exporter le résumé en CSV", "Export summary as CSV")}
           >
             <Glyph name="import" size={14} /> {tr("Résumé CSV", "CSV summary")}
@@ -183,7 +183,7 @@ export default function BookkeepingClient({ currency, currentSummary, lastSummar
               const end = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
               downloadOrdersCsv(start, end);
             }}
-            className="btn-ghost flex-1 justify-center text-xs border border-emerald-300 text-signal-text hover:bg-arctic-100/60 dark:border-emerald-800"
+            className="btn-ghost btn-sm flex-1 border border-emerald-300 text-signal-text hover:bg-arctic-100/60 dark:border-emerald-800"
             title={tr("Exporter les commandes détaillées du mois pour Excel/Google Sheets", "Export this month's detailed orders for Excel/Google Sheets")}
           >
             <Glyph name="copy" size={14} /> {tr("Commandes (CSV)", "Orders (CSV)")}
@@ -191,7 +191,7 @@ export default function BookkeepingClient({ currency, currentSummary, lastSummar
           <button
             type="button"
             onClick={() => openReport(s.year, s.month)}
-            className="btn-primary flex-1 justify-center text-xs"
+            className="btn-primary btn-sm flex-1"
           >
             <Glyph name="print" size={14} /> {tr("Imprimer / PDF", "Print / PDF")}
           </button>
@@ -219,7 +219,7 @@ export default function BookkeepingClient({ currency, currentSummary, lastSummar
           <button
             type="button"
             onClick={() => downloadOrdersCsv()}
-            className="btn-primary shrink-0 gap-2 text-xs py-2.5 px-4 !bg-signal-fill hover:!bg-signal-fill-hover !text-white font-semibold shadow-sm"
+            className="btn-primary btn-sm shrink-0 !bg-signal-fill hover:!bg-signal-fill-hover !text-white font-semibold shadow-sm"
           >
             <Glyph name="import" size={18} /> {tr("Télécharger toutes les commandes (CSV)", "Download all orders (CSV)")}
           </button>

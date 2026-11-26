@@ -240,26 +240,26 @@ export default function ReceivablesClient({
                         </td>
                         <td className="px-4 py-2 text-arctic-600">{r.note || "—"}</td>
                         <td className="px-4 py-2">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex flex-wrap justify-end gap-2">
                             {(r.status === "OPEN" || r.status === "PARTIAL") && (
                               <>
                                 <button
                                   onClick={() => sendReminder(r)}
-                                  className="rounded-lg border border-arctic-400/30 px-2.5 py-1 text-xs font-semibold text-arctic-800 hover:bg-arctic-100/55"
+                                  className="shrink-0 whitespace-nowrap rounded-lg border border-arctic-400/30 px-2.5 py-1 text-xs font-semibold text-arctic-800 hover:bg-arctic-100/55"
                                 >
                                   {tr("Relancer", "Remind")}
                                 </button>
                                 <button
                                   onClick={() => markPaid(r)}
                                   disabled={busy === r.id}
-                                  className="rounded-lg bg-gold-fill px-2.5 py-1 text-xs font-semibold text-white hover:bg-gold-fill disabled:opacity-50"
+                                  className="shrink-0 whitespace-nowrap rounded-lg bg-gold-fill px-2.5 py-1 text-xs font-semibold text-white hover:bg-gold-fill disabled:opacity-50"
                                 >
                                   {tr("Marquer comme payée", "Mark paid")}
                                 </button>
                                 <button
                                   onClick={() => writeOff(r)}
                                   disabled={busy === r.id}
-                                  className="rounded-lg border border-aurora-error/30 px-2.5 py-1 text-xs font-semibold text-aurora-error-text hover:bg-aurora-error-bg disabled:opacity-50"
+                                  className="shrink-0 whitespace-nowrap rounded-lg border border-aurora-error/30 px-2.5 py-1 text-xs font-semibold text-aurora-error-text hover:bg-aurora-error-bg disabled:opacity-50"
                                 >
                                   {tr("Annuler la créance", "Write off")}
                                 </button>

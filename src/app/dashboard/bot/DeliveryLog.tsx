@@ -139,7 +139,7 @@ export default function DeliveryLog({
               {tr("Suivez les messages réellement envoyés et les accusés reçus de Meta.", "Follow the messages actually sent and the receipts from Meta.")}
             </p>
           </div>
-          <button type="button" onClick={refresh} disabled={refreshing} className="btn-ghost !min-h-9 !px-3 !py-1.5 text-xs">
+          <button type="button" onClick={refresh} disabled={refreshing} className="btn-ghost btn-sm">
             {refreshing ? tr("Actualisation…", "Refreshing…") : tr("Actualiser", "Refresh")}
           </button>
         </div>
@@ -234,9 +234,9 @@ export default function DeliveryLog({
                 {filtered.length === 0 ? "0" : `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, filtered.length)}`} {tr("sur", "of")} {filtered.length} {tr("résultat(s) · Les", "result(s) · The")} {messages.length} {tr("derniers messages sont chargés.", "latest messages are loaded.")}
               </span>
               <div className="flex items-center gap-2">
-                <button type="button" className="btn-ghost !min-h-8 !px-3 !py-1 text-xs" disabled={currentPage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>{tr("Précédent", "Previous")}</button>
+                <button type="button" className="btn-ghost btn-sm" disabled={currentPage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>{tr("Précédent", "Previous")}</button>
                 <span>{tr("Page", "Page")} {currentPage} / {pageCount}</span>
-                <button type="button" className="btn-ghost !min-h-8 !px-3 !py-1 text-xs" disabled={currentPage >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>{tr("Suivant", "Next")}</button>
+                <button type="button" className="btn-ghost btn-sm" disabled={currentPage >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>{tr("Suivant", "Next")}</button>
               </div>
             </div>
           </>

@@ -129,12 +129,12 @@ export default function AuroraCustomization({ initial, currency }: Props) {
           />
 
           {error && (
-            <p className="rounded-shape-md border border-aurora-error/30/70 bg-aurora-error-bg/80 px-3 py-2 a-body-sm text-aurora-error-text backdrop-blur-glass-thin">
+            <p className="rounded-shape-md border border-aurora-error/30 bg-aurora-error-bg/80 px-3 py-2 a-body-sm text-aurora-error-text backdrop-blur-glass-thin">
               {error}
             </p>
           )}
 
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex flex-wrap items-center gap-2 pt-1">
             <button
               onClick={save}
               disabled={saving || !dirty}
@@ -143,7 +143,7 @@ export default function AuroraCustomization({ initial, currency }: Props) {
               {saving ? tr("Enregistrement…", "Saving…") : tr("Enregistrer les préférences", "Save preferences")}
             </button>
             <button onClick={reset} disabled={saving} className="btn-ghost">
-              {tr("Rétablir les valeurs par défaut", "Restore defaults")}
+              {tr("Réinitialiser", "Reset")}
             </button>
           </div>
         </div>
@@ -175,7 +175,7 @@ export default function AuroraCustomization({ initial, currency }: Props) {
             >
               {tr("Action d’exemple", "Sample action")}
             </button>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="flex flex-wrap gap-2">
               {["Nouveau", "Payé", "Envoyé"].map((k, i) => (
                 <span
                   key={k}
