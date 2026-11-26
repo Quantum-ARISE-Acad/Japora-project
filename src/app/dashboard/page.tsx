@@ -12,14 +12,18 @@ import EmailVerificationBanner from "@/components/EmailVerificationBanner";
 import { emailMode } from "@/lib/email";
 import { isStoreSetupComplete } from "@/lib/onboarding";
 import StoreSetupCard from "./StoreSetupCard";
+import VendorReviewsManager from "@/components/VendorReviewsManager";
+import { parseWhatsAppAssistantConfig } from "@/lib/whatsapp-config";
+import { isLiveMode } from "@/lib/whatsapp";
 
 export default async function OverviewPage() {
   const vendor = await requireVendor();
   const cookieStore = await cookies();
   const locale = cookieStore.get("japora-lang")?.value === "en" ? "en" : "fr";
   const t = (fr: string, en: string) => (locale === "fr" ? fr : en);
+  const tr = t;
 
-  const [productCount, lowStock, orders, receivablesOpenCents, customerCount, followerCount, hustle] =
+  const [productCount, lowStock, orders, receivablesOpenCents, customerCount, followerCount, hustle, reviewAgg, recentReviews] =
     await Promise.all([
       prisma.product.count({ where: { vendorId: vendor.id } }),
       prisma.product.count({ where: { vendorId: vendor.id, stock: { lte: 3 } } }),
@@ -28,7 +32,36 @@ export default async function OverviewPage() {
       prisma.customer.count({ where: { vendorId: vendor.id, deletedAt: null } }),
       prisma.follower.count({ where: { vendorId: vendor.id, unsubscribedAt: null } }),
       buildSummary(vendor.id, new Date()),
+      prisma.review.aggregate({
+        where: { vendorId: vendor.id },
+        _count: { _all: true },
+        _avg: { rating: true },
+      }),
+      prisma.review.findMany({
+        where: { vendorId: vendor.id },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        include: {
+          product: { select: { id: true, name: true, imageUrl: true } },
+        },
+      }),
     ]);
+
+  const totalReviewCount = reviewAgg._count._all;
+  const avgShopRating =
+    totalReviewCount > 0 && reviewAgg._avg.rating != null
+      ? Number(reviewAgg._avg.rating.toFixed(1))
+      : null;
+  const recentReviewDtos = recentReviews.map((r) => ({
+    id: r.id,
+    productId: r.productId,
+    customerName: r.customerName,
+    rating: r.rating,
+    comment: r.comment,
+    reply: r.reply,
+    createdAt: r.createdAt.toISOString(),
+    product: r.product ? { id: r.product.id, name: r.product.name, imageUrl: r.product.imageUrl } : null,
+  }));
 
   const count = (s: string) => orders.filter((o) => o.status === s).length;
   const openOrders = count("NEW") + count("CONFIRMED");
@@ -101,6 +134,10 @@ export default async function OverviewPage() {
   const shareText = `Bonjour ! Découvrez les nouveautés de ${vendor.shopName} sur notre boutique en ligne :\n\nhttps://japora.app/c/${vendor.shopSlug}`;
   const whatsappStatusShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
 
+  const waCfg = parseWhatsAppAssistantConfig(vendor.uiPrefs);
+  const waLive = isLiveMode(vendor);
+  const latestWaError = (waCfg.diagnostics || []).find((d) => d.severity !== "ok") || null;
+
   return (
     <div className="space-y-7 a-fade-in">
       {/* No email service connected in production: don't ask sellers to verify an address nobody can mail. */}
@@ -108,6 +145,56 @@ export default async function OverviewPage() {
         email={vendor.email}
         verified={Boolean(vendor.emailVerifiedAt) || (emailMode() === "stub" && process.env.NODE_ENV === "production")}
       />
+
+      {/* Alerte de diagnostic WhatsApp Cloud API / IA Gemini en haut du Dashboard */}
+      {latestWaError ? (
+        <div
+          className={`rounded-shape-lg border-2 p-4 ${
+            latestWaError.severity === "error"
+              ? "border-aurora-error/45 bg-aurora-error-bg text-aurora-error-text"
+              : "border-aurora-warning/45 bg-aurora-warning-bg text-aurora-warning-text"
+          }`}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-1 max-w-3xl">
+              <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-aurora-error-text">
+                <span>
+                  {tr(
+                    `Diagnostic Assistant WhatsApp / IA (${latestWaError.stage.toUpperCase()})`,
+                    `WhatsApp / AI Assistant Diagnostic (${latestWaError.stage.toUpperCase()})`,
+                  )}
+                </span>
+              </div>
+              <div className="text-sm font-bold">{tr(latestWaError.title, latestWaError.titleEn || latestWaError.title)}</div>
+              <p className="text-xs leading-relaxed opacity-90">{tr(latestWaError.message, latestWaError.messageEn || latestWaError.message)}</p>
+              {latestWaError.fixHint && (
+                <p className="mt-1 rounded bg-white/85 p-2 text-xs text-arctic-900 border border-black/10">
+                  <strong>{tr("Solution :", "Fix:")}</strong> {tr(latestWaError.fixHint, latestWaError.fixHintEn || latestWaError.fixHint)}
+                </p>
+              )}
+            </div>
+            <Link
+              href="/dashboard/bot"
+              className="btn-primary text-xs shrink-0"
+            >
+              {tr("Ouvrir le diagnostic WhatsApp", "Open WhatsApp diagnostics")}
+            </Link>
+          </div>
+        </div>
+      ) : !waLive ? (
+        <div className="rounded-shape-lg border border-aurora-warning/35/80 bg-aurora-warning-bg/90 px-4 py-3 text-aurora-warning-text flex flex-wrap items-center justify-between gap-3">
+          <div className="text-xs sm:text-sm">
+            <strong>{tr("Assistant WhatsApp en mode Simulation (Stub) :", "WhatsApp Assistant in Simulation (Stub) mode:")}</strong>{" "}
+            {tr(
+              "Renseignez ou transférez votre Phone Number ID et Access Token Meta sur cette boutique pour que la réponse automatique parte sur WhatsApp.",
+              "Enter or transfer your Meta Phone Number ID and Access Token on this store so automatic replies are sent on WhatsApp.",
+            )}
+          </div>
+          <Link href="/dashboard/bot" className="inline-flex min-h-6 shrink-0 items-center text-xs font-bold underline hover:no-underline">
+            {tr("Configurer l'Assistant WhatsApp", "Configure WhatsApp Assistant")}
+          </Link>
+        </div>
+      ) : null}
 
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -252,6 +339,41 @@ export default async function OverviewPage() {
             .map((d) => `${d.date}: ${formatMoney(d.rev, vendor.currency)}`)
             .join(", ")}
         </p>
+      </section>
+
+      {/* Customer Feedback / Recent Reviews */}
+      <section className="glass glass-edge rounded-shape-lg p-6">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="a-label-md text-arctic-700">
+                {t("Avis clients récents", "Recent customer reviews")}
+              </h2>
+              {avgShopRating !== null && (
+                <span className="rounded-full bg-aurora-warning-bg px-2 py-0.5 text-xs font-semibold text-aurora-warning-text">
+                  ★ {avgShopRating} ({totalReviewCount})
+                </span>
+              )}
+            </div>
+            <p className="a-body-sm mt-0.5 text-arctic-600">
+              {t(
+                "Les notes et commentaires laissés par vos clients sur votre catalogue.",
+                "Ratings and comments left by buyers on your storefront.",
+              )}
+            </p>
+          </div>
+          <Link
+            href="/dashboard/products?reviews=1"
+            className="inline-flex min-h-6 items-center text-xs font-semibold text-brand-dark hover:underline"
+          >
+            {t("Gérer tous les avis", "Manage all reviews")}
+          </Link>
+        </div>
+
+        <VendorReviewsManager
+          reviews={recentReviewDtos}
+          linkProductToDashboard={true}
+        />
       </section>
 
       {/* Hustle Preview */}

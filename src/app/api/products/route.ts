@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const pageSize = Math.min(200, Math.max(1, parseInt(sp.get("pageSize") || "100", 10) || 100));
 
   const where = { vendorId: vendor.id };
-  const [products, total] = await Promise.all([
+  const [products, total, reviewGroups, unansweredGroups] = await Promise.all([
     prisma.product.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -23,11 +23,41 @@ export async function GET(req: NextRequest) {
       take: pageSize,
     }),
     prisma.product.count({ where }),
+    prisma.review.groupBy({
+      by: ["productId"],
+      where: { vendorId: vendor.id },
+      _count: { _all: true },
+      _avg: { rating: true },
+    }),
+    prisma.review.groupBy({
+      by: ["productId"],
+      where: { vendorId: vendor.id, reply: "" },
+      _count: { _all: true },
+    }),
   ]);
+  const reviewMap = new Map(
+    reviewGroups.map((g) => [
+      g.productId,
+      {
+        count: g._count._all,
+        avg: g._avg.rating != null ? Number(g._avg.rating.toFixed(1)) : null,
+      },
+    ]),
+  );
+  const unansweredMap = new Map(unansweredGroups.map((g) => [g.productId, g._count._all]));
   // The vendor's own secret minimum prices, for the dashboard form.
   const floors = await priceFloorsForVendor(vendor.id);
   return NextResponse.json({
-    products: products.map((p) => ({ ...p, minPriceCents: floors.get(p.id) ?? null })),
+    products: products.map((p) => {
+      const r = reviewMap.get(p.id);
+      return {
+        ...p,
+        minPriceCents: floors.get(p.id) ?? null,
+        reviewCount: r?.count ?? 0,
+        averageRating: r?.avg ?? null,
+        unansweredReviewCount: unansweredMap.get(p.id) ?? 0,
+      };
+    }),
     page,
     pageSize,
     total,

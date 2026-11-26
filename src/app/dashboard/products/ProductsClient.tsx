@@ -9,6 +9,7 @@ import { AuroraIsoscout } from "@/components/aurora";
 import ProductPlaceholder from "@/components/ProductPlaceholder";
 import { usePublicLang } from "@/components/PublicLanguageProvider";
 import Glyph from "@/components/Glyph";
+import VendorReviewsManager, { type VendorReviewItem } from "@/components/VendorReviewsManager";
 
 type Product = {
   id: string;
@@ -23,6 +24,9 @@ type Product = {
   isActive: boolean;
   condition?: string;
   collectionId?: string | null;
+  reviewCount?: number;
+  averageRating?: number | null;
+  unansweredReviewCount?: number;
 };
 
 type CollectionRef = {
@@ -59,11 +63,17 @@ const EMPTY_FORM: FormState = {
 
 export default function ProductsClient({
   initialProducts,
+  initialReviews = [],
+  initialReviewsOpen = false,
+  initialReviewProductId = "",
   collections = [],
   currency,
   shopSlug,
 }: {
   initialProducts: Product[];
+  initialReviews?: VendorReviewItem[];
+  initialReviewsOpen?: boolean;
+  initialReviewProductId?: string;
   collections?: CollectionRef[];
   currency: string;
   shopSlug: string;
@@ -71,6 +81,9 @@ export default function ProductsClient({
   const router = useRouter();
   const { tr } = usePublicLang();
   const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [reviews, setReviews] = useState<VendorReviewItem[]>(initialReviews);
+  const [reviewsOpen, setReviewsOpen] = useState(initialReviewsOpen);
+  const [reviewProductFilter, setReviewProductFilter] = useState(initialReviewProductId);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -83,8 +96,39 @@ export default function ProductsClient({
   // Search, filter, view mode and sorting state
   const [searchQuery, setSearchQuery] = useState("");
   const [stockFilter, setStockFilter] = useState<"all" | "in_stock" | "low_stock" | "out_of_stock">("all");
-  const [sortBy, setSortBy] = useState<"default" | "stock_asc" | "price_asc" | "price_desc">("default");
+  const [sortBy, setSortBy] = useState<"default" | "stock_asc" | "price_asc" | "price_desc" | "reviews_desc">("default");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  const reviewStatsByProduct = useMemo(() => {
+    const map = new Map<string, { count: number; avg: number; unanswered: number }>();
+    for (const r of reviews) {
+      const cur = map.get(r.productId) ?? { count: 0, avg: 0, unanswered: 0 };
+      const nextCount = cur.count + 1;
+      cur.avg = Number(((cur.avg * cur.count + r.rating) / nextCount).toFixed(1));
+      cur.count = nextCount;
+      if (!r.reply || r.reply.trim() === "") cur.unanswered += 1;
+      map.set(r.productId, cur);
+    }
+    return map;
+  }, [reviews]);
+
+  const totalReviews = reviews.length;
+  const unansweredTotal = useMemo(
+    () => reviews.filter((r) => !r.reply || r.reply.trim() === "").length,
+    [reviews],
+  );
+  const overallAvg = useMemo(
+    () =>
+      totalReviews > 0
+        ? Number((reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(1))
+        : null,
+    [reviews, totalReviews],
+  );
+
+  function openProductReviews(productId = "") {
+    setReviewProductFilter(productId);
+    setReviewsOpen(true);
+  }
 
   const filteredProducts = useMemo(() => {
     let list = [...products];
@@ -116,10 +160,16 @@ export default function ProductsClient({
       list.sort((a, b) => a.priceCents - b.priceCents);
     } else if (sortBy === "price_desc") {
       list.sort((a, b) => b.priceCents - a.priceCents);
+    } else if (sortBy === "reviews_desc") {
+      list.sort((a, b) => {
+        const ca = reviewStatsByProduct.get(a.id)?.count ?? a.reviewCount ?? 0;
+        const cb = reviewStatsByProduct.get(b.id)?.count ?? b.reviewCount ?? 0;
+        return cb - ca;
+      });
     }
 
     return list;
-  }, [products, searchQuery, stockFilter, sortBy]);
+  }, [products, searchQuery, stockFilter, sortBy, reviewStatsByProduct]);
 
   async function importFromWhatsApp() {
     setImporting(true);
@@ -139,10 +189,19 @@ export default function ProductsClient({
   }
 
   async function reload() {
-    const res = await fetch("/api/products");
+    const [res, revRes] = await Promise.all([
+      fetch("/api/products"),
+      fetch("/api/reviews?mine=1&take=100"),
+    ]);
     if (res.ok) {
       const data = await res.json();
       setProducts(data.products);
+    }
+    if (revRes.ok) {
+      const revData = await revRes.json();
+      if (Array.isArray(revData.reviews)) {
+        setReviews(revData.reviews);
+      }
     }
     router.refresh();
   }
@@ -300,6 +359,26 @@ export default function ProductsClient({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
+            type="button"
+            onClick={() => openProductReviews("")}
+            className="btn-ghost text-xs font-semibold inline-flex items-center gap-1.5"
+          >
+            <Glyph name="star-filled" size={12} className="text-aurora-warning-text" />
+            <span>
+              {overallAvg !== null
+                ? `${overallAvg} · ${totalReviews} ${tr("avis", totalReviews === 1 ? "review" : "reviews")}`
+                : tr("Avis clients (0)", "Customer reviews (0)")}
+            </span>
+            {unansweredTotal > 0 && (
+              <span
+                className="rounded-full bg-aurora-warning-bg0 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white"
+                title={tr(`${unansweredTotal} avis sans réponse`, `${unansweredTotal} unanswered`)}
+              >
+                {unansweredTotal}
+              </span>
+            )}
+          </button>
+          <button
             onClick={importFromWhatsApp}
             disabled={importing}
             className="btn-ghost btn-sm font-semibold"
@@ -350,6 +429,7 @@ export default function ProductsClient({
             <option value="stock_asc">{tr("Stock (à réapprovisionner d’abord)", "Stock (restock first)")}</option>
             <option value="price_asc">{tr("Prix croissant", "Price: low to high")}</option>
             <option value="price_desc">{tr("Prix décroissant", "Price: high to low")}</option>
+            <option value="reviews_desc">{tr("Plus d’avis clients", "Most customer reviews")}</option>
           </select>
         </div>
 
@@ -441,7 +521,7 @@ export default function ProductsClient({
                     className={
                       "absolute right-2 top-2 rounded px-2 py-0.5 text-xs font-semibold " +
                       (p.stock === 0
-                        ? "bg-red-600 text-white"
+                        ? "bg-aurora-error text-white"
                         : p.stock <= 3
                           ? "bg-aurora-warning text-white"
                           : "bg-white/90 text-arctic-800")
@@ -458,6 +538,41 @@ export default function ProductsClient({
                       {formatMoney(p.priceCents, currency)}
                     </span>
                   </div>
+
+                  {/* Customer Rating Row */}
+                  {(() => {
+                    const rs = reviewStatsByProduct.get(p.id);
+                    const rCount = rs ? rs.count : (p.reviewCount ?? 0);
+                    const rAvg = rs ? rs.avg : (p.averageRating ?? null);
+                    const rUnans = rs ? rs.unanswered : (p.unansweredReviewCount ?? 0);
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => openProductReviews(p.id)}
+                        className="flex w-full items-center justify-between rounded-shape-xs bg-aurora-warning-bg px-2 py-1 text-left text-xs transition hover:bg-aurora-warning/15"
+                      >
+                        {rCount > 0 ? (
+                          <span className="flex items-center gap-1 font-medium text-aurora-warning-text">
+                            <Glyph name="star-filled" size={12} className="text-aurora-warning-text" />
+                            <span>{rAvg}</span>
+                            <span className="text-arctic-600">
+                              ({rCount} {tr("avis", rCount === 1 ? "review" : "reviews")})
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-arctic-600">
+                            <Glyph name="star" size={11} />
+                            {tr("Aucun avis client", "No reviews yet")}
+                          </span>
+                        )}
+                        {rUnans > 0 && (
+                          <span className="rounded-full bg-aurora-warning px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                            {tr(`${rUnans} à répondre`, `${rUnans} to reply`)}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })()}
 
                   {/* Quick Stock Adjuster */}
                   <div className="flex items-center justify-between rounded-lg border border-arctic-300/40 bg-arctic-100/40 px-2 py-1 text-xs">
@@ -558,6 +673,25 @@ export default function ProductsClient({
                         {tr("Masqué", "Hidden")}
                       </span>
                     )}
+                    {(() => {
+                      const rs = reviewStatsByProduct.get(p.id);
+                      const rCount = rs ? rs.count : (p.reviewCount ?? 0);
+                      const rAvg = rs ? rs.avg : (p.averageRating ?? null);
+                      const rUnans = rs ? rs.unanswered : (p.unansweredReviewCount ?? 0);
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => openProductReviews(p.id)}
+                          className="inline-flex items-center gap-1 rounded-full bg-aurora-warning-bg px-2 py-0.5 text-[11px] font-medium text-aurora-warning-text hover:opacity-90"
+                        >
+                          <Glyph name="star-filled" size={12} className="text-aurora-warning-text" />
+                          {rCount > 0 ? `${rAvg} (${rCount})` : "0"}
+                          {rUnans > 0 && (
+                            <span className="ml-0.5 inline-block h-1.5 w-1.5 rounded-full bg-aurora-warning" />
+                          )}
+                        </button>
+                      );
+                    })()}
                   </div>
                   <div className="text-xs text-arctic-600 truncate">{p.description || tr("Sans description", "No description")}</div>
                 </div>
@@ -782,6 +916,51 @@ export default function ProductsClient({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Seller Customer Reviews Modal */}
+      {reviewsOpen && (
+        <div className="fixed inset-0 z-40 grid place-items-center bg-arctic-900/50 p-4 backdrop-blur-xs">
+          <div className="card w-full max-w-2xl overflow-hidden flex flex-col max-h-[92dvh] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-arctic-400/30 bg-arctic-50 px-5 py-3.5 shrink-0">
+              <div>
+                <h2 className="font-bold text-arctic-900 flex items-center gap-2">
+                  <span>{tr("Avis clients", "Customer reviews")}</span>
+                  {overallAvg !== null && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-aurora-warning-bg px-2 py-0.5 text-xs font-semibold text-aurora-warning-text">
+                      <Glyph name="star-filled" size={11} /> {overallAvg} ({totalReviews})
+                    </span>
+                  )}
+                </h2>
+                <p className="text-xs text-arctic-600">
+                  {tr(
+                    "Consultez les retours de vos acheteurs, répondez publiquement ou supprimez les avis indésirables.",
+                    "Read buyer feedback, post public replies, or remove unwanted reviews.",
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReviewsOpen(false)}
+                aria-label={tr("Fermer", "Close")}
+                className="grid min-h-6 min-w-6 place-items-center rounded-shape-sm p-1 text-arctic-600 hover:bg-arctic-200/60 hover:text-arctic-800"
+              >
+                <Glyph name="close" size={14} />
+              </button>
+            </div>
+
+            <div className="flex-1 max-h-[80dvh] overflow-y-auto overscroll-contain p-5">
+              <VendorReviewsManager
+                reviews={reviews}
+                onReviewsChange={setReviews}
+                products={products.map((p) => ({ id: p.id, name: p.name }))}
+                selectedProductId={reviewProductFilter}
+                onSelectProductId={setReviewProductFilter}
+                showFilters={true}
+              />
+            </div>
           </div>
         </div>
       )}
