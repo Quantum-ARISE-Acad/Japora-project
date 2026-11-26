@@ -49,6 +49,9 @@ export async function recordVendorDiagnostic(
       message: alert.message,
       details: alert.details,
       fixHint: alert.fixHint,
+      titleEn: alert.titleEn,
+      messageEn: alert.messageEn,
+      fixHintEn: alert.fixHintEn,
       contact: alert.contact,
     };
 
@@ -478,10 +481,8 @@ export async function sendWhatsAppInteractive(msg: OutboundInteractive) {
     await recordVendorDiagnostic(msg.vendorId, {
       stage: "whatsapp_send",
       severity: "error",
-      title: explained.title,
-      message: explained.message,
+      ...explained,
       details: error.slice(0, 400),
-      fixHint: explained.fixHint,
       contact: msg.to,
     });
   } else if (status === "sent") {
@@ -490,6 +491,8 @@ export async function sendWhatsAppInteractive(msg: OutboundInteractive) {
       severity: "ok",
       title: "Réponse interactive envoyée via Meta Cloud API",
       message: `Réponse envoyée avec succès au numéro ${msg.to}.`,
+      titleEn: "Interactive reply sent through Meta Cloud API",
+      messageEn: `Reply sent to ${msg.to}.`,
       contact: msg.to,
       markOutboundOk: true,
     });
@@ -578,10 +581,8 @@ export async function sendWhatsAppTemplate(msg: OutboundTemplate) {
     await recordVendorDiagnostic(msg.vendorId, {
       stage: "whatsapp_send",
       severity: "error",
-      title: explained.title,
-      message: explained.message,
+      ...explained,
       details: error.slice(0, 400),
-      fixHint: explained.fixHint,
       contact: msg.to,
     });
   }
@@ -632,10 +633,8 @@ export async function sendWhatsApp(msg: OutboundMessage) {
     await recordVendorDiagnostic(msg.vendorId, {
       stage: "whatsapp_send",
       severity: "error",
-      title: explained.title,
-      message: explained.message,
+      ...explained,
       details: error.slice(0, 400),
-      fixHint: explained.fixHint,
       contact: msg.to,
     });
   } else if (status === "sent") {
@@ -644,6 +643,8 @@ export async function sendWhatsApp(msg: OutboundMessage) {
       severity: "ok",
       title: "Message envoyé via Meta Cloud API",
       message: `Message texte envoyé avec succès au numéro ${msg.to}.`,
+      titleEn: "Message sent through Meta Cloud API",
+      messageEn: `Text message sent to ${msg.to}.`,
       contact: msg.to,
       markOutboundOk: true,
     });

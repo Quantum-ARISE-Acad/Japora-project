@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import {
   parseWhatsAppAssistantConfig,
   explainWhatsAppOrAiError,
+  type ExplainedError,
   type WhatsAppDiagnosticAlert,
 } from "@/lib/whatsapp-config";
 import {
@@ -11,6 +12,7 @@ import {
   recordVendorDiagnostic,
 } from "@/lib/whatsapp";
 import { callGeminiWithDiagnostics } from "@/lib/llm";
+import { getServerTr } from "@/lib/public-locale";
 
 export type SubsystemCheck = {
   id: "webhook" | "whatsapp_meta" | "gemini_ai" | "routing";
@@ -26,8 +28,15 @@ export type SubsystemCheck = {
  * and inbound/outbound webhook logs for the logged-in vendor.
  */
 export async function GET() {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Non autorisé", "Unauthorized") }, { status: 401 });
+  /** The explained error in the vendor's language. */
+  const pick = (e: ExplainedError) => ({
+    title: tr(e.title, e.titleEn),
+    message: tr(e.message, e.messageEn),
+    fixHint: tr(e.fixHint, e.fixHintEn),
+  });
 
   const waCfg = parseWhatsAppAssistantConfig(vendor.uiPrefs);
   const creds = await resolveVendorCloudCredentials(vendor.id);
@@ -50,51 +59,69 @@ export async function GET() {
   if (vendor.whatsappPhoneNumberId) {
     checks.push({
       id: "routing",
-      label: "1. Routage Boutique ↔ Numéro Meta (Phone Number ID)",
+      label: tr("1. Routage boutique ↔ numéro Meta (Phone Number ID)", "1. Shop ↔ Meta number routing (Phone Number ID)"),
       status: "ok",
-      summary: `Phone Number ID (${vendor.whatsappPhoneNumberId}) lié à « ${vendor.shopName} ».`,
+      summary: tr(
+        `Phone Number ID (${vendor.whatsappPhoneNumberId}) lié à « ${vendor.shopName} ».`,
+        `Phone Number ID (${vendor.whatsappPhoneNumberId}) linked to “${vendor.shopName}”.`,
+      ),
     });
   } else if (creds.phoneNumberId) {
     checks.push({
       id: "routing",
-      label: "1. Routage Boutique ↔ Numéro Meta (Phone Number ID)",
+      label: tr("1. Routage boutique ↔ numéro Meta (Phone Number ID)", "1. Shop ↔ Meta number routing (Phone Number ID)"),
       status: "warning",
-      summary: `Utilisation du Phone Number ID global (${creds.phoneNumberId}).`,
-      fixHint: `Pour un routage dédié à « ${vendor.shopName} », enregistrez votre Phone Number ID dans la configuration ci-dessous.`,
+      summary: tr(
+        `Utilisation du numéro partagé Japora (${creds.phoneNumberId}).`,
+        `Using the shared Japora number (${creds.phoneNumberId}).`,
+      ),
+      fixHint: tr(
+        `Pour un numéro dédié à « ${vendor.shopName} », enregistrez votre Phone Number ID ci-dessous.`,
+        `For a number dedicated to “${vendor.shopName}”, save your Phone Number ID below.`,
+      ),
     });
   } else {
     checks.push({
       id: "routing",
-      label: "1. Routage Boutique ↔ Numéro Meta (Phone Number ID)",
+      label: tr("1. Routage boutique ↔ numéro Meta (Phone Number ID)", "1. Shop ↔ Meta number routing (Phone Number ID)"),
       status: "error",
-      summary: "Aucun WhatsApp Phone Number ID configuré.",
-      fixHint: "Copiez le Phone Number ID depuis Meta for Developers → WhatsApp → API Setup et enregistrez-le ci-dessous.",
+      summary: tr("Aucun WhatsApp Phone Number ID configuré.", "No WhatsApp Phone Number ID configured."),
+      fixHint: tr(
+        "Copiez le Phone Number ID depuis Meta for Developers → WhatsApp → API Setup et enregistrez-le ci-dessous.",
+        "Copy the Phone Number ID from Meta for Developers → WhatsApp → API Setup and save it below.",
+      ),
     });
   }
 
   // 2. Webhook reception check
   if (recentInbound || waCfg.lastWebhookAt) {
     const lastDate = recentInbound?.createdAt
-      ? new Date(recentInbound.createdAt).toLocaleString("fr-FR")
+      ? new Date(recentInbound.createdAt).toLocaleString(tr("fr-FR", "en-US"))
       : waCfg.lastWebhookAt
-      ? new Date(waCfg.lastWebhookAt).toLocaleString("fr-FR")
+      ? new Date(waCfg.lastWebhookAt).toLocaleString(tr("fr-FR", "en-US"))
       : "";
     checks.push({
       id: "webhook",
-      label: "2. Réception Webhook Meta (/api/whatsapp/webhook)",
+      label: tr("2. Réception du webhook Meta (/api/whatsapp/webhook)", "2. Meta webhook reception (/api/whatsapp/webhook)"),
       status: "ok",
       summary: recentInbound
-        ? `Dernier message reçu de ${recentInbound.contact} (${lastDate}) : "${recentInbound.body.slice(0, 60)}"`
-        : `Dernier événement webhook reçu le ${lastDate}.`,
+        ? tr(
+            `Dernier message reçu de ${recentInbound.contact} (${lastDate}) : "${recentInbound.body.slice(0, 60)}"`,
+            `Last message from ${recentInbound.contact} (${lastDate}): "${recentInbound.body.slice(0, 60)}"`,
+          )
+        : tr(`Dernier événement webhook reçu le ${lastDate}.`, `Last webhook event received on ${lastDate}.`),
     });
   } else {
     checks.push({
       id: "webhook",
-      label: "2. Réception Webhook Meta (/api/whatsapp/webhook)",
+      label: tr("2. Réception du webhook Meta (/api/whatsapp/webhook)", "2. Meta webhook reception (/api/whatsapp/webhook)"),
       status: "warning",
-      summary: "Aucun message entrant reçu sur cette boutique pour le moment.",
+      summary: tr("Aucun message reçu sur cette boutique pour le moment.", "No message received for this shop yet."),
       fixHint:
-        "Vérifiez dans Meta for Developers → WhatsApp → Configuration que l'URL de Callback pointe vers votre domaine Vercel (/api/whatsapp/webhook) et que le champ 'messages' est bien abonné (Subscribed).",
+        tr(
+          "Dans Meta for Developers → WhatsApp → Configuration, vérifiez que l'URL de rappel pointe vers votre domaine (/api/whatsapp/webhook) et que le champ « messages » est abonné (Subscribed).",
+          "In Meta for Developers → WhatsApp → Configuration, check that the callback URL points to your domain (/api/whatsapp/webhook) and that the “messages” field is subscribed.",
+        ),
     });
   }
 
@@ -102,11 +129,17 @@ export async function GET() {
   if (!creds.token || !creds.phoneNumberId) {
     checks.push({
       id: "whatsapp_meta",
-      label: "3. Envoi Réponse Automatique (Meta WhatsApp Cloud API)",
+      label: tr("3. Envoi de la réponse automatique (Meta WhatsApp Cloud API)", "3. Automatic reply sending (Meta WhatsApp Cloud API)"),
       status: "error",
-      summary: "Mode Simulation (Stub) actif : Token ou Phone Number ID manquant.",
-      details: "Le bot génère la réponse en base de données mais ne peut pas l'envoyer sur WhatsApp sans Access Token Meta.",
-      fixHint: "Renseignez votre Meta Cloud API Access Token et Phone Number ID ci-dessous puis enregistrez.",
+      summary: tr("Mode simulation : token ou Phone Number ID manquant.", "Simulation mode: token or Phone Number ID missing."),
+      details: tr(
+        "Le bot prépare la réponse mais ne peut pas l'envoyer sur WhatsApp sans Access Token Meta.",
+        "The bot prepares the reply but cannot send it on WhatsApp without a Meta access token.",
+      ),
+      fixHint: tr(
+        "Renseignez votre Meta Cloud API Access Token et votre Phone Number ID ci-dessous, puis enregistrez.",
+        "Enter your Meta Cloud API access token and Phone Number ID below, then save.",
+      ),
     });
   } else if (recentOutbound?.status === "failed") {
     const errMatch = recentOutbound.body.match(/\[ERROR:\s*([\s\S]+)\]$/);
@@ -114,24 +147,26 @@ export async function GET() {
     const explained = explainWhatsAppOrAiError(rawErr, "whatsapp_send");
     checks.push({
       id: "whatsapp_meta",
-      label: "3. Envoi Réponse Automatique (Meta WhatsApp Cloud API)",
+      label: tr("3. Envoi de la réponse automatique (Meta WhatsApp Cloud API)", "3. Automatic reply sending (Meta WhatsApp Cloud API)"),
       status: "error",
-      summary: explained.title,
-      details: explained.message,
-      fixHint: explained.fixHint,
+      summary: pick(explained).title,
+      details: pick(explained).message,
+      fixHint: pick(explained).fixHint,
     });
   } else {
     checks.push({
       id: "whatsapp_meta",
-      label: "3. Envoi Réponse Automatique (Meta WhatsApp Cloud API)",
+      label: tr("3. Envoi de la réponse automatique (Meta WhatsApp Cloud API)", "3. Automatic reply sending (Meta WhatsApp Cloud API)"),
       status: "ok",
-      summary: `Identifiants Meta configurés (Source : ${
+      summary:
         creds.source === "vendor"
-          ? "Boutique"
-          : "Numéro partagé Japora"
-      }).`,
+          ? tr("Identifiants Meta configurés (numéro de la boutique).", "Meta credentials configured (shop's own number).")
+          : tr("Identifiants Meta configurés (numéro partagé Japora).", "Meta credentials configured (shared Japora number)."),
       details: recentOutbound
-        ? `Dernier envoi vers ${recentOutbound.contact} — Statut : ${recentOutbound.status.toUpperCase()}`
+        ? tr(
+            `Dernier envoi vers ${recentOutbound.contact} — statut : ${recentOutbound.status.toUpperCase()}`,
+            `Last send to ${recentOutbound.contact} — status: ${recentOutbound.status.toUpperCase()}`,
+          )
         : undefined,
     });
   }
@@ -148,43 +183,64 @@ export async function GET() {
   if (!waCfg.aiEnabled) {
     checks.push({
       id: "gemini_ai",
-      label: "4. Intelligence Artificielle Google Gemini",
+      label: tr("4. Intelligence artificielle Google Gemini", "4. Google Gemini AI"),
       status: "warning",
-      summary: "Assistant IA Gemini désactivé (mode mots-clés uniquement).",
-      fixHint: "Cochez « Activer l'Assistant IA Gemini » ci-dessous si vous souhaitez des réponses IA ouvertes.",
+      summary: tr("Assistant IA Gemini désactivé (mots-clés uniquement).", "Gemini AI assistant turned off (keywords only)."),
+      fixHint: tr(
+        "Cochez « Activer l'Assistant IA Gemini » ci-dessous pour des réponses IA libres.",
+        "Tick “Enable Gemini AI Assistant” below for open-ended AI replies.",
+      ),
     });
   } else if (!geminiKey) {
     checks.push({
       id: "gemini_ai",
-      label: "4. Intelligence Artificielle Google Gemini",
+      label: tr("4. Intelligence artificielle Google Gemini", "4. Google Gemini AI"),
       status: "warning",
-      summary: "Aucune clé API Gemini configurée (le bot répond uniquement par mots-clés : Menu, Commander, Suivi, Deal).",
-      fixHint: "Ajoutez une clé API Google Gemini (AIzaSy...) dans le champ « Clé API Google Gemini » ci-dessous.",
+      summary: tr(
+        "Aucune clé API Gemini configurée (le bot répond seulement aux mots-clés : Menu, Commander, Suivi, Deal).",
+        "No Gemini API key configured (the bot only answers keywords: Menu, Order, Track, Deal).",
+      ),
+      fixHint: tr(
+        "Ajoutez une clé API Google Gemini (AIzaSy…) dans le champ « Clé API Google Gemini » ci-dessous.",
+        "Add a Google Gemini API key (AIzaSy…) in the “Google Gemini API key” field below.",
+      ),
     });
   } else if (!geminiKey.startsWith("AIza")) {
     checks.push({
       id: "gemini_ai",
-      label: "4. Intelligence Artificielle Google Gemini",
+      label: tr("4. Intelligence artificielle Google Gemini", "4. Google Gemini AI"),
       status: "error",
-      summary: `Format de clé Gemini suspect (${geminiKey.slice(0, 6)}...). Une clé Google AI Studio commence par "AIzaSy...".`,
-      details: "L'appel à Gemini échoue et le bot bascule sur le mode mots-clés.",
-      fixHint: "Créez une clé API valide sur https://aistudio.google.com/app/apikey et collez-la dans « Clé API Google Gemini ».",
+      summary: tr(
+        `Format de clé Gemini suspect (${geminiKey.slice(0, 6)}…). Une clé Google AI Studio commence par « AIzaSy… ».`,
+        `Suspicious Gemini key format (${geminiKey.slice(0, 6)}…). A Google AI Studio key starts with “AIzaSy…”.`,
+      ),
+      details: tr(
+        "L'appel à Gemini échoue et le bot passe aux mots-clés.",
+        "The Gemini call fails and the bot falls back to keywords.",
+      ),
+      fixHint: tr(
+        "Créez une clé valide sur https://aistudio.google.com/app/apikey et collez-la dans « Clé API Google Gemini ».",
+        "Create a valid key at https://aistudio.google.com/app/apikey and paste it in “Google Gemini API key”.",
+      ),
     });
   } else if (lastGeminiAlert && lastGeminiAlert.severity !== "ok") {
     checks.push({
       id: "gemini_ai",
-      label: "4. Intelligence Artificielle Google Gemini",
+      label: tr("4. Intelligence artificielle Google Gemini", "4. Google Gemini AI"),
       status: "warning",
-      summary: lastGeminiAlert.title,
-      details: lastGeminiAlert.message,
-      fixHint: lastGeminiAlert.fixHint,
+      summary: tr(lastGeminiAlert.title, lastGeminiAlert.titleEn || lastGeminiAlert.title),
+      details: tr(lastGeminiAlert.message, lastGeminiAlert.messageEn || lastGeminiAlert.message),
+      fixHint: lastGeminiAlert.fixHint && tr(lastGeminiAlert.fixHint, lastGeminiAlert.fixHintEn || lastGeminiAlert.fixHint),
     });
   } else {
     checks.push({
       id: "gemini_ai",
-      label: "4. Intelligence Artificielle Google Gemini",
+      label: tr("4. Intelligence artificielle Google Gemini", "4. Google Gemini AI"),
       status: "ok",
-      summary: "Clé API Gemini configurée et active (gemini-2.5-flash / gemini-2.0-flash).",
+      summary: tr(
+        "Clé API Gemini configurée et active (gemini-2.5-flash / gemini-2.0-flash).",
+        "Gemini API key configured and active (gemini-2.5-flash / gemini-2.0-flash).",
+      ),
     });
   }
 
@@ -206,8 +262,14 @@ export async function GET() {
  * 3) Optionally clears old diagnostic alerts if `action === "clear"`
  */
 export async function POST(req: NextRequest) {
+  const tr = await getServerTr();
   const vendor = await getCurrentVendor();
-  if (!vendor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!vendor) return NextResponse.json({ error: tr("Non autorisé", "Unauthorized") }, { status: 401 });
+  const pick = (e: ExplainedError) => ({
+    title: tr(e.title, e.titleEn),
+    message: tr(e.message, e.messageEn),
+    fixHint: tr(e.fixHint, e.fixHintEn),
+  });
 
   const body = await req.json().catch(() => ({}));
 
@@ -261,8 +323,8 @@ export async function POST(req: NextRequest) {
     results.metaApi = {
       ok: false,
       status: "missing_credentials",
-      error: explained.title,
-      fixHint: explained.fixHint,
+      error: pick(explained).title,
+      fixHint: pick(explained).fixHint,
     };
   } else {
     try {
@@ -287,16 +349,14 @@ export async function POST(req: NextRequest) {
         results.metaApi = {
           ok: false,
           status: "error",
-          error: `${explained.title} — ${explained.message}`,
-          fixHint: explained.fixHint,
+          error: `${pick(explained).title} — ${pick(explained).message}`,
+          fixHint: pick(explained).fixHint,
         };
         await recordVendorDiagnostic(vendor.id, {
           stage: "whatsapp_send",
           severity: "error",
-          title: explained.title,
-          message: explained.message,
+          ...explained,
           details: rawErr.slice(0, 300),
-          fixHint: explained.fixHint,
         });
       } else {
         results.metaApi = {
@@ -311,7 +371,10 @@ export async function POST(req: NextRequest) {
         ok: false,
         status: "network_error",
         error: e instanceof Error ? e.message : String(e),
-        fixHint: "Vérifiez la connexion réseau du serveur vers graph.facebook.com.",
+        fixHint: tr(
+          "Vérifiez que le serveur peut joindre graph.facebook.com.",
+          "Check that the server can reach graph.facebook.com.",
+        ),
       };
     }
   }
@@ -320,8 +383,11 @@ export async function POST(req: NextRequest) {
   if (!geminiKeyToTest) {
     results.geminiApi = {
       ok: false,
-      error: "Aucune clé API Gemini renseignée.",
-      fixHint: "Ajoutez une clé Gemini (AIzaSy...) dans le champ « Clé API Google Gemini ».",
+      error: tr("Aucune clé API Gemini renseignée.", "No Gemini API key entered."),
+      fixHint: tr(
+        "Ajoutez une clé Gemini (AIzaSy…) dans le champ « Clé API Google Gemini ».",
+        "Add a Gemini key (AIzaSy…) in the “Google Gemini API key” field.",
+      ),
     };
   } else {
     const gProbe = await callGeminiWithDiagnostics(
@@ -339,16 +405,14 @@ export async function POST(req: NextRequest) {
       const explained = explainWhatsAppOrAiError(gProbe.error || "Erreur Gemini", "gemini_ai");
       results.geminiApi = {
         ok: false,
-        error: `${explained.title} — ${explained.message}`,
-        fixHint: explained.fixHint,
+        error: `${pick(explained).title} — ${pick(explained).message}`,
+        fixHint: pick(explained).fixHint,
       };
       await recordVendorDiagnostic(vendor.id, {
         stage: "gemini_ai",
         severity: "warning",
-        title: explained.title,
-        message: explained.message,
+        ...explained,
         details: gProbe.error,
-        fixHint: explained.fixHint,
       });
     }
   }

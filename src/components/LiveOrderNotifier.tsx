@@ -86,14 +86,14 @@ export default function LiveOrderNotifier({ currency = "USD" }: { currency?: str
                   </span>
                 </div>
                 <div className="text-xs font-bold leading-snug">
-                  {latestWaAlert.title}
+                  {tr(latestWaAlert.title, latestWaAlert.titleEn || latestWaAlert.title)}
                 </div>
                 <p className="text-xs leading-relaxed opacity-90">
-                  {latestWaAlert.message}
+                  {tr(latestWaAlert.message, latestWaAlert.messageEn || latestWaAlert.message)}
                 </p>
                 {latestWaAlert.fixHint && (
                   <p className="rounded bg-white/80 p-2 text-[11px] font-medium text-arctic-900 border border-black/10">
-                    <strong>{tr("Solution :", "Fix:")}</strong> {latestWaAlert.fixHint}
+                    <strong>{tr("Solution :", "Fix:")}</strong> {tr(latestWaAlert.fixHint, latestWaAlert.fixHintEn || latestWaAlert.fixHint)}
                   </p>
                 )}
               </div>

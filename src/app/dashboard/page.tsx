@@ -158,7 +158,6 @@ export default async function OverviewPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1 max-w-3xl">
               <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-red-800">
-                <span>{latestWaError.severity === "error" ? "🚨" : "⚠️"}</span>
                 <span>
                   {tr(
                     `Diagnostic Assistant WhatsApp / IA (${latestWaError.stage.toUpperCase()})`,
@@ -166,11 +165,11 @@ export default async function OverviewPage() {
                   )}
                 </span>
               </div>
-              <div className="text-sm font-bold">{latestWaError.title}</div>
-              <p className="text-xs leading-relaxed opacity-90">{latestWaError.message}</p>
+              <div className="text-sm font-bold">{tr(latestWaError.title, latestWaError.titleEn || latestWaError.title)}</div>
+              <p className="text-xs leading-relaxed opacity-90">{tr(latestWaError.message, latestWaError.messageEn || latestWaError.message)}</p>
               {latestWaError.fixHint && (
                 <p className="mt-1 rounded bg-white/85 p-2 text-xs text-arctic-900 border border-black/10">
-                  💡 <strong>{tr("Solution :", "Fix:")}</strong> {latestWaError.fixHint}
+                  <strong>{tr("Solution :", "Fix:")}</strong> {tr(latestWaError.fixHint, latestWaError.fixHintEn || latestWaError.fixHint)}
                 </p>
               )}
             </div>
@@ -178,14 +177,14 @@ export default async function OverviewPage() {
               href="/dashboard/bot"
               className="btn-primary text-xs shrink-0"
             >
-              {tr("🩺 Ouvrir le Diagnostic WhatsApp & Régler →", "🩺 Open WhatsApp Diagnostics & Fix →")}
+              {tr("Ouvrir le diagnostic WhatsApp →", "Open WhatsApp diagnostics →")}
             </Link>
           </div>
         </div>
       ) : !waLive ? (
         <div className="rounded-shape-lg border border-amber-300/80 bg-amber-50/90 px-4 py-3 text-amber-950 flex flex-wrap items-center justify-between gap-3">
           <div className="text-xs sm:text-sm">
-            <strong>⚠️ {tr("Assistant WhatsApp en mode Simulation (Stub) :", "WhatsApp Assistant in Simulation (Stub) mode:")}</strong>{" "}
+            <strong>{tr("Assistant WhatsApp en mode Simulation (Stub) :", "WhatsApp Assistant in Simulation (Stub) mode:")}</strong>{" "}
             {tr(
               "Renseignez ou transférez votre Phone Number ID et Access Token Meta sur cette boutique pour que la réponse automatique parte sur WhatsApp.",
               "Enter or transfer your Meta Phone Number ID and Access Token on this store so automatic replies are sent on WhatsApp.",

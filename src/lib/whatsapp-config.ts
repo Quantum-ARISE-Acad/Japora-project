@@ -16,6 +16,10 @@ export type WhatsAppDiagnosticAlert = {
   message: string;
   details?: string;
   fixHint?: string;
+  /** English versions; older alerts only have the French text. */
+  titleEn?: string;
+  messageEn?: string;
+  fixHintEn?: string;
   contact?: string;
 };
 
@@ -146,96 +150,188 @@ export function sanitizeWhatsAppAssistantPatch(
 /**
  * Translate a raw Meta WhatsApp Cloud API or Gemini error string into an actionable French/English explanation.
  */
+/** An error explained to the vendor, in French and English. */
+export type ExplainedError = {
+  title: string;
+  message: string;
+  fixHint: string;
+  titleEn: string;
+  messageEn: string;
+  fixHintEn: string;
+};
+
+function explained(
+  fr: [title: string, message: string, fixHint: string],
+  en: [title: string, message: string, fixHint: string],
+): ExplainedError {
+  return {
+    title: fr[0], message: fr[1], fixHint: fr[2],
+    titleEn: en[0], messageEn: en[1], fixHintEn: en[2],
+  };
+}
+
 export function explainWhatsAppOrAiError(
   rawError: string,
   stage: WhatsAppDiagnosticAlert["stage"],
-): { title: string; message: string; fixHint: string } {
+): ExplainedError {
   const err = rawError || "";
 
   if (stage === "gemini_ai") {
     if (err.includes("400") || err.includes("API_KEY_INVALID") || err.includes("API key not valid")) {
-      return {
-        title: "Clé API Google Gemini invalide (Erreur 400)",
-        message: "La clé API Gemini configurée est rejetée par Google Generative AI.",
-        fixHint:
-          "Vérifiez votre clé Gemini (elle doit commencer par 'AIzaSy...') dans Dashboard → Assistant WhatsApp → Clé API Google Gemini, ou dans les variables d'environnement Vercel (GEMINI_API_KEY).",
-      };
+      return explained(
+        [
+          "Clé API Google Gemini invalide (erreur 400)",
+          "Google refuse la clé API Gemini configurée.",
+          "Vérifiez votre clé Gemini (elle commence par « AIzaSy… ») dans Tableau de bord → Assistant WhatsApp → Clé API Google Gemini, ou la variable GEMINI_API_KEY du serveur.",
+        ],
+        [
+          "Invalid Google Gemini API key (error 400)",
+          "Google rejects the configured Gemini API key.",
+          "Check your Gemini key (it starts with “AIzaSy…”) in Dashboard → WhatsApp Assistant → Google Gemini API key, or the server's GEMINI_API_KEY variable.",
+        ],
+      );
     }
     if (err.includes("429") || err.includes("RESOURCE_EXHAUSTED") || err.includes("quota")) {
-      return {
-        title: "Quota Google Gemini dépassé (Erreur 429)",
-        message: "La limite de requêtes gratuites de votre clé API Gemini est atteinte.",
-        fixHint:
-          "Patientez une minute ou renseignez une nouvelle clé API Google Gemini dans la configuration de l'Assistant WhatsApp.",
-      };
+      return explained(
+        [
+          "Quota Google Gemini dépassé (erreur 429)",
+          "La limite de requêtes gratuites de votre clé Gemini est atteinte.",
+          "Patientez une minute, ou renseignez une autre clé Gemini dans la configuration de l'Assistant WhatsApp.",
+        ],
+        [
+          "Google Gemini quota exceeded (error 429)",
+          "Your Gemini key has reached its free request limit.",
+          "Wait a minute, or enter another Gemini key in the WhatsApp Assistant settings.",
+        ],
+      );
     }
     if (err.includes("403") || err.includes("PERMISSION_DENIED")) {
-      return {
-        title: "Accès Google Gemini refusé (Erreur 403)",
-        message: "La clé API Gemini n'a pas l'autorisation d'appeler l'API Generative Language.",
-        fixHint: "Générez une clé API depuis Google AI Studio (aistudio.google.com) et collez-la dans Assistant WhatsApp.",
-      };
+      return explained(
+        [
+          "Accès Google Gemini refusé (erreur 403)",
+          "La clé Gemini n'a pas le droit d'appeler l'API Generative Language.",
+          "Créez une clé sur Google AI Studio (aistudio.google.com) et collez-la dans Assistant WhatsApp.",
+        ],
+        [
+          "Google Gemini access denied (error 403)",
+          "The Gemini key is not allowed to call the Generative Language API.",
+          "Create a key in Google AI Studio (aistudio.google.com) and paste it in WhatsApp Assistant.",
+        ],
+      );
     }
-    return {
-      title: "Erreur de génération IA Gemini",
-      message: `L'appel à Gemini IA a échoué (${err.slice(0, 140)}). Le bot de secours par mots-clés a pris le relais.`,
-      fixHint: "Vérifiez votre clé API Gemini dans Dashboard → Assistant WhatsApp.",
-    };
+    return explained(
+      [
+        "Erreur de l'IA Gemini",
+        `L'appel à Gemini a échoué (${err.slice(0, 140)}). Le bot par mots-clés a pris le relais.`,
+        "Vérifiez votre clé API Gemini dans Tableau de bord → Assistant WhatsApp.",
+      ],
+      [
+        "Gemini AI error",
+        `The Gemini call failed (${err.slice(0, 140)}). The keyword bot answered instead.`,
+        "Check your Gemini API key in Dashboard → WhatsApp Assistant.",
+      ],
+    );
   }
 
   // Meta WhatsApp Cloud API errors
   if (err.includes("190") || err.includes("401") || err.includes("Invalid OAuth") || err.includes("Session has expired")) {
-    return {
-      title: "Token Meta WhatsApp expiré ou invalide (Code 190 / 401)",
-      message: "Le message a bien été reçu par le webhook, mais Meta a refusé l'envoi de la réponse automatique car votre Access Token est expiré ou invalide.",
-      fixHint:
-        "Allez dans Meta for Developers → WhatsApp → Configuration de l'API (API Setup), générez un nouveau token temporaire (24h) ou un token System User permanent, puis collez-le dans Dashboard → Assistant WhatsApp → Meta Cloud API Access Token.",
-    };
+    return explained(
+      [
+        "Token Meta WhatsApp expiré ou invalide (code 190 / 401)",
+        "Le message a bien été reçu, mais Meta a refusé d'envoyer la réponse : l'Access Token est expiré ou invalide.",
+        "Dans Meta for Developers → WhatsApp → API Setup, créez un nouveau token (temporaire 24 h, ou permanent via un System User), puis collez-le dans Tableau de bord → Assistant WhatsApp → Meta Cloud API Access Token.",
+      ],
+      [
+        "Meta WhatsApp token expired or invalid (code 190 / 401)",
+        "The message was received, but Meta refused to send the reply: the access token is expired or invalid.",
+        "In Meta for Developers → WhatsApp → API Setup, create a new token (temporary 24 h, or permanent through a System User), then paste it in Dashboard → WhatsApp Assistant → Meta Cloud API Access Token.",
+      ],
+    );
   }
   if (err.includes("131030") || err.includes("Recipient phone number not in allowed list")) {
-    return {
-      title: "Numéro destinataire non autorisé sur le compte de test Meta (Code 131030)",
-      message: "Avec un numéro de test Meta WhatsApp, vous ne pouvez envoyer des messages qu'aux numéros vérifiés par code OTP dans votre application Meta.",
-      fixHint:
-        "Dans Meta for Developers → WhatsApp → API Setup → Étape 'To' (Destinataire) → 'Manage phone number list', ajoutez le numéro WhatsApp qui vous a écrit et validez-le avec le code reçu sur WhatsApp.",
-    };
+    return explained(
+      [
+        "Numéro destinataire non autorisé sur le compte de test Meta (code 131030)",
+        "Avec un numéro de test Meta, on ne peut écrire qu'aux numéros vérifiés par code dans votre application Meta.",
+        "Dans Meta for Developers → WhatsApp → API Setup → « To » → « Manage phone number list », ajoutez le numéro qui vous a écrit et validez-le avec le code reçu sur WhatsApp.",
+      ],
+      [
+        "Recipient number not allowed on the Meta test account (code 131030)",
+        "With a Meta test number, you can only message numbers verified by code in your Meta app.",
+        "In Meta for Developers → WhatsApp → API Setup → “To” → “Manage phone number list”, add the number that wrote to you and confirm it with the code received on WhatsApp.",
+      ],
+    );
   }
   if (err.includes("131026") || err.includes("Message undeliverable") || err.includes("131047") || err.includes("Re-engagement message")) {
-    return {
-      title: "Message non distribuable par WhatsApp (Code 131026 / 131047)",
-      message: "Meta n'a pas pu délivrer le message (fenêtre de 24h fermée, numéro non inscrit sur WhatsApp, ou conditions non acceptées).",
-      fixHint: "Assurez-vous que le client a envoyé un message au numéro de test depuis moins de 24h.",
-    };
+    return explained(
+      [
+        "Message non distribuable par WhatsApp (code 131026 / 131047)",
+        "Meta n'a pas pu délivrer le message : fenêtre de 24 h fermée, numéro absent de WhatsApp, ou conditions non acceptées.",
+        "Vérifiez que le client a écrit à ce numéro il y a moins de 24 h.",
+      ],
+      [
+        "Message undeliverable by WhatsApp (code 131026 / 131047)",
+        "Meta could not deliver the message: the 24-hour window is closed, the number is not on WhatsApp, or terms were not accepted.",
+        "Check that the customer wrote to this number less than 24 hours ago.",
+      ],
+    );
   }
   if (err.includes("100") || err.includes("Unsupported post request") || err.includes("does not exist")) {
-    return {
-      title: "WhatsApp Phone Number ID invalide ou incompatible (Code 100)",
-      message: "Le Phone Number ID configuré ne correspond pas au compte ou au Token Meta Cloud API.",
-      fixHint:
-        "Vérifiez que vous avez bien copié le 'Phone number ID' (et non le numéro de téléphone ou l'App ID) dans Meta for Developers → WhatsApp → API Setup.",
-    };
+    return explained(
+      [
+        "WhatsApp Phone Number ID invalide (code 100)",
+        "Le Phone Number ID configuré ne correspond pas au compte ou au token Meta.",
+        "Copiez bien le « Phone number ID » (pas le numéro de téléphone ni l'App ID) depuis Meta for Developers → WhatsApp → API Setup.",
+      ],
+      [
+        "Invalid WhatsApp Phone Number ID (code 100)",
+        "The configured Phone Number ID does not match the Meta account or token.",
+        "Copy the “Phone number ID” (not the phone number or the App ID) from Meta for Developers → WhatsApp → API Setup.",
+      ],
+    );
   }
   if (err.includes("133010") || err.includes("Account not registered")) {
-    return {
-      title: "Numéro WhatsApp Cloud API non enregistré (Code 133010)",
-      message: "Ce numéro WhatsApp Business n'est pas encore enregistré sur l'API Cloud de Meta.",
-      fixHint: "Dans Meta for Developers → WhatsApp → API Setup, cliquez sur 'Send message' une première fois depuis l'interface Meta pour activer le numéro de test.",
-    };
+    return explained(
+      [
+        "Numéro WhatsApp non enregistré sur l'API Cloud (code 133010)",
+        "Ce numéro WhatsApp Business n'est pas encore enregistré sur l'API Cloud de Meta.",
+        "Dans Meta for Developers → WhatsApp → API Setup, cliquez une première fois sur « Send message » pour activer le numéro.",
+      ],
+      [
+        "WhatsApp number not registered on the Cloud API (code 133010)",
+        "This WhatsApp Business number is not registered on Meta's Cloud API yet.",
+        "In Meta for Developers → WhatsApp → API Setup, click “Send message” once to activate the number.",
+      ],
+    );
   }
   if (err.includes("stubbed") || err.includes("MISSING_CREDENTIALS")) {
-    return {
-      title: "Identifiants Meta Cloud API manquants sur cette boutique (Mode Simulation / Stub)",
-      message: "Le webhook a bien reçu le message client, mais cette boutique n'a pas d'Access Token ou de Phone Number ID actif — la réponse a donc été simulée en base de données au lieu d'être envoyée sur WhatsApp.",
-      fixHint:
-        "Allez dans Dashboard → Assistant WhatsApp, renseignez votre 'WhatsApp Phone Number ID' et 'Meta Cloud API Access Token', puis cliquez sur Enregistrer.",
-    };
+    return explained(
+      [
+        "Identifiants Meta manquants (mode simulation)",
+        "Le message du client a bien été reçu, mais aucun Access Token ou Phone Number ID n'est actif : la réponse a été simulée au lieu d'être envoyée sur WhatsApp.",
+        "Dans Tableau de bord → Assistant WhatsApp, renseignez le « WhatsApp Phone Number ID » et le « Meta Cloud API Access Token », puis enregistrez.",
+      ],
+      [
+        "Meta credentials missing (simulation mode)",
+        "The customer's message was received, but no access token or Phone Number ID is active: the reply was simulated instead of being sent on WhatsApp.",
+        "In Dashboard → WhatsApp Assistant, enter the “WhatsApp Phone Number ID” and the “Meta Cloud API Access Token”, then save.",
+      ],
+    );
   }
 
-  return {
-    title: stage === "webhook_routing" ? "Alerte de routage Webhook WhatsApp" : "Erreur d'envoi WhatsApp Cloud API",
-    message: err.slice(0, 260) || "Une erreur est survenue lors du traitement automatique WhatsApp.",
-    fixHint: "Vérifiez votre Phone Number ID, votre Access Token Meta et votre clé Gemini dans Dashboard → Assistant WhatsApp.",
-  };
+  const routing = stage === "webhook_routing";
+  return explained(
+    [
+      routing ? "Alerte de routage du webhook WhatsApp" : "Erreur d'envoi WhatsApp Cloud API",
+      err.slice(0, 260) || "Une erreur est survenue pendant le traitement WhatsApp automatique.",
+      "Vérifiez le Phone Number ID, l'Access Token Meta et la clé Gemini dans Tableau de bord → Assistant WhatsApp.",
+    ],
+    [
+      routing ? "WhatsApp webhook routing alert" : "WhatsApp Cloud API send error",
+      err.slice(0, 260) || "Something went wrong during automatic WhatsApp processing.",
+      "Check the Phone Number ID, the Meta access token and the Gemini key in Dashboard → WhatsApp Assistant.",
+    ],
+  );
 }
 
 

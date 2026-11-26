@@ -253,11 +253,10 @@ export default function WhatsAppAssistantConfig({
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-arctic-300/40 pb-3">
           <div>
             <h2 className="text-base font-bold text-arctic-900 flex items-center gap-2">
-              <span>🩺</span>
               <span>
                 {tr(
-                  "Diagnostic en Direct : Pourquoi la réponse automatique bloque ou fonctionne ?",
-                  "Live Diagnostics: Why is the auto-reply failing or working?",
+                  "Diagnostic en direct : pourquoi la réponse automatique bloque ou fonctionne",
+                  "Live diagnostics: why the auto-reply fails or works",
                 )}
               </span>
             </h2>
@@ -404,14 +403,14 @@ export default function WhatsAppAssistantConfig({
                     <div className="flex flex-wrap items-center justify-between gap-2 font-bold">
                       <span>
                         [{alert.stage.toUpperCase()}]{" "}
-                        {alert.title}
+                        {tr(alert.title, alert.titleEn || alert.title)}
                       </span>
                       <span className="text-[11px] font-normal opacity-75">
                         {new Date(alert.at).toLocaleString(tr("fr-FR", "en-US"))}
                         {alert.contact ? ` • ${tr("Client", "Customer")} : ${alert.contact}` : ""}
                       </span>
                     </div>
-                    <p>{alert.message}</p>
+                    <p>{tr(alert.message, alert.messageEn || alert.message)}</p>
                     {alert.details && (
                       <pre className="whitespace-pre-wrap rounded bg-black/5 p-1.5 font-mono text-[10px] opacity-85">
                         {alert.details}
@@ -419,7 +418,7 @@ export default function WhatsAppAssistantConfig({
                     )}
                     {alert.fixHint && (
                       <p className="rounded bg-white/90 p-2 text-[11px] font-medium text-arctic-900 border border-black/10">
-                        <strong>{tr("Solution :", "Fix:")}</strong> {alert.fixHint}
+                        <strong>{tr("Solution :", "Fix:")}</strong> {tr(alert.fixHint, alert.fixHintEn || alert.fixHint)}
                       </p>
                     )}
                   </div>

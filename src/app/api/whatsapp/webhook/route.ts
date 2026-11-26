@@ -311,10 +311,8 @@ export async function POST(req: NextRequest) {
                   await recordVendorDiagnostic(targetVendorId, {
                     stage: "whatsapp_status",
                     severity: "error",
-                    title: explained.title,
-                    message: explained.message,
+                    ...explained,
                     details: rawErr,
-                    fixHint: explained.fixHint,
                     contact: s.recipient_id || msgRow?.contact,
                   });
                 }
@@ -438,10 +436,8 @@ export async function POST(req: NextRequest) {
             await recordVendorDiagnostic(vendorId, {
               stage: "whatsapp_send",
               severity: "error",
-              title: explained.title,
-              message: explained.message,
+              ...explained,
               details: `Message reçu de ${from}: "${text.slice(0, 80)}". Aucun token Meta Cloud API configuré.`,
-              fixHint: explained.fixHint,
               contact: from,
               markWebhookReceived: true,
             });
@@ -449,8 +445,10 @@ export async function POST(req: NextRequest) {
             await recordVendorDiagnostic(vendorId, {
               stage: "system",
               severity: "ok",
-              title: "Message Webhook WhatsApp reçu",
+              title: "Message WhatsApp reçu par le webhook",
               message: `Message entrant reçu de ${from} : "${text.slice(0, 80)}"`,
+              titleEn: "WhatsApp message received by the webhook",
+              messageEn: `Incoming message from ${from}: "${text.slice(0, 80)}"`,
               contact: from,
               markWebhookReceived: true,
             });
@@ -512,9 +510,12 @@ export async function POST(req: NextRequest) {
             await recordVendorDiagnostic(vendorId, {
               stage: "system",
               severity: "error",
-              title: "Erreur interne lors de la génération de la réponse automatique",
+              title: "Erreur interne pendant la réponse automatique",
               message: errStr.slice(0, 260),
-              fixHint: "Vérifiez les journaux dans Dashboard → Assistant WhatsApp.",
+              fixHint: "Consultez les journaux dans Tableau de bord → Assistant WhatsApp.",
+              titleEn: "Internal error while generating the automatic reply",
+              messageEn: errStr.slice(0, 260),
+              fixHintEn: "Check the logs in Dashboard → WhatsApp Assistant.",
               contact: from,
             });
           }

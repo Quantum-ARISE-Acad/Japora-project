@@ -709,10 +709,8 @@ async function tryLlmAnswer(opts: {
       await recordVendorDiagnostic(opts.vendorId, {
         stage: "gemini_ai",
         severity: "warning",
-        title: explained.title,
-        message: explained.message,
+        ...explained,
         details: res.error,
-        fixHint: explained.fixHint,
       });
     }
     return { reply: res.reply, topProducts: catalog.slice(0, 3), llmError: res.error };
@@ -723,10 +721,8 @@ async function tryLlmAnswer(opts: {
     await recordVendorDiagnostic(opts.vendorId, {
       stage: "gemini_ai",
       severity: "warning",
-      title: explained.title,
-      message: explained.message,
+      ...explained,
       details: errStr,
-      fixHint: explained.fixHint,
     });
     return { reply: null, topProducts: [], llmError: errStr };
   }
