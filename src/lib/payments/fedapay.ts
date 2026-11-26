@@ -242,7 +242,7 @@ export function fedaApiBaseUrl(env: "sandbox" | "live"): string {
 }
 
 /**
- * Verifies connectivity against the FedaPay REST API v1 (`GET /v1/transactions?per_page=1`).
+ * Verifies connectivity against the FedaPay REST API v1 (`GET /v1/transactions/search?per_page=1`; `/v1/transactions` alone is deprecated by FedaPay and answers 400).
  */
 export async function testFedaPayConnection(
   secretKey: string,
@@ -259,7 +259,7 @@ export async function testFedaPayConnection(
   }
   try {
     const base = fedaApiBaseUrl(env);
-    const res = await fetch(`${base}/transactions?per_page=1`, {
+    const res = await fetch(`${base}/transactions/search?per_page=1`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${secretKey.trim()}`,
