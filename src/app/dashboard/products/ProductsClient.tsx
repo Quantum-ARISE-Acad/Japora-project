@@ -302,7 +302,7 @@ export default function ProductsClient({
           <button
             onClick={importFromWhatsApp}
             disabled={importing}
-            className="btn-ghost text-xs font-semibold"
+            className="btn-ghost btn-sm font-semibold"
             title={tr("Importer les produits du catalogue Meta WhatsApp Cloud", "Import products from your Meta WhatsApp Cloud catalog")}
           >
             {importing ? tr("Importation…", "Importing…") : `${tr("Importer depuis WhatsApp", "Import from WhatsApp")}`}
@@ -402,7 +402,7 @@ export default function ProductsClient({
               setSearchQuery("");
               setStockFilter("all");
             }}
-            className="btn-ghost mt-2 text-xs"
+            className="btn-ghost btn-sm mt-2"
           >
             {tr("Réinitialiser les filtres", "Reset filters")}
           </button>
@@ -494,19 +494,19 @@ export default function ProductsClient({
                   )}
 
                   <div className="mt-auto flex flex-wrap gap-1.5 pt-2">
-                    <button onClick={() => openEdit(p)} className="btn-ghost flex-1 !py-1 text-xs">
+                    <button onClick={() => openEdit(p)} className="btn-ghost btn-sm flex-1">
                       {tr("Modifier", "Edit")}
                     </button>
                     <button
                       onClick={() => duplicateProduct(p)}
-                      className="btn-ghost !py-1 text-xs"
+                      className="btn-ghost btn-sm"
                       title={tr("Dupliquer ce produit", "Duplicate this product")}
                     >
                       {tr("Copier", "Copy")}
                     </button>
                     <button
                       onClick={() => toggleActive(p)}
-                      className="btn-ghost !py-1 text-xs"
+                      className="btn-ghost btn-sm"
                       title={p.isActive ? tr("Masquer", "Hide") : tr("Afficher", "Show")}
                     >
                       {p.isActive ? tr("Masquer", "Hide") : tr("Afficher", "Show")}
@@ -514,7 +514,7 @@ export default function ProductsClient({
                     <button
                       onClick={() => remove(p)}
                       aria-label={tr("Supprimer le produit", "Delete product")}
-                      className="btn-danger grid min-h-6 min-w-6 place-items-center !py-1 text-xs"
+                      className="btn-danger btn-sm btn-icon"
                     >
                       <Glyph name="close" size={16} />
                     </button>
@@ -589,16 +589,16 @@ export default function ProductsClient({
 
                 {/* Actions */}
                 <div className="flex items-center gap-1">
-                  <button onClick={() => openEdit(p)} className="btn-ghost !py-1 text-xs">
+                  <button onClick={() => openEdit(p)} className="btn-ghost btn-sm">
                     {tr("Modifier", "Edit")}
                   </button>
-                  <button onClick={() => duplicateProduct(p)} className="btn-ghost !py-1 text-xs" title={tr("Dupliquer", "Duplicate")}>
+                  <button onClick={() => duplicateProduct(p)} className="btn-ghost btn-sm" title={tr("Dupliquer", "Duplicate")}>
                     {tr("Copier", "Copy")}
                   </button>
-                  <button onClick={() => toggleActive(p)} className="btn-ghost !py-1 text-xs">
+                  <button onClick={() => toggleActive(p)} className="btn-ghost btn-sm">
                     {p.isActive ? tr("Masquer", "Hide") : tr("Afficher", "Show")}
                   </button>
-                  <button onClick={() => remove(p)} className="btn-danger !py-1 text-xs">
+                  <button onClick={() => remove(p)} className="btn-danger btn-sm">
                     {tr("Supprimer", "Delete")}
                   </button>
                 </div>

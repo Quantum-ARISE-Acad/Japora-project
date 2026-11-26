@@ -163,7 +163,7 @@ export default function PayClient({
               payWithFedaPay();
             }}
             disabled={apiBusy}
-            className="btn-primary w-full justify-center gap-2 !bg-signal-fill hover:!bg-signal-fill-hover !text-white py-3 text-sm font-bold shadow-md"
+            className="btn-primary w-full !bg-signal-fill hover:!bg-signal-fill-hover !text-white font-bold shadow-md"
           >
             {apiBusy
               ? tr("Connexion à FedaPay en cours…", "Connecting to FedaPay…")
@@ -216,7 +216,7 @@ export default function PayClient({
                     href={waConfirmLink}
                     target="_blank"
                     rel="noreferrer"
-                    className="btn-primary w-full justify-center gap-1.5 !bg-signal-fill hover:!bg-signal-fill-hover !text-white py-2 text-xs font-bold"
+                    className="btn-primary btn-sm w-full !bg-signal-fill hover:!bg-signal-fill-hover !text-white font-bold"
                   >
                     <Glyph name="chat" size={14} /> {tr("Confirmer la livraison sur WhatsApp", "Confirm the delivery on WhatsApp")}
                   </a>
@@ -227,7 +227,7 @@ export default function PayClient({
                 type="button"
                 onClick={confirmCashOnDelivery}
                 disabled={codBusy}
-                className="btn-primary w-full justify-center gap-2 py-3 text-sm font-bold"
+                className="btn-primary w-full font-bold"
               >
                 {codBusy
                   ? tr("Validation en cours…", "Confirming…")

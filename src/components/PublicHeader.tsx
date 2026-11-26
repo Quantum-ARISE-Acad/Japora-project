@@ -88,7 +88,7 @@ export default function PublicHeader({ isAuthenticated = false, shopSlug }: Publ
         </nav>
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <LanguageSwitcher />
           <ThemeToggle />
 
@@ -97,18 +97,18 @@ export default function PublicHeader({ isAuthenticated = false, shopSlug }: Publ
               {shopSlug && (
                 <Link
                   href={`/shop/${shopSlug}`}
-                  className="btn-ghost hidden text-xs sm:inline-flex"
+                  className="btn-ghost btn-sm hidden sm:inline-flex"
                 >
                   {tr("Ma vitrine", "My storefront")}
                 </Link>
               )}
-              <Link href="/dashboard" className="btn-primary hidden text-xs sm:inline-flex">
+              <Link href="/dashboard" className="btn-primary btn-sm hidden sm:inline-flex">
                 {tr("Tableau de bord", "Dashboard")}
               </Link>
             </div>
           ) : (
             <div className="hidden items-center gap-2 sm:flex">
-              <Link href="/login" className="btn-ghost px-4 text-xs">
+              <Link href="/login" className="btn-ghost btn-sm">
                 {tr("Connexion", "Sign in")}
               </Link>
               <Link
@@ -170,7 +170,7 @@ export default function PublicHeader({ isAuthenticated = false, shopSlug }: Publ
               </Link>
             ) : (
               <div className="grid grid-cols-2 gap-2.5">
-                <Link href="/login" className="btn-ghost w-full justify-center text-xs">
+                <Link href="/login" className="btn-ghost btn-sm w-full">
                   {tr("Connexion", "Sign in")}
                 </Link>
                 <Link href="/signup" className="a-btn a-btn--cafe w-full justify-center text-xs font-bold">

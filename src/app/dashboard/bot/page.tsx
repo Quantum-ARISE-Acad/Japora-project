@@ -76,7 +76,7 @@ export default async function BotPage() {
           href={`/c/${vendor.shopSlug}?assistant=open`}
           target="_blank"
           rel="noreferrer"
-          className="btn-primary text-xs gap-1.5"
+          className="btn-primary btn-sm gap-1.5"
         >
           <Glyph name="sparkle" size={18} />{" "}
           {tr("Voir l'Assistant sur ma boutique", "View Assistant on my shop")}

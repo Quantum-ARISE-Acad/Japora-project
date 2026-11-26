@@ -473,7 +473,7 @@ export default function CatalogClient({
                 }`}
                 title={tr("Ouvrir mon panier", "Open my cart")}
               >
-                <span>🛒 {tr("Panier", "Cart")}</span>
+                <span className="inline-flex items-center gap-1.5"><Glyph name="cart" size={14} /> {tr("Panier", "Cart")}</span>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${
                     itemCount > 0 ? "bg-white text-emerald-800" : "bg-arctic-200 text-arctic-700"
@@ -500,7 +500,9 @@ export default function CatalogClient({
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-2 border-t border-arctic-300/30">
             {/* Search Box */}
             <div className="relative flex-1 max-w-md">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-arctic-400 text-sm">🔍</span>
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-arctic-600">
+                <Glyph name="search" size={14} />
+              </span>
               <input
                 type="text"
                 value={searchQuery}
@@ -508,6 +510,7 @@ export default function CatalogClient({
                   setSearchQuery(e.target.value);
                   setVisibleCount(PAGE_SIZE);
                 }}
+                aria-label={tr("Rechercher des produits", "Search products")}
                 placeholder={tr("Rechercher des produits…", "Search products…")}
                 className="w-full rounded-shape-full border border-arctic-300/50 bg-white/90 py-1.5 pl-9 pr-8 text-sm text-arctic-900 placeholder:text-arctic-400 focus:border-arctic-600 focus:outline-none focus:ring-1 focus:ring-arctic-400"
               />
@@ -515,23 +518,24 @@ export default function CatalogClient({
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-arctic-400 hover:text-arctic-700"
+                  aria-label={tr("Effacer la recherche", "Clear the search")}
+                  className="absolute right-2 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-full text-arctic-600 hover:text-arctic-900"
                 >
-                  ✕
+                  <Glyph name="close" size={12} />
                 </button>
               )}
             </div>
 
             {/* Filter Chips & Sort */}
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+              <div className="flex min-w-0 items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
                 <button
                   type="button"
                   onClick={() => {
                     setStockFilter("all");
                     setVisibleCount(PAGE_SIZE);
                   }}
-                  className={`rounded-shape-full px-3 py-1 text-xs font-semibold transition ${
+                  className={`shrink-0 whitespace-nowrap rounded-shape-full px-3 py-1 text-xs font-semibold transition ${
                     stockFilter === "all"
                       ? "bg-arctic-800 text-white"
                       : "bg-arctic-200/60 text-arctic-700 hover:bg-arctic-300/60"
@@ -545,7 +549,7 @@ export default function CatalogClient({
                     setStockFilter("in_stock");
                     setVisibleCount(PAGE_SIZE);
                   }}
-                  className={`rounded-shape-full px-3 py-1 text-xs font-semibold transition ${
+                  className={`shrink-0 whitespace-nowrap rounded-shape-full px-3 py-1 text-xs font-semibold transition ${
                     stockFilter === "in_stock"
                       ? "bg-arctic-800 text-white"
                       : "bg-arctic-200/60 text-arctic-700 hover:bg-arctic-300/60"
@@ -559,7 +563,7 @@ export default function CatalogClient({
                     setStockFilter("low_stock");
                     setVisibleCount(PAGE_SIZE);
                   }}
-                  className={`rounded-shape-full px-3 py-1 text-xs font-semibold transition ${
+                  className={`shrink-0 whitespace-nowrap rounded-shape-full px-3 py-1 text-xs font-semibold transition ${
                     stockFilter === "low_stock"
                       ? "bg-aurora-warning text-white"
                       : "bg-arctic-200/60 text-arctic-700 hover:bg-arctic-300/60"
@@ -573,13 +577,13 @@ export default function CatalogClient({
                     setStockFilter("new");
                     setVisibleCount(PAGE_SIZE);
                   }}
-                  className={`rounded-shape-full px-3 py-1 text-xs font-semibold transition ${
+                  className={`shrink-0 whitespace-nowrap rounded-shape-full px-3 py-1 text-xs font-semibold transition ${
                     stockFilter === "new"
                       ? "bg-signal-fill text-white"
                       : "bg-arctic-200/60 text-arctic-700 hover:bg-arctic-300/60"
                   }`}
                 >
-                  ✨ {tr("Nouveautés", "New")}
+                  <Glyph name="sparkle" size={14} /> {tr("Nouveautés", "New")}
                 </button>
               </div>
 
@@ -616,7 +620,7 @@ export default function CatalogClient({
           <section className="mb-6 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-extrabold uppercase tracking-wider text-arctic-600 flex items-center gap-1.5">
-                <span>📁</span> {tr("Collections de la boutique", "Shop collections")}
+                <Glyph name="folder" size={16} /> {tr("Collections de la boutique", "Shop collections")}
               </h2>
               {selectedCollectionId && (
                 <button
@@ -632,7 +636,7 @@ export default function CatalogClient({
               )}
             </div>
 
-            <div className="flex items-stretch gap-3 overflow-x-auto pb-2">
+            <div className="flex min-w-0 items-stretch gap-3 overflow-x-auto pb-2">
               <button
                 type="button"
                 onClick={() => {
@@ -652,7 +656,7 @@ export default function CatalogClient({
                       : "bg-arctic-100 text-arctic-700"
                   }`}
                 >
-                  🛍️
+                  <Glyph name="bag" size={16} />
                 </div>
                 <div>
                   <div className="text-sm font-bold leading-tight">{tr("Tout le catalogue", "All products")}</div>
@@ -717,7 +721,7 @@ export default function CatalogClient({
                 <div className="rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-emerald-700 p-4 text-white shadow-sm flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-200">
-                      📁 {tr("Collection sélectionnée", "Selected collection")}
+                      <Glyph name="folder" size={14} /> {tr("Collection sélectionnée", "Selected collection")}
                     </div>
                     <h3 className="text-lg font-extrabold">{activeCol.name}</h3>
                     {activeCol.description && (
@@ -736,7 +740,7 @@ export default function CatalogClient({
                       onClick={() => setSelectedCollectionId(null)}
                       className="rounded-xl bg-white text-brand-dark px-3 py-1.5 text-xs font-bold hover:bg-emerald-50 transition"
                     >
-                      ✕ {tr("Tout afficher", "Show all")}
+                      <Glyph name="close" size={14} /> {tr("Tout afficher", "Show all")}
                     </button>
                   </div>
                 </div>
@@ -766,7 +770,7 @@ export default function CatalogClient({
 
         {filteredProducts.length === 0 ? (
           <div className="card grid place-items-center gap-3 p-12 text-center text-arctic-600">
-            <span className="text-4xl">🔍</span>
+            <Glyph name="search" size={32} />
             <h3 className="text-base font-semibold text-arctic-800">{tr("Aucun produit trouvé", "No products found")}</h3>
             <p className="text-sm max-w-sm">
               {tr("Aucun article ne correspond à vos critères. Modifiez votre recherche ou vos filtres.", "We couldn’t find any items matching your criteria. Try adjusting your search or filters.")}
@@ -776,7 +780,7 @@ export default function CatalogClient({
                 setSearchQuery("");
                 setStockFilter("all");
               }}
-              className="btn-ghost mt-2 text-xs"
+              className="btn-ghost btn-sm mt-2"
             >
               {tr("Effacer les filtres", "Clear filters")}
             </button>
@@ -809,7 +813,7 @@ export default function CatalogClient({
             <button
               type="button"
               onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-              className="btn-ghost rounded-shape-full px-6 py-2.5 shadow-xs font-semibold text-arctic-800 hover:bg-arctic-200/50"
+              className="btn-ghost rounded-shape-full shadow-xs font-semibold text-arctic-800 hover:bg-arctic-200/50"
             >
               {tr("Afficher plus", "Load more")} ({filteredProducts.length - visibleCount} {tr("restants", "remaining")})
             </button>
@@ -823,7 +827,7 @@ export default function CatalogClient({
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-100 text-lg">
-                🛒
+                <Glyph name="cart" size={16} />
               </span>
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-700">
@@ -834,7 +838,7 @@ export default function CatalogClient({
                 </div>
               </div>
             </div>
-            <button onClick={openCart} className="btn-primary !bg-signal-fill hover:!bg-signal-fill-hover px-5 py-2.5 text-sm font-bold shadow-lg">
+            <button onClick={openCart} className="btn-primary !bg-signal-fill hover:!bg-signal-fill-hover font-bold shadow-lg">
               {tr("Ouvrir le panier et commander", "Open cart & checkout")} →
             </button>
           </div>
@@ -849,7 +853,7 @@ export default function CatalogClient({
               onClick={() => setSelectedProduct(null)}
               className="absolute right-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-full bg-white/80 text-arctic-700 shadow hover:bg-white"
             >
-              ✕
+              <Glyph name="close" size={16} />
             </button>
             <div className="flex-1 max-h-[90dvh] overflow-y-auto overscroll-contain">
               <div className="relative aspect-video w-full bg-arctic-200/60">
@@ -915,7 +919,7 @@ export default function CatalogClient({
                       setSelectedProduct(null);
                       openCart();
                     }}
-                    className="btn-primary w-full py-3"
+                    className="btn-primary w-full"
                   >
                     {selectedProduct.stock > 0 ? tr("Ajouter au panier et commander", "Add to cart & checkout") : tr("Rupture de stock", "Out of stock")}
                   </button>
@@ -943,7 +947,7 @@ export default function CatalogClient({
                         : "bg-signal-fill text-white"
                     }`}
                   >
-                    {step === "cart" ? "1" : "✓"}
+                    {step === "cart" ? "1" : <Glyph name="check" size={12} />}
                   </span>
                   <span className={step === "cart" ? "text-arctic-900 font-bold" : "text-arctic-600"}>{tr("Panier", "Cart")}</span>
                   <span className="text-arctic-400">→</span>
@@ -956,7 +960,7 @@ export default function CatalogClient({
                           : "bg-arctic-300 text-arctic-600"
                     }`}
                   >
-                    {step === "success" ? "✓" : "2"}
+                    {step === "success" ? <Glyph name="check" size={12} /> : "2"}
                   </span>
                   <span className={step === "form" ? "text-arctic-900 font-bold" : "text-arctic-600"}>{tr("Coordonnées", "Details")}</span>
                   <span className="text-arctic-400">→</span>
@@ -970,7 +974,7 @@ export default function CatalogClient({
                   <span className={step === "success" ? "text-arctic-900 font-bold" : "text-arctic-600"}>{tr("Terminé", "Done")}</span>
                 </div>
                 <button onClick={() => setOpen(false)} className="text-arctic-600 hover:text-arctic-800">
-                  ✕
+                  <Glyph name="close" size={16} />
                 </button>
               </div>
             </div>
@@ -1015,7 +1019,7 @@ export default function CatalogClient({
                         onClick={() => removeLine(i)}
                         className="ml-1 text-arctic-600 hover:text-red-500"
                       >
-                        ✕
+                        <Glyph name="close" size={16} />
                       </button>
                     </div>
                   </div>
@@ -1100,7 +1104,7 @@ export default function CatalogClient({
                             : "border-arctic-200 bg-white text-arctic-700 hover:bg-arctic-50"
                         }`}
                       >
-                        <span className="block font-bold">🏪 {tr("Retrait", "Pickup")}</span>
+                        <span className="flex items-center justify-center gap-1.5 font-bold"><Glyph name="box" size={14} /> {tr("Retrait", "Pickup")}</span>
                         <span className="text-[10px] text-arctic-600">{tr("Gratuit en boutique", "Free at the shop")}</span>
                       </button>
 
@@ -1113,7 +1117,7 @@ export default function CatalogClient({
                             : "border-arctic-200 bg-white text-arctic-700 hover:bg-arctic-50"
                         }`}
                       >
-                        <span className="block font-bold">🛵 {tr("Livraison", "Delivery")}</span>
+                        <span className="flex items-center justify-center gap-1.5 font-bold"><Glyph name="send" size={14} /> {tr("Livraison", "Delivery")}</span>
                         <span className="text-[10px] text-arctic-600">{tr("À votre adresse", "To your address")}</span>
                       </button>
                     </div>
@@ -1198,7 +1202,7 @@ export default function CatalogClient({
                         <div>
                           <div className="flex items-center gap-1.5">
                             <span className="text-sm font-bold text-arctic-900 dark:text-white">
-                              💳 {tr("FedaPay (Mobile Money et carte)", "FedaPay (Mobile Money & card)")}
+                              <Glyph name="card" size={14} /> {tr("FedaPay (Mobile Money et carte)", "FedaPay (Mobile Money & card)")}
                             </span>
                             <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-signal-fill text-white">
                               {tr("Mode test actif", "Sandbox active")}
@@ -1233,7 +1237,7 @@ export default function CatalogClient({
                         />
                         <div>
                           <span className="text-sm font-bold text-arctic-900 dark:text-white block">
-                            💵 {tr("Paiement à la livraison", "Cash on delivery")}
+                            <Glyph name="receipt" size={14} /> {tr("Paiement à la livraison", "Cash on delivery")}
                           </span>
                           <p className="text-[11px] text-arctic-600">
                             {tr("En espèces, à la livraison ou au retrait", "In cash, on delivery or at pickup")}
@@ -1288,7 +1292,7 @@ export default function CatalogClient({
               return (
                 <div className="flex-1 max-h-[75dvh] space-y-4 overflow-y-auto overscroll-contain p-5 text-center">
                   <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-100 text-3xl">
-                    🎉
+                    <Glyph name="sparkle" size={16} />
                   </div>
                   <div>
                     <h3 className="font-bold text-arctic-900 text-lg">
@@ -1307,7 +1311,7 @@ export default function CatalogClient({
                   <div className="rounded-xl border-2 border-emerald-500/80 bg-emerald-50/70 p-3.5 text-left space-y-2.5 shadow-xs">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
-                        <span>💳</span> {tr("Paiement instantané FedaPay", "Instant FedaPay payment")}
+                        <Glyph name="card" size={16} /> {tr("Paiement instantané FedaPay", "Instant FedaPay payment")}
                       </span>
                       <span className="rounded-full bg-signal-fill px-2 py-0.5 text-[10px] font-bold text-white">
                         {tr("Sécurisé", "Secure")}
@@ -1346,11 +1350,11 @@ export default function CatalogClient({
                           setLaunchingFeda(false);
                         }
                       }}
-                      className="btn-primary w-full justify-center gap-2 py-3 !bg-signal-fill hover:!bg-signal-fill-hover !text-white text-sm font-bold shadow-md"
+                      className="btn-primary w-full !bg-signal-fill hover:!bg-signal-fill-hover !text-white font-bold shadow-md"
                     >
                       {launchingFeda
                         ? tr("Ouverture de FedaPay…", "Opening FedaPay…")
-                        : `💳 ${tr("Payer", "Pay")} ${formatMoney(placedSummary.totalCents, currency)} ${tr("avec FedaPay", "with FedaPay")} →`}
+                        : `${tr("Payer", "Pay")} ${formatMoney(placedSummary.totalCents, currency)} ${tr("avec FedaPay", "with FedaPay")} →`}
                     </button>
                     {fedaCheckoutError && (
                       <p role="alert" className="mt-2 rounded-shape-sm bg-red-500/10 px-3 py-2 text-center text-xs text-red-600">
@@ -1365,16 +1369,16 @@ export default function CatalogClient({
                       href={placedSummary.waLink}
                       target="_blank"
                       rel="noreferrer"
-                      className="btn-ghost w-full justify-center gap-2 py-2.5 border border-signal-fill text-emerald-800 hover:bg-emerald-50 text-xs font-bold"
+                      className="btn-ghost btn-sm w-full border-signal-fill text-signal-text font-bold"
                     >
-                      <Glyph name="chat" size={16} /> {tr("Confirmer aussi sur WhatsApp", "Also confirm on WhatsApp")} 💬
+                      <Glyph name="chat" size={16} /> {tr("Confirmer aussi sur WhatsApp", "Also confirm on WhatsApp")}
                     </a>
                   )}
 
                   {/* Lien page de paiement détaillée */}
                   <a
                     href={`/pay/${placedSummary.orderId}`}
-                    className="btn-ghost w-full justify-center gap-1.5 py-2.5 border border-arctic-300/80 text-xs font-semibold"
+                    className="btn-ghost btn-sm w-full border-arctic-300/80 font-semibold"
                   >
                     <Glyph name="phone" size={15} /> {tr("Voir toutes les options de paiement (WEscrow, etc.)", "See all payment options (WEscrow, etc.)")}
                   </a>
@@ -1384,7 +1388,7 @@ export default function CatalogClient({
                       setOpen(false);
                       setStep("cart");
                     }}
-                    className="btn-ghost w-full text-xs text-arctic-600"
+                    className="btn-ghost btn-sm w-full text-arctic-600"
                   >
                     {tr("Continuer mes achats", "Continue shopping")}
                   </button>
@@ -1489,7 +1493,7 @@ function ProductCard({
         <div className="absolute left-2 top-2 flex flex-col gap-1">
           {collectionName && (
             <span className="rounded-full bg-gold-fill/90 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-xs backdrop-blur-xs">
-              📁 {collectionName}
+              <Glyph name="folder" size={14} /> {collectionName}
             </span>
           )}
           {isNew && (
@@ -1584,7 +1588,7 @@ function ProductCard({
             type="button"
             onClick={() => onAdd(p, size, qty)}
             disabled={outOfStock}
-            className="btn-primary flex-1 !py-1.5 text-xs"
+            className="btn-primary btn-sm flex-1"
           >
             {outOfStock ? tr("Indisponible", "Unavailable") : tr("Ajouter au panier", "Add to cart")}
           </button>
@@ -1595,7 +1599,7 @@ function ProductCard({
             href={waMeOrderLink(size)}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex w-full items-center justify-center gap-1 text-center text-[11px] font-medium text-brand-dark hover:underline pt-0.5"
+            className="inline-flex min-h-6 w-full items-center justify-center gap-1 pt-0.5 text-center text-[11px] font-medium text-brand-dark hover:underline"
           >
             <Glyph name="chat" size={12} /> {tr("Commander sur WhatsApp", "Order on WhatsApp")}
           </a>

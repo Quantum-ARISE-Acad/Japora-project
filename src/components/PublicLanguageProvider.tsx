@@ -97,7 +97,7 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
 
   return (
     <div
-      className={`inline-flex items-center rounded-shape-full border border-arctic-300/70 bg-white/80 p-0.5 text-xs font-semibold shadow-xs backdrop-blur-sm ${className}`}
+      className={`inline-flex items-center rounded-shape-full border border-arctic-300/70 bg-white/80 p-1 text-xs font-semibold shadow-xs backdrop-blur-sm ${className}`}
       role="group"
       aria-label={locale === "fr" ? "Sélecteur de langue" : "Language selector"}
     >
@@ -105,7 +105,7 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
         type="button"
         onClick={() => setLocale("fr")}
         aria-pressed={locale === "fr"}
-        className={`rounded-shape-full px-2.5 py-1 text-[11px] font-bold transition-all ${
+        className={`grid min-h-8 min-w-9 place-items-center rounded-shape-full px-2.5 text-[11px] font-bold transition-all ${
           locale === "fr"
             ? "bg-arctic-900 text-arctic-50 shadow-xs"
             : "text-arctic-600 hover:text-arctic-900"
@@ -117,7 +117,7 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
         type="button"
         onClick={() => setLocale("en")}
         aria-pressed={locale === "en"}
-        className={`rounded-shape-full px-2.5 py-1 text-[11px] font-bold transition-all ${
+        className={`grid min-h-8 min-w-9 place-items-center rounded-shape-full px-2.5 text-[11px] font-bold transition-all ${
           locale === "en"
             ? "bg-arctic-900 text-arctic-50 shadow-xs"
             : "text-arctic-600 hover:text-arctic-900"

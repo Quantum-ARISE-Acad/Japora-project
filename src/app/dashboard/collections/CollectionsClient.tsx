@@ -270,7 +270,7 @@ export default function CollectionsClient({
             )}
           </p>
           <button onClick={openCreate} className="btn-primary mt-2">
-            + {tr("Créer ma première collection", "Create my first collection")}
+            + {tr("Créer une collection", "Create a collection")}
           </button>
         </div>
       ) : (
@@ -380,12 +380,12 @@ export default function CollectionsClient({
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                      <button onClick={() => openEdit(c)} className="btn-ghost text-xs !py-1.5 px-3">
+                      <button onClick={() => openEdit(c)} className="btn-ghost btn-sm">
                         <Glyph name="pencil" size={14} /> {tr("Produits / Modifier", "Products / Edit")}
                       </button>
                       <button
                         onClick={() => handleDelete(c.id)}
-                        className="btn-danger text-xs !py-1.5 px-2.5"
+                        className="btn-danger btn-sm"
                       >
                         {tr("Supprimer", "Delete")}
                       </button>
@@ -474,7 +474,7 @@ export default function CollectionsClient({
                       <img src={imageUrl} alt={tr("Aperçu couverture", "Cover preview")} className="h-full w-full object-cover" />
                     </div>
                   )}
-                  <label className="btn-ghost cursor-pointer text-xs !py-2 px-3">
+                  <label className="btn-ghost btn-sm cursor-pointer">
                     <input
                       type="file"
                       accept="image/*"

@@ -13,7 +13,8 @@ export type GlyphName =
   | "key" | "link" | "book" | "bolt" | "flask" | "plug" | "card"
   | "chart" | "camera" | "trending" | "folder" | "plus" | "bot"
   | "bag" | "feed" | "send" | "search" | "pencil" | "clock"
-  | "mail" | "handshake" | "globe" | "star-filled" | "cart" | "shield";
+  | "mail" | "handshake" | "globe" | "star-filled" | "cart" | "shield"
+  | "chevron-down";
 
 const PATHS: Record<GlyphName, string> = {
   moon: "M20 14.5A8 8 0 1 1 9.5 4 6.2 6.2 0 0 0 20 14.5z",
@@ -62,6 +63,7 @@ const PATHS: Record<GlyphName, string> = {
   globe: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3.3 9h17.4M3.3 15h17.4M12 3a13 13 0 0 1 0 18 13 13 0 0 1 0-18z",
   cart: "M3 4h2.2l2.3 11h10l2.2-7.5H6.4M10 20h.01M17 20h.01",
   shield: "M12 3l7.5 2.8v5.4c0 4.4-3 8-7.5 9.8-4.5-1.8-7.5-5.4-7.5-9.8V5.8L12 3z",
+  "chevron-down": "M6 9.5l6 6 6-6",
 };
 
 export default function Glyph({

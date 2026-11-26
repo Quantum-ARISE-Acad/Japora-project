@@ -332,7 +332,7 @@ export default function OrdersBoard({
             type="button"
             onClick={() => void reload(false)}
             disabled={refreshing}
-            className="btn-ghost gap-1.5 text-xs font-semibold"
+            className="btn-ghost btn-sm font-semibold"
             title={tr("Actualiser les commandes WhatsApp", "Refresh WhatsApp orders")}
           >
             {refreshing ? `${tr("Synchronisation…", "Syncing…")}` : `${tr("Actualiser", "Refresh")}`}
@@ -340,7 +340,7 @@ export default function OrdersBoard({
           <button
             type="button"
             onClick={exportCSV}
-            className="btn-ghost gap-1.5 text-xs font-semibold"
+            className="btn-ghost btn-sm font-semibold"
             title={tr("Télécharger les commandes filtrées au format CSV", "Download filtered orders as CSV")}
           >
             <Glyph name="import" size={14} /> {tr("Exporter CSV", "Export CSV")}
@@ -834,7 +834,7 @@ function ManualOrderModal({
                     value={qty}
                     onChange={(e) => setQty(parseInt(e.target.value, 10) || 1)}
                   />
-                  <button type="button" onClick={addLine} className="btn-ghost col-span-1 !px-2 !py-2">
+                  <button type="button" onClick={addLine} className="btn-ghost btn-sm col-span-1">
                     +
                   </button>
                 </div>

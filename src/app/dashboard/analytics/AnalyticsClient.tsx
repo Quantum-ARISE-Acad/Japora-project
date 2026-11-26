@@ -511,7 +511,7 @@ export default function AnalyticsClient({
           <button
             type="button"
             onClick={exportAnalyticsCsv}
-            className="btn-ghost text-xs !py-2 px-3.5"
+            className="btn-ghost btn-sm"
           >
             {tr("Exporter CSV", "Export CSV")}
           </button>
@@ -885,13 +885,13 @@ export default function AnalyticsClient({
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
-            <div className="rounded-xl border border-aurora-error/30/70 bg-aurora-error-bg/70 p-3">
+            <div className="rounded-xl border border-aurora-error/30 bg-aurora-error-bg/70 p-3">
               <div className="text-[11px] font-semibold text-aurora-error-text">
                 {tr("En rupture (0)", "Out of stock (0)")}
               </div>
               <div className="text-xl font-black text-aurora-error-text">{outOfStockProducts.length}</div>
             </div>
-            <div className="rounded-xl border border-aurora-warning/30/70 bg-aurora-warning-bg p-3">
+            <div className="rounded-xl border border-aurora-warning/30 bg-aurora-warning-bg p-3">
               <div className="text-[11px] font-semibold text-aurora-warning-text">
                 {tr("Stock faible (≤ 5)", "Low stock (≤ 5)")}
               </div>
@@ -900,7 +900,7 @@ export default function AnalyticsClient({
           </div>
 
           {outOfStockProducts.length === 0 && lowStockProducts.length === 0 ? (
-            <div className="rounded-xl border border-emerald-200 bg-arctic-100/60/60 p-3.5 text-xs text-signal-text">
+            <div className="rounded-xl border border-emerald-200 bg-arctic-100/60 p-3.5 text-xs text-signal-text">
               {tr(
                 "Tous vos produits actifs disposent d'un stock suffisant.",
                 "All active products have sufficient stock.",

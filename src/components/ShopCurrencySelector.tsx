@@ -41,13 +41,12 @@ export default function ShopCurrencySelector({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="btn-ghost gap-1.5 px-3 py-1.5 text-xs font-semibold"
+        className="btn-ghost btn-sm font-semibold"
         title={tr("Changer la devise d’affichage des prix", "Change the price display currency")}
         aria-label={tr("Sélectionner une devise", "Select a currency")}
       >
-        <span>{current.flag}</span>
-        <span>{current.code}</span>
-        <span className="text-[10px] opacity-60">▾</span>
+        <span className="a-num tracking-[0.06em]">{current.code}</span>
+        <Glyph name="chevron-down" size={12} className="text-arctic-600" />
       </button>
 
       {open && (
@@ -75,14 +74,11 @@ export default function ShopCurrencySelector({
                       : "text-arctic-700 hover:bg-arctic-100/80 dark:text-arctic-300 dark:hover:bg-arctic-800/80"
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">{curr.flag}</span>
-                    <div className="text-left">
-                      <span className="font-semibold">{curr.code}</span>
-                      <span className="ml-1 text-arctic-600 text-[11px]">
-                        ({curr.symbol})
-                      </span>
-                    </div>
+                  <div className="min-w-0 text-left">
+                    <span className="a-num font-semibold tracking-[0.06em]">{curr.code}</span>
+                    {curr.symbol !== curr.code && (
+                      <span className="ml-1.5 text-[11px] text-arctic-600">{curr.symbol}</span>
+                    )}
                   </div>
                   <div className="flex items-center gap-1">
                     {isBase && (

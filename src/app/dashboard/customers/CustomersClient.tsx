@@ -182,7 +182,7 @@ export default function CustomersClient({
           <button
             type="button"
             onClick={exportCSV}
-            className="btn-ghost gap-1.5 text-xs font-semibold"
+            className="btn-ghost btn-sm font-semibold"
             title={tr("Exporter la liste des clients en CSV", "Export customers as CSV")}
           >
             <Glyph name="import" size={14} /> {tr("Exporter CSV", "Export CSV")}
@@ -200,12 +200,12 @@ export default function CustomersClient({
           className="input min-w-[220px] flex-1 text-sm"
         />
 
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 rounded-full bg-arctic-100 p-0.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <div className="flex min-w-0 max-w-full items-center gap-1 overflow-x-auto rounded-full bg-arctic-100 p-0.5">
             <button
               type="button"
               onClick={() => setSegmentFilter("all")}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+              className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold transition ${
                 segmentFilter === "all" ? "bg-arctic-800 text-white" : "customers-filter-inactive text-arctic-700 hover:text-arctic-900"
               }`}
             >
@@ -214,7 +214,7 @@ export default function CustomersClient({
             <button
               type="button"
               onClick={() => setSegmentFilter("vip")}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+              className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold transition ${
                 segmentFilter === "vip" ? "bg-aurora-warning text-white" : "customers-filter-inactive text-arctic-700 hover:text-arctic-900"
               }`}
             >
@@ -223,7 +223,7 @@ export default function CustomersClient({
             <button
               type="button"
               onClick={() => setSegmentFilter("recent")}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+              className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold transition ${
                 segmentFilter === "recent" ? "bg-signal-fill text-white" : "customers-filter-inactive text-arctic-700 hover:text-arctic-900"
               }`}
             >
@@ -232,7 +232,7 @@ export default function CustomersClient({
             <button
               type="button"
               onClick={() => setSegmentFilter("inactive")}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+              className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold transition ${
                 segmentFilter === "inactive" ? "bg-rose-600 text-white" : "customers-filter-inactive text-arctic-700 hover:text-arctic-900"
               }`}
             >

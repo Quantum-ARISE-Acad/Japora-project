@@ -230,7 +230,7 @@ export default function SettingsForm({
         <button
           type="button"
           onClick={() => window.dispatchEvent(new Event("japora:open-onboarding"))}
-          className="btn-ghost text-xs border border-brand/30 text-brand-dark font-semibold self-start sm:self-auto"
+          className="btn-ghost btn-sm border border-brand/30 text-brand-dark font-semibold self-start sm:self-auto"
         >
           {tr("Assistant de configuration rapide", "Quick setup assistant")}
         </button>
@@ -401,7 +401,7 @@ export default function SettingsForm({
 
             <div className="flex-1 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
-                <label className="btn-primary cursor-pointer text-xs py-1.5 px-3 inline-flex items-center gap-1.5">
+                <label className="btn-primary btn-sm cursor-pointer inline-flex items-center gap-1.5">
                   <Glyph name="camera" size={18} />
                   <span>{uploadingAvatar ? tr("Téléversement…", "Uploading…") : tr("Choisir une image", "Choose an image")}</span>
                   <input
@@ -419,7 +419,7 @@ export default function SettingsForm({
                       setAvatarUrl("");
                       void persistAvatarUrl("");
                     }}
-                    className="btn-ghost text-xs py-1.5 px-2.5 text-aurora-error-text hover:text-aurora-error-text"
+                    className="btn-ghost btn-sm text-aurora-error-text hover:text-aurora-error-text"
                   >
                     {tr("Supprimer", "Remove")}
                   </button>
@@ -539,7 +539,7 @@ export default function SettingsForm({
         {error && <p className="rounded-lg bg-aurora-error-bg px-3 py-2 text-sm text-aurora-error-text">{error}</p>}
 
         {savedAt && (
-          <div className="rounded-xl border border-emerald-500/40 bg-arctic-100/60/90 px-4 py-3 text-sm font-semibold text-signal-text flex items-center justify-between">
+          <div className="rounded-xl border border-emerald-500/40 bg-arctic-100/60 px-4 py-3 text-sm font-semibold text-signal-text flex items-center justify-between">
             <span>{tr("Vos informations de boutique ont été mises à jour avec succès !", "Your shop information was updated successfully!")}</span>
             <a
               href={`/c/${shopSlug}`}
@@ -584,7 +584,7 @@ export default function SettingsForm({
               <button
                 type="button"
                 onClick={copyInvite}
-                className="btn-ghost text-xs"
+                className="btn-ghost btn-sm"
               >
                 {copied ? tr("Copié", "Copied") : tr("Copier le lien d'invitation", "Copy invite link")}
               </button>
@@ -592,7 +592,7 @@ export default function SettingsForm({
                 href={waInvite}
                 target="_blank"
                 rel="noreferrer"
-                className="btn-primary text-xs"
+                className="btn-primary btn-sm"
               >
                 {tr("Partager sur WhatsApp", "Share on WhatsApp")}
               </a>
@@ -668,8 +668,8 @@ export default function SettingsForm({
             {tr("et à reporter dans le tableau de bord Meta.", "and match it in the Meta dashboard.")}
           </div>
           <div className="pt-2">
-            <a href="/dashboard/bot" className="btn-primary text-xs">
-              {tr("Configurer l'Assistant WhatsApp Cloud API & IA Gemini", "Set up the WhatsApp Cloud API assistant & Gemini AI")}
+            <a href="/dashboard/bot" className="btn-primary btn-sm">
+              {tr("Configurer l'Assistant", "Set up the assistant")}
             </a>
           </div>
         </div>

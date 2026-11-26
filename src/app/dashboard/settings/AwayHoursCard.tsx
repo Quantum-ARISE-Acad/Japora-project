@@ -142,7 +142,7 @@ export default function AwayHoursCard({
         )}
 
         {error && (
-          <p className="rounded-shape-md border border-aurora-error/30/70 bg-aurora-error-bg/80 px-3 py-2 a-body-sm text-aurora-error-text">{error}</p>
+          <p className="rounded-shape-md border border-aurora-error/30 bg-aurora-error-bg/80 px-3 py-2 a-body-sm text-aurora-error-text">{error}</p>
         )}
 
         <button onClick={save} disabled={saving} className="btn-primary">

@@ -68,7 +68,7 @@ export default function FollowButton({
         required
         autoFocus
       />
-      <button className="btn-primary !min-h-0 py-2" disabled={loading}>
+      <button className="btn-primary btn-sm" disabled={loading}>
         {loading ? "…" : tr("Suivre", "Follow")}
       </button>
       {error && <span className="a-body-sm text-red-600">{error}</span>}

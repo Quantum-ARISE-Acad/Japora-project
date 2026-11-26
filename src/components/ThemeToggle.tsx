@@ -41,7 +41,7 @@ export default function ThemeToggle({ className = "" }: { className?: string }) 
       aria-pressed={isDark}
       title={isDark ? tr("Mode clair", "Light mode") : tr("Mode sombre", "Dark mode")}
       className={
-        "grid h-9 w-9 place-items-center rounded-full border border-arctic-400/45 text-arctic-700 " +
+        "grid h-10 w-10 place-items-center rounded-full border border-arctic-400/45 text-arctic-700 " +
         "transition-colors duration-short hover:border-brand/60 hover:text-brand-dark " +
         className
       }

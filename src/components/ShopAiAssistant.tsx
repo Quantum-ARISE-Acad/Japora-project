@@ -461,7 +461,7 @@ export default function ShopAiAssistant({
         <button
           onClick={() => setIsOpen(!isOpen)}
           aria-label={tr("Ouvrir l'Assistant IA de la boutique", "Open the shop's AI assistant")}
-          className="group relative flex items-center gap-2.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 text-white font-bold px-5 py-3.5 rounded-full shadow-2xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
+          className="group relative flex items-center gap-2.5 bg-signal-fill hover:bg-signal-fill-hover text-white font-bold px-5 py-3.5 rounded-full shadow-2xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
         >
           <Glyph name={isOpen ? "close" : "sparkle"} size={20} />
           <span className="text-sm tracking-wide">
@@ -474,7 +474,7 @@ export default function ShopAiAssistant({
       {isOpen && (
         <div className="fixed bottom-24 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-[440px] max-h-[calc(100dvh-7rem)] h-[80dvh] bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-emerald-600/95 via-teal-600/95 to-slate-900 px-4 py-3 border-b border-slate-700/60">
+          <div className="border-b border-slate-700/60 bg-slate-900 px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="grid h-9 w-9 place-items-center rounded-shape-md bg-arctic-50/15 text-arctic-50 shadow-inner">
@@ -565,7 +565,7 @@ export default function ShopAiAssistant({
                     <div
                       className={`max-w-[88%] rounded-2xl px-4 py-3 text-xs sm:text-sm leading-relaxed ${
                         msg.role === "user"
-                          ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-br-xs shadow-md"
+                          ? "bg-signal-fill text-white rounded-br-xs shadow-md"
                           : "bg-slate-800/95 text-slate-200 border border-slate-700/70 rounded-bl-xs shadow"
                       }`}
                     >
@@ -591,9 +591,9 @@ export default function ShopAiAssistant({
                               act.type === "buy_now" || act.type === "pay_order"
                                 ? "bg-signal-fill hover:bg-signal-fill-hover text-white border-signal-fill"
                                 : act.type === "propose_deal"
-                                ? "bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border-amber-400/40"
+                                ? "bg-white/10 hover:bg-white/20 text-white border-white/30"
                                 : act.type === "add_to_cart"
-                                ? "bg-teal-500/20 hover:bg-teal-500/30 text-teal-200 border-teal-500/40"
+                                ? "bg-white/10 hover:bg-white/20 text-white border-white/30"
                                 : "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600"
                             }`}
                           >

@@ -104,7 +104,7 @@ export default function ShopQrCard({
             {tr("Ces QR codes sont également affichés automatiquement sur votre boutique publique. Téléchargez-les ou imprimez-les pour vos clients.", "These QR codes are also shown automatically on your public shop. Download or print them for your customers.")}
           </p>
         </div>
-        <button type="button" onClick={() => setOpen((v) => !v)} className="btn-ghost shrink-0 text-xs">
+        <button type="button" onClick={() => setOpen((v) => !v)} className="btn-ghost btn-sm shrink-0">
           {open ? tr("Masquer", "Hide") : tr("Afficher QR", "Show QR")}
         </button>
       </div>
@@ -175,17 +175,17 @@ export default function ShopQrCard({
                 </p>
               )}
               <div className="flex flex-wrap gap-2 pt-1">
-                <a href={downloadSrc} className="btn-primary text-xs">
+                <a href={downloadSrc} className="btn-primary btn-sm">
                   {tr("Télécharger SVG", "Download SVG")}
                 </a>
-                <button type="button" onClick={print} className="btn-ghost text-xs border border-arctic-300">
+                <button type="button" onClick={print} className="btn-ghost btn-sm border border-arctic-300">
                   {tr("Imprimer l'affiche QR", "Print the QR poster")}
                 </button>
                 <a
                   href={targetUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="btn-ghost text-xs text-signal-text hover:underline"
+                  className="btn-ghost btn-sm text-signal-text hover:underline"
                 >
                   {tr("Tester le lien", "Test the link")}
                 </a>

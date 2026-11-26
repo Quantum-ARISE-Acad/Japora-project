@@ -205,7 +205,7 @@ export default function ShareStatus({
                   type="button"
                   onClick={downloadCard}
                   disabled={!previewUrl || generating}
-                  className="btn-primary w-full justify-center text-xs py-2.5"
+                  className="btn-primary btn-sm w-full"
                 >
                   <Glyph name="import" size={14} />{" "}
                   {tr("Télécharger l'affiche Statut (HD)", "Download the Status poster (HD)")}
@@ -215,7 +215,7 @@ export default function ShareStatus({
                   href={waShareUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="btn-ghost w-full justify-center gap-2 text-xs py-2.5 border border-signal-fill/30 text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20"
+                  className="btn-ghost btn-sm w-full border border-signal-fill/30 text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20"
                 >
                   <Glyph name="chat" size={15} /> {tr("Partager le message texte avec lien sur WhatsApp", "Share the text message with the link on WhatsApp")}
                 </a>

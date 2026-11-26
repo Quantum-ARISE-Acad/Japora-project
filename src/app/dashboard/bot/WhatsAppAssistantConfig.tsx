@@ -496,7 +496,7 @@ export default function WhatsAppAssistantConfig({
                     setTimeout(() => setCopiedWebhook(false), 1800);
                   } catch {}
                 }}
-                className="btn-ghost text-xs py-1 px-2.5 border border-arctic-300"
+                className="btn-ghost btn-sm border border-arctic-300"
               >
                 {copiedWebhook ? tr("Copié", "Copied") : tr("Copier l'URL", "Copy URL")}
               </button>
@@ -532,11 +532,11 @@ export default function WhatsAppAssistantConfig({
               type="button"
               onClick={handleTestWhatsAppSend}
               disabled={testingSend || !testToPhone.trim()}
-              className="btn-ghost text-xs py-1.5 px-3 border border-signal-fill text-signal-text hover:bg-arctic-200/70"
+              className="btn-ghost btn-sm border border-signal-fill text-signal-text hover:bg-arctic-200/70"
             >
               {testingSend
                 ? tr("Envoi du test…", "Sending test…")
-                : tr("Tester l'envoi d'un message WhatsApp", "Send a test WhatsApp message")}
+                : tr("Envoyer un message test", "Send a test message")}
             </button>
           </div>
           {testResult && (
@@ -580,7 +580,7 @@ export default function WhatsAppAssistantConfig({
               <button
                 type="button"
                 onClick={() => setClaimPrompt(null)}
-                className="btn-ghost text-xs py-1.5 px-3"
+                className="btn-ghost btn-sm"
                 disabled={saving}
               >
                 {tr("Annuler", "Cancel")}
@@ -589,7 +589,7 @@ export default function WhatsAppAssistantConfig({
                 type="button"
                 onClick={() => submitSettings(true)}
                 disabled={saving}
-                className="btn-primary text-xs py-1.5 px-4"
+                className="btn-primary btn-sm"
               >
                 {saving
                   ? tr("Transfert en cours…", "Transferring…")

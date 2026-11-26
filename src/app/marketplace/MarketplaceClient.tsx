@@ -144,13 +144,13 @@ function ShopCard({ shop }: { shop: ShopCardType }) {
         <div className="flex items-center gap-2">
           <Link
             href={`/shop/${shop.shopSlug}`}
-            className="btn-ghost flex-1 justify-center py-2 text-xs"
+            className="btn-ghost btn-sm flex-1"
           >
             {tr("Profil boutique", "Shop profile")}
           </Link>
           <Link
             href={`/c/${shop.shopSlug}`}
-            className="btn-primary flex-1 justify-center gap-1 py-2 text-xs"
+            className="btn-primary btn-sm flex-1"
           >
             <span>{tr("Catalogue", "Catalog")}</span>
             <SaasIcon name="arrow-right" size={13} />

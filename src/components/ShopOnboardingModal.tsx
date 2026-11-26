@@ -347,7 +347,7 @@ export default function ShopOnboardingModal({
                     setError("");
                     setStep(2);
                   }}
-                  className="btn-primary px-5 py-2.5"
+                  className="btn-primary"
                 >
                   {tr("Continuer (WhatsApp & Paiements) →", "Continue (WhatsApp & payments) →")}
                 </button>
@@ -416,7 +416,7 @@ export default function ShopOnboardingModal({
                     )}
                   </div>
                   <div className="space-y-1">
-                    <label className="btn-ghost text-xs py-1.5 px-3 border border-arctic-300 cursor-pointer inline-flex items-center gap-1.5">
+                    <label className="btn-ghost btn-sm border border-arctic-300 cursor-pointer inline-flex items-center gap-1.5">
                       <Glyph name="camera" size={18} />
                       <span>{uploadingAvatar ? tr("Envoi en cours…", "Sending…") : tr("Importer un logo", "Upload a logo")}</span>
                       <input
@@ -444,14 +444,14 @@ export default function ShopOnboardingModal({
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="btn-ghost text-xs"
+                  className="btn-ghost btn-sm"
                 >
                   {tr("← Retour", "← Back")}
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="btn-primary px-6 py-2.5 font-bold"
+                  className="btn-primary font-bold"
                 >
                   {saving ? tr("Création de votre espace…", "Creating your space…") : tr("Lancer ma boutique Japora", "Launch my Japora shop")}
                 </button>

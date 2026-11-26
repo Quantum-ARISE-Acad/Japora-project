@@ -200,8 +200,8 @@ html, body {
    * src/components/aurora/.
    */
   .btn {
-    @apply inline-flex select-none items-center justify-center gap-2 rounded-shape-xl
-           px-6 text-[14px] font-semibold tracking-[0.01em]
+    @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap
+           rounded-shape-xl px-6 text-[14px] font-semibold tracking-[0.01em]
            transition-all duration-short ease-spring
            disabled:cursor-not-allowed disabled:opacity-40;
     min-height: 44px; /* Fitts ≥ WCAG 2.5.5 AAA */
@@ -227,6 +227,22 @@ html, body {
     background: var(--aurora-error-bg);
   }
   .btn-danger:not(:disabled):hover { background: rgba(179, 38, 30, 0.16); }
+
+  /* Two sizes beside the 44px default, matching the `.a-btn` scale. Before
+     these existed every caller invented its own with `text-xs` plus `!py-1`,
+     `!min-h-8`, `py-1.5`, `py-2.5`… so no two button rows shared a height.
+     Declared after the variants so they win on source order. */
+  .btn-sm {
+    @apply gap-1.5 px-4 text-[12px];
+    min-height: 36px;
+  }
+  .btn-lg {
+    @apply px-8 text-[16px];
+    min-height: 56px;
+  }
+  /* An icon-only button is square, not a pill carrying a label's padding. */
+  .btn-icon { @apply px-0; width: 44px; }
+  .btn-sm.btn-icon { width: 36px; }
 
   /* M3 text field — outlined variant, glass-tinted, theme-aware. */
   .input {
