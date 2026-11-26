@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentVendor } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getServerTr } from "@/lib/public-locale";
 
@@ -6,24 +7,52 @@ export async function GET(req: NextRequest) {
   const tr = await getServerTr();
   const { searchParams } = new URL(req.url);
   const productId = searchParams.get("productId");
-  const vendorId = searchParams.get("vendorId");
+  const vendorIdParam = searchParams.get("vendorId");
+  const mine = searchParams.get("mine") === "1";
 
-  if (!productId && !vendorId) {
+  let resolvedVendorId = vendorIdParam;
+  if (mine) {
+    const vendor = await getCurrentVendor();
+    if (!vendor) {
+      return NextResponse.json({ error: tr("Veuillez vous connecter.", "Please sign in.") }, { status: 401 });
+    }
+    resolvedVendorId = vendor.id;
+  }
+
+  if (!productId && !resolvedVendorId) {
     return NextResponse.json({ error: tr("productId ou vendorId est obligatoire.", "productId or vendorId required") }, { status: 400 });
   }
 
-  const whereClause = productId ? { productId } : { vendorId: vendorId! };
+  const whereClause = productId
+    ? resolvedVendorId
+      ? { productId, vendorId: resolvedVendorId }
+      : { productId }
+    : { vendorId: resolvedVendorId! };
 
-  const reviews = await prisma.review.findMany({
-    where: whereClause,
-    orderBy: { createdAt: "desc" },
-    take: 50,
-  });
+  const take = Math.min(100, Math.max(1, parseInt(searchParams.get("take") || "50", 10) || 50));
 
-  const count = reviews.length;
+  const [reviews, agg] = await Promise.all([
+    prisma.review.findMany({
+      where: whereClause,
+      orderBy: { createdAt: "desc" },
+      take,
+      include: {
+        product: {
+          select: { id: true, name: true, imageUrl: true },
+        },
+      },
+    }),
+    prisma.review.aggregate({
+      where: whereClause,
+      _count: { _all: true },
+      _avg: { rating: true },
+    }),
+  ]);
+
+  const count = agg._count._all;
   const averageRating =
-    count > 0
-      ? Number((reviews.reduce((acc, r) => acc + r.rating, 0) / count).toFixed(1))
+    count > 0 && agg._avg.rating != null
+      ? Number(agg._avg.rating.toFixed(1))
       : 5.0;
 
   return NextResponse.json({ reviews, count, averageRating });

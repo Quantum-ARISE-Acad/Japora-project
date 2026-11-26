@@ -1,7 +1,72 @@
 import { prisma } from "./db";
 import { logger } from "./logger";
 import { digitsOnly } from "./utils";
-import { parseWhatsAppAssistantConfig } from "./whatsapp-config";
+import {
+  parseWhatsAppAssistantConfig,
+  explainWhatsAppOrAiError,
+  type WhatsAppDiagnosticAlert,
+} from "./whatsapp-config";
+
+/**
+ * Append a diagnostic alert or status timestamp to `Vendor.uiPrefs.whatsappAssistant`
+ * so the dashboard can immediately notify the merchant and pinpoint the exact failure stage.
+ */
+export async function recordVendorDiagnostic(
+  vendorId: string,
+  alert: Omit<WhatsAppDiagnosticAlert, "id" | "at"> & {
+    markWebhookReceived?: boolean;
+    markOutboundOk?: boolean;
+  },
+): Promise<void> {
+  if (!vendorId) return;
+  try {
+    const v = await prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: { uiPrefs: true },
+    });
+    if (!v) return;
+    const prefs =
+      v.uiPrefs && typeof v.uiPrefs === "object" && !Array.isArray(v.uiPrefs)
+        ? { ...(v.uiPrefs as Record<string, unknown>) }
+        : {};
+    const waCfg = parseWhatsAppAssistantConfig(prefs);
+    const nowIso = new Date().toISOString();
+
+    if (alert.markWebhookReceived) {
+      waCfg.lastWebhookAt = nowIso;
+    }
+    if (alert.markOutboundOk) {
+      waCfg.lastOutboundOkAt = nowIso;
+    }
+
+    const existingList = Array.isArray(waCfg.diagnostics) ? waCfg.diagnostics : [];
+    const newEntry: WhatsAppDiagnosticAlert = {
+      id: `diag_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      at: nowIso,
+      stage: alert.stage,
+      severity: alert.severity,
+      title: alert.title,
+      message: alert.message,
+      details: alert.details,
+      fixHint: alert.fixHint,
+      titleEn: alert.titleEn,
+      messageEn: alert.messageEn,
+      fixHintEn: alert.fixHintEn,
+      contact: alert.contact,
+    };
+
+    // Keep latest 15 alerts
+    waCfg.diagnostics = [newEntry, ...existingList].slice(0, 15);
+    prefs.whatsappAssistant = waCfg;
+
+    await prisma.vendor.update({
+      where: { id: vendorId },
+      data: { uiPrefs: prefs as never },
+    });
+  } catch (e) {
+    logger.warn("whatsapp.record_diagnostic_failed", { vendorId, error: String(e) });
+  }
+}
 
 export type OutboundMessage = {
   vendorId: string;
@@ -99,33 +164,58 @@ export function isLiveMode(vendor?: {
     return false;
   }
   const cfg = vendor ? parseWhatsAppAssistantConfig(vendor.uiPrefs) : null;
-  const token = (cfg?.whatsappAccessToken || "").trim();
-  const phoneNumberId = (vendor?.whatsappPhoneNumberId || "").trim();
+  const token = (cfg?.whatsappAccessToken || process.env.WHATSAPP_TOKEN || "").trim();
+  const phoneNumberId = (
+    vendor?.whatsappPhoneNumberId ||
+    process.env.WHATSAPP_PHONE_NUMBER_ID ||
+    ""
+  ).trim();
   return Boolean(token && phoneNumberId);
 }
 
 /**
  * Resolve vendor-specific Cloud API credentials from DB if not in test mode.
+ * Falls back to Japora's shared number from the environment (`WHATSAPP_TOKEN` /
+ * `WHATSAPP_PHONE_NUMBER_ID`), never to another shop's credentials.
  */
-async function resolveVendorCloudCredentials(
+export async function resolveVendorCloudCredentials(
   vendorId: string,
-): Promise<{ token?: string; phoneNumberId?: string }> {
+): Promise<{
+  token?: string;
+  phoneNumberId?: string;
+  source: "vendor" | "env" | "none";
+}> {
   if (process.env.NODE_ENV === "test" || process.env.WATURU_TEST_MODE === "1") {
-    return {};
+    return { source: "none" };
   }
   try {
     const v = await prisma.vendor.findUnique({
       where: { id: vendorId },
       select: { whatsappPhoneNumberId: true, uiPrefs: true },
     });
-    if (!v) return {};
-    const cfg = parseWhatsAppAssistantConfig(v.uiPrefs);
-    return {
-      token: cfg.whatsappAccessToken || undefined,
-      phoneNumberId: v.whatsappPhoneNumberId || undefined,
-    };
+    const cfg = v ? parseWhatsAppAssistantConfig(v.uiPrefs) : null;
+    const token = (cfg?.whatsappAccessToken || "").trim();
+    const phoneNumberId = (v?.whatsappPhoneNumberId || "").trim();
+
+    // 1. The shop's own Meta credentials, only when both are set (never half of a pair).
+    if (token && phoneNumberId) return { token, phoneNumberId, source: "vendor" };
+
+    // 2. Otherwise Japora's own shared number (server configuration).
+    // Never another shop's credentials: that would send this shop's messages from
+    // someone else's WhatsApp number and Meta account, without their knowledge.
+    const envToken = (process.env.WHATSAPP_TOKEN || "").trim();
+    const envPhoneId = (process.env.WHATSAPP_PHONE_NUMBER_ID || "").trim();
+    if (envToken && envPhoneId) return { token: envToken, phoneNumberId: envPhoneId, source: "env" };
+
+    return { source: "none" };
   } catch {
-    return {};
+    const envToken = (process.env.WHATSAPP_TOKEN || "").trim();
+    const envPhoneId = (process.env.WHATSAPP_PHONE_NUMBER_ID || "").trim();
+    return {
+      token: envToken || undefined,
+      phoneNumberId: envPhoneId || undefined,
+      source: envToken && envPhoneId ? "env" : "none",
+    };
   }
 }
 
@@ -186,6 +276,8 @@ export type OutboundInteractive = {
   buttons: InteractiveButton[] | InteractiveListSection[];
   orderId?: string | null;
   broadcastId?: string | null;
+  overrideToken?: string;
+  overridePhoneNumberId?: string;
 };
 
 export type OutboundTemplate = {
@@ -352,7 +444,10 @@ function getInteractive(
 /** Send a WhatsApp interactive message (buttons or list). Logs + persists. */
 export async function sendWhatsAppInteractive(msg: OutboundInteractive) {
   const creds = await resolveVendorCloudCredentials(msg.vendorId);
-  const provider = getInteractive(creds.token, creds.phoneNumberId);
+  const provider = getInteractive(
+    msg.overrideToken || creds.token,
+    msg.overridePhoneNumberId || creds.phoneNumberId,
+  );
   let status = "stubbed";
   let providerId: string | undefined;
   let error: string | undefined;
@@ -364,18 +459,45 @@ export async function sendWhatsAppInteractive(msg: OutboundInteractive) {
     status = "failed";
     error = e instanceof Error ? e.message : String(e);
   }
+  const storedBody =
+    status === "failed" && error
+      ? `[interactive] ${msg.body}\n[ERROR: ${error.slice(0, 500)}]`
+      : `[interactive] ${msg.body}`;
   const record = await prisma.whatsAppMessage.create({
     data: {
       vendorId: msg.vendorId,
       direction: "OUT",
       contact: msg.to,
-      body: `[interactive] ${msg.body}`,
+      body: storedBody,
       status,
       messageId: providerId ?? null,
       orderId: msg.orderId ?? null,
       broadcastId: msg.broadcastId ?? null,
     },
   });
+
+  if (status === "failed" && error) {
+    const explained = explainWhatsAppOrAiError(error, "whatsapp_send");
+    await recordVendorDiagnostic(msg.vendorId, {
+      stage: "whatsapp_send",
+      severity: "error",
+      ...explained,
+      details: error.slice(0, 400),
+      contact: msg.to,
+    });
+  } else if (status === "sent") {
+    await recordVendorDiagnostic(msg.vendorId, {
+      stage: "whatsapp_send",
+      severity: "ok",
+      title: "Réponse interactive envoyée via Meta Cloud API",
+      message: `Réponse envoyée avec succès au numéro ${msg.to}.`,
+      titleEn: "Interactive reply sent through Meta Cloud API",
+      messageEn: `Reply sent to ${msg.to}.`,
+      contact: msg.to,
+      markOutboundOk: true,
+    });
+  }
+
   return { record, provider: provider.name, status, providerId, error };
 }
 
@@ -437,18 +559,34 @@ export async function sendWhatsAppTemplate(msg: OutboundTemplate) {
     status = "failed";
     error = e instanceof Error ? e.message : String(e);
   }
+  const storedBody =
+    status === "failed" && error
+      ? `[template:${msg.templateName}] [ERROR: ${error.slice(0, 500)}]`
+      : `[template:${msg.templateName}]`;
   const record = await prisma.whatsAppMessage.create({
     data: {
       vendorId: msg.vendorId,
       direction: "OUT",
       contact: msg.to,
-      body: `[template:${msg.templateName}]`,
+      body: storedBody,
       status,
       messageId: providerId ?? null,
       orderId: msg.orderId ?? null,
       broadcastId: msg.broadcastId ?? null,
     },
   });
+
+  if (status === "failed" && error) {
+    const explained = explainWhatsAppOrAiError(error, "whatsapp_send");
+    await recordVendorDiagnostic(msg.vendorId, {
+      stage: "whatsapp_send",
+      severity: "error",
+      ...explained,
+      details: error.slice(0, 400),
+      contact: msg.to,
+    });
+  }
+
   return { record, provider: provider.name, status, providerId, error };
 }
 
@@ -472,18 +610,45 @@ export async function sendWhatsApp(msg: OutboundMessage) {
     error = e instanceof Error ? e.message : String(e);
   }
 
+  const storedBody =
+    status === "failed" && error
+      ? `${msg.body}\n[ERROR: ${error.slice(0, 500)}]`
+      : msg.body;
+
   const record = await prisma.whatsAppMessage.create({
     data: {
       vendorId: msg.vendorId,
       direction: "OUT",
       contact: msg.to,
-      body: msg.body,
+      body: storedBody,
       status,
       messageId: providerId ?? null,
       orderId: msg.orderId ?? null,
       broadcastId: msg.broadcastId ?? null,
     },
   });
+
+  if (status === "failed" && error) {
+    const explained = explainWhatsAppOrAiError(error, "whatsapp_send");
+    await recordVendorDiagnostic(msg.vendorId, {
+      stage: "whatsapp_send",
+      severity: "error",
+      ...explained,
+      details: error.slice(0, 400),
+      contact: msg.to,
+    });
+  } else if (status === "sent") {
+    await recordVendorDiagnostic(msg.vendorId, {
+      stage: "whatsapp_send",
+      severity: "ok",
+      title: "Message envoyé via Meta Cloud API",
+      message: `Message texte envoyé avec succès au numéro ${msg.to}.`,
+      titleEn: "Message sent through Meta Cloud API",
+      messageEn: `Text message sent to ${msg.to}.`,
+      contact: msg.to,
+      markOutboundOk: true,
+    });
+  }
 
   return { record, provider: provider.name, status, providerId, error };
 }

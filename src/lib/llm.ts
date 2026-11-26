@@ -204,8 +204,13 @@ const TIMEOUT_MS = 9000;
 type GeminiPart = { text: string } | { inline_data: { mime_type: string; data: string } };
 type GeminiContent = { role: "user" | "model"; parts: GeminiPart[] };
 
-/** Calls Gemini with a fallback model list; returns the text answer or null. */
-async function geminiGenerate(
+type GeminiResult = { text: string | null; modelUsed?: string; error?: string };
+
+/**
+ * Calls Gemini with a fallback model list. Returns the answer, or the reason it
+ * failed (for the WhatsApp diagnostics screen and the vendor alerts).
+ */
+async function geminiGenerateDetailed(
   body: {
     system?: string;
     contents: GeminiContent[];
@@ -215,16 +220,15 @@ async function geminiGenerate(
   },
   vendorGeminiKey?: string,
   timeoutMs = TIMEOUT_MS,
-): Promise<string | null> {
+): Promise<GeminiResult> {
   const key = geminiKey(vendorGeminiKey);
-  if (!key) return null;
+  if (!key) return { text: null, error: "No Gemini API key configured (GEMINI_API_KEY)." };
 
   const candidateModels = [
-    process.env.JAPORA_LLM_MODEL,
-    "gemini-2.5-flash",
-    "gemini-flash-latest",
+    ...new Set([process.env.JAPORA_LLM_MODEL, "gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"]),
   ].filter((m): m is string => Boolean(m && m.trim()));
 
+  let lastError = "";
   for (const modelName of candidateModels) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -245,6 +249,10 @@ async function geminiGenerate(
         signal: ctrl.signal,
       });
       if (!res.ok) {
+        const errBody = await res.text().catch(() => "");
+        lastError = `Gemini ${modelName} HTTP ${res.status}: ${errBody.slice(0, 260)}`;
+        // An invalid key fails the same way on every model: no point trying the others.
+        if (res.status === 400 && errBody.includes("API_KEY_INVALID")) break;
         continue;
       }
       const data = (await res.json()) as {
@@ -254,30 +262,52 @@ async function geminiGenerate(
         ?.map((p) => p.text || "")
         .join("")
         .trim();
-      if (text) return text;
+      if (text) return { text, modelUsed: modelName };
     } catch (e) {
+      lastError = `Gemini ${modelName} network/timeout error: ${e instanceof Error ? e.message : String(e)}`;
       logger.warn("llm.gemini_failed", { model: modelName, error: String(e) });
     } finally {
       clearTimeout(timer);
     }
   }
-  return null;
+  return { text: null, error: lastError || "Gemini returned an empty answer." };
 }
 
-async function callGemini(
-  system: string,
-  user: string,
+/** Calls Gemini with a fallback model list; returns the text answer or null. */
+async function geminiGenerate(
+  body: Parameters<typeof geminiGenerateDetailed>[0],
   vendorGeminiKey?: string,
-  history: ChatTurn[] = [],
+  timeoutMs = TIMEOUT_MS,
 ): Promise<string | null> {
-  const contents: GeminiContent[] = [
+  return (await geminiGenerateDetailed(body, vendorGeminiKey, timeoutMs)).text;
+}
+
+function geminiChat(user: string, history: ChatTurn[] = []): GeminiContent[] {
+  return [
     ...history.map((t) => ({
       role: (t.role === "customer" ? "user" : "model") as "user" | "model",
       parts: [{ text: t.text.slice(0, 600) }],
     })),
     { role: "user", parts: [{ text: user }] },
   ];
-  return geminiGenerate({ system, contents }, vendorGeminiKey);
+}
+
+async function callGeminiDetailed(
+  system: string,
+  user: string,
+  vendorGeminiKey?: string,
+  history: ChatTurn[] = [],
+): Promise<GeminiResult> {
+  return geminiGenerateDetailed({ system, contents: geminiChat(user, history) }, vendorGeminiKey);
+}
+
+/** One Gemini call that also says which model answered or why it failed (WhatsApp diagnostics). */
+export async function callGeminiWithDiagnostics(
+  system: string,
+  user: string,
+  vendorGeminiKey?: string,
+): Promise<GeminiResult> {
+  return callGeminiDetailed(system, user, vendorGeminiKey);
 }
 
 function chatMessages(history: ChatTurn[], user: string) {
@@ -376,7 +406,7 @@ async function callOpenAI(
  * if no provider is configured or the call fails — the caller MUST fall back to
  * the keyword bot in that case.
  */
-export async function generateBotReply(opts: {
+export type BotReplyOptions = {
   shopName: string;
   question: string;
   catalog: CatalogItem[];
@@ -390,8 +420,15 @@ export async function generateBotReply(opts: {
   vendorGeminiKey?: string;
   /** Earlier messages of this WhatsApp conversation, oldest first. */
   history?: ChatTurn[];
-}): Promise<string | null> {
-  if (!isLlmConfigured(opts.vendorGeminiKey)) return null;
+};
+
+/** Like generateBotReply, but also says why no answer came back (for the vendor's diagnostics). */
+export async function generateBotReplyWithDiagnostics(
+  opts: BotReplyOptions,
+): Promise<{ reply: string | null; provider: string; error?: string }> {
+  if (!isLlmConfigured(opts.vendorGeminiKey)) {
+    return { reply: null, provider: "none", error: "No AI key (Gemini/Anthropic/OpenAI) configured." };
+  }
   const history = normalizeHistory(opts.history);
   const system = buildSystemPrompt(opts.shopName, {
     assistantName: opts.assistantName,
@@ -412,8 +449,11 @@ export async function generateBotReply(opts: {
 
   const provider = llmProviderName(opts.vendorGeminiKey);
   let answer: string | null = null;
+  let lastError: string | undefined;
   if (provider === "gemini") {
-    answer = await callGemini(system, user, opts.vendorGeminiKey, history);
+    const g = await callGeminiDetailed(system, user, opts.vendorGeminiKey, history);
+    answer = g.text;
+    lastError = g.error;
   } else if (provider === "anthropic") {
     answer = await callAnthropic(system, user, history);
   } else if (provider === "openai") {
@@ -422,11 +462,22 @@ export async function generateBotReply(opts: {
 
   // Fallback to Gemini if primary failed and Gemini key is available
   if (!answer && provider !== "gemini") {
-    answer = await callGemini(system, user, opts.vendorGeminiKey, history);
+    const g = await callGeminiDetailed(system, user, opts.vendorGeminiKey, history);
+    answer = g.text;
+    lastError = g.error || lastError;
   }
 
   if (answer) logger.info("llm.reply", { provider, shopName: opts.shopName });
-  return answer;
+  return { reply: answer, provider, error: answer ? undefined : lastError };
+}
+
+/**
+ * Generate a grounded answer to an open-ended customer question. Returns null
+ * if no provider is configured or the call fails — the caller MUST fall back to
+ * the keyword bot in that case.
+ */
+export async function generateBotReply(opts: BotReplyOptions): Promise<string | null> {
+  return (await generateBotReplyWithDiagnostics(opts)).reply;
 }
 
 /**

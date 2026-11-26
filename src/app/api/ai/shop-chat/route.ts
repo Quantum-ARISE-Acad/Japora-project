@@ -204,7 +204,7 @@ RÈGLES STRICTES :
     // 4. Try Gemini (gemini-2.5-flash first; JAPORA_LLM_MODEL overrides)
     if (apiKey && waConfig.aiEnabled !== false) {
       const candidateModels = [
-        ...new Set([process.env.JAPORA_LLM_MODEL, "gemini-2.5-flash", "gemini-flash-latest"]),
+        ...new Set([process.env.JAPORA_LLM_MODEL, "gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"]),
       ].filter((m): m is string => Boolean(m && m.trim()));
 
       const contents = [
