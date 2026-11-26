@@ -16,11 +16,12 @@ export default async function BotPage() {
   const locale = await getDashboardLocale(vendor.language);
   const tr = <T = string,>(frVal: T, enVal: T): T => trServer(locale, frVal, enVal);
   const outbound = await prisma.whatsAppMessage.findMany({
-    where: { vendorId: vendor.id, direction: "OUT" },
+    where: { vendorId: vendor.id },
     orderBy: { createdAt: "desc" },
     take: 100,
     select: {
       id: true,
+      direction: true,
       contact: true,
       body: true,
       status: true,

@@ -21,14 +21,15 @@ import { createForUnpaidOrder } from "./receivables";
 import {
   isLlmConfigured,
   isMediaAiConfigured,
-  generateBotReply,
   matchProductsFromImage,
+  generateBotReplyWithDiagnostics,
   reserveLlmCall,
   transcribeAudio,
   type CatalogItem,
   type ChatTurn,
 } from "./llm";
-import { parseWhatsAppAssistantConfig } from "./whatsapp-config";
+import { parseWhatsAppAssistantConfig, explainWhatsAppOrAiError } from "./whatsapp-config";
+import { recordVendorDiagnostic } from "./whatsapp";
 import {
   counterMessage,
   decideOffer,
@@ -676,20 +677,20 @@ async function tryLlmAnswer(opts: {
   customInstructions?: string;
   vendorGeminiKey?: string;
   aiEnabled?: boolean;
-}): Promise<{ reply: string | null; topProducts: CatalogItem[] }> {
+}): Promise<{ reply: string | null; topProducts: CatalogItem[]; llmError?: string }> {
   if (opts.aiEnabled === false) return { reply: null, topProducts: [] };
   if (!isLlmConfigured(opts.vendorGeminiKey) || opts.question.trim().length < 2) {
     return { reply: null, topProducts: [] };
   }
   if (!(await reserveLlmCall(opts.vendorId))) {
-    return { reply: null, topProducts: [] };
+    return { reply: null, topProducts: [], llmError: "Limite quotidienne d'appels IA atteinte." };
   }
   try {
     const catalog = await retrieveForLlm(opts.vendorId, opts.question, opts.currency, 12);
     const history = opts.fromPhone
       ? await conversationHistory(opts.vendorId, opts.fromPhone, opts.question)
       : [];
-    const reply = await generateBotReply({
+    const res = await generateBotReplyWithDiagnostics({
       history,
       shopName: opts.shopName,
       question: opts.question,
@@ -703,10 +704,31 @@ async function tryLlmAnswer(opts: {
       customInstructions: opts.customInstructions,
       vendorGeminiKey: opts.vendorGeminiKey,
     });
-    return { reply, topProducts: catalog.slice(0, 3) };
+    if (!res.reply && res.error) {
+      const explained = explainWhatsAppOrAiError(res.error, "gemini_ai");
+      await recordVendorDiagnostic(opts.vendorId, {
+        stage: "gemini_ai",
+        severity: "warning",
+        title: explained.title,
+        message: explained.message,
+        details: res.error,
+        fixHint: explained.fixHint,
+      });
+    }
+    return { reply: res.reply, topProducts: catalog.slice(0, 3), llmError: res.error };
   } catch (e) {
-    logger.warn("bot.llm_failed", { vendorId: opts.vendorId, error: String(e) });
-    return { reply: null, topProducts: [] };
+    const errStr = e instanceof Error ? e.message : String(e);
+    logger.warn("bot.llm_failed", { vendorId: opts.vendorId, error: errStr });
+    const explained = explainWhatsAppOrAiError(errStr, "gemini_ai");
+    await recordVendorDiagnostic(opts.vendorId, {
+      stage: "gemini_ai",
+      severity: "warning",
+      title: explained.title,
+      message: explained.message,
+      details: errStr,
+      fixHint: explained.fixHint,
+    });
+    return { reply: null, topProducts: [], llmError: errStr };
   }
 }
 

@@ -11,6 +11,8 @@ type Message = {
   status: string;
   messageId: string | null;
   orderId: string | null;
+  /** "IN" for messages received through the webhook, otherwise sent by Japora. */
+  direction?: string;
   createdAt: string;
 };
 
@@ -277,13 +279,27 @@ function MessageReferences({ message }: { message: Message }) {
 function MessageCard({ message }: { message: Message }) {
   const { tr } = usePublicLang();
   const info = statusInfo(message.status);
+  const errMatch = message.body.match(/\[ERROR:\s*([\s\S]+)\]$/);
+  const cleanBody = errMatch ? message.body.replace(errMatch[0], "").trim() : message.body;
+  const errDetail = errMatch ? errMatch[1].trim() : null;
   return (
     <article className="rounded-xl border border-arctic-400/30 p-3 dark:border-arctic-700">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <span className="font-semibold text-arctic-900 dark:text-arctic-100">{message.contact || tr("Numéro inconnu", "Unknown number")}</span>
         <StatusBadge status={message.status} />
       </div>
-      <p className="mt-2 whitespace-pre-wrap break-words text-sm text-arctic-800 dark:text-arctic-100">{message.body}</p>
+      {/* From Seth: show whether the message came in through the webhook, and why a send failed. */}
+      {message.direction === "IN" && (
+        <span className="mt-1 inline-block rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-sky-800">
+          {tr("Reçu (webhook)", "Received (webhook)")}
+        </span>
+      )}
+      <p className="mt-2 whitespace-pre-wrap break-words text-sm text-arctic-800 dark:text-arctic-100">{cleanBody}</p>
+      {errDetail && (
+        <p className="mt-2 rounded border border-red-200 bg-red-50 px-2.5 py-1.5 font-mono text-[11px] text-red-800 whitespace-pre-wrap">
+          {tr("Motif exact de l'échec :", "Exact failure reason:")} {errDetail}
+        </p>
+      )}
       <p className="mt-2 text-xs text-arctic-700 dark:text-slate-300" title={tr(...info.description)}>
         <time dateTime={message.createdAt}>{formatDate(message.createdAt)}</time>
       </p>

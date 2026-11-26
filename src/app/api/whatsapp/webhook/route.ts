@@ -8,6 +8,8 @@ import {
   sendSharedNumberPicker,
   applyStatusUpdate,
   downloadWhatsAppMedia,
+  recordVendorDiagnostic,
+  resolveVendorCloudCredentials,
 } from "@/lib/whatsapp";
 import {
   respondTo,
@@ -20,7 +22,10 @@ import {
 } from "@/lib/bot";
 import { activeHandoff } from "@/lib/handoff";
 import { recordTouchFromText } from "@/lib/campaigns";
-import { parseWhatsAppAssistantConfig } from "@/lib/whatsapp-config";
+import {
+  parseWhatsAppAssistantConfig,
+  explainWhatsAppOrAiError,
+} from "@/lib/whatsapp-config";
 import { digitsOnly } from "@/lib/utils";
 import { publicOrigin } from "@/lib/public-origin";
 import {
@@ -179,7 +184,7 @@ async function routeInbound(
       where: {
         OR: [
           { contact: cleanPhone },
-          { contact: { endsWith: cleanPhone.slice(-8) } },
+          ...(cleanPhone.length >= 8 ? [{ contact: { endsWith: cleanPhone.slice(-8) } }] : []),
         ],
       },
       orderBy: { createdAt: "desc" },
@@ -224,10 +229,17 @@ type MetaMessage = {
   audio?: { id?: string; mime_type?: string; voice?: boolean };
   image?: { id?: string; mime_type?: string; caption?: string };
 };
+type MetaStatusError = {
+  code?: number;
+  title?: string;
+  message?: string;
+  error_data?: { details?: string };
+};
 type MetaStatus = {
   id?: string;
   status?: string;
   recipient_id?: string;
+  errors?: MetaStatusError[];
 };
 type MetaValue = {
   metadata?: { phone_number_id?: string };
@@ -285,6 +297,28 @@ export async function POST(req: NextRequest) {
           if (s.id && s.status) {
             try {
               await applyStatusUpdate(s.id, s.status);
+              if (s.status.toLowerCase() === "failed" && Array.isArray(s.errors) && s.errors.length > 0) {
+                const errObj = s.errors[0];
+                const rawErr = `Code ${errObj.code ?? ""}: ${errObj.title || ""} ${errObj.message || ""} ${errObj.error_data?.details || ""}`.trim();
+                const msgRow = await prisma.whatsAppMessage.findFirst({
+                  where: { messageId: s.id },
+                  select: { vendorId: true, contact: true },
+                });
+                // Only the shop that sent the message is alerted: never guess another shop.
+                const targetVendorId = msgRow?.vendorId;
+                if (targetVendorId) {
+                  const explained = explainWhatsAppOrAiError(rawErr, "whatsapp_status");
+                  await recordVendorDiagnostic(targetVendorId, {
+                    stage: "whatsapp_status",
+                    severity: "error",
+                    title: explained.title,
+                    message: explained.message,
+                    details: rawErr,
+                    fixHint: explained.fixHint,
+                    contact: s.recipient_id || msgRow?.contact,
+                  });
+                }
+              }
             } catch (e) {
               logger.warn("whatsapp.webhook.status_update_failed", { error: String(e) });
             }
@@ -363,6 +397,8 @@ export async function POST(req: NextRequest) {
             from,
             type: m.type,
             vendorId,
+            route: route.kind,
+            phoneNumberId,
             preview: text.slice(0, 80),
           });
 
@@ -395,6 +431,35 @@ export async function POST(req: NextRequest) {
             logger.warn("whatsapp.webhook.touch_failed", { error: String(e) });
           }
 
+          // Check credentials before sending so we can warn if the shop is running in Stub mode
+          const creds = await resolveVendorCloudCredentials(vendorId);
+          if (!creds.token || !creds.phoneNumberId) {
+            const explained = explainWhatsAppOrAiError("MISSING_CREDENTIALS", "whatsapp_send");
+            await recordVendorDiagnostic(vendorId, {
+              stage: "whatsapp_send",
+              severity: "error",
+              title: explained.title,
+              message: explained.message,
+              details: `Message reçu de ${from}: "${text.slice(0, 80)}". Aucun token Meta Cloud API configuré.`,
+              fixHint: explained.fixHint,
+              contact: from,
+              markWebhookReceived: true,
+            });
+          } else {
+            await recordVendorDiagnostic(vendorId, {
+              stage: "system",
+              severity: "ok",
+              title: "Message Webhook WhatsApp reçu",
+              message: `Message entrant reçu de ${from} : "${text.slice(0, 80)}"`,
+              contact: from,
+              markWebhookReceived: true,
+            });
+          }
+
+          // Reply with one consistent pair: the shop's own line (its token + its number),
+          // or Japora's shared number (server token + shared number). Never mix the two.
+          const outboundPhoneNumberId = creds.phoneNumberId;
+
           let responded = false;
           let intent = parseIntent(text).intent;
           try {
@@ -411,20 +476,46 @@ export async function POST(req: NextRequest) {
                   to: from,
                   body: result.reply,
                   buttons: result.buttons.slice(0, 3),
+                  overrideToken: creds.token,
+                  overridePhoneNumberId: outboundPhoneNumberId,
                 });
                 if (interactiveRes.status === "failed") {
-                  await sendWhatsApp({ vendorId, to: from, body: result.reply });
+                  const fallbackRes = await sendWhatsApp({
+                    vendorId,
+                    to: from,
+                    body: result.reply,
+                    overrideToken: creds.token,
+                    overridePhoneNumberId: outboundPhoneNumberId,
+                  });
+                  responded = fallbackRes.status === "sent";
+                } else {
+                  responded = interactiveRes.status === "sent";
                 }
               } else {
-                await sendWhatsApp({ vendorId, to: from, body: result.reply });
+                const sendRes = await sendWhatsApp({
+                  vendorId,
+                  to: from,
+                  body: result.reply,
+                  overrideToken: creds.token,
+                  overridePhoneNumberId: outboundPhoneNumberId,
+                });
+                responded = sendRes.status === "sent";
               }
-              responded = true;
             }
           } catch (e) {
+            const errStr = e instanceof Error ? e.message : String(e);
             logger.error("whatsapp.webhook.respond_failed", {
               vendorId,
               from,
-              error: String(e),
+              error: errStr,
+            });
+            await recordVendorDiagnostic(vendorId, {
+              stage: "system",
+              severity: "error",
+              title: "Erreur interne lors de la génération de la réponse automatique",
+              message: errStr.slice(0, 260),
+              fixHint: "Vérifiez les journaux dans Dashboard → Assistant WhatsApp.",
+              contact: from,
             });
           }
 
